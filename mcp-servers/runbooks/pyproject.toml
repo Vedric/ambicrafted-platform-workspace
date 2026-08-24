@@ -1,0 +1,19 @@
+[project]
+name = "runbooks-mcp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Védric EBOA EBOLO", email = "vedric@icloud.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "mcp[cli]>=2,<3",
+]
+
+[project.scripts]
+runbooks-mcp = "runbooks_mcp:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"

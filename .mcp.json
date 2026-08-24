@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "runbooks": {
+      "command": "uv",
+      "args": [
+        "run", "--directory",
+        "/home/vedric/platform/workspace/mcp-servers/runbooks",
+        "server.py"
+      ],
+      "env": {
+        "RUNBOOK_DIR": "/home/vedric/platform/runbooks"
+      }
+    }
+  }
+}
