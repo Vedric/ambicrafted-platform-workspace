@@ -8,7 +8,7 @@
         "server.py"
       ],
       "env": {
-        "RUNBOOK_DIR": "/home/vedric/platform/runbooks"
+        "RUNBOOK_DIR": "/home/vedric/platform/workspace/runbooks"
       }
     }
   }
