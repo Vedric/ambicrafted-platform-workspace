@@ -13,7 +13,7 @@ MOTIFS=(
 )
 
 for m in "${MOTIFS[@]}"; do
-  if echo "$CONTENU" | grep -qE "$m"; then
+  if echo "$CONTENU" | grep -qE -- "$m"; then
     echo '{"decision":"block","reason":"Secret détecté. Utiliser une variable d environnement."}'
     exit 0
   fi
