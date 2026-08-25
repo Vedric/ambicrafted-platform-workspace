@@ -1,0 +1,38 @@
+[project]
+name = "sre-agent"
+version = "0.1.0"
+description = "Agent SRE borné : analyse une alerte, cite ses runbooks, ne remédie jamais."
+readme = "README.md"
+authors = [
+    { name = "Védric EBOA EBOLO", email = "vedric@icloud.com" }
+]
+requires-python = ">=3.14"
+
+# Dépendances bornées : un plancher pour l'API utilisée, un plafond au
+# majeur suivant. Aucun framework d'agent : la boucle est dans ce dépôt,
+# c'est le sujet du livrable.
+dependencies = [
+    "httpx>=0.28,<0.29",
+    "mcp>=2,<3",
+    "pydantic>=2.11,<3",
+    "opentelemetry-sdk>=1.30,<2",
+    "opentelemetry-exporter-otlp-proto-http>=1.30,<2",
+]
+
+[project.scripts]
+sre-agent = "sre_agent.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9,<10",
+]
