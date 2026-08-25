@@ -1,0 +1,35 @@
+- description: "Detection d une policy IAM trop permissive"
+  vars:
+    tache: |
+      Analyse ce code Terraform et identifie les problemes de securite.
+
+      resource "google_project_iam_member" "app" {
+        project = var.project_id
+        role    = "roles/editor"
+        member  = "serviceAccount:REDACTED"
+      }
+  assert:
+    - type: contains
+      value: "roles/editor"
+    # promptfoo compile la valeur avec new RegExp(value) SANS drapeau : le
+    # (?i) en ligne est rejete par V8 ("Invalid group") et l assertion tombait
+    # en erreur pour TOUS les modeles, quel que soit le contenu. Insensibilite
+    # a la casse rendue explicite par classes de caracteres (portable), et
+    # tolerance aux accents en coupant avant la voyelle accentuee (privil,
+    # personnalis) ou en listant les variantes (r[oô]le).
+    - type: regex
+      value: '([Mm][Oo][Ii][Nn][Dd][Rr][Ee]\s+[Pp][Rr][Ii][Vv][Ii][Ll]|[Ll][Ee][Aa][Ss][Tt][\s-][Pp][Rr][Ii][Vv][Ii][Ll][Ee][Gg][Ee]|[Rr][oôOÔ][Ll][Ee][Ss]?\s+[Pp][Ee][Rr][Ss][Oo][Nn][Nn][Aa][Ll][Ii][Ss]|[Cc][Uu][Ss][Tt][Oo][Mm]\s+[Rr][Oo][Ll][Ee]|roles/[A-Za-z]+\.[A-Za-z])'
+    # L ancien not-contains-any etait faux dans les DEUX sens : "aucun probleme"
+    # sans accent ne matchait jamais "aucun probleme" ecrit correctement (garde
+    # morte), et le simple substring "conforme" se declenchait sur "n est pas
+    # conforme" — donc echouait une BONNE reponse. Reecrit en not-regex :
+    # tolerant aux accents, et immunise contre la negation par lookbehind.
+    - type: not-regex
+      value: '([Aa][Uu][Cc][Uu][Nn]\s+([Pp][Rr][Oo][Bb][Ll][EeÈè][Mm][Ee]|[Rr][Ii][Ss][Qq][Uu][Ee]|[Ss][Oo][Uu][Cc][Ii])|[Rr][Ii][Ee][Nn]\s+[AaÀà]\s+[Ss][Ii][Gg][Nn][Aa][Ll][Ee][Rr]|[Pp][Aa][Ss]\s+[Dd][Ee]\s+[Pp][Rr][Oo][Bb][Ll][EeÈè][Mm][Ee]|(?<![Nn][Oo][Nn]\s)(?<![Pp][Aa][Ss]\s)[Cc][Oo][Nn][Ff][Oo][Rr][Mm][Ee][Ss]?\b)'
+    - type: llm-rubric
+      value: |
+        Noter 1 si les trois points sont presents, 0 sinon :
+        1. Identifie roles/editor comme excessivement permissif
+        2. Explique concretement ce que ce role autorise de trop
+        3. Propose un role alternatif nomme ou un role personnalise
+      threshold: 1

@@ -1,0 +1,34 @@
+description: Local contre frontière sur tâches SRE réelles
+
+providers:
+  - id: openai:chat:local
+    label: local-27b
+    config:
+      # Qwen3 a le mode reflexion actif par defaut : il consomme tout le
+      # budget de tokens et laisse "content" vide. promptfoo affiche alors
+      # le reasoning_content prefixe "Thinking:". think=false le desactive.
+      # passthrough = seul canal promptfoo pour un param hors spec OpenAI.
+      passthrough:
+        think: false
+      # promptfoo impose max_tokens=1024 par defaut : les deux modeles
+      # finissaient en finish_reason="length", coupes en plein milieu, ce qui
+      # pouvait faire echouer le juge sur un point absent parce que tronque,
+      # pas parce que non traite. On mesure la reponse, pas la troncature.
+      max_tokens: 4096
+  - id: openai:chat:balanced
+    label: frontiere-balanced
+    config:
+      max_tokens: 4096
+
+defaultTest:
+  options:
+    provider: openai:chat:balanced
+  assert:
+    - type: latency
+      threshold: 180000
+
+prompts:
+  - "{{tache}}"
+
+tests:
+  - file://cas/01-iam-policy.yaml

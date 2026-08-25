@@ -6,3 +6,10 @@
 !CLAUDE.md
 !.claude/
 .claude/settings.local.json
+
+# Dépendances et artefacts
+node_modules/
+**/node_modules/
+.promptfoo/
+evals/output/
+*.bak
