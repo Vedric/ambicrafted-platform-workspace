@@ -41,6 +41,7 @@ import json
 import operator
 import os
 import sqlite3
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, TypedDict
 
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
@@ -81,6 +82,11 @@ CHEMIN_CHECKPOINTS = os.environ.get(
     "SRE_CHECKPOINT_DB",
     os.path.expanduser("~/.local/state/sre-agent/graphe.sqlite"),
 )
+
+# Rétention des fils, en jours. 14 : la durée pendant laquelle Tempo garde
+# les traces (block_retention, 336 h) — un fil et sa trace expirent
+# ensemble — et une rotation d'astreinte. Voir ADR 0004, Conséquences.
+RETENTION_JOURS = int(os.environ.get("SRE_RETENTION_JOURS", "14"))
 
 
 # --- État -----------------------------------------------------------------
@@ -715,6 +721,91 @@ def etat(thread_id: str, chemin_db: str = CHEMIN_CHECKPOINTS) -> dict[str, Any]:
         "en_attente": interruptions,
         "valeurs": instantane.values,
     }
+
+
+def purger(
+    avant_jours: int = RETENTION_JOURS,
+    chemin_db: str = CHEMIN_CHECKPOINTS,
+    *,
+    simulation: bool = False,
+    maintenant: datetime | None = None,
+) -> dict[str, Any]:
+    """Supprime les fils sans activité depuis plus de `avant_jours` jours.
+
+    L'âge d'un fil est celui de son dernier checkpoint, tel que le
+    checkpointer l'a horodaté (`created_at`, la même source que `etat`).
+    Un fil en pause sur la porte humaine vieillit comme les autres et
+    est purgé comme les autres : une approbation qui n'est pas venue en
+    deux semaines ne viendra plus, l'alerte a été traitée autrement. Le
+    bilan le signale (`en_pause`) pour que l'opérateur le voie.
+
+    Supprimer les lignes ne suffit pas : SQLite garde les pages libérées
+    dans le fichier, et le journal WAL en porte une copie. D'où VACUUM
+    puis troncature du WAL, sans quoi la donnée dérivée d'alerte survit
+    à sa « purge ».
+    """
+    if avant_jours < 0:
+        raise ValueError("avant_jours doit être positif ou nul.")
+    maintenant = maintenant or datetime.now(UTC)
+    seuil = maintenant - timedelta(days=avant_jours)
+    bilan: dict[str, Any] = {
+        "fichier": chemin_db,
+        "seuil": seuil.isoformat(),
+        "simulation": simulation,
+        "purges": [],
+        "conserves": 0,
+        "octets_avant": 0,
+        "octets_apres": 0,
+    }
+    if not os.path.exists(chemin_db):
+        return bilan  # rien à purger, et surtout ne pas créer le fichier
+
+    bilan["octets_avant"] = _empreinte(chemin_db)
+    application = compiler(chemin_db)
+    checkpointer = application.checkpointer
+    checkpointer.setup()
+    connexion = checkpointer.conn
+    fils = [
+        fil
+        for (fil,) in connexion.execute(
+            "SELECT DISTINCT thread_id FROM checkpoints ORDER BY thread_id"
+        )
+    ]
+    for fil in fils:
+        instantane = application.get_state({"configurable": {"thread_id": fil}})
+        derniere = (
+            datetime.fromisoformat(instantane.created_at) if instantane.created_at else None
+        )
+        if derniere is not None and derniere >= seuil:
+            bilan["conserves"] += 1
+            continue
+        bilan["purges"].append(
+            {
+                "thread_id": fil,
+                "derniere_activite": derniere.isoformat() if derniere else None,
+                "en_pause": bool(instantane.next),
+            }
+        )
+        if not simulation:
+            checkpointer.delete_thread(fil)
+
+    if not simulation and bilan["purges"]:
+        connexion.execute("VACUUM")
+        connexion.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    connexion.close()
+    bilan["octets_apres"] = _empreinte(chemin_db)
+    return bilan
+
+
+def _empreinte(chemin_db: str) -> int:
+    """Octets réellement occupés : le fichier et son journal WAL.
+
+    En mode WAL, le fichier principal peut ne faire qu'une page alors que
+    tout l'état vit dans `-wal` ; mesurer l'un sans l'autre ment.
+    """
+    return sum(
+        os.path.getsize(c) for c in (chemin_db, chemin_db + "-wal") if os.path.exists(c)
+    )
 
 
 def _finaliser(span: Any, resultat: dict[str, Any], id_trace: str | None) -> Rapport:

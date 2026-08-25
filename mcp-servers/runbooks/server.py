@@ -15,7 +15,10 @@ from mcp.server import MCPServer
 
 mcp = MCPServer("runbooks")
 
-RUNBOOK_DIR = Path(os.environ.get("RUNBOOK_DIR", Path.home() / "platform" / "runbooks")).resolve()
+# Défaut : <racine du dépôt>/runbooks, dérivé de l'emplacement du fichier
+# (même mécanisme qu'indexer.py) ; RUNBOOK_DIR reste prioritaire.
+RACINE_DEPOT = Path(__file__).resolve().parents[2]
+RUNBOOK_DIR = Path(os.environ.get("RUNBOOK_DIR", RACINE_DEPOT / "runbooks")).resolve()
 MAX_RESULTATS = 50
 MAX_TAILLE = 200_000  # octets, garde-fou contre l'épuisement de contexte
 MAX_K = 20            # plafond de fragments sémantiques par appel

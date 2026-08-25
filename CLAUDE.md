@@ -19,6 +19,9 @@ Travailler exclusivement dans ~/, jamais dans /mnt/c (I/O très lentes).
 4. Tout secret dans .env chargé par direnv. Aucun secret en dur, même en exemple.
 5. Toute décision d'architecture donne lieu à un ADR dans docs/adr/.
 6. Conventional Commits.
+7. Toute image de conteneur et toute dépendance est épinglée. Jamais un tag
+   mouvant (:latest, main-stable). Épingler ce qui tourne, vérifié sur
+   l'instance en service, pas ce que le registre propose sous un nom voisin.
 
 ## Commandes utiles
 - Passerelle : cd ~/platform/gateway && docker compose ps / logs litellm

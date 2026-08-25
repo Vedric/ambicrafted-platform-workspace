@@ -9,6 +9,7 @@ Le cycle de vie diffère sur un point, et c'est le point du portage :
     sre-agent-graph "alerte..."                 # s'arrête sur la porte
     sre-agent-graph --etat --thread-id ID       # lit l'état persistant
     sre-agent-graph --reprendre oui --thread-id ID
+    sre-agent-graph --purger [--avant JOURS] [--simulation]   # rétention
 
 Entre la première et la troisième commande, le processus peut mourir,
 la machine peut redémarrer. L'état est dans SQLite, pas dans la mémoire
@@ -70,8 +71,45 @@ def main(argv: list[str] | None = None) -> int:
         default=graphe.CHEMIN_CHECKPOINTS,
         help="Fichier SQLite des checkpoints.",
     )
+    analyseur.add_argument(
+        "--purger",
+        action="store_true",
+        help=(
+            "Supprime les fils sans activité depuis plus de --avant jours, "
+            "puis compacte le fichier. N'exécute rien d'autre."
+        ),
+    )
+    analyseur.add_argument(
+        "--avant",
+        metavar="JOURS",
+        type=int,
+        default=graphe.RETENTION_JOURS,
+        help=(
+            "Avec --purger : ancienneté au-delà de laquelle un fil est purgé "
+            f"(défaut : {graphe.RETENTION_JOURS}, variable SRE_RETENTION_JOURS)."
+        ),
+    )
+    analyseur.add_argument(
+        "--simulation",
+        action="store_true",
+        help="Avec --purger : liste ce qui serait supprimé, ne supprime rien.",
+    )
     analyseur.add_argument("--json", action="store_true", help="Sortie JSON.")
     arguments = analyseur.parse_args(argv)
+
+    if arguments.simulation and not arguments.purger:
+        analyseur.error("--simulation n'a de sens qu'avec --purger.")
+    if arguments.purger:
+        if arguments.avant < 0:
+            analyseur.error("--avant doit être positif ou nul.")
+        bilan = graphe.purger(
+            arguments.avant, arguments.checkpoints, simulation=arguments.simulation
+        )
+        if arguments.json:
+            print(json.dumps(bilan, ensure_ascii=False, indent=2))
+        else:
+            print(rendre_purge(bilan))
+        return 0
 
     if arguments.etat:
         if not arguments.thread_id:
@@ -167,6 +205,23 @@ def rendre_graphe(rapport: Rapport, thread_id: str, chemin_db: str) -> str:
     elif rapport.statut == "complet":
         entete = ["APPROUVÉ PAR L'HUMAIN", ""]
     return "\n".join([*entete, corps, "", f"THREAD : {thread_id}"]).strip()
+
+
+def rendre_purge(bilan: dict) -> str:
+    """Rendu humain du bilan de purge."""
+    titre = "À PURGER (simulation, rien n'est supprimé)" if bilan["simulation"] else "PURGÉ"
+    lignes = [
+        f"{titre} : {len(bilan['purges'])} fil(s) sans activité depuis le "
+        f"{bilan['seuil'][:10]} ; {bilan['conserves']} conservé(s)"
+    ]
+    for p in bilan["purges"]:
+        etat = "en pause sur la porte humaine" if p["en_pause"] else "terminé"
+        quand = (p["derniere_activite"] or "date inconnue")[:16]
+        lignes.append(f"  · {p['thread_id']}  dernière activité {quand}  ({etat})")
+    lignes.append(
+        f"FICHIER : {bilan['fichier']} — {bilan['octets_avant']} → {bilan['octets_apres']} octets"
+    )
+    return "\n".join(lignes)
 
 
 if __name__ == "__main__":

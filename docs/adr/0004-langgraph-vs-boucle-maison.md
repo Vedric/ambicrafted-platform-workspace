@@ -370,9 +370,10 @@ Coûts et limites acceptés :
 - 23 paquets, dont `langchain-core` et `langsmith`, présents et non
   employés. À réexaminer à chaque montée de version majeure de
   `langgraph`, bornée à `>=1.2,<2`.
-- Un fichier d'état contenant de la donnée dérivée d'alerte, sans
-  politique de purge à ce jour. À décider avant tout passage en
-  multi-machine.
+- Rétention des checkpoints : `sre-agent-graph --purger --avant N` supprime
+  les fils sans activité depuis N jours (défaut 14, la rétention Tempo de
+  336 h : un fil et sa trace expirent ensemble) puis VACUUM et troncature
+  du WAL. Lancement manuel ou cron ; rien ne le déclenche automatiquement.
 - Deux implémentations à maintenir. `graphe.py` importe d'`agent.py` ses
   plafonds de tokens et deux fonctions de décodage : la divergence de
   réglage est empêchée par construction, pas par discipline.

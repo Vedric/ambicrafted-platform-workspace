@@ -13,10 +13,13 @@ de production, exécuté tel quel.
 from __future__ import annotations
 
 import json
+import os
+import sqlite3
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from sre_agent import config, graphe, llm, outils
+from sre_agent import cli_graphe, config, graphe, llm, outils
 from sre_agent.budget import Budget
 from sre_agent.config import Classification
 from sre_agent.llm import ReponseLLM
@@ -393,3 +396,86 @@ def test_le_chemin_parcouru_est_lisible_dans_l_etat(monkeypatch, db):
         "raisonnement",
         "diagnostic",
     ]
+
+
+# --- La purge : rétention de la donnée dérivée ---------------------------
+
+
+def _fil_en_pause(monkeypatch, db: str, thread_id: str) -> None:
+    scenariser(
+        monkeypatch,
+        [
+            reponse(EXTRACTION),
+            reponse(TRI),
+            reponse(appels_outils=[appel_outil("semantic_search", "c1")]),
+            reponse(DIAGNOSTIC),
+        ],
+    )
+    rapport = graphe.demarrer("PostgreSQL: too many clients already", thread_id, db)
+    assert rapport.statut == "en_attente_humain"
+
+
+def test_la_purge_conserve_un_fil_plus_recent_que_le_seuil(monkeypatch, db):
+    """Un fil d'aujourd'hui survit à une rétention de 14 jours, même en pause."""
+    _fil_en_pause(monkeypatch, db, "t-recent")
+
+    bilan = graphe.purger(14, db)
+
+    assert bilan["purges"] == []
+    assert bilan["conserves"] == 1
+    assert graphe.etat("t-recent", db)["existe"]
+
+
+def test_la_simulation_liste_sans_supprimer(monkeypatch, db):
+    _fil_en_pause(monkeypatch, db, "t-sim")
+    dans_quinze_jours = datetime.now(UTC) + timedelta(days=15)
+
+    bilan = graphe.purger(14, db, simulation=True, maintenant=dans_quinze_jours)
+
+    assert [p["thread_id"] for p in bilan["purges"]] == ["t-sim"]
+    assert bilan["purges"][0]["en_pause"] is True  # signalé, pas épargné
+    assert graphe.etat("t-sim", db)["existe"]
+
+
+def test_la_purge_supprime_le_fil_ancien_et_compacte_le_fichier(monkeypatch, db):
+    """Après purge, ni ligne, ni page libre, ni WAL : la donnée est partie."""
+    _fil_en_pause(monkeypatch, db, "t-vieux")
+    dans_quinze_jours = datetime.now(UTC) + timedelta(days=15)
+
+    bilan = graphe.purger(14, db, maintenant=dans_quinze_jours)
+
+    assert [p["thread_id"] for p in bilan["purges"]] == ["t-vieux"]
+    assert bilan["conserves"] == 0
+    assert bilan["octets_apres"] <= bilan["octets_avant"]
+    if os.path.exists(db + "-wal"):
+        assert os.path.getsize(db + "-wal") == 0
+    connexion = sqlite3.connect(db)
+    assert connexion.execute("SELECT count(*) FROM checkpoints").fetchone()[0] == 0
+    assert connexion.execute("SELECT count(*) FROM writes").fetchone()[0] == 0
+    assert connexion.execute("PRAGMA freelist_count").fetchone()[0] == 0
+    connexion.close()
+    assert not graphe.etat("t-vieux", db)["existe"]
+
+
+def test_la_purge_ne_cree_pas_le_fichier(tmp_path):
+    absent = str(tmp_path / "jamais-cree.sqlite")
+    bilan = graphe.purger(14, absent)
+    assert bilan["purges"] == [] and bilan["conserves"] == 0
+    assert not os.path.exists(absent)
+
+
+def test_le_cli_purge_a_zero_jour(monkeypatch, db, capsys):
+    _fil_en_pause(monkeypatch, db, "t-cli")
+
+    code = cli_graphe.main(["--purger", "--avant", "0", "--checkpoints", db, "--json"])
+
+    assert code == 0
+    bilan = json.loads(capsys.readouterr().out)
+    assert [p["thread_id"] for p in bilan["purges"]] == ["t-cli"]
+    assert not graphe.etat("t-cli", db)["existe"]
+
+
+def test_le_cli_refuse_simulation_sans_purger(db):
+    with pytest.raises(SystemExit) as sortie:
+        cli_graphe.main(["--simulation", "--checkpoints", db, "alerte"])
+    assert sortie.value.code == 2
