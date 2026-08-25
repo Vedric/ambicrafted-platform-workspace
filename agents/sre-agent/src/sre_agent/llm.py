@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
+from opentelemetry import propagate
 from opentelemetry.trace import SpanKind, Status, StatusCode
 
 from . import config, tracage
@@ -135,14 +136,22 @@ def appeler_llm(
         span.set_attribute("gen_ai.request.max_tokens", max_tokens)
         span.set_attribute("gen_ai.request.temperature", temperature)
 
+        entetes = {
+            # --- Barrière 2 : clé restreinte pour le confidentiel
+            "Authorization": f"Bearer {config.cle(classification)}",
+            "Content-Type": "application/json",
+        }
+        # Contexte de trace W3C (traceparent) : la passerelle rattache ses
+        # propres spans sous cette span llm.*, et un appel LLM n'est plus
+        # deux traces disjointes (ADR 0005). Injecté ici, donc après la
+        # barrière 1 : une charge refusée n'a jamais d'en-tête construit.
+        # Sans span active (traçage coupé), le propagateur n'écrit rien.
+        propagate.inject(entetes)
+
         try:
             reponse = httpx.post(
                 f"{config.LITELLM_BASE_URL.rstrip('/')}/chat/completions",
-                headers={
-                    # --- Barrière 2 : clé restreinte pour le confidentiel
-                    "Authorization": f"Bearer {config.cle(classification)}",
-                    "Content-Type": "application/json",
-                },
+                headers=entetes,
                 json=corps,
                 timeout=config.TIMEOUT_LLM_S,
             )
