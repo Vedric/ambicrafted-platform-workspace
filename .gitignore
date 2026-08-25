@@ -8,6 +8,8 @@
 .claude/settings.local.json
 
 # Dépendances et artefacts
+__pycache__/
+*.pyc
 node_modules/
 **/node_modules/
 .promptfoo/
