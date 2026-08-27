@@ -1,7 +1,8 @@
 # ADR 0007 : un secret fuit par la sortie d'une commande, pas seulement par un fichier
 
 Statut : accepté
-Date : 2026-08-27
+Date : 2026-08-27 (complété le même jour : hook `Bash`, retour
+d'expérience de la rotation)
 
 ## Contexte : l'incident
 
@@ -80,20 +81,53 @@ le même contexte :
    ne se purge pas de façon fiable. La procédure de rotation, avec ses
    deux pièges (Postgres et Grafana ne relisent pas `.env` après la
    première initialisation), est dans `gateway/README.md`.
-5. **Extension du hook au matcher `Bash`** : proposée, en attente de
-   décision. Elle peut bloquer une commande dont le **texte** contient
-   un secret ou dont la **forme** est un afficheur connu de `.env`
-   (`cat .env`, `compose config` sans `--quiet`, `docker inspect`,
-   `printenv`). Elle ne peut pas voir la sortie, ni ce qui passe par une
-   variable, une substitution, un script ou un chemin indirect. C'est un
-   garde-fou contre l'inattention, pas une frontière de sécurité.
+5. **Extension du hook au matcher `Bash`, version « littéraux
+   seulement »** (décidé le 2026-08-27). Un second bloc `PreToolUse`
+   avec le matcher `Bash` appelle le même `block-secrets.sh`, qui lit
+   `.tool_input.command` en plus de `content` / `new_string`, avec les
+   **motifs existants** (préfixes `sk-ant-`, `sk-master-`, `sk-proj-`,
+   `AKIA`, `ghp_`, `glpat-`, en-tête de clé privée) et **rien d'autre**.
+   Il bloque une commande dont le texte porte une valeur en clair
+   (`sed -i "s|…|CLE=sk-…|" .env`, `curl -H "x-api-key: sk-…"`) et
+   laisse passer une commande qui charge ou vérifie sans afficher
+   (`sed -nE 's/^NOM=//p' .env`, `${v:0:12}`). Les tests, dans les deux
+   sens, sont dans `.claude/hooks/test-block-secrets.sh` ; ils
+   assemblent leurs fausses clés à l'exécution, précisément parce qu'un
+   littéral dans le fichier de test déclencherait le hook.
+
+   La famille « formes afficheuses » (`cat .env`, `compose config` sans
+   `--quiet`, `docker inspect`, `printenv`…) envisagée dans la première
+   version de cet ADR est **écartée**. C'est une liste noire de formes
+   de commande, dont la conception même a montré qu'elle se contourne
+   de six manières sans la moindre intention : une variable
+   (`f=.env; cat $f`), une substitution (`cat $(echo .env)`), un glob
+   (`cat .en?`), un autre interpréteur
+   (`python -c 'print(open(".env").read())'`), une copie intermédiaire
+   (`cp .env /tmp/x; cat /tmp/x`), un outil non listé (`awk`, `tail`,
+   `less`, `bat`). Son coût réel n'est pas l'entretien de la liste,
+   c'est le **faux sentiment de frontière** : une fois en place, on
+   cesse de se demander si la commande va afficher, parce que « le hook
+   l'aurait arrêtée ». Un garde-fou auquel on fait confiance à tort est
+   pire qu'un garde-fou absent, qui laisse la vigilance intacte. Le hook
+   retenu reste donc ce qu'il est honnêtement : un filet contre
+   l'inattention sur un cas net (une valeur collée en clair dans une
+   commande), pas une frontière de sécurité.
 
 ## Ce que cela ne résout pas
 
-- Un `PreToolUse` voit la commande, pas son résultat ; un `PostToolUse`
-  voit le résultat après qu'il est entré dans le contexte. Aucun hook
-  n'empêche une fuite par la sortie ; il ne peut qu'interdire des formes
-  de commande connues, et toute indirection les contourne.
+- **La limite structurelle, qui compte plus que le hook lui-même** : un
+  `PreToolUse` voit la commande, jamais sa sortie. Le canal de fuite
+  réel de l'incident, **une valeur qui apparaît dans un `tool_result`**,
+  n'est **pas couvrable à ce niveau**. Le hook retenu n'aurait arrêté
+  aucune des fuites de la table ci-dessus : `cat .env`,
+  `compose config`, `docker inspect`, `printenv` ont un texte de
+  commande qui ne contient aucun secret ; le secret est dans ce qu'ils
+  renvoient. Un `PostToolUse` voit la sortie, mais après qu'elle est
+  entrée dans le contexte, et sans pouvoir la réécrire. Aucun hook
+  n'empêche donc une fuite par la sortie. Ce qui protège, c'est la
+  règle 8 appliquée par l'agent et par l'humain : ne jamais produire une
+  commande dont la sortie **peut** contenir une valeur, et juger cela
+  avant de la lancer, pas après.
 - `deny Read(.env)` reste utile (il ferme l'outil le plus direct) mais
   ne protège que contre l'outil `Read`. Ne pas le lire comme « l'agent
   ne peut pas voir `.env` ».
@@ -101,6 +135,41 @@ le même contexte :
   besoin** d'apparaître dans une session : préparée hors session, testée
   par ses effets (une connexion qui réussit, un code HTTP), jamais par
   sa lecture.
+
+## Retour d'expérience : la rotation
+
+La rotation de `ANTHROPIC_API_KEY` a coûté plus cher que l'incident qui
+l'a déclenchée, pour une raison de méthode. Trois clés ont été créées et
+révoquées dans la console en moins d'une heure, dans l'urgence, pendant
+que `.env` était mis à jour en parallèle. Résultat : `.env` a fini par
+contenir une clé **déjà révoquée** (finissant par `NAAA`, absente de la
+liste des clés actives de la console), alors que rien localement ne le
+laissait voir : longueur correcte, préfixe correct, conteneur recréé.
+Le symptôme, une erreur d'authentification sur l'alias `fast`, a
+d'abord été cherché du côté de la passerelle (config, recréation du
+conteneur) avant que la comparaison avec la console ne montre que la
+clé était simplement morte. Le diagnostic a coûté plus que la rotation.
+
+Ce que la vérification par longueur et préfixe ne dit pas : qu'une clé
+est **valide**. Elle prouve seulement que la valeur a changé. Seul un
+appel bout en bout, une requête qui exerce ce secret et revient en 200,
+prouve que la valeur en place est celle qui vit côté fournisseur.
+
+Recommandation, reprise dans la procédure de `gateway/README.md` :
+
+1. **Une rotation à la fois.** Un seul secret, une seule nouvelle
+   valeur, créée une seule fois.
+2. **Vérifiée bout en bout avant la suivante** : `.env` mis à jour,
+   `docker compose up -d`, puis un appel réel qui exerce ce secret
+   (clé Anthropic : une complétion sur `fast` ; master key :
+   `/v1/models` ; Postgres : `/health/readiness` → `"db": "connected"`).
+   Tant que cet appel n'a pas répondu, on ne touche à rien d'autre.
+3. **Révoquer l'ancienne valeur après ce succès seulement**, jamais au
+   moment de créer la nouvelle. Quelques minutes de chevauchement
+   coûtent moins qu'une clé morte dans `.env`.
+4. Si une rotation échoue, **une seule** nouvelle tentative, même
+   protocole ; pas de rafale de clés dans la console. Chaque clé créée
+   « au cas où » est une clé de plus dont on ne sait plus si elle vit.
 
 ## Alternatives écartées
 
@@ -114,3 +183,6 @@ le même contexte :
   `.env` par `sed` pour charger des variables. Une interdiction en bloc
   forcerait des contournements, qui sont précisément ce qu'on veut
   éviter. On interdit les formes qui affichent, pas celles qui chargent.
+- **Liste noire de « formes afficheuses » dans le hook `Bash`** : voir
+  la décision 5. Contournable par toute indirection, et son coût réel
+  est de faire croire à une frontière qui n'existe pas.

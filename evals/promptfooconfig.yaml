@@ -1,9 +1,16 @@
 description: Local contre frontière sur tâches SRE réelles
 
+# Authentification en moindre privilège : chaque fournisseur (juge compris)
+# prend la clé virtuelle ORCHESTRATOR_KEY et l'URL de la passerelle dans
+# l'environnement chargé par direnv depuis le .env du workspace. Aucun
+# export manuel, et la master key LiteLLM n'est jamais utilisée ici : sa
+# rotation n'a rien à propager (ADR 0007). Voir README.md.
 providers:
   - id: openai:chat:local
     label: local-27b
     config:
+      apiKeyEnvar: ORCHESTRATOR_KEY
+      apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"
       # Qwen3 a le mode reflexion actif par defaut : il consomme tout le
       # budget de tokens et laisse "content" vide. promptfoo affiche alors
       # le reasoning_content prefixe "Thinking:". think=false le desactive.
@@ -18,11 +25,20 @@ providers:
   - id: openai:chat:balanced
     label: frontiere-balanced
     config:
+      apiKeyEnvar: ORCHESTRATOR_KEY
+      apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"
       max_tokens: 4096
 
 defaultTest:
   options:
-    provider: openai:chat:balanced
+    # Juge des assertions llm-rubric : même clé, même passerelle. Un id nu
+    # ici créerait un fournisseur sans config, qui retomberait sur
+    # OPENAI_API_KEY.
+    provider:
+      id: openai:chat:balanced
+      config:
+        apiKeyEnvar: ORCHESTRATOR_KEY
+        apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"
   assert:
     - type: latency
       threshold: 180000

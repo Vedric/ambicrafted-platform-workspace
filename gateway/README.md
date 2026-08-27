@@ -186,6 +186,20 @@ session d'agent, ADR 0007), dans cet ordre :
 | `POSTGRES_PASSWORD` | catalogue PostgreSQL (volume `pgdata`), lu à la 1re init seulement | 1) `ALTER USER litellm WITH PASSWORD '…';` passé **sur stdin** de `docker compose exec -T postgres psql -U litellm -d litellm -q` ; 2) remplacer `POSTGRES_PASSWORD` **et** le mot de passe en clair dans `DATABASE_URL` (compose n'interpole pas un `${VAR}` à l'intérieur d'une valeur du `.env`) ; 3) `docker compose up -d` |
 | `ANTHROPIC_API_KEY` | console Anthropic | révoquer et recréer côté console, remplacer, `docker compose up -d` |
 
+Méthode (retour d'expérience de l'ADR 0007 : trois clés Anthropic créées
+et révoquées en une heure ont laissé une clé morte dans `.env`, et le
+diagnostic a coûté plus que la rotation) :
+
+- **une rotation à la fois**, vérifiée **bout en bout** avant la
+  suivante : `.env` mis à jour, `docker compose up -d`, puis un appel
+  réel qui exerce ce secret (clé Anthropic : une complétion sur `fast` ;
+  master key : `/v1/models` ; Postgres : `/health/readiness` →
+  `"db": "connected"`). Longueur et préfixe prouvent que la valeur a
+  changé, pas qu'elle est valide ;
+- révoquer l'ancienne valeur **après** ce succès, jamais en même temps
+  que la création de la nouvelle ;
+- en cas d'échec, une seule nouvelle tentative, même protocole.
+
 Pièges rencontrés :
 
 - `docker compose restart` ne relit pas `env_file`. Seul `up -d`
@@ -200,9 +214,12 @@ Pièges rencontrés :
 - Les clés virtuelles (`CONFIDENTIAL_KEY`, `ORCHESTRATOR_KEY` du `.env`
   du workspace) sont hachées en base : la rotation de la master key ne
   les invalide pas. Vérifier : `/v1/models` avec chacune doit rester 200.
-- Consommateurs de la master key hors de ce dossier : aucun fichier
-  (recensé le 2026-08-27). Le harnais promptfoo la reçoit par un
-  `export OPENAI_API_KEY=…` interactif, à refaire dans le shell.
+- Consommateurs de la master key hors de ce dossier : **aucun**
+  (recensé le 2026-08-27). Le harnais promptfoo (`evals/`) utilisait
+  un `export OPENAI_API_KEY=…` interactif ; il prend désormais la clé
+  virtuelle `ORCHESTRATOR_KEY` via `apiKeyEnvar` (`evals/README.md`).
+  Une rotation de la master key n'a donc rien à propager ; une
+  rotation d'`ORCHESTRATOR_KEY` se fait dans le `.env` du workspace.
 
 Vérifier une valeur sans l'exposer : longueur et préfixe, jamais la
 valeur (règle 8 du CLAUDE.md) :

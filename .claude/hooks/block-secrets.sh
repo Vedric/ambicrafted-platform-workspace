@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
+# Hook PreToolUse (Write|Edit et Bash) : refuse un appel d'outil dont le
+# texte contient un secret reconnaissable par son préfixe.
+#
+# Périmètre volontairement réduit aux LITTÉRAUX (ADR 0007) :
+# - Write/Edit : le contenu écrit ;
+# - Bash       : le texte de la commande.
+# Il ne voit jamais la SORTIE d'une commande, ni une valeur qui transite par
+# une variable, une substitution, un glob ou un script. C'est un garde-fou
+# contre l'inattention, pas une frontière de sécurité.
 INPUT=$(cat)
-CONTENU=$(echo "$INPUT" | jq -r '.tool_input.content // .tool_input.new_string // ""')
+CONTENU=$(echo "$INPUT" | jq -r '.tool_input.content // .tool_input.new_string // .tool_input.command // ""')
 
 MOTIFS=(
   'sk-ant-[a-zA-Z0-9_-]{20,}'
