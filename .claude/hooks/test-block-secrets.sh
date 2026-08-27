@@ -40,6 +40,13 @@ attendu approve "Bash : commande ordinaire"             "$(j Bash command "git s
 attendu approve "Write : contenu ordinaire"             "$(j Write content "ANTHROPIC_API_KEY=os.environ/ANTHROPIC_API_KEY")"
 attendu approve "Write : préfixe trop court (exemple)"  "$(j Write content "sk-ant-api03-xxxx…")"
 attendu approve "Entrée sans champ connu"               '{"tool_name":"Read","tool_input":{"file_path":"/x"}}'
+# Le modèle de variables versionné doit rester éditable : ses placeholders ne
+# doivent matcher aucun motif (fichier réel, pas une copie).
+EXEMPLE="$(dirname "$0")/../../gateway/.env.example"
+attendu approve "Write : gateway/.env.example entier"    "$(j Write content "$(cat "$EXEMPLE")")"
+attendu approve "Bash : heredoc de gateway/.env.example" "$(j Bash command "cat > .env.example <<'EOF'
+$(cat "$EXEMPLE")
+EOF")"
 
 echo
 if [ "$echecs" -eq 0 ]; then echo "Tous les tests passent."; else echo "$echecs échec(s)."; exit 1; fi
