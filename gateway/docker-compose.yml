@@ -1,0 +1,108 @@
+# Nom de projet explicite : les volumes s'appellent gateway_* quel que soit
+# le nom du dossier (un clone ailleurs retrouve les mêmes données, ne crée
+# pas une seconde stack vide en collision de ports). ADR 0006.
+name: gateway
+
+services:
+  litellm:
+    # LiteLLM 1.98.0 : digest de l'image main-stable en service au 2026-08-25
+    # (docker inspect du conteneur, image construite le 2026-08-22). Le tag
+    # main-stable est mouvant, ne jamais y revenir (règle 7).
+    image: ghcr.io/berriai/litellm@sha256:20b5044b619055374061a6d5b7b08754cad75aeabbf82ddf4f69cc0cf80ddaf4
+    container_name: litellm
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4000:4000"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  postgres:
+    # PostgreSQL 16.13 : digest de l'image 16-alpine en service au 2026-08-25
+    # (docker inspect du conteneur). Le tag 16-alpine est mouvant (règle 7).
+    image: postgres@sha256:20edbde7749f822887a1a022ad526fde0a47d6b2be9a8364433605cf65099416
+    container_name: litellm-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: litellm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tempo:
+    # v3.0.0 (rév. 2e3dabbc0) : digest de l'image :latest en service au 2026-08-25.
+    # Le tag 3.0.0 du registre est un build distinct (rév. d399842f5), non testé ici.
+    image: grafana/tempo@sha256:1ce31d6d7ffab62189685e8c47881d4a561c5d38bd0dbd66e40ca83cef07923d
+    container_name: tempo
+    restart: unless-stopped
+    user: root
+    command: ["-config.file=/etc/tempo.yaml"]
+    ports:
+      - "127.0.0.1:4318:4318"
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo.yaml:ro
+      - tempodata:/var/tempo
+
+  prometheus:
+    image: prom/prometheus:v3.14.0@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  grafana:
+    image: grafana/grafana:13.2.0@sha256:3fd54ae1214669f8355f065ec9f6445d5279a3d77095ab048ca045685272429b
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafanadata:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  qdrant:
+    # v1.19.0 : digest de l'image en service au 2026-08-25 (docker inspect du
+    # conteneur). Un tag de version reste réassignable, le digest non (règle 7).
+    image: qdrant/qdrant@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"
+    volumes:
+      - qdrantdata:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  tempodata:
+  promdata:
+  grafanadata:
+  qdrantdata:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24

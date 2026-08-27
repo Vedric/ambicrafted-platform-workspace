@@ -193,7 +193,7 @@ def embarquer(textes: list[str], *, prefixe: str) -> list[list[float]]:
             except httpx.HTTPError as e:
                 raise ErreurPipeline(
                     f"Passerelle injoignable ({PASSERELLE_URL}) : {e}\n"
-                    "  Vérifier : cd ~/platform/gateway && docker compose ps litellm"
+                    "  Vérifier : cd ~/platform/workspace/gateway && docker compose ps litellm"
                 ) from e
 
             if reponse.status_code != 200:
@@ -260,7 +260,7 @@ def indexer(fragments: list[Fragment]) -> int:
     except Exception as e:  # message actionnable, pas de trace nue
         raise ErreurPipeline(
             f"Qdrant injoignable ou en erreur ({QDRANT_URL}) : {e}\n"
-            "  Vérifier : cd ~/platform/gateway && docker compose ps qdrant"
+            "  Vérifier : cd ~/platform/workspace/gateway && docker compose ps qdrant"
         ) from e
 
     return client.count(COLLECTION, exact=True).count

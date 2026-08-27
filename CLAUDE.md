@@ -5,7 +5,7 @@ WSL2 Ubuntu sur Windows, RTX 5090 32 Go (budget utile ~30 Go), 110 Go RAM VM.
 Travailler exclusivement dans ~/, jamais dans /mnt/c (I/O très lentes).
 
 ## Architecture
-- Passerelle LiteLLM : http://localhost:4000/v1 (compose dans ~/platform/gateway)
+- Passerelle LiteLLM : http://localhost:4000/v1 (compose dans ~/platform/workspace/gateway)
 - Alias : smart, balanced, fast, local, local-embed
 - Ollama : http://172.17.0.1:11434 (bridge Docker, PAS localhost)
 - Modèles locaux : coder (qwen3.6:27b ctx 64k), qwen2.5-coder:1.5b-base, nomic-embed-text
@@ -22,9 +22,13 @@ Travailler exclusivement dans ~/, jamais dans /mnt/c (I/O très lentes).
 7. Toute image de conteneur et toute dépendance est épinglée. Jamais un tag
    mouvant (:latest, main-stable). Épingler ce qui tourne, vérifié sur
    l'instance en service, pas ce que le registre propose sous un nom voisin.
+8. Un secret ne s'affiche jamais, même pour le vérifier : pas de cat/grep/echo
+   sur un .env, pas de docker inspect, pas de compose config sans --quiet, pas
+   de env/printenv. Vérifier par longueur ou préfixe (12 car.). La sortie d'une
+   commande est une fuite au même titre qu'un fichier (ADR 0007).
 
 ## Commandes utiles
-- Passerelle : cd ~/platform/gateway && docker compose ps / logs litellm
+- Passerelle : cd ~/platform/workspace/gateway && docker compose ps / logs litellm
 - Modèles chargés : ollama ps
 - Dépense : http://localhost:4000/ui
 

@@ -184,7 +184,7 @@ def semantic_search(requete: str, k: int = 5) -> str:
     except Exception as e:  # noqa: BLE001 — dégrader, jamais lever
         return (
             f"Qdrant injoignable sur {QDRANT_URL} : {type(e).__name__} : {e}\n"
-            "Corriger : cd ~/platform/gateway && docker compose up -d qdrant\n"
+            "Corriger : cd ~/platform/workspace/gateway && docker compose up -d qdrant\n"
             f"{_REPLI}"
         )
 

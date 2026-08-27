@@ -15,3 +15,6 @@ node_modules/
 .promptfoo/
 evals/output/
 *.bak
+
+# Modèle de variables de la passerelle (valeurs factices), à versionner
+!.env.example

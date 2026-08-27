@@ -17,7 +17,7 @@
       "Bash(sudo:*)",
       "Read(./.env)",
       "Read(./**/.env)",
-      "Read(~/platform/gateway/.env)",
+      "Read(~/platform/workspace/gateway/.env)",
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
       "Read(~/.config/gcloud/**)",

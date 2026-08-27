@@ -4,7 +4,7 @@ Deux règles du CLAUDE.md sont matérialisées ici, pas dans un prompt :
 
 - Règle 1 : aucun nom de modèle fournisseur. Le code ne connaît que des
   alias de passerelle. La correspondance alias -> modèle vit dans
-  ~/platform/gateway/config.yaml et nulle part ailleurs.
+  ~/platform/workspace/gateway/config.yaml et nulle part ailleurs.
 - Règle 2 : les alias sont partitionnés en deux ensembles disjoints,
   LOCAUX et FRONTIERE. Cette partition est ce qui rend la garde de
   cloisonnement de llm.py décidable.
