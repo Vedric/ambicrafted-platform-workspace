@@ -1,13 +1,13 @@
-"""Tests du portage LangGraph, sur une machine débranchée.
+"""Tests of the LangGraph port, on an unplugged machine.
 
-Même exigence que `test_gardefous.py` : ni passerelle, ni serveur MCP, ni
-réseau. Ce qui est vérifié ici n'est pas le framework — c'est que le
-portage n'a rien desserré, et que les propriétés nouvelles (routage par
-arête, pause durable) tiennent réellement.
+Same requirement as `test_gardefous.py`: no gateway, no MCP server, no
+network. What is checked here is not the framework — it is that the port
+loosened nothing, and that the new properties (edge routing, durable
+pause) actually hold.
 
-Le point de substitution est `appeler_llm` et le client d'outils. Tout le
-reste — budget, liste blanche, confinement, garde de source — est le code
-de production, exécuté tel quel.
+The substitution points are `appeler_llm` and the tool client. Everything
+else — budget, allowlist, containment, source guard — is the production
+code, run as is.
 """
 
 from __future__ import annotations
@@ -24,11 +24,11 @@ from sre_agent.budget import Budget
 from sre_agent.config import Classification
 from sre_agent.llm import ReponseLLM
 
-# --- Doublures -------------------------------------------------------------
+# --- Test doubles ----------------------------------------------------------
 
 
 class FauxClient:
-    """Un serveur d'outils qui répond, et qui compte ce qu'on lui demande."""
+    """A tool server that answers, and counts what it is asked for."""
 
     def __init__(self, reponse: str = "## Runbook\nTerminer les sessions idle.") -> None:
         self.reponse = reponse
@@ -92,10 +92,10 @@ DIAGNOSTIC = json.dumps(
 
 
 def scenariser(monkeypatch, suite: list[ReponseLLM], client: FauxClient | None = None):
-    """Installe une suite de réponses LLM et un client d'outils factice.
+    """Install a sequence of LLM responses and a fake tool client.
 
-    Le budget reste le vrai : la doublure l'impute comme le ferait la
-    passerelle, ce qui laisse les plafonds pleinement opposables.
+    The budget stays the real one: the double charges it as the gateway
+    would, which leaves the ceilings fully enforceable.
     """
     restant = list(suite)
 
@@ -117,11 +117,11 @@ def db(tmp_path):
     return str(tmp_path / "graphe.sqlite")
 
 
-# --- La porte humaine, et la survie de l'état -----------------------------
+# --- The human gate, and the survival of the state ------------------------
 
 
 def test_le_graphe_s_arrete_avant_de_livrer(monkeypatch, db):
-    """Rien n'est livré tant qu'un humain n'a pas vu le diagnostic."""
+    """Nothing is delivered until a human has seen the diagnosis."""
     scenariser(
         monkeypatch,
         [
@@ -134,8 +134,8 @@ def test_le_graphe_s_arrete_avant_de_livrer(monkeypatch, db):
     rapport = graphe.demarrer("PostgreSQL: too many clients already", "t-porte", db)
 
     assert rapport.statut == "en_attente_humain"
-    # Le diagnostic est SOUMIS, pas livré : la demande d'approbation le
-    # porte, et l'état ne contient aucune trace de décision humaine.
+    # The diagnosis is SUBMITTED, not delivered: the approval request
+    # carries it, and the state holds no trace of a human decision.
     demande = json.loads(rapport.message)
     assert demande["runbook_source"] == "incident-p1-database.md"
     assert demande["actions_proposees"] == ["Terminer les sessions idle"]
@@ -144,15 +144,15 @@ def test_le_graphe_s_arrete_avant_de_livrer(monkeypatch, db):
     assert instantane["prochains_noeuds"] == ["porte_humaine"]
     assert instantane["valeurs"].get("approbation") is None
     assert instantane["valeurs"].get("statut") == "en_cours"
-    assert instantane["en_attente"]  # le checkpoint sait qu'il attend
+    assert instantane["en_attente"]  # the checkpoint knows it is waiting
 
 
 def test_la_reprise_repart_du_meme_point(monkeypatch, db):
-    """Une application recompilée, sans aucune réponse LLM restante, aboutit.
+    """A recompiled application, with no LLM response left, still completes.
 
-    C'est la preuve que le contexte vient du checkpoint et non de la
-    mémoire : la suite scénarisée est vide au moment de la reprise, donc
-    aucun appel de modèle n'est possible.
+    That is the proof the context comes from the checkpoint and not from
+    memory: the scripted sequence is empty by the time of the resume, so
+    no model call is possible.
     """
     scenariser(
         monkeypatch,
@@ -160,7 +160,7 @@ def test_la_reprise_repart_du_meme_point(monkeypatch, db):
     )
     graphe.demarrer("PostgreSQL: too many clients already", "t-reprise", db)
 
-    # Plus une seule réponse disponible : tout doit venir de SQLite.
+    # Not a single response left: everything has to come from SQLite.
     scenariser(monkeypatch, [])
     rapport = graphe.reprendre("oui", "t-reprise", db)
 
@@ -181,18 +181,18 @@ def test_un_refus_ne_livre_rien(monkeypatch, db):
 
 
 def test_le_silence_ne_vaut_pas_approbation(monkeypatch, db):
-    """Un défaut permissif transformerait la porte en formalité."""
+    """A permissive default would turn the gate into a formality."""
     scenariser(monkeypatch, [reponse(EXTRACTION), reponse(TRI), reponse(DIAGNOSTIC)])
     graphe.demarrer("alerte", "t-vide", db)
     scenariser(monkeypatch, [])
     assert graphe.reprendre("", "t-vide", db).statut == "rejete_par_humain"
 
 
-# --- Budgets opposés par une arête, pas par une exception -----------------
+# --- Budgets enforced by an edge, not by an exception ---------------------
 
 
 def test_budget_outils_route_vers_abandon(monkeypatch, db):
-    """Plafond à 2 : la salve de 3 outils est refusée, sans exception."""
+    """Ceiling at 2: the burst of 3 tools is refused, with no exception."""
     monkeypatch.setattr(config, "MAX_APPELS_OUTILS", 2)
     client = FauxClient()
     scenariser(
@@ -214,12 +214,12 @@ def test_budget_outils_route_vers_abandon(monkeypatch, db):
 
     assert rapport.statut == "budget_epuise"
     assert rapport.diagnostic is None
-    # Le motif désigne le bon plafond : « outils » et « tours » appellent
-    # des corrections opposées, les confondre coûte du temps en astreinte.
+    # The reason names the right ceiling: "tools" and "turns" call for
+    # opposite fixes, and confusing them costs on-call time.
     assert "plafond d'appels d'outils atteint" in rapport.message
     assert "salve de 3 outil(s)" in rapport.message
     assert "tours" not in rapport.message
-    # Aucun outil n'a été exécuté : l'arête a décidé avant le nœud.
+    # No tool ran: the edge decided before the node.
     assert client.appels == []
 
 
@@ -234,9 +234,9 @@ def test_budget_monetaire_route_vers_abandon(monkeypatch, db):
     assert rapport.statut == "budget_epuise"
     assert rapport.diagnostic is None
     assert rapport.budget["cout_usd"] == pytest.approx(0.025)
-    # Message émis par budget.py lui-même : le garde-fou a levé dans le nœud,
-    # l'arête n'a eu qu'à router. La reconstruction ne sert qu'aux refus
-    # prononcés par l'arête avant même d'entrer dans le nœud.
+    # Message emitted by budget.py itself: the guardrail raised inside the
+    # node, the edge only had to route. The reconstruction serves only the
+    # refusals pronounced by the edge before the node is even entered.
     assert "plafond monétaire dépassé" in rapport.message
 
 
@@ -259,14 +259,14 @@ def test_plafond_de_tours_route_vers_abandon(monkeypatch, db):
     assert "plafond de tours de boucle atteint" in rapport.message
 
 
-# --- Le cloisonnement survit au portage -----------------------------------
+# --- Compartmentalisation survives the port -------------------------------
 
 
 def test_charge_confidentielle_refusee_dans_le_graphe(monkeypatch, db):
-    """Le nœud d'extraction reste soumis à la garde de `llm.py`.
+    """The extraction node stays subject to the guard in `llm.py`.
 
-    Aucune doublure ici : c'est le vrai `appeler_llm` qui s'exécute, et
-    le réseau est piégé pour prouver qu'il n'est jamais atteint.
+    No double here: the real `appeler_llm` runs, and the network is
+    trapped to prove it is never reached.
     """
 
     def interdit(*_a, **_k):
@@ -285,7 +285,7 @@ def test_charge_confidentielle_refusee_dans_le_graphe(monkeypatch, db):
 
 
 def test_la_classification_du_noeud_extraction_est_confidentielle(monkeypatch, db):
-    """La classification est passée par le nœud, pas déduite du graphe."""
+    """The classification is passed by the node, not inferred from the graph."""
     vues: list[Classification] = []
 
     def espion(*, classification, budget, **_k):
@@ -295,7 +295,7 @@ def test_la_classification_du_noeud_extraction_est_confidentielle(monkeypatch, d
 
     monkeypatch.setattr(graphe, "appeler_llm", espion)
     monkeypatch.setattr(graphe, "_client", lambda: FauxClient())
-    monkeypatch.setattr(config, "MAX_TOURS", 0)  # coupe court après le tri
+    monkeypatch.setattr(config, "MAX_TOURS", 0)  # cut short after triage
     graphe.demarrer("alerte", "t-classif", db)
 
     assert vues[0] is Classification.CONFIDENTIEL
@@ -303,11 +303,12 @@ def test_la_classification_du_noeud_extraction_est_confidentielle(monkeypatch, d
 
 
 def test_la_liste_blanche_tient_dans_le_noeud_d_outils(monkeypatch, db):
-    """Un outil hors liste blanche n'atteint pas le serveur, dans le graphe aussi.
+    """A tool outside the allowlist does not reach the server, in the graph too.
 
-    Le client est ici le VRAI `ClientRunbooks`, jamais démarré : sa
-    session est fermée, donc si le refus ne précédait pas l'accès, l'appel
-    lèverait `ErreurOutil` au lieu de rendre un message au modèle.
+    The client here is the REAL `ClientRunbooks`, never started: its
+    session is closed, so if the refusal did not precede the access, the
+    call would raise `ErreurOutil` instead of returning a message to the
+    model.
     """
     client = outils.ClientRunbooks()
     scenariser(
@@ -333,7 +334,7 @@ def test_la_liste_blanche_tient_dans_le_noeud_d_outils(monkeypatch, db):
 
 
 def test_les_accumulateurs_ne_s_ecrasent_pas(monkeypatch, db):
-    """Deux tours d'outils : le second n'écrase pas le premier."""
+    """Two tool turns: the second does not overwrite the first."""
     client = FauxClient()
     scenariser(
         monkeypatch,
@@ -355,7 +356,7 @@ def test_les_accumulateurs_ne_s_ecrasent_pas(monkeypatch, db):
 
 
 def test_le_budget_est_rejoue_a_l_identique():
-    """Le budget survit à la sérialisation parce qu'il est stocké en deltas."""
+    """The budget survives serialisation because it is stored as deltas."""
     etat = {
         "depenses": [
             {"appels_llm": 1, "cout_usd": 0.10, "tokens_entree": 100, "tokens_sortie": 20},
@@ -370,7 +371,7 @@ def test_le_budget_est_rejoue_a_l_identique():
 
 
 def test_la_relance_est_une_arete_pas_un_except(monkeypatch, db):
-    """De la prose puis du JSON : deux passages par `diagnostic`, tracés."""
+    """Prose then JSON: two passes through `diagnostic`, both traced."""
     scenariser(
         monkeypatch,
         [
@@ -398,7 +399,7 @@ def test_le_chemin_parcouru_est_lisible_dans_l_etat(monkeypatch, db):
     ]
 
 
-# --- La purge : rétention de la donnée dérivée ---------------------------
+# --- The purge: retention of derived data --------------------------------
 
 
 def _fil_en_pause(monkeypatch, db: str, thread_id: str) -> None:
@@ -416,7 +417,7 @@ def _fil_en_pause(monkeypatch, db: str, thread_id: str) -> None:
 
 
 def test_la_purge_conserve_un_fil_plus_recent_que_le_seuil(monkeypatch, db):
-    """Un fil d'aujourd'hui survit à une rétention de 14 jours, même en pause."""
+    """A thread from today survives a 14-day retention, even when paused."""
     _fil_en_pause(monkeypatch, db, "t-recent")
 
     bilan = graphe.purger(14, db)
@@ -433,12 +434,12 @@ def test_la_simulation_liste_sans_supprimer(monkeypatch, db):
     bilan = graphe.purger(14, db, simulation=True, maintenant=dans_quinze_jours)
 
     assert [p["thread_id"] for p in bilan["purges"]] == ["t-sim"]
-    assert bilan["purges"][0]["en_pause"] is True  # signalé, pas épargné
+    assert bilan["purges"][0]["en_pause"] is True  # flagged, not spared
     assert graphe.etat("t-sim", db)["existe"]
 
 
 def test_la_purge_supprime_le_fil_ancien_et_compacte_le_fichier(monkeypatch, db):
-    """Après purge, ni ligne, ni page libre, ni WAL : la donnée est partie."""
+    """After a purge: no row, no free page, no WAL — the data is gone."""
     _fil_en_pause(monkeypatch, db, "t-vieux")
     dans_quinze_jours = datetime.now(UTC) + timedelta(days=15)
 

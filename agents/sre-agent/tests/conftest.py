@@ -1,8 +1,8 @@
-"""Les tests de garde-fous tournent sur une machine débranchée.
+"""The guardrail tests run on an unplugged machine.
 
-Le traçage est coupé ici plutôt que dans chaque test : un exporteur qui
-cherche un collecteur absent transforme un échec de test en attente de
-délai, et brouille la lecture du résultat.
+Tracing is switched off here rather than in each test: an exporter looking
+for an absent collector turns a test failure into a timeout wait, and
+muddies the reading of the result.
 """
 
 import os

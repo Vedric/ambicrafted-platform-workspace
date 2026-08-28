@@ -235,12 +235,21 @@ intact.
 text stays in French.** This is a deliberate split, and it is owned rather
 than apologised for.
 
+The rule that decides every case: **translate what a developer reads, leave
+in French what a model or an on-call operator reads.** The criterion is the
+audience, not the syntactic type — a docstring is not automatically
+developer prose, and a string literal is not automatically off limits.
+Before translating anything, ask who reads it.
+
 | What | Language | Examples |
 |---|---|---|
 | Documentation | **English** | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, everything in `docs/`, all sub-READMEs |
 | Code comments and docstrings | **English** | module docstrings, inline comments |
+| Docstrings that are system inputs | **French** | the `@mcp.tool` / `@mcp.resource` / `@mcp.prompt` docstrings in `server.py`, the module docstring of `indexer.py` — see below |
 | Identifiers | **French, unchanged** | `appeler_llm`, `OUTILS_AUTORISES`, `FuiteConfidentielle`, `actions_ecartees_sans_source`, `porte_humaine`, `SRE_MAX_APPELS_OUTILS`, `0003-agent-sre-borne.md` |
 | System prompts | **French** | `SYSTEME_EXTRACTION`, `SYSTEME_RAISONNEMENT`, `CONSIGNE_NON_FIABLE` |
+| Package metadata and config-file comments | **French, for now** | the `description` field of both `pyproject.toml`, comments in TOML and YAML — see below |
+| Test assertion messages | **French, for now** | `pytest.fail("réseau non attendu")`, `AssertionError("Un appel réseau a été tenté…")` — see below |
 | Operator-facing messages | **French** | CLI output, error messages, `budget épuisé, escalade humaine requise` |
 | `CLAUDE.md` | **French** | it is an agent operating contract, adjacent to a system prompt |
 
@@ -278,9 +287,58 @@ about to open is doing its job. Translating those strings would put a
 language boundary in the middle of an incident, at 3 a.m., which is exactly
 where you least want one.
 
+### Why some docstrings stay French
+
+Two docstrings in this repository are not developer prose. They are inputs
+to the system, and translating them would change behaviour rather than
+documentation.
+
+**The `@mcp.tool`, `@mcp.resource` and `@mcp.prompt` docstrings in
+`mcp-servers/runbooks/server.py`.** MCP publishes them as the tool,
+resource and prompt descriptions, so they are routed to the model:
+`outils.py` reads `outil.description` off the MCP payload and copies it
+verbatim into the `tools` declaration sent to the gateway. They are read by
+a model, never by a developer. And `SYSTEME_RAISONNEMENT`, which is in
+French, describes those very same tools — translating one half would leave
+the model with two descriptions of `semantic_search` in two languages.
+
+**The module docstring of `mcp-servers/runbooks/indexer.py`.** `main()`
+passes it to `ArgumentParser(description=__doc__)`, so it is the `--help`
+text an operator reads, surrounded by the French `help=` strings of the
+same parser. Translating it alone would produce a bilingual `--help`.
+
+Each of those carries a comment above it saying why it stays French, so
+that the next translation pass does not undo the decision by reflex.
+
+### What is still French, and stays that way until it moves as a whole
+
+Two categories are developer-facing by the audience rule, and so would in
+principle be English, but have not been translated. They are listed here so
+that the gap is a recorded decision rather than an oversight:
+
+- **Package metadata and config-file comments** — the `description` field
+  of both `pyproject.toml`, and the comments inside TOML and YAML files.
+- **Test assertion messages** — the strings passed to `pytest.fail` and to
+  `AssertionError` in the test suite.
+
+The reason is consistency, not inertia. `agents/sre-agent` and
+`mcp-servers/runbooks` are sibling packages; translating one `description`
+and not the other buys a correct line at the cost of a repository that
+contradicts itself, which is the worse outcome for a single line of
+metadata. The same holds for assertion strings scattered across four test
+files.
+
+**So a later pass takes each category whole, or leaves it alone. Never
+half.** Half-translating a category is the one outcome forbidden here: it
+destroys the property that makes the language split legible, namely that
+you can tell which language a thing is in from what it *is*, without
+looking it up.
+
 ### In practice
 
 - Adding a function? English docstring, French name.
+- Adding a docstring the model or the operator will read — an MCP tool, a
+  `__doc__` served as `--help`? French, with a comment above it saying why.
 - Adding an error message the operator will read? French.
 - Adding an exception class? French name, English docstring.
 - Adding an ADR? English content, French file name, next free number.
@@ -288,3 +346,6 @@ where you least want one.
   and gloss it if the meaning is not obvious — as this documentation does
   with `porte_humaine` (human gate) and `actions_ecartees_sans_source`
   (actions discarded for lack of a source).
+- Adding a `pyproject.toml` description, a TOML/YAML comment, or a test
+  assertion message? French, matching what is already there. Do not
+  translate one in passing.

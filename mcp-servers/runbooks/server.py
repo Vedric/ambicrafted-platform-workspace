@@ -1,7 +1,15 @@
-"""Serveur MCP : accès aux runbooks locaux.
+"""MCP server: access to the local runbooks.
 
-Sécurité : tous les accès fichier sont contraints à RUNBOOK_DIR.
-Aucun chemin fourni par le modèle n'est utilisé sans validation.
+Security: every file access is confined to RUNBOOK_DIR. No path supplied
+by the model is used without validation.
+
+Language note: the docstrings of the @mcp.tool, @mcp.resource and
+@mcp.prompt functions below stay in French. They are not developer prose —
+MCP publishes them as the tool, resource and prompt descriptions, so a
+model reads them, not a developer, and `outils.py` copies them straight
+into the payload sent to the gateway. SYSTEME_RAISONNEMENT, which is in
+French, describes those same tools. See the language policy in
+CONTRIBUTING.md.
 """
 
 from __future__ import annotations
@@ -15,22 +23,22 @@ from mcp.server import MCPServer
 
 mcp = MCPServer("runbooks")
 
-# Défaut : <racine du dépôt>/runbooks, dérivé de l'emplacement du fichier
-# (même mécanisme qu'indexer.py) ; RUNBOOK_DIR reste prioritaire.
+# Default: <repository root>/runbooks, derived from this file's location
+# (same mechanism as indexer.py); RUNBOOK_DIR still takes precedence.
 RACINE_DEPOT = Path(__file__).resolve().parents[2]
 RUNBOOK_DIR = Path(os.environ.get("RUNBOOK_DIR", RACINE_DEPOT / "runbooks")).resolve()
 MAX_RESULTATS = 50
-MAX_TAILLE = 200_000  # octets, garde-fou contre l'épuisement de contexte
-MAX_K = 20            # plafond de fragments sémantiques par appel
-MAX_EXTRAIT = 4_000   # caractères par fragment restitué
+MAX_TAILLE = 200_000  # bytes, guardrail against context exhaustion
+MAX_K = 20            # ceiling on semantic fragments per call
+MAX_EXTRAIT = 4_000   # characters per returned fragment
 
-# Import gardé : list_runbooks, read_runbook et search_runbooks doivent
-# rester utilisables même si la brique RAG est absente ou cassée. Une
-# dépendance manquante ne doit jamais empêcher le serveur de démarrer.
+# Guarded import: list_runbooks, read_runbook and search_runbooks must stay
+# usable even when the RAG part is absent or broken. A missing dependency
+# must never stop the server from starting.
 try:
-    # indexer.py est un module frère, pas un paquet installé : selon le
-    # lanceur (uv run server.py, mcp dev), son répertoire n'est pas
-    # toujours sur sys.path.
+    # indexer.py is a sibling module, not an installed package: depending
+    # on the launcher (uv run server.py, mcp dev), its directory is not
+    # always on sys.path.
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
     from qdrant_client import QdrantClient
@@ -44,7 +52,7 @@ try:
     )
 
     _RAG_ERREUR = ""
-except Exception as _e:  # noqa: BLE001 — un import raté ne tue pas le serveur
+except Exception as _e:  # noqa: BLE001 — a failed import does not kill the server
     _RAG_ERREUR = f"{type(_e).__name__} : {_e}"
 
 _REPLI = (
@@ -54,7 +62,7 @@ _REPLI = (
 
 
 def _resoudre(nom: str) -> Path:
-    """Résout un nom de fichier en refusant toute sortie du répertoire."""
+    """Resolve a file name, refusing any escape from the directory."""
     if "/" in nom or "\\" in nom or nom.startswith("."):
         raise ValueError("Nom de fichier invalide.")
     chemin = (RUNBOOK_DIR / nom).resolve()
@@ -65,6 +73,7 @@ def _resoudre(nom: str) -> Path:
 
 @mcp.tool()
 def list_runbooks() -> str:
+    # French on purpose: MCP publishes this as the tool description.
     """Liste les runbooks disponibles avec leur titre et leur taille."""
     if not RUNBOOK_DIR.exists():
         return f"Répertoire absent : {RUNBOOK_DIR}"
@@ -81,6 +90,7 @@ def list_runbooks() -> str:
 
 @mcp.tool()
 def read_runbook(nom: str) -> str:
+    # French on purpose: MCP publishes this as the tool description.
     """Lit un runbook complet.
 
     Args:
@@ -102,6 +112,7 @@ def read_runbook(nom: str) -> str:
 
 @mcp.tool()
 def search_runbooks(terme: str, contexte: int = 2) -> str:
+    # French on purpose: MCP publishes this as the tool description.
     """Cherche un terme dans tous les runbooks.
 
     Args:
@@ -130,6 +141,7 @@ def search_runbooks(terme: str, contexte: int = 2) -> str:
 
 @mcp.tool()
 def semantic_search(requete: str, k: int = 5) -> str:
+    # French on purpose: MCP publishes this as the tool description.
     """Cherche dans les runbooks par le sens, pas par les mots.
 
     Complémentaire de search_runbooks, les deux ne se remplacent pas :
@@ -163,7 +175,7 @@ def semantic_search(requete: str, k: int = 5) -> str:
         vecteur = embarquer([requete], prefixe=PREFIXE_REQUETE)[0]
     except ErreurPipeline as e:
         return f"Vectorisation de la requête impossible.\n{e}\n{_REPLI}"
-    except Exception as e:  # noqa: BLE001 — dégrader, jamais lever
+    except Exception as e:  # noqa: BLE001 — degrade, never raise
         return (
             f"Vectorisation de la requête impossible : {type(e).__name__} : {e}\n"
             f"{_REPLI}"
@@ -181,7 +193,7 @@ def semantic_search(requete: str, k: int = 5) -> str:
         points = client.query_points(
             COLLECTION, query=vecteur, limit=k, with_payload=True
         ).points
-    except Exception as e:  # noqa: BLE001 — dégrader, jamais lever
+    except Exception as e:  # noqa: BLE001 — degrade, never raise
         return (
             f"Qdrant injoignable sur {QDRANT_URL} : {type(e).__name__} : {e}\n"
             "Corriger : cd ~/platform/workspace/gateway && docker compose up -d qdrant\n"
@@ -200,9 +212,9 @@ def semantic_search(requete: str, k: int = 5) -> str:
     for rang, point in enumerate(points, start=1):
         charge = point.payload or {}
 
-        # Le nom de fichier vient de la charge utile Qdrant, donc de
-        # l'extérieur du processus : on le valide avant de le proposer,
-        # puisque le modèle le repassera probablement à read_runbook.
+        # The file name comes from the Qdrant payload, so from outside the
+        # process: it is validated before being offered, since the model
+        # will most likely hand it straight back to read_runbook.
         brut = str(charge.get("fichier", "?"))
         try:
             _resoudre(brut)
@@ -211,8 +223,8 @@ def semantic_search(requete: str, k: int = 5) -> str:
             fichier = f"{brut!r} [nom invalide, ne pas passer à read_runbook]"
 
         ligne = charge.get("ligne_debut", "?")
-        # 'texte' porte déjà son chemin de titres en préfixe : c'est ce qui
-        # rend le fragment lisible hors de son document.
+        # 'texte' already carries its heading path as a prefix: that is
+        # what makes the fragment readable outside its document.
         texte = str(charge.get("texte") or charge.get("chemin_titres", ""))
         if len(texte) > MAX_EXTRAIT:
             texte = texte[:MAX_EXTRAIT] + f"\n[TRONQUÉ à {MAX_EXTRAIT} caractères]"
@@ -232,12 +244,14 @@ def semantic_search(requete: str, k: int = 5) -> str:
 
 @mcp.resource("runbook://index")
 def index() -> str:
+    # French on purpose: MCP publishes this as the resource description.
     """Index de tous les runbooks, injectable comme contexte."""
     return list_runbooks()
 
 
 @mcp.prompt()
 def diagnostic(symptome: str) -> str:
+    # French on purpose: MCP publishes this as the prompt description.
     """Modèle de diagnostic guidé à partir d'un symptôme observé."""
     return f"""Symptôme observé : {symptome}
 

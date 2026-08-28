@@ -1,16 +1,16 @@
-"""Traçage OpenTelemetry vers Tempo.
+"""OpenTelemetry tracing to Tempo.
 
-Une exécution = une span parente `task.incident_analysis`. Chaque appel
-LLM et chaque appel d'outil est une span enfant. La trace est le compte
-rendu vérifiable de ce que l'agent a fait : quel alias, sur quelle
-classification de donnée, pour quel coût.
+One run = one parent span `task.incident_analysis`. Every LLM call and
+every tool call is a child span. The trace is the verifiable account of
+what the agent did: which alias, on which data classification, at what
+cost.
 
-Le préfixe `ambicrafted.` porte ce que la sémantique gen_ai ne couvre
-pas : la classification de la donnée et le type de tâche.
+The `ambicrafted.` prefix carries what the gen_ai semantics leave out:
+the data classification and the task type.
 
-Le traçage ne doit jamais faire échouer l'agent. Si Tempo est
-injoignable, l'export échoue en silence dans son thread de fond et
-l'analyse se poursuit.
+Tracing must never bring the agent down. If Tempo is unreachable the
+export fails silently in its background thread and the analysis carries
+on.
 """
 
 from __future__ import annotations
@@ -26,8 +26,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from . import config
 
-# Attributs maison. Nommés une seule fois, pour qu'une requête Grafana
-# écrite aujourd'hui reste valable demain.
+# House attributes. Named once, so that a Grafana query written today
+# still resolves tomorrow.
 ATTR_CLASSIFICATION = "ambicrafted.data_classification"
 ATTR_COUT = "ambicrafted.cost_usd"
 ATTR_TYPE_TACHE = "ambicrafted.task.type"
@@ -42,7 +42,7 @@ _initialise = False
 
 
 def initialiser() -> None:
-    """Installe le fournisseur de spans. Idempotent."""
+    """Install the span provider. Idempotent."""
     global _initialise
     if _initialise:
         return
@@ -51,8 +51,8 @@ def initialiser() -> None:
     if not config.TRACAGE_ACTIF:
         return
 
-    # L'exporteur bavarde en warning à chaque échec réseau : en incident
-    # c'est du bruit qui masque la sortie utile de l'agent.
+    # The exporter warns on every network failure: during an incident that
+    # is noise, and it buries the agent's useful output.
     logging.getLogger("opentelemetry.exporter.otlp").setLevel(logging.ERROR)
     logging.getLogger("opentelemetry.sdk.trace.export").setLevel(logging.ERROR)
 
@@ -70,8 +70,8 @@ def initialiser() -> None:
         )
     )
     trace.set_tracer_provider(fournisseur)
-    # Les spans partent par lots : sans vidage explicite, une exécution
-    # courte se termine avant que quoi que ce soit ne soit envoyé.
+    # Spans leave in batches: without an explicit flush, a short run ends
+    # before anything has been sent.
     atexit.register(vider)
 
 
@@ -81,7 +81,7 @@ def tracer() -> trace.Tracer:
 
 
 def vider(timeout_ms: int = 5_000) -> None:
-    """Force l'envoi des spans en attente."""
+    """Force the pending spans out."""
     fournisseur = trace.get_tracer_provider()
     if isinstance(fournisseur, TracerProvider):
         fournisseur.force_flush(timeout_ms)

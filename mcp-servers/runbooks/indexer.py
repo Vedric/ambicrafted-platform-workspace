@@ -1,3 +1,7 @@
+# The module docstring stays in French on purpose: it is not developer
+# prose but the --help text argparse serves to an operator (see main(),
+# ArgumentParser(description=__doc__)), alongside the French help= strings
+# there. See the language policy in CONTRIBUTING.md.
 """Indexation sémantique des runbooks dans Qdrant.
 
 Le découpage se fait PAR SECTION MARKDOWN, en respectant la hiérarchie des
@@ -48,26 +52,26 @@ COLLECTION = os.environ.get("QDRANT_COLLECTION", "runbooks")
 MODELE_EMBED = "local-embed"
 DIMENSION = 768  # nomic-embed-text
 
-# nomic-embed-text est entraîné avec des préfixes de tâche asymétriques :
-# les documents et les requêtes ne sont pas encodés de la même manière.
-# Les omettre dégrade nettement le rappel sur reformulation.
+# nomic-embed-text is trained with asymmetric task prefixes: documents and
+# queries are not encoded the same way. Leaving them out clearly degrades
+# recall when the question is a rephrasing.
 PREFIXE_DOCUMENT = "search_document: "
 PREFIXE_REQUETE = "search_query: "
 
-# Espace de noms fixe : garantit des identifiants stables entre exécutions.
+# Fixed namespace: guarantees stable identifiers across runs.
 NAMESPACE = uuid.UUID("3f2a7c18-5b6d-4e91-9a0c-8d4f1e2b7c63")
 
 LOT_EMBEDDINGS = 32
 DELAI_HTTP = 120.0
-# nomic-embed-text a une fenêtre de 2048 jetons ; au-delà, Ollama tronque
-# en silence. On alerte bien avant, en estimant ~4 caractères par jeton.
+# nomic-embed-text has a 2048-token window; beyond that Ollama truncates
+# silently. We warn well before, estimating ~4 characters per token.
 SEUIL_ALERTE_CARACTERES = 6_000
 
 class ErreurPipeline(RuntimeError):
-    """Échec actionnable du pipeline (passerelle ou Qdrant).
+    """An actionable pipeline failure (gateway or Qdrant).
 
-    Volontairement pas un SystemExit : le serveur MCP importe ce module et
-    doit pouvoir rattraper l'erreur pour dégrader proprement, pas mourir.
+    Deliberately not a SystemExit: the MCP server imports this module and
+    has to be able to catch the error and degrade cleanly, not die.
     """
 
 
@@ -75,12 +79,12 @@ ENTETE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 CLOTURE = re.compile(r"^\s{0,3}(```|~~~)")
 
 
-# --- Découpage -----------------------------------------------------------
+# --- Chunking ------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class Fragment:
-    """Une section markdown, autoportante grâce à son chemin de titres."""
+    """One markdown section, self-contained thanks to its heading path."""
 
     fichier: str
     chemin_titres: str
@@ -89,33 +93,33 @@ class Fragment:
 
     @property
     def texte(self) -> str:
-        """Le fragment tel qu'il est vectorisé et restitué."""
+        """The fragment as it is embedded and returned."""
         return f"{self.chemin_titres}\n\n{self.contenu}"
 
     @property
     def identifiant(self) -> str:
-        """UUIDv5 déterministe : réindexer écrase, ne duplique jamais."""
+        """Deterministic UUIDv5: reindexing overwrites, never duplicates."""
         graine = f"{self.fichier}:{self.ligne_debut}:{self.chemin_titres}"
         return str(uuid.uuid5(NAMESPACE, graine))
 
 
 def decouper(chemin: Path) -> list[Fragment]:
-    """Découpe un runbook en fragments, un par section markdown.
+    """Chunk a runbook into fragments, one per markdown section.
 
-    Les titres situés dans un bloc de code clôturé sont ignorés : un
-    commentaire shell « # ... » n'est pas un titre.
+    Headings inside a fenced code block are ignored: a shell comment
+    "# ..." is not a heading.
     """
     lignes = chemin.read_text(encoding="utf-8", errors="replace").splitlines()
     fragments: list[Fragment] = []
 
-    pile: list[tuple[int, str]] = []  # (niveau, "## Titre")
+    pile: list[tuple[int, str]] = []  # (level, "## Heading")
     tampon: list[str] = []
     chemin_courant = ""
     ligne_courante = 1
     dans_bloc_code = False
 
     def vider() -> None:
-        """Émet le fragment en cours s'il porte du contenu."""
+        """Emit the current fragment if it carries any content."""
         contenu = "\n".join(tampon).strip()
         if contenu:
             fragments.append(
@@ -155,7 +159,7 @@ def decouper(chemin: Path) -> list[Fragment]:
 
 
 def collecter(repertoire: Path) -> list[Fragment]:
-    """Découpe tous les runbooks du répertoire, par ordre de nom."""
+    """Chunk every runbook in the directory, in name order."""
     fragments: list[Fragment] = []
     for f in sorted(repertoire.glob("*.md")):
         fragments.extend(decouper(f))
@@ -177,7 +181,7 @@ def _cle_passerelle() -> str:
 
 
 def embarquer(textes: list[str], *, prefixe: str) -> list[list[float]]:
-    """Vectorise des textes via la passerelle, par lots, ordre préservé."""
+    """Embed texts through the gateway, in batches, order preserved."""
     cle = _cle_passerelle()
     vecteurs: list[list[float]] = []
 
@@ -209,19 +213,19 @@ def embarquer(textes: list[str], *, prefixe: str) -> list[list[float]]:
                 raise ErreurPipeline(
                     f"Réponse incohérente : {len(donnees)} vecteurs pour {len(lot)} textes."
                 )
-            # L'ordre est spécifié par le champ 'index' ; on ne s'en remet
-            # pas à l'ordre d'arrivée.
+            # The order is given by the 'index' field; we do not rely on
+            # the order of arrival.
             for element in sorted(donnees, key=lambda d: d.get("index", 0)):
                 vecteurs.append(element["embedding"])
 
     return vecteurs
 
 
-# --- Indexation ----------------------------------------------------------
+# --- Indexing ------------------------------------------------------------
 
 
 def indexer(fragments: list[Fragment]) -> int:
-    """Recrée la collection et y écrit tous les fragments. Idempotent."""
+    """Recreate the collection and write every fragment to it. Idempotent."""
     vecteurs = embarquer([f.texte for f in fragments], prefixe=PREFIXE_DOCUMENT)
 
     largeur = len(vecteurs[0])
@@ -257,7 +261,7 @@ def indexer(fragments: list[Fragment]) -> int:
             ],
             wait=True,
         )
-    except Exception as e:  # message actionnable, pas de trace nue
+    except Exception as e:  # actionable message, not a bare traceback
         raise ErreurPipeline(
             f"Qdrant injoignable ou en erreur ({QDRANT_URL}) : {e}\n"
             "  Vérifier : cd ~/platform/workspace/gateway && docker compose ps qdrant"
@@ -266,7 +270,7 @@ def indexer(fragments: list[Fragment]) -> int:
     return client.count(COLLECTION, exact=True).count
 
 
-# --- Entrée --------------------------------------------------------------
+# --- Entry point ---------------------------------------------------------
 
 
 def main() -> int:

@@ -1,36 +1,36 @@
-"""La même analyse, orchestrée par un graphe d'états.
+"""The same analysis, orchestrated by a state graph.
 
-Ce module est le pendant de `agent.py`, pas son remplaçant. Les deux
-produisent un `Rapport` identique en s'appuyant sur exactement les mêmes
-garde-fous : `llm.appeler_llm`, `outils.executer_outil`, `prompts.bloc`,
-`budget.Budget`, `modeles.appliquer_garde_source`. Aucun de ces cinq
-modules n'est modifié ni contourné ici — c'est la condition pour que la
-comparaison de l'ADR 0004 porte sur l'orchestration et sur rien d'autre.
+This module is the counterpart of `agent.py`, not its replacement. Both
+produce an identical `Rapport` on top of exactly the same guardrails:
+`llm.appeler_llm`, `outils.executer_outil`, `prompts.bloc`,
+`budget.Budget`, `modeles.appliquer_garde_source`. None of those five
+modules is modified or bypassed here — that is the condition for the
+ADR 0004 comparison to be about orchestration and nothing else.
 
-Ce que le graphe ajoute, et que la boucle maison ne sait pas faire :
+What the graph adds, and the hand-written loop cannot do:
 
   extraction ─> classification ─> raisonnement <──┐
                                        │          │
                                        ├──> recherche_runbooks
                                        │
-                                       ├──> diagnostic ──> porte_humaine ──> FIN
-                                       │         └── relance ──┘
-                                       └──> abandon ──> FIN
+                                       ├──> diagnostic ──> porte_humaine ──> END
+                                       │         └── retry ────┘
+                                       └──> abandon ──> END
 
-`porte_humaine` appelle `interrupt()` : le graphe écrit son état complet
-dans SQLite et rend la main AVANT de livrer le diagnostic. Le processus
-peut mourir. Une reprise ultérieure sur le même `thread_id`, avec
-`Command(resume=...)`, repart exactement de là, contexte intact.
+`porte_humaine` calls `interrupt()`: the graph writes its complete state
+to SQLite and hands control back BEFORE delivering the diagnosis. The
+process may die. A later resume on the same `thread_id`, with
+`Command(resume=...)`, picks up exactly there, context intact.
 
-Deux différences de comportement assumées vis-à-vis d'`agent.py`, l'une
-et l'autre plus strictes, documentées dans l'ADR 0004 :
+Two behavioural differences from `agent.py` are accepted, both of them
+stricter, and documented in ADR 0004:
 
-1. Le budget d'outils est opposé par une arête conditionnelle, donc
-   AVANT d'entrer dans le nœud. Une salve de trois outils demandée quand
-   il n'en reste que deux est refusée en bloc ; la boucle maison en
-   aurait exécuté deux puis levé. Les deux s'arrêtent sans demi-résultat.
-2. La relance de finalisation est une arête, pas un `except` : elle est
-   visible dans la trace et dans le journal d'état.
+1. The tool budget is enforced by a conditional edge, so BEFORE entering
+   the node. A burst of three tools requested when only two remain is
+   refused wholesale; the hand-written loop would have run two and then
+   raised. Both stop without a half-result.
+2. The finalisation retry is an edge, not an `except`: it is visible in
+   the trace and in the state journal.
 """
 
 from __future__ import annotations
@@ -73,40 +73,40 @@ from .modeles import (
 )
 from .outils import ClientRunbooks, ErreurOutil, executer_outil
 
-# Les plafonds de tokens et les deux fonctions de décodage viennent
-# d'`agent.py`. Les recopier ici donnerait deux réglages qui divergent
-# à la première retouche, et la comparaison mesurerait cette divergence
-# au lieu de mesurer l'orchestration.
+# The token ceilings and the two decoding functions come from `agent.py`.
+# Copying them here would give two settings that drift apart on the first
+# edit, and the comparison would then measure that drift instead of
+# measuring the orchestration.
 
 CHEMIN_CHECKPOINTS = os.environ.get(
     "SRE_CHECKPOINT_DB",
     os.path.expanduser("~/.local/state/sre-agent/graphe.sqlite"),
 )
 
-# Rétention des fils, en jours. 14 : la durée pendant laquelle Tempo garde
-# les traces (block_retention, 336 h) — un fil et sa trace expirent
-# ensemble — et une rotation d'astreinte. Voir ADR 0004, Conséquences.
+# Thread retention, in days. 14: how long Tempo keeps traces
+# (block_retention, 336 h) — a thread and its trace expire together — and
+# one on-call rotation. See ADR 0004, Consequences.
 RETENTION_JOURS = int(os.environ.get("SRE_RETENTION_JOURS", "14"))
 
 
-# --- État -----------------------------------------------------------------
+# --- State ----------------------------------------------------------------
 
 
 class EtatSRE(TypedDict, total=False):
-    """L'état partagé, typé, et surtout : sérialisable.
+    """The shared state: typed, and above all serialisable.
 
-    Tout ce qui doit survivre à la mort du processus est ici. Ce qui n'y
-    est pas — la session MCP, le client HTTP — est une ressource de
-    processus, rétablie à la reprise.
+    Everything that has to survive the death of the process is here. What
+    is not — the MCP session, the HTTP client — is a process resource,
+    re-established on resume.
 
-    Les champs annotés d'`operator.add` sont des accumulateurs : deux
-    nœuds qui écrivent dans le même super-pas concatènent leurs
-    contributions au lieu que le dernier écrase le premier. C'est la
-    raison technique d'être du reducer, et elle vaut aussi pour un
-    graphe séquentiel comme celui-ci : le cycle
-    raisonnement -> recherche_runbooks -> raisonnement écrit dans
-    `messages` à chaque tour, et une sémantique d'écrasement perdrait
-    l'historique de l'outillage à chaque passage.
+    The fields annotated with `operator.add` are accumulators: two nodes
+    writing within the same super-step concatenate their contributions
+    instead of the last one overwriting the first. That is the reducer's
+    technical reason to exist, and it holds for a sequential graph like
+    this one too: the cycle
+    raisonnement -> recherche_runbooks -> raisonnement writes to
+    `messages` on every turn, and overwrite semantics would lose the tool
+    history on each pass.
     """
 
     alerte: str
@@ -115,20 +115,20 @@ class EtatSRE(TypedDict, total=False):
     classification: ClassificationAlerte | None
     diagnostic: Diagnostic | None
 
-    # --- Accumulateurs ---------------------------------------------------
+    # --- Accumulators ----------------------------------------------------
     messages: Annotated[list[dict[str, Any]], operator.add]
     outils_appeles: Annotated[list[str], operator.add]
     injections_signalees: Annotated[list[str], operator.add]
     actions_ecartees_sans_source: Annotated[list[str], operator.add]
     journal: Annotated[list[str], operator.add]
-    # Le budget n'est PAS stocké comme un total, mais comme la suite de
-    # ses consommations. Un total serait écrasé par la dernière branche à
-    # écrire ; une liste de deltas s'additionne. Le compteur est ensuite
-    # rejoué par `_budget()`, ce qui le rend aussi juste après une reprise
-    # qu'avant l'interruption.
+    # The budget is NOT stored as a total, but as the sequence of its
+    # charges. A total would be overwritten by the last branch to write;
+    # a list of deltas adds up. The counter is then replayed by
+    # `_budget()`, which makes it as accurate after a resume as it was
+    # before the interruption.
     depenses: Annotated[list[dict[str, float]], operator.add]
 
-    # --- Contrôle --------------------------------------------------------
+    # --- Control ---------------------------------------------------------
     tours: int
     relance_tentee: bool
     motif_abandon: str
@@ -149,14 +149,14 @@ _CHAMPS_BUDGET = (
 
 
 def _budget(etat: EtatSRE) -> Budget:
-    """Rejoue les consommations enregistrées pour reconstituer le budget.
+    """Replay the recorded charges to rebuild the budget.
 
-    Les compteurs sont réaffectés directement plutôt que rejoués par
-    `consommer_llm`, qui lèverait au milieu du rejeu. Ce n'est pas un
-    contournement du garde-fou : les plafonds restent ceux de `config`,
-    et c'est bien `Budget` qui les oppose au prochain appel réel. La
-    sémantique d'`agent.py` est conservée — un dépassement est constaté
-    après coup et interrompt l'étape suivante.
+    The counters are assigned directly rather than replayed through
+    `consommer_llm`, which would raise in the middle of the replay. This
+    is not a way around the guardrail: the ceilings are still those of
+    `config`, and it is still `Budget` that enforces them on the next real
+    call. The semantics of `agent.py` are preserved — an overrun is
+    observed after the fact and stops the following step.
     """
     budget = Budget(
         max_appels_outils=config.MAX_APPELS_OUTILS,
@@ -176,12 +176,12 @@ def _delta(avant: dict[str, float], budget: Budget) -> dict[str, float]:
     return {champ: getattr(budget, champ) - avant[champ] for champ in _CHAMPS_BUDGET}
 
 
-# --- Contexte de traçage et session d'outils ------------------------------
+# --- Tracing context and tool session -------------------------------------
 #
-# Deux ressources ne peuvent pas vivre dans l'état sérialisé : la span
-# parente et le sous-processus MCP. Elles sont donc portées par le
-# processus, installées par `_execution()` et lues par les nœuds. Une
-# exécution de graphe par processus, ce qui est le mode d'emploi du CLI.
+# Two resources cannot live in the serialised state: the parent span and
+# the MCP subprocess. They are therefore held by the process, installed by
+# `_execution()` and read by the nodes. One graph run per process, which is
+# how the CLI is meant to be used.
 
 _contexte_parent: Any = None
 _pile_ressources: contextlib.ExitStack | None = None
@@ -189,10 +189,10 @@ _client_runbooks: ClientRunbooks | None = None
 
 
 def _client() -> ClientRunbooks:
-    """Ouvre la session MCP à la première demande, jamais avant.
+    """Open the MCP session on first request, never earlier.
 
-    Une reprise après approbation n'appelle plus d'outil : payer le
-    démarrage du sous-processus serait payer pour rien.
+    A resume after approval calls no more tools: paying for the
+    subprocess start-up would be paying for nothing.
     """
     global _client_runbooks
     if _client_runbooks is None:
@@ -203,15 +203,15 @@ def _client() -> ClientRunbooks:
 
 
 def noeud(nom: str):
-    """Enveloppe un nœud : une span enfant, et les erreurs mises en état.
+    """Wrap a node: one child span, and errors recorded into the state.
 
-    C'est ici que se joue le point 3 du portage. Un nœud ne décide jamais
-    de la suite : il fait son travail, ou il consigne pourquoi il n'a pas
-    pu, et rend la main. Le routage est l'affaire des arêtes.
+    This is where point 3 of the port plays out. A node never decides what
+    comes next: it does its work, or it records why it could not, and
+    hands back. Routing is the business of the edges.
 
-    La dépense est calculée par différence avant/après, y compris quand
-    le nœud échoue : un appel payé puis rejeté reste payé, et le rapport
-    doit le dire.
+    The spend is computed as a before/after difference, including when the
+    node fails: a call that was paid for and then rejected is still paid
+    for, and the report has to say so.
     """
 
     def decorateur(fonction):
@@ -255,16 +255,17 @@ def noeud(nom: str):
     return decorateur
 
 
-# --- Nœuds ----------------------------------------------------------------
+# --- Nodes ----------------------------------------------------------------
 
 
 @noeud("extraction")
 def extraction(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
-    """Alerte brute -> forme anonymisée. Local, classé CONFIDENTIEL.
+    """Raw alert -> anonymised form. Local, classified CONFIDENTIEL.
 
-    Seul nœud du graphe à voir la donnée client. Le cloisonnement n'est
-    pas garanti par sa position dans le graphe mais par la classification
-    passée à `appeler_llm`, qui refuserait un alias frontière.
+    The only node in the graph that sees customer data. The
+    compartmentalisation is not guaranteed by its position in the graph
+    but by the classification passed to `appeler_llm`, which would refuse
+    a frontier alias.
     """
     reponse = appeler_llm(
         alias=config.ALIAS_EXTRACTION,
@@ -283,11 +284,11 @@ def extraction(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
 @noeud("classification")
 def classification(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
-    """Tri sur donnée dérivée, alias `fast`. Amorce aussi le raisonnement.
+    """Triage over derived data, `fast` alias. Also seeds the reasoning.
 
-    Le nœud sème `messages` avec le prompt système et la charge : les
-    tours suivants n'y ajouteront que des messages, jamais ne le
-    remplaceront, grâce au reducer.
+    The node seeds `messages` with the system prompt and the payload:
+    later turns only append to it, never replace it, thanks to the
+    reducer.
     """
     extrait = etat["extraction"]
     reponse = appeler_llm(
@@ -307,12 +308,12 @@ def classification(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
 @noeud("raisonnement")
 def raisonnement(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
-    """Un tour de modèle outillé. Un seul : le cycle est dans le graphe.
+    """One turn of the tool-using model. Just one: the cycle is in the graph.
 
-    Les outils restent déclarés même à budget épuisé, exactement comme
-    dans `agent.py` : les retirer ferait répondre le modèle sans avoir
-    consulté les runbooks, et cette réponse dégradée serait rendue comme
-    un diagnostic.
+    The tools stay declared even once the budget is spent, exactly as in
+    `agent.py`: removing them would make the model answer without having
+    consulted the runbooks, and that degraded answer would be returned as
+    a diagnosis.
     """
     reponse = appeler_llm(
         alias=config.ALIAS_RAISONNEMENT,
@@ -331,11 +332,12 @@ def raisonnement(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
 @noeud("recherche_runbooks")
 def recherche_runbooks(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
-    """Exécute les outils MCP demandés au tour précédent.
+    """Run the MCP tools requested on the previous turn.
 
-    `executer_outil` décompte le budget avant d'appeler le serveur et
-    lève si le plafond est atteint. L'arête d'entrée a normalement déjà
-    écarté ce cas ; le garde-fou reste en place et fait foi.
+    `executer_outil` charges the budget before calling the server and
+    raises if the ceiling is reached. The incoming edge has normally ruled
+    that case out already; the guardrail stays in place and is what
+    counts.
     """
     demandes = _appels_outils(etat["messages"][-1])
     messages: list[dict[str, Any]] = []
@@ -356,13 +358,13 @@ def recherche_runbooks(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
 @noeud("diagnostic")
 def diagnostic(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
-    """Valide le JSON final et applique la garde de source.
+    """Validate the final JSON and apply the source guard.
 
-    En cas de prose, le nœud ne relance pas lui-même : il pose la
-    demande de relance dans l'état, et l'arête décide de repasser par
-    `raisonnement`. La différence n'est pas cosmétique — la relance
-    devient un franchissement d'arête observable, au lieu d'un `except`
-    invisible depuis l'extérieur.
+    When prose comes back, the node does not retry by itself: it records
+    the retry request in the state, and the edge decides to go through
+    `raisonnement` again. The difference is not cosmetic — the retry
+    becomes an observable edge traversal instead of an `except` invisible
+    from the outside.
     """
     contenu = etat["messages"][-1].get("content") or ""
     try:
@@ -384,16 +386,16 @@ def diagnostic(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
 @noeud("porte_humaine")
 def porte_humaine(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
-    """Le nœud qui justifie le portage : pause durable avant livraison.
+    """The node that justifies the port: a durable pause before delivery.
 
-    `interrupt()` lève une exception de contrôle que LangGraph
-    intercepte après avoir écrit l'état dans le checkpointer. Ce qui est
-    livré n'a donc jamais été livré sans qu'un humain l'ait vu, et cette
-    propriété tient même si la machine s'arrête pendant la pause.
+    `interrupt()` raises a control exception that LangGraph catches after
+    writing the state to the checkpointer. So what is delivered was never
+    delivered without a human having seen it, and that property holds even
+    if the machine stops during the pause.
 
-    La span est fermée sans erreur : une pause attendue n'est pas un
-    incident, et la marquer en rouge rendrait le tableau de bord
-    illisible le jour où la porte sert vraiment.
+    The span is closed without an error: an expected pause is not an
+    incident, and marking it red would make the dashboard unreadable on
+    the day the gate really matters.
     """
     d = etat["diagnostic"]
     decision = interrupt(
@@ -420,12 +422,12 @@ def porte_humaine(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
 @noeud("abandon")
 def abandon(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
-    """Sortie propre. Aucun diagnostic partiel n'est présenté comme complet.
+    """Clean exit. No partial diagnosis is presented as complete.
 
-    Le nœud rejoue les conditions de routage pour dire lequel des trois
-    plafonds a mordu. Ce n'est pas de la cosmétique : « plafond d'outils »
-    et « plafond de tours » appellent des corrections opposées, et à
-    3 h du matin personne n'ira relire le graphe pour trancher.
+    The node replays the routing conditions to say which of the three
+    ceilings actually bit. That is not cosmetic: "tool ceiling" and "turn
+    ceiling" call for opposite fixes, and at 3 a.m. nobody is going to
+    re-read the graph to work it out.
     """
     if etat.get("statut") == "erreur":
         return {}
@@ -437,7 +439,7 @@ def abandon(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
 
 def _motif_abandon(etat: EtatSRE, budget: Budget) -> str:
-    """Attribue l'arrêt au plafond qui l'a réellement provoqué."""
+    """Attribute the stop to the ceiling that actually caused it."""
     if motif := etat.get("motif_abandon"):
         return motif
     if budget.cout_usd >= config.MAX_COUT_USD:
@@ -468,12 +470,11 @@ def _motif_abandon(etat: EtatSRE, budget: Budget) -> str:
     return str(BudgetEpuise("arrêt sur budget", "condition de sortie non attribuée"))
 
 
-# --- Arêtes conditionnelles -----------------------------------------------
+# --- Conditional edges ----------------------------------------------------
 #
-# Toute la logique de sortie est ici, en clair, dans des fonctions pures
-# qui lisent l'état et rendent un nom de nœud. C'est le point 3 du
-# portage : un dépassement de budget est une bifurcation du graphe, pas
-# un `if` au milieu d'une boucle.
+# All the exit logic lives here, in the open, in pure functions that read
+# the state and return a node name. That is point 3 of the port: a budget
+# overrun is a fork in the graph, not an `if` in the middle of a loop.
 
 
 def _sortie_forcee(etat: EtatSRE) -> str | None:
@@ -499,7 +500,7 @@ def apres_classification(etat: EtatSRE) -> str:
 
 
 def apres_raisonnement(etat: EtatSRE) -> str:
-    """Outils, diagnostic ou abandon. Décidé sur l'état, pas dans le nœud."""
+    """Tools, diagnosis or abort. Decided on the state, not inside the node."""
     if forcee := _sortie_forcee(etat):
         return forcee
     if etat.get("tours", 0) >= config.MAX_TOURS:
@@ -508,8 +509,8 @@ def apres_raisonnement(etat: EtatSRE) -> str:
     demandes = _appels_outils(etat["messages"][-1])
     if not demandes:
         return "diagnostic"
-    # Le budget est opposé avant l'entrée dans le nœud : une salve plus
-    # large que ce qu'il reste est refusée en bloc, pas exécutée à moitié.
+    # The budget is enforced before entering the node: a burst wider than
+    # what remains is refused wholesale, not half executed.
     if len(demandes) > _budget(etat).outils_restants():
         return "abandon"
     return "recherche_runbooks"
@@ -525,13 +526,13 @@ def apres_diagnostic(etat: EtatSRE) -> str:
     if forcee := _sortie_forcee(etat):
         return forcee
     if etat.get("diagnostic") is None:
-        # Relance demandée : le modèle a rendu de la prose. Une seule
-        # fois, `relance_tentee` en fait foi côté nœud.
+        # Retry requested: the model returned prose. Once only, and
+        # `relance_tentee` is what attests to it on the node side.
         return "abandon" if _budget_epuise(etat) else "raisonnement"
     return "porte_humaine"
 
 
-# --- Assemblage -----------------------------------------------------------
+# --- Assembly -------------------------------------------------------------
 
 
 def construire() -> StateGraph:
@@ -568,12 +569,12 @@ def construire() -> StateGraph:
     return graphe
 
 
-# Le checkpointer est une frontière de confiance que la boucle maison
-# n'avait pas : un fichier persistant que le graphe relit et désérialise.
-# Par défaut, LangGraph y accepte n'importe quel type Python, ce que sa
-# propre documentation signale comme un vecteur d'exécution de code pour
-# qui sait écrire dans ce fichier. On lui oppose donc la même figure que
-# `OUTILS_AUTORISES` : une liste blanche fermée, tenue par ce dépôt.
+# The checkpointer is a trust boundary the hand-written loop did not have:
+# a persistent file the graph reads back and deserialises. By default
+# LangGraph accepts any Python type there, which its own documentation
+# flags as a code-execution vector for anyone able to write to that file.
+# So it gets the same shape as `OUTILS_AUTORISES`: a closed allowlist,
+# owned by this repository.
 TYPES_PERSISTABLES = (Extraction, ClassificationAlerte, Diagnostic, Confiance)
 
 
@@ -585,25 +586,24 @@ def _serialiseur() -> JsonPlusSerializer:
 
 
 def compiler(chemin_db: str = CHEMIN_CHECKPOINTS):
-    """Compile le graphe sur un checkpointer SQLite.
+    """Compile the graph onto a SQLite checkpointer.
 
-    SQLite et non Postgres : la persistance de l'agent ne doit pas
-    dépendre de la base de la passerelle. Un agent qui tombe parce que
-    la comptabilité de la passerelle est en maintenance serait un
-    couplage gratuit entre deux préoccupations sans rapport. La voie
-    d'évolution est documentée dans l'ADR 0004.
+    SQLite and not Postgres: the agent's persistence must not depend on
+    the gateway's database. An agent going down because the gateway's
+    accounting is under maintenance would be gratuitous coupling between
+    two unrelated concerns. The upgrade path is documented in ADR 0004.
 
-    Le fichier est créé en 0600 : il contient l'extraction de l'alerte,
-    donc de la donnée dérivée d'une donnée client, et il survit au
-    processus. Un état persistant lisible par tout le système annulerait
-    une partie du bénéfice du cloisonnement.
+    The file is created 0600: it holds the alert's extraction, therefore
+    data derived from customer data, and it outlives the process. A
+    persistent state readable by the whole system would cancel part of the
+    benefit of the compartmentalisation.
     """
     dossier = os.path.dirname(os.path.abspath(chemin_db)) or "."
     os.makedirs(dossier, mode=0o700, exist_ok=True)
     connexion = sqlite3.connect(chemin_db, check_same_thread=False)
     with contextlib.suppress(OSError):
-        # Le dossier autant que le fichier : SQLite crée à côté un -wal et
-        # un -shm qui portent les mêmes données.
+        # The directory as much as the file: SQLite creates a -wal and a
+        # -shm alongside it that carry the same data.
         os.chmod(dossier, 0o700)
         os.chmod(chemin_db, 0o600)
     return construire().compile(
@@ -611,17 +611,17 @@ def compiler(chemin_db: str = CHEMIN_CHECKPOINTS):
     )
 
 
-# --- Exécution ------------------------------------------------------------
+# --- Execution ------------------------------------------------------------
 
 
 @contextlib.contextmanager
 def _execution(trace_origine: dict[str, str] | None):
-    """Installe span parente et session d'outils pour la durée d'un invoke.
+    """Install the parent span and tool session for the length of an invoke.
 
-    Une reprise après interruption ouvre forcément une nouvelle trace :
-    l'ancienne est morte avec le processus. Plutôt que de faire semblant,
-    on relie explicitement la nouvelle à l'ancienne par un Link OTel, et
-    Grafana affiche les deux moitiés d'une même histoire.
+    A resume after an interruption necessarily opens a new trace: the old
+    one died with the process. Rather than pretend otherwise, the new one
+    is explicitly tied to the old through an OTel Link, and Grafana shows
+    both halves of a single story.
     """
     global _contexte_parent, _pile_ressources, _client_runbooks
 
@@ -669,7 +669,7 @@ def _execution(trace_origine: dict[str, str] | None):
 
 
 def demarrer(alerte: str, thread_id: str, chemin_db: str = CHEMIN_CHECKPOINTS) -> Rapport:
-    """Lance une analyse. S'arrête sur la porte humaine."""
+    """Start an analysis. Stops at the human gate."""
     application = compiler(chemin_db)
     configuration = {"configurable": {"thread_id": thread_id}}
     with _execution(None) as (span, id_trace, origine):
@@ -686,10 +686,10 @@ def demarrer(alerte: str, thread_id: str, chemin_db: str = CHEMIN_CHECKPOINTS) -
 def reprendre(
     decision: str, thread_id: str, chemin_db: str = CHEMIN_CHECKPOINTS
 ) -> Rapport:
-    """Reprend une analyse en pause, sur le même thread_id.
+    """Resume a paused analysis, on the same thread_id.
 
-    Aucun argument d'alerte : tout ce qui est nécessaire est déjà dans
-    le checkpoint. C'est précisément la démonstration.
+    No alert argument: everything needed is already in the checkpoint.
+    That is precisely the demonstration.
     """
     from langgraph.types import Command
 
@@ -708,7 +708,7 @@ def reprendre(
 
 
 def etat(thread_id: str, chemin_db: str = CHEMIN_CHECKPOINTS) -> dict[str, Any]:
-    """Lit l'état persistant sans rien exécuter."""
+    """Read the persisted state without running anything."""
     instantane = compiler(chemin_db).get_state({"configurable": {"thread_id": thread_id}})
     interruptions = [
         i.value for i in (getattr(instantane, "interrupts", None) or ())
@@ -730,19 +730,19 @@ def purger(
     simulation: bool = False,
     maintenant: datetime | None = None,
 ) -> dict[str, Any]:
-    """Supprime les fils sans activité depuis plus de `avant_jours` jours.
+    """Delete threads with no activity for more than `avant_jours` days.
 
-    L'âge d'un fil est celui de son dernier checkpoint, tel que le
-    checkpointer l'a horodaté (`created_at`, la même source que `etat`).
-    Un fil en pause sur la porte humaine vieillit comme les autres et
-    est purgé comme les autres : une approbation qui n'est pas venue en
-    deux semaines ne viendra plus, l'alerte a été traitée autrement. Le
-    bilan le signale (`en_pause`) pour que l'opérateur le voie.
+    A thread's age is that of its last checkpoint, as the checkpointer
+    timestamped it (`created_at`, the same source as `etat`). A thread
+    paused at the human gate ages like the others and is purged like the
+    others: an approval that has not come in two weeks will not come, the
+    alert was handled another way. The summary flags it (`en_pause`) so
+    the operator can see it.
 
-    Supprimer les lignes ne suffit pas : SQLite garde les pages libérées
-    dans le fichier, et le journal WAL en porte une copie. D'où VACUUM
-    puis troncature du WAL, sans quoi la donnée dérivée d'alerte survit
-    à sa « purge ».
+    Deleting the rows is not enough: SQLite keeps the freed pages inside
+    the file, and the WAL journal holds a copy. Hence VACUUM followed by
+    truncating the WAL, without which alert-derived data survives its own
+    "purge".
     """
     if avant_jours < 0:
         raise ValueError("avant_jours doit être positif ou nul.")
@@ -758,7 +758,7 @@ def purger(
         "octets_apres": 0,
     }
     if not os.path.exists(chemin_db):
-        return bilan  # rien à purger, et surtout ne pas créer le fichier
+        return bilan  # nothing to purge, and above all do not create the file
 
     bilan["octets_avant"] = _empreinte(chemin_db)
     application = compiler(chemin_db)
@@ -798,10 +798,10 @@ def purger(
 
 
 def _empreinte(chemin_db: str) -> int:
-    """Octets réellement occupés : le fichier et son journal WAL.
+    """Bytes actually occupied: the file and its WAL journal.
 
-    En mode WAL, le fichier principal peut ne faire qu'une page alors que
-    tout l'état vit dans `-wal` ; mesurer l'un sans l'autre ment.
+    In WAL mode the main file can be a single page while the whole state
+    lives in `-wal`; measuring one without the other lies.
     """
     return sum(
         os.path.getsize(c) for c in (chemin_db, chemin_db + "-wal") if os.path.exists(c)
@@ -809,12 +809,12 @@ def _empreinte(chemin_db: str) -> int:
 
 
 def _finaliser(span: Any, resultat: dict[str, Any], id_trace: str | None) -> Rapport:
-    """Assemble le Rapport, le même objet que celui d'`agent.py`.
+    """Assemble the Rapport, the same object as the one from `agent.py`.
 
-    Le contrat de sortie ne change pas d'une implémentation à l'autre :
-    c'est ce qui permet de réutiliser le rendu du CLI, et surtout ce qui
-    interdit de maquiller une différence d'orchestration en différence
-    de livrable.
+    The output contract does not change from one implementation to the
+    other: that is what allows the CLI rendering to be reused, and above
+    all what forbids dressing up an orchestration difference as a
+    difference in the deliverable.
     """
     interruptions = resultat.get("__interrupt__") or []
     budget = _budget(resultat)
@@ -853,7 +853,7 @@ def _finaliser(span: Any, resultat: dict[str, Any], id_trace: str | None) -> Rap
     return rapport
 
 
-# --- Utilitaires ----------------------------------------------------------
+# --- Helpers --------------------------------------------------------------
 
 
 def _appels_outils(message: dict[str, Any]) -> list[dict[str, Any]]:
@@ -863,11 +863,11 @@ def _appels_outils(message: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _lire_decision(decision: Any) -> dict[str, Any]:
-    """Interprète la réponse humaine. Le silence n'est pas une approbation.
+    """Interpret the human answer. Silence is not approval.
 
-    Toute réponse qui n'est pas un accord explicite vaut refus : c'est le
-    sens d'une porte. Un défaut permissif transformerait la pause en
-    formalité.
+    Any answer that is not an explicit agreement counts as a refusal:
+    that is what a gate means. A permissive default would turn the pause
+    into a formality.
     """
     if isinstance(decision, dict):
         return {

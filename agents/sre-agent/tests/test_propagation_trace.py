@@ -1,13 +1,13 @@
-"""Propagation du contexte de trace vers la passerelle (ADR 0005).
+"""Propagation of the trace context to the gateway (ADR 0005).
 
-Trois propriétés, dans l'ordre d'importance :
-1. Sans span active, l'appel se comporte exactement comme avant : aucun
-   en-tête ajouté, aucune exception. C'est le seul cas où la modification
-   pourrait lever dans un chemin qui ne levait pas.
-2. Avec une span active, l'en-tête traceparent porte le trace_id et le
-   span_id de la span llm.* courante, au format W3C.
-3. La garde de cloisonnement reste avant la construction des en-têtes :
-   un refus n'atteint ni l'injection ni le réseau.
+Three properties, in order of importance:
+1. With no active span, the call behaves exactly as before: no header
+   added, no exception. That is the only case where the change could raise
+   on a path that did not raise before.
+2. With an active span, the traceparent header carries the trace_id and
+   span_id of the current llm.* span, in W3C format.
+3. The compartmentalisation guard stays ahead of header construction: a
+   refusal reaches neither the injection nor the network.
 """
 
 from __future__ import annotations
@@ -23,9 +23,9 @@ from sre_agent import llm, tracage
 from sre_agent.budget import Budget
 from sre_agent.config import Classification
 
-# Drapeaux sur deux hexadécimaux : sampled (bit 0) et, depuis le niveau 2
-# de W3C Trace Context, random (bit 1). Le SDK émet "03", la passerelle
-# reçoit un en-tête valide dans les deux cas.
+# Flags over two hex digits: sampled (bit 0) and, since level 2 of W3C
+# Trace Context, random (bit 1). The SDK emits "03"; the gateway receives a
+# valid header either way.
 TRACEPARENT_W3C = re.compile(r"^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$")
 
 
@@ -43,7 +43,7 @@ def _reponse_passerelle() -> httpx.Response:
 
 @pytest.fixture
 def capture(monkeypatch):
-    """Remplace httpx.post ; enregistre les en-têtes et la span courante au moment de l'appel."""
+    """Replace httpx.post; record the headers and the span current at call time."""
     monkeypatch.setenv("ORCHESTRATOR_KEY", "cle-de-test")
     monkeypatch.setenv("CONFIDENTIAL_KEY", "cle-de-test")
     vu: dict = {}
@@ -68,7 +68,7 @@ def _appel(alias: str = "local", classification=Classification.DERIVE) -> llm.Re
 
 
 def test_sans_span_active_aucun_entete_et_aucune_exception(capture):
-    """Traçage coupé (conftest : SRE_TRACAGE=0) : l'appel est inchangé."""
+    """Tracing off (conftest: SRE_TRACAGE=0): the call is unchanged."""
     assert not tracage.tracer().start_span("sonde").get_span_context().is_valid, (
         "Le test suppose un traceur no-op ; le fournisseur de spans est installé."
     )
@@ -84,8 +84,8 @@ def test_sans_span_active_aucun_entete_et_aucune_exception(capture):
 
 
 def test_avec_span_active_le_traceparent_porte_la_span_llm(capture, monkeypatch):
-    """L'en-tête est au format W3C et désigne la span llm.* comme parent."""
-    fournisseur = TracerProvider()  # SDK réel, aucun exporteur : rien ne sort
+    """The header is in W3C format and names the llm.* span as parent."""
+    fournisseur = TracerProvider()  # real SDK, no exporter: nothing leaves
     monkeypatch.setattr(tracage, "tracer", lambda: fournisseur.get_tracer("test"))
 
     _appel()
@@ -100,7 +100,7 @@ def test_avec_span_active_le_traceparent_porte_la_span_llm(capture, monkeypatch)
 
 
 def test_la_span_parente_est_transmise_a_la_passerelle(capture, monkeypatch):
-    """La span llm.* est enfant de la span de tâche : même trace_id dans l'en-tête."""
+    """The llm.* span is a child of the task span: same trace_id in the header."""
     fournisseur = TracerProvider()
     traceur = fournisseur.get_tracer("test")
     monkeypatch.setattr(tracage, "tracer", lambda: traceur)
@@ -114,7 +114,7 @@ def test_la_span_parente_est_transmise_a_la_passerelle(capture, monkeypatch):
 
 @pytest.mark.parametrize("alias", ["smart", "balanced", "fast"])
 def test_le_refus_precede_l_injection_et_le_reseau(alias, monkeypatch):
-    """Barrière 1 avant tout : ni inject, ni httpx ne sont atteints."""
+    """Barrier 1 comes first: neither inject nor httpx is reached."""
     monkeypatch.setenv("ORCHESTRATOR_KEY", "cle-de-test")
 
     def interdit(*_a, **_k):

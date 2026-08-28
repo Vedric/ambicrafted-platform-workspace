@@ -1,18 +1,18 @@
-"""Point de passage unique vers la passerelle LiteLLM.
+"""The single way through to the LiteLLM gateway.
 
-Tout appel LLM de l'agent traverse `appeler_llm`. C'est ce qui rend le
-cloisonnement vérifiable : il y a un seul endroit à lire pour savoir si
-de la donnée client peut sortir, et un seul endroit à modifier pour que
-ce ne soit plus vrai. Un appel direct à httpx ailleurs dans le paquet
-serait un défaut d'architecture, pas une optimisation.
+Every LLM call the agent makes goes through `appeler_llm`. That is what
+makes the compartmentalisation verifiable: there is one place to read to
+know whether customer data can leave, and one place to change for that to
+stop being true. A direct httpx call elsewhere in the package would be an
+architectural defect, not an optimisation.
 
-Trois barrières, dans cet ordre :
-1. Garde applicative : classification CONFIDENTIEL + alias frontière
-   lève FuiteConfidentielle avant tout accès réseau.
-2. Clé virtuelle : une charge confidentielle est envoyée avec
-   CONFIDENTIAL_KEY, restreinte côté passerelle à local et local-embed.
-3. Passerelle : aucune bascule n'est configurée depuis `local`, une
-   erreur locale n'a donc pas de repli vers la frontière.
+Three barriers, in this order:
+1. Application guard: classification CONFIDENTIEL + a frontier alias
+   raises FuiteConfidentielle before any network access.
+2. Virtual key: a confidential payload is sent with CONFIDENTIAL_KEY,
+   restricted gateway-side to local and local-embed.
+3. Gateway: no fallback is configured from `local`, so a local failure
+   has no path back to the frontier.
 """
 
 from __future__ import annotations
@@ -32,11 +32,11 @@ from .config import ALIAS_CONNUS, ALIAS_LOCAUX, Classification
 
 
 class FuiteConfidentielle(RuntimeError):
-    """Un appel confidentiel visait un alias frontière. Rien n'a été envoyé."""
+    """A confidential call targeted a frontier alias. Nothing was sent."""
 
 
 class ErreurPasserelle(RuntimeError):
-    """La passerelle a refusé ou n'a pas répondu."""
+    """The gateway refused, or did not answer."""
 
 
 @dataclass
@@ -51,11 +51,11 @@ class ReponseLLM:
 
 
 def _cout_depuis_entetes(entetes: httpx.Headers) -> float:
-    """Lit le coût rapporté par la passerelle.
+    """Read the cost the gateway reports.
 
-    La passerelle est l'autorité sur le prix : l'agent ne tient pas de
-    table tarifaire, ce qui lui éviterait de toute façon de connaître un
-    nom de modèle. L'en-tête plat est absent quand le coût est nul.
+    The gateway is the authority on price: the agent keeps no rate table,
+    which would in any case require it to know a model name. The flat
+    header is absent when the cost is zero.
     """
     for nom in ("x-litellm-response-cost", "x-litellm-response-cost-original"):
         brut = entetes.get(nom)
@@ -68,11 +68,11 @@ def _cout_depuis_entetes(entetes: httpx.Headers) -> float:
 
 
 def _systeme_depuis_entetes(entetes: httpx.Headers) -> str:
-    """Déduit gen_ai.system de ce que la passerelle rapporte avoir servi.
+    """Derive gen_ai.system from what the gateway reports having served.
 
-    Valeur lue à l'exécution, jamais écrite dans le code : la règle 1 du
-    CLAUDE.md interdit d'y inscrire un nom de fournisseur, pas d'observer
-    celui que la passerelle a choisi.
+    A value read at run time, never written in the code: rule 1 of
+    CLAUDE.md forbids writing a provider name into the source, not
+    observing the one the gateway picked.
     """
     nom = entetes.get("x-litellm-model-name", "")
     return nom.split("/", 1)[0] if "/" in nom else (nom or "inconnu")
@@ -90,20 +90,20 @@ def appeler_llm(
     temperature: float = 0.0,
     format_json: bool = False,
 ) -> ReponseLLM:
-    """Appelle un modèle par son alias, sous garde de cloisonnement.
+    """Call a model by its alias, under the compartmentalisation guard.
 
     Args:
-        alias: alias de passerelle. Jamais un nom de modèle fournisseur.
-        classification: nature de la donnée transportée par `messages`.
-        budget: compteurs de l'exécution, mis à jour ici.
-        tache: valeur de ambicrafted.task.type sur la span.
+        alias: a gateway alias. Never a provider model name.
+        classification: the nature of the data `messages` carries.
+        budget: the run's counters, updated here.
+        tache: the value of ambicrafted.task.type on the span.
     """
     if alias not in ALIAS_CONNUS:
         raise ErreurPasserelle(
             f"Alias inconnu : {alias!r}. Alias déclarés : {sorted(ALIAS_CONNUS)}."
         )
 
-    # --- Barrière 1 : garde applicative, avant tout accès réseau --------
+    # --- Barrier 1: application guard, before any network access --------
     if classification is Classification.CONFIDENTIEL and alias not in ALIAS_LOCAUX:
         raise FuiteConfidentielle(
             f"Refus : charge classée {classification.value} vers l'alias frontière "
@@ -137,15 +137,15 @@ def appeler_llm(
         span.set_attribute("gen_ai.request.temperature", temperature)
 
         entetes = {
-            # --- Barrière 2 : clé restreinte pour le confidentiel
+            # --- Barrier 2: restricted key for confidential payloads
             "Authorization": f"Bearer {config.cle(classification)}",
             "Content-Type": "application/json",
         }
-        # Contexte de trace W3C (traceparent) : la passerelle rattache ses
-        # propres spans sous cette span llm.*, et un appel LLM n'est plus
-        # deux traces disjointes (ADR 0005). Injecté ici, donc après la
-        # barrière 1 : une charge refusée n'a jamais d'en-tête construit.
-        # Sans span active (traçage coupé), le propagateur n'écrit rien.
+        # W3C trace context (traceparent): the gateway hangs its own spans
+        # under this llm.* span, and an LLM call stops being two disjoint
+        # traces (ADR 0005). Injected here, so after barrier 1: a refused
+        # payload never gets a header built for it at all. With no active
+        # span (tracing off), the propagator writes nothing.
         propagate.inject(entetes)
 
         try:
@@ -199,7 +199,7 @@ def appeler_llm(
         )
         span.set_attribute("gen_ai.response.tool_calls", len(resultat.appels_outils))
 
-        # Imputé dans la span : un dépassement reste visible dans la trace.
+        # Charged inside the span: an overrun stays visible in the trace.
         budget.consommer_llm(cout, entree, sortie)
         span.set_attribute("ambicrafted.budget.spent_usd", round(budget.cout_usd, 6))
 
@@ -210,12 +210,12 @@ _BLOC_JSON = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
 
 
 def extraire_json(texte: str) -> dict[str, Any]:
-    """Extrait un objet JSON d'une réponse de modèle.
+    """Extract a JSON object from a model response.
 
-    Les modèles à raisonnement encadrent volontiers leur JSON de prose ou
-    de clôtures Markdown. Plutôt que d'exiger une sortie propre par le
-    prompt, ce qui n'est jamais garanti, on tolère les trois formes
-    rencontrées et on échoue clairement si aucune ne s'applique.
+    Reasoning models happily wrap their JSON in prose or Markdown fences.
+    Rather than demanding clean output through the prompt, which is never
+    guaranteed, we accept the three shapes actually seen and fail clearly
+    when none of them applies.
     """
     candidats: list[str] = []
     if m := _BLOC_JSON.search(texte):

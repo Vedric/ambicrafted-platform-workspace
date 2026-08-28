@@ -1,14 +1,14 @@
-"""Contrat de sortie de l'agent.
+"""The agent's output contract.
 
-L'agent ne rend pas du texte libre. Il rend un objet validé, parce que
-la sortie d'un agent d'astreinte est lue par un humain sous pression, et
-parfois par une machine : elle doit avoir une forme stable.
+The agent does not return free text. It returns a validated object,
+because the output of an on-call agent is read by a human under pressure,
+and sometimes by a machine: it needs a stable shape.
 
-Le champ `runbook_source` est nullable à dessein. Un modèle à qui on
-impose une source en invente une. Un modèle autorisé à déclarer qu'il
-n'en a pas fournit l'information la plus utile du rapport : « je ne sais
-pas d'où je tiens ça ». Le code exploite ensuite cette déclaration —
-voir `appliquer_garde_source` — au lieu de faire confiance à la prose.
+The `runbook_source` field is nullable on purpose. A model forced to give
+a source invents one. A model allowed to declare it has none supplies the
+most useful piece of the report: "I do not know where I got this from".
+The code then acts on that declaration — see `appliquer_garde_source` —
+instead of trusting the prose.
 """
 
 from __future__ import annotations
@@ -25,11 +25,11 @@ class Confiance(StrEnum):
 
 
 class Extraction(BaseModel):
-    """Sortie de l'étape locale : l'alerte, dépouillée de son contexte client.
+    """Output of the local step: the alert, stripped of its customer context.
 
-    Produite par l'alias `local` sur la donnée brute. C'est le seul objet
-    de ce module autorisé à franchir la frontière ensuite, et c'est
-    précisément pour cela qu'il ne doit contenir aucun identifiant.
+    Produced by the `local` alias on the raw data. It is the only object
+    in this module later allowed across the frontier, and that is exactly
+    why it must carry no identifier.
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -55,7 +55,7 @@ class Extraction(BaseModel):
 
 
 class ClassificationAlerte(BaseModel):
-    """Sortie de l'étape de tri, sur données déjà extraites."""
+    """Output of the triage step, over already-extracted data."""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -69,7 +69,7 @@ class ClassificationAlerte(BaseModel):
 
 
 class Diagnostic(BaseModel):
-    """Le livrable. Produit par le raisonnement final, validé par le code."""
+    """The deliverable. Produced by the final reasoning, validated by code."""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -85,11 +85,11 @@ class Diagnostic(BaseModel):
 
 
 class Rapport(BaseModel):
-    """Ce que l'agent rend réellement : le diagnostic plus ses conditions.
+    """What the agent actually returns: the diagnosis plus its conditions.
 
-    Le diagnostic seul est invérifiable. Ce qui le rend auditable, c'est
-    ce qui l'entoure : quels outils ont été appelés, ce que le budget a
-    permis, ce que le code a refusé.
+    The diagnosis on its own cannot be checked. What makes it auditable is
+    what surrounds it: which tools were called, what the budget allowed,
+    what the code refused.
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -99,9 +99,9 @@ class Rapport(BaseModel):
     classification: ClassificationAlerte | None = None
     diagnostic: Diagnostic | None = None
 
-    # Actions écartées par le code faute de source, avec leur motif.
+    # Actions the code discarded for lack of a source, with the reason.
     actions_ecartees_sans_source: list[str] = Field(default_factory=list)
-    # Tentatives d'injection relevées dans l'alerte, rapportées, jamais suivies.
+    # Injection attempts spotted in the alert: reported, never followed.
     injections_signalees: list[str] = Field(default_factory=list)
 
     outils_appeles: list[str] = Field(default_factory=list)
@@ -111,13 +111,13 @@ class Rapport(BaseModel):
 
 
 def appliquer_garde_source(diagnostic: Diagnostic) -> tuple[Diagnostic, list[str]]:
-    """Refuse les actions qu'aucun runbook ne fonde.
+    """Refuse the actions no runbook backs.
 
-    C'est ici que le champ nullable devient un garde-fou plutôt qu'une
-    coquetterie de schéma : quand le modèle déclare n'avoir pas de
-    source, le code retire ses actions au lieu de les présenter comme
-    des procédures. Elles ne sont pas supprimées, elles sont déplacées
-    dans un champ qui dit ce qu'elles sont : des suggestions non fondées.
+    This is where the nullable field becomes a guardrail rather than a
+    schema nicety: when the model declares it has no source, the code
+    withdraws its actions instead of presenting them as procedures. They
+    are not deleted, they are moved to a field that says what they are:
+    unsourced suggestions.
     """
     if diagnostic.runbook_source:
         return diagnostic, []
@@ -134,8 +134,8 @@ def appliquer_garde_source(diagnostic: Diagnostic) -> tuple[Diagnostic, list[str
                     "Rédiger le runbook manquant avant toute intervention."
                 )
             ],
-            # Une action non fondée devient un manque documenté, pas une
-            # consigne : c'est l'information utile pour l'astreinte.
+            # An unsourced action becomes a documented gap, not an
+            # instruction: that is what is useful to the on-call engineer.
             "elements_manquants": [
                 *diagnostic.elements_manquants,
                 "Runbook absent du corpus pour ce type d'incident.",

@@ -1,24 +1,24 @@
-"""La boucle de l'agent, écrite à la main.
+"""The agent loop, written by hand.
 
-Il n'y a pas de framework ici, et ce n'est pas un manque : la boucle
-d'un agent outillé tient en une trentaine de lignes lisibles, et ce sont
-exactement les lignes où se décident le budget, le cloisonnement et le
-traitement des résultats d'outils. Les déléguer à une bibliothèque, c'est
-déléguer les garde-fous.
+There is no framework here, and that is not something missing: the loop of
+a tool-using agent fits in some thirty readable lines, and those are
+exactly the lines where the budget, the compartmentalisation and the
+handling of tool results are decided. Delegating them to a library means
+delegating the guardrails.
 
-Trois étapes, deux frontières de données :
+Three steps, two data frontiers:
 
-  alerte brute ──[ local, CONFIDENTIEL ]──> extraction anonymisée
+  raw alert ──[ local, CONFIDENTIEL ]──> anonymised extraction
                                                 │
-                        ═══ frontière ═══       │  seule cette forme
-                                                │  franchit la frontière
-                 ──[ fast, DERIVE ]──> tri  ────┤
-                 ──[ smart, DERIVE ]──> boucle outillée ──> diagnostic
+                      ═══ frontier ═══          │  only this form
+                                                │  crosses the frontier
+               ──[ fast, DERIVE ]──> triage ────┤
+               ──[ smart, DERIVE ]──> tool loop ──> diagnosis
 
-L'étape de tri emploie l'alias `fast` comme prévu, mais sur l'extraction
-et non sur l'alerte : le garde-fou de cloisonnement prime, et il n'y a
-aucune raison de payer en confidentialité ce qu'on peut obtenir sur une
-donnée dérivée.
+The triage step uses the `fast` alias as intended, but on the extraction
+rather than on the alert: the compartmentalisation guardrail comes first,
+and there is no reason to pay in confidentiality for what can be obtained
+from derived data.
 """
 
 from __future__ import annotations
@@ -43,15 +43,15 @@ from .modeles import (
 )
 from .outils import ClientRunbooks, ErreurOutil, executer_outil
 
-# Le modèle local raisonne avant de répondre : le budget de sortie doit
-# couvrir le raisonnement ET le JSON, sinon la réponse est tronquée.
+# The local model reasons before answering: the output budget has to cover
+# the reasoning AND the JSON, otherwise the response comes back truncated.
 MAX_TOKENS_LOCAL = 3_000
 MAX_TOKENS_TRI = 600
 MAX_TOKENS_RAISONNEMENT = 2_000
 
 
 def analyser(alerte: str) -> Rapport:
-    """Analyse une alerte et rend un rapport. Ne remédie jamais."""
+    """Analyse an alert and return a report. Never remediates."""
     budget = Budget(
         max_appels_outils=config.MAX_APPELS_OUTILS,
         max_cout_usd=config.MAX_COUT_USD,
@@ -60,8 +60,8 @@ def analyser(alerte: str) -> Rapport:
 
     with tracage.tracer().start_as_current_span("task.incident_analysis") as span:
         span.set_attribute(tracage.ATTR_TYPE_TACHE, "incident_analysis")
-        # La span parente porte la classification la plus stricte de
-        # l'exécution : elle englobe le traitement de l'alerte brute.
+        # The parent span carries the strictest classification of the run:
+        # it encloses the handling of the raw alert.
         span.set_attribute(tracage.ATTR_CLASSIFICATION, Classification.CONFIDENTIEL.value)
         span.set_attribute(tracage.ATTR_BUDGET_MAX_OUTILS, budget.max_appels_outils)
         span.set_attribute(tracage.ATTR_BUDGET_MAX_COUT, budget.max_cout_usd)
@@ -126,7 +126,7 @@ def analyser(alerte: str) -> Rapport:
     return rapport
 
 
-# --- Étape 1 : extraction, sur donnée brute, en local ---------------------
+# --- Step 1: extraction, over raw data, locally ---------------------------
 
 
 def _extraire(alerte: str, budget: Budget) -> Extraction:
@@ -141,7 +141,7 @@ def _extraire(alerte: str, budget: Budget) -> Extraction:
     return Extraction.model_validate(extraire_json(reponse.contenu))
 
 
-# --- Étape 2 : tri, sur donnée dérivée ------------------------------------
+# --- Step 2: triage, over derived data ------------------------------------
 
 
 def _trier(extraction: Extraction, budget: Budget) -> ClassificationAlerte:
@@ -156,7 +156,7 @@ def _trier(extraction: Extraction, budget: Budget) -> ClassificationAlerte:
     return ClassificationAlerte.model_validate(extraire_json(reponse.contenu))
 
 
-# --- Étape 3 : boucle outillée --------------------------------------------
+# --- Step 3: the tool loop ------------------------------------------------
 
 
 def _raisonner(
@@ -165,12 +165,12 @@ def _raisonner(
     client: ClientRunbooks,
     budget: Budget,
 ) -> tuple[Diagnostic, list[str]]:
-    """Boucle appel / outil / résultat, sous double budget.
+    """Call / tool / result loop, under a double budget.
 
-    La boucle s'arrête pour l'une de quatre raisons : le modèle rend son
-    JSON, le budget d'outils est épuisé, le budget monétaire est dépassé,
-    ou le plafond de tours est atteint. Aucune ne produit un demi-résultat
-    présenté comme complet.
+    The loop stops for one of four reasons: the model returns its JSON, the
+    tool budget is exhausted, the monetary budget is exceeded, or the turn
+    ceiling is reached. None of them yields a half-result presented as
+    complete.
     """
     messages = prompts.messages_raisonnement(extraction, classification)
     declarations = client.outils_openai()
@@ -184,11 +184,11 @@ def _raisonner(
             classification=Classification.DERIVE,
             budget=budget,
             tache="raisonnement",
-            # Les outils restent déclarés même à budget épuisé. Les
-            # retirer ferait répondre le modèle sans les avoir consultés,
-            # et cette réponse dégradée serait rendue comme un
-            # diagnostic. Le budget doit être opposé au moment où
-            # l'agent tente de le dépasser, pas contourné en amont.
+            # The tools stay declared even once the budget is spent.
+            # Removing them would make the model answer without having
+            # consulted them, and that degraded answer would be returned
+            # as a diagnosis. The budget must be held against the agent at
+            # the moment it tries to exceed it, not dodged beforehand.
             outils=declarations,
             max_tokens=MAX_TOKENS_RAISONNEMENT,
         )
@@ -197,8 +197,8 @@ def _raisonner(
             messages.append(_message_assistant(reponse.message))
             for appel in reponse.appels_outils:
                 nom, arguments = _decoder_appel(appel)
-                # Lève BudgetEpuise si le plafond est atteint : l'outil
-                # n'est alors jamais exécuté.
+                # Raises BudgetEpuise if the ceiling is reached: the tool
+                # is then never run.
                 resultat = executer_outil(client, nom, arguments, budget)
                 appeles.append(nom)
                 messages.append(
@@ -218,8 +218,8 @@ def _raisonner(
                     f"Le modèle n'a pas produit de diagnostic exploitable après "
                     f"relance : {e}"
                 ) from e
-            # Une seule relance : le modèle a fini d'analyser mais a rendu
-            # de la prose. On lui redemande la forme, pas le fond.
+            # One retry only: the model has finished analysing but
+            # returned prose. We ask again for the shape, not the content.
             relance_tentee = True
             messages.append(_message_assistant(reponse.message))
             messages.append({"role": "user", "content": prompts.RELANCE_FINALISATION})
@@ -231,11 +231,10 @@ def _raisonner(
 
 
 def _message_assistant(message: dict[str, Any]) -> dict[str, Any]:
-    """Reconstruit un message assistant propre pour l'historique.
+    """Rebuild a clean assistant message for the history.
 
-    La passerelle renvoie des champs spécifiques au fournisseur qui ne
-    sont pas toujours acceptés en entrée. On ne réinjecte que ce que le
-    protocole définit.
+    The gateway returns provider-specific fields that are not always
+    accepted back as input. Only what the protocol defines is fed back in.
     """
     propre: dict[str, Any] = {"role": "assistant"}
     if message.get("content"):
@@ -248,12 +247,12 @@ def _message_assistant(message: dict[str, Any]) -> dict[str, Any]:
 
 
 def _decoder_appel(appel: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-    """Extrait nom et arguments d'un appel d'outil.
+    """Extract the name and arguments of a tool call.
 
-    Les arguments arrivent en JSON sérialisé, produit par le modèle :
-    ils peuvent être malformés. Un décodage raté ne doit pas interrompre
-    l'analyse, il doit produire un appel qui échouera proprement côté
-    outil, avec un message que le modèle peut corriger.
+    The arguments arrive as serialised JSON produced by the model, so they
+    may be malformed. A failed decode must not interrupt the analysis; it
+    must produce a call that fails cleanly on the tool side, with a message
+    the model can act on.
     """
     fonction = appel.get("function") or {}
     nom = str(fonction.get("name") or "")

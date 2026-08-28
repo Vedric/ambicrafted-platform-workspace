@@ -1,26 +1,29 @@
-"""Entrée en ligne de commande de la version graphe.
+"""Command-line entry point for the graph version.
 
-Distincte de `cli.py` à dessein : `sre-agent` reste la version de
-référence, `sre-agent-graph` est le portage. On peut lancer les deux sur
-la même alerte et comparer, ce qui est tout l'objet de l'ADR 0004.
+Deliberately separate from `cli.py`: `sre-agent` stays the reference
+version, `sre-agent-graph` is the port. Both can be run on the same alert
+and compared, which is the whole point of ADR 0004.
 
-Le cycle de vie diffère sur un point, et c'est le point du portage :
+The life cycle differs on one point, and that point is the port itself:
 
-    sre-agent-graph "alerte..."                 # s'arrête sur la porte
-    sre-agent-graph --etat --thread-id ID       # lit l'état persistant
+    sre-agent-graph "alerte..."                 # stops at the gate
+    sre-agent-graph --etat --thread-id ID       # reads the persisted state
     sre-agent-graph --reprendre oui --thread-id ID
-    sre-agent-graph --purger [--avant JOURS] [--simulation]   # rétention
+    sre-agent-graph --purger [--avant JOURS] [--simulation]   # retention
 
-Entre la première et la troisième commande, le processus peut mourir,
-la machine peut redémarrer. L'état est dans SQLite, pas dans la mémoire
-d'un processus.
+Between the first and the third command, the process may die and the
+machine may reboot. The state lives in SQLite, not in the memory of a
+process.
 
-Codes de sortie :
-  0  analyse complète et approuvée
-  2  budget épuisé, escalade humaine requise
-  3  erreur d'exécution
-  4  diagnostic refusé par l'humain
-  10 en attente d'approbation humaine
+Exit codes:
+  0  analysis complete and approved
+  2  budget exhausted, human escalation required
+  3  run error
+  4  diagnosis refused by the human
+  10 waiting for human approval
+
+The argparse strings and the rendered output below stay in French: an
+on-call engineer reads them. See the language policy in CONTRIBUTING.md.
 """
 
 from __future__ import annotations
@@ -150,10 +153,10 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def rendre_graphe(rapport: Rapport, thread_id: str, chemin_db: str) -> str:
-    """Rendu humain. Réutilise `cli.rendre` : même livrable, même forme.
+    """Human rendering. Reuses `cli.rendre`: same deliverable, same shape.
 
-    Seule la pause a besoin d'un traitement propre au graphe, parce
-    qu'elle n'existe pas dans la version maison.
+    Only the pause needs handling specific to the graph, because it does
+    not exist in the hand-written version.
     """
     if rapport.statut == "en_attente_humain":
         demande = json.loads(rapport.message) if rapport.message else {}
@@ -208,7 +211,7 @@ def rendre_graphe(rapport: Rapport, thread_id: str, chemin_db: str) -> str:
 
 
 def rendre_purge(bilan: dict) -> str:
-    """Rendu humain du bilan de purge."""
+    """Human rendering of the purge summary."""
     titre = "À PURGER (simulation, rien n'est supprimé)" if bilan["simulation"] else "PURGÉ"
     lignes = [
         f"{titre} : {len(bilan['purges'])} fil(s) sans activité depuis le "

@@ -1,12 +1,15 @@
-"""Entrée en ligne de commande.
+"""Command-line entry point.
 
-L'agent lit une alerte en argument ou sur stdin, et rend soit un rapport
-lisible par un humain d'astreinte, soit du JSON pour un appelant machine.
+The agent reads an alert from an argument or from stdin, and returns
+either a report an on-call human can read, or JSON for a machine caller.
 
-Le code de sortie est significatif :
-  0  analyse complète
-  2  budget épuisé, escalade humaine requise
-  3  erreur d'exécution
+The exit code carries meaning:
+  0  complete analysis
+  2  budget exhausted, human escalation required
+  3  run error
+
+The argparse strings and the rendered report below stay in French: an
+on-call engineer reads them. See the language policy in CONTRIBUTING.md.
 """
 
 from __future__ import annotations
@@ -53,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def rendre(rapport: Rapport) -> str:
-    """Rapport lisible. Ce qui a été refusé est aussi visible que ce qui a abouti."""
+    """Human-readable report. What was refused is as visible as what succeeded."""
     lignes: list[str] = []
     b = rapport.budget
 

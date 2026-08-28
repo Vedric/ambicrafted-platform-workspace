@@ -1,19 +1,18 @@
-"""Accès aux outils du serveur MCP runbooks.
+"""Access to the runbooks MCP server tools.
 
-Garde-fou structurel : c'est le SEUL fournisseur d'outils de l'agent. Il
-n'y a pas de shell, pas d'écriture fichier, pas d'appel HTTP arbitraire,
-et ce n'est pas parce qu'un prompt l'interdit — c'est parce qu'aucune
-fonction de ce paquet ne les expose au modèle. La sécurité vient de
-l'absence de l'outil.
+Structural guardrail: this is the ONLY tool provider the agent has. There
+is no shell, no file write, no arbitrary HTTP call — and not because a
+prompt forbids them, but because no function in this package exposes them
+to the model. The security comes from the tool being absent.
 
-Seconde couche : OUTILS_AUTORISES est une liste blanche fermée. Un outil
-que le serveur viendrait à publier sans figurer ici ne serait jamais
-présenté au modèle. Ajouter un outil est une décision de ce fichier,
-jamais une conséquence d'une mise à jour du serveur.
+Second layer: OUTILS_AUTORISES is a closed allowlist. A tool the server
+started publishing without being listed here would never be presented to
+the model. Adding a tool is a decision made in this file, never a
+consequence of a server update.
 
-Le serveur MCP est asynchrone, la boucle de l'agent est synchrone et
-délibérément lisible. On isole donc l'asynchrone dans un fil dédié qui
-tient la session ouverte, et on expose une façade synchrone.
+The MCP server is asynchronous, the agent loop is synchronous and
+deliberately readable. So the asynchronous part is confined to a dedicated
+thread that holds the session open, behind a synchronous facade.
 """
 
 from __future__ import annotations
@@ -33,20 +32,20 @@ from opentelemetry.trace import Status, StatusCode
 
 from . import config, tracage
 
-# Liste blanche fermée. Les quatre outils du serveur runbooks sont en
-# lecture seule : ils listent, lisent et cherchent. Aucun n'écrit.
+# Closed allowlist. The four tools of the runbooks server are read-only:
+# they list, read and search. None of them writes.
 OUTILS_AUTORISES = frozenset(
     {"list_runbooks", "read_runbook", "search_runbooks", "semantic_search"}
 )
 
-# Un résultat d'outil est une donnée non fiable qui entre dans le
-# contexte : on le borne pour qu'un runbook anormalement gros ne chasse
-# pas les instructions du contexte.
+# A tool result is untrusted data entering the context: it is bounded so
+# that an abnormally large runbook cannot push the instructions out of
+# that context.
 MAX_RESULTAT_OUTIL = 12_000
 
 
 class ErreurOutil(RuntimeError):
-    """Le serveur d'outils est inutilisable."""
+    """The tool server is unusable."""
 
 
 @dataclass(frozen=True)
@@ -67,11 +66,10 @@ class Outil:
 
 
 class ClientRunbooks:
-    """Session MCP vers le serveur runbooks, façade synchrone.
+    """MCP session to the runbooks server, behind a synchronous facade.
 
-    S'utilise en gestionnaire de contexte : le sous-processus du serveur
-    est démarré à l'entrée et arrêté à la sortie, y compris sur
-    exception.
+    Used as a context manager: the server subprocess is started on entry
+    and stopped on exit, including on an exception.
     """
 
     def __init__(self) -> None:
@@ -83,7 +81,7 @@ class ClientRunbooks:
         self.outils: list[Outil] = []
         self.outils_ecartes: list[str] = []
 
-    # --- Cycle de vie ----------------------------------------------------
+    # --- Life cycle ------------------------------------------------------
 
     def __enter__(self) -> Self:
         self._fil = threading.Thread(target=self._demarrer_boucle, daemon=True)
@@ -104,10 +102,10 @@ class ClientRunbooks:
             self._fil.join(timeout=30)
 
     def _demarrer_boucle(self) -> None:
-        # Le serveur MCP journalise en clair sur stderr. En incident, ce
-        # flux noie la sortie de l'agent : on le détourne, sauf demande
-        # explicite de diagnostic. Le fichier est ouvert ici, hors de la
-        # boucle d'événements, qu'une ouverture bloquante figerait.
+        # The MCP server logs in the clear on stderr. During an incident
+        # that stream drowns the agent's output, so it is diverted unless
+        # diagnosis is explicitly asked for. The file is opened here,
+        # outside the event loop, which a blocking open would freeze.
         try:
             with contextlib.ExitStack() as pile:
                 if os.environ.get("SRE_DEBUG_MCP"):
@@ -115,17 +113,17 @@ class ClientRunbooks:
                 else:
                     journal = pile.enter_context(open(os.devnull, "w"))
                 asyncio.run(self._piloter(journal))
-        except BaseException as e:  # noqa: BLE001 — remontée au fil appelant
+        except BaseException as e:  # noqa: BLE001 — handed back to the calling thread
             self._erreur = e
         finally:
             self._pret.set()
 
     async def _piloter(self, journal: Any) -> None:
-        """Tient la session MCP ouverte et sert les appels du fil principal.
+        """Hold the MCP session open and serve calls from the main thread.
 
-        La session est un gestionnaire de contexte asynchrone : elle doit
-        vivre dans une seule coroutine. On ne peut donc pas ouvrir puis
-        rendre la main — d'où cette boucle de service.
+        The session is an async context manager: it has to live inside a
+        single coroutine. So one cannot open it and then hand control
+        back — hence this service loop.
         """
         self._boucle = asyncio.get_running_loop()
         self._arret = asyncio.Event()
@@ -136,10 +134,10 @@ class ClientRunbooks:
         parametres = StdioServerParameters(
             command="uv",
             args=["run", "--directory", config.MCP_RUNBOOKS_DIR, "server.py"],
-            # Le serveur a besoin du chemin des runbooks, de la passerelle
-            # et de CONFIDENTIAL_KEY : sa recherche sémantique vectorise
-            # la requête via l'alias local-embed. La requête de recherche
-            # ne quitte donc pas la machine elle non plus.
+            # The server needs the runbooks path, the gateway and
+            # CONFIDENTIAL_KEY: its semantic search embeds the query
+            # through the local-embed alias. So the search query does not
+            # leave the machine either.
             env=get_default_environment()
             | {
                 nom: valeur
@@ -187,17 +185,17 @@ class ClientRunbooks:
                 try:
                     resultat = await session.call_tool(nom, arguments)
                     promesse.set_result(_texte(resultat))
-                except BaseException as e:  # noqa: BLE001 — rendu à l'appelant
+                except BaseException as e:  # noqa: BLE001 — returned to the caller
                     promesse.set_exception(e)
 
-    # --- Façade synchrone -------------------------------------------------
+    # --- Synchronous facade -----------------------------------------------
 
     def outils_openai(self) -> list[dict[str, Any]]:
-        """Déclaration des outils au format attendu par la passerelle."""
+        """Tool declarations in the shape the gateway expects."""
         return [o.format_openai() for o in self.outils]
 
     def appeler(self, nom: str, arguments: dict[str, Any]) -> str:
-        """Exécute un outil. Refuse tout nom hors liste blanche."""
+        """Run a tool. Refuses any name outside the allowlist."""
         if nom not in OUTILS_AUTORISES:
             return (
                 f"Refusé : '{nom}' n'est pas un outil de cet agent. "
@@ -219,10 +217,10 @@ class ClientRunbooks:
 
 
 def _cause(e: BaseException) -> str:
-    """Déplie un groupe d'exceptions anyio jusqu'à la cause réelle.
+    """Unwrap an anyio exception group down to the real cause.
 
-    Sans cela, toute panne du serveur MCP se présente comme « unhandled
-    errors in a TaskGroup », ce qui n'aide personne à 3 h du matin.
+    Without this, every MCP server failure shows up as "unhandled errors
+    in a TaskGroup", which helps nobody at 3 a.m.
     """
     while isinstance(e, BaseExceptionGroup) and e.exceptions:
         e = e.exceptions[0]
@@ -230,7 +228,7 @@ def _cause(e: BaseException) -> str:
 
 
 def _texte(resultat: Any) -> str:
-    """Aplatit un CallToolResult en texte."""
+    """Flatten a CallToolResult into text."""
     morceaux: list[str] = []
     for bloc in getattr(resultat, "content", None) or []:
         valeur = getattr(bloc, "text", None)
@@ -244,16 +242,16 @@ def _texte(resultat: Any) -> str:
 def executer_outil(
     client: ClientRunbooks, nom: str, arguments: dict[str, Any], budget: Any
 ) -> str:
-    """Exécute un outil sous budget et sous span.
+    """Run a tool under budget and under a span.
 
-    Le budget est décompté AVANT l'exécution : un appel refusé faute de
-    budget n'atteint jamais le serveur.
+    The budget is charged BEFORE execution: a call refused for lack of
+    budget never reaches the server.
     """
     budget.consommer_outil(nom)
     with tracage.tracer().start_as_current_span(f"tool.{nom}") as span:
         span.set_attribute(tracage.ATTR_OUTIL_SOURCE, "mcp:runbooks")
         span.set_attribute(tracage.ATTR_TYPE_TACHE, "tool_call")
-        # Les runbooks sont notre documentation, pas de la donnée client.
+        # The runbooks are our documentation, not customer data.
         span.set_attribute(tracage.ATTR_CLASSIFICATION, "derive")
         span.set_attribute("mcp.tool.name", nom)
         span.set_attribute("mcp.tool.arguments", str(arguments)[:500])
