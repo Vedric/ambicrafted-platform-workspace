@@ -1,188 +1,178 @@
-# ADR 0007 : un secret fuit par la sortie d'une commande, pas seulement par un fichier
+# ADR 0007: a secret leaks through a command's output, not only through a file
 
-Statut : accepté
-Date : 2026-08-27 (complété le même jour : hook `Bash`, retour
-d'expérience de la rotation)
+Status: accepted
+Date: 2026-08-27 (completed the same day: `Bash` hook, lessons from the
+rotation)
 
-## Contexte : l'incident
+## Context: the incident
 
-Pendant le déplacement de la stack (ADR 0006), les quatre valeurs
-secrètes de `gateway/.env` (`LITELLM_MASTER_KEY`, `POSTGRES_PASSWORD`,
-aussi présent en clair dans `DATABASE_URL`, `ANTHROPIC_API_KEY`,
-`GRAFANA_ADMIN_PASSWORD`) sont apparues dans le contexte d'une session
-d'agent. Aucune n'a été écrite dans un fichier versionné ; `.env` est
-resté ignoré par git ; la règle `deny Read(~/platform/workspace/gateway/.env)`
-de `.claude/settings.json` était en place et n'a pas été contournée.
-Elles ont simplement figuré dans la **sortie** de commandes.
+During the move of the stack (ADR 0006), the four secret values of
+`gateway/.env` (`LITELLM_MASTER_KEY`, `POSTGRES_PASSWORD`, also present in
+clear in `DATABASE_URL`, `ANTHROPIC_API_KEY`, `GRAFANA_ADMIN_PASSWORD`)
+appeared in the context of an agent session. None was written to a versioned
+file; `.env` stayed ignored by git; the rule
+`deny Read(~/platform/workspace/gateway/.env)` of `.claude/settings.json` was
+in place and was not bypassed. They simply appeared in the **output** of
+commands.
 
-Conséquence opérationnelle : rotation complète des quatre secrets le
-2026-08-27 (procédure dans `gateway/README.md`, « Rotation des secrets »).
-Une valeur qui a transité par un contexte de modèle est compromise,
-quelle que soit la suite : elle est dans la transcription locale
-(`~/.claude/projects/*/…jsonl`), dans les résumés de contexte, et dans
-tout ce qui réutilise cette transcription (reprise de session, agents
-délégués, retours produit). On ne nettoie pas, on tourne.
+Operational consequence: complete rotation of the four secrets on 2026-08-27
+(procedure in `gateway/README.md`, "Secret rotation"). A value that has
+transited through a model context is compromised, whatever follows: it is in
+the local transcript (`~/.claude/projects/*/…jsonl`), in context summaries,
+and in everything that reuses that transcript (session resume, delegated
+agents, product feedback). You do not clean up, you rotate.
 
-## Le mécanisme
+## The mechanism
 
-Le modèle de menace implicite jusqu'ici était « un secret fuit s'il est
-écrit quelque part » : `.gitignore`, hook `block-secrets.sh` sur
-`Write|Edit`, `deny Read(.env)`. Ces trois barrières partagent un angle
-mort : elles regardent ce que l'agent **écrit** ou **lit comme fichier**,
-pas ce que ses commandes **impriment**.
+The implicit threat model until then was "a secret leaks if it is written
+somewhere": `.gitignore`, the `block-secrets.sh` hook on `Write|Edit`,
+`deny Read(.env)`. Those three barriers share one blind spot: they look at
+what the agent **writes** or **reads as a file**, not at what its commands
+**print**.
 
-Or un agent travaille surtout par `Bash`, et la sortie d'une commande
-entre intégralement dans son contexte. Chemins de fuite constatés ou
-évidents, tous sans écriture et tous invisibles pour `deny Read` :
+Yet an agent works mostly through `Bash`, and a command's output enters its
+context in full. Observed or obvious leak paths, all without any write and
+all invisible to `deny Read`:
 
-| Commande | Ce qui sort |
+| Command | What comes out |
 |---|---|
-| `cat`, `head`, `less`, `grep -r motif .`, `sed -n p` sur un `.env` | le fichier entier ou la ligne qui contient la valeur |
-| `docker compose config` (sans `--quiet`) | le compose **interpolé** : chaque `${VAR}` remplacé par sa valeur |
-| `docker inspect <conteneur>` | `Config.Env` complet, `env_file` inclus |
-| `env`, `printenv`, `set`, `export -p`, `direnv export` | tout l'environnement, donc tout ce que direnv a chargé du `.env` |
-| `echo "$VAR"`, `printf`, `set -x` | la valeur d'une variable, ou toutes celles des commandes tracées |
-| `git diff`, `git show` sur un fichier commité par erreur | la valeur, même après suppression du fichier |
-| un message d'erreur | un client PostgreSQL ou HTTP qui recopie la DSN ou l'en-tête `Authorization` dans son exception |
-| des logs en mode debug | LiteLLM, promptfoo, un SDK : en-têtes et corps de requêtes |
-| `curl -v`, `httpx` en debug | l'en-tête `Authorization` envoyé |
+| `cat`, `head`, `less`, `grep -r pattern .`, `sed -n p` on a `.env` | the whole file, or the line containing the value |
+| `docker compose config` (without `--quiet`) | the **interpolated** Compose file: every `${VAR}` replaced by its value |
+| `docker inspect <container>` | the complete `Config.Env`, `env_file` included |
+| `env`, `printenv`, `set`, `export -p`, `direnv export` | the entire environment, therefore everything direnv loaded from `.env` |
+| `echo "$VAR"`, `printf`, `set -x` | the value of a variable, or all values of the traced commands |
+| `git diff`, `git show` on a file committed by mistake | the value, even after the file is deleted |
+| an error message | a PostgreSQL or HTTP client copying the DSN or the `Authorization` header into its exception |
+| debug-mode logs | LiteLLM, promptfoo, an SDK: request headers and bodies |
+| `curl -v`, `httpx` in debug | the `Authorization` header that was sent |
 
-S'y ajoutent deux canaux qui ne sont pas des sorties mais entrent dans
-le même contexte :
+To which two more channels are added that are not outputs but enter the same
+context:
 
-- la **commande elle-même** : un `sed -i "s|…|CLE=sk-…|"` porte la
-  valeur en clair dans le texte de la commande, donc dans la
-  transcription. Une valeur nouvelle donnée à l'agent pour être écrite
-  est exposée par le geste même de l'écrire ;
-- la **saisie de l'utilisateur** : coller un secret dans la conversation
-  l'expose exactement autant.
+- **the command itself**: a `sed -i "s|…|KEY=sk-…|"` carries the value in
+  clear in the command text, therefore in the transcript. A new value handed
+  to the agent to be written is exposed by the very act of writing it;
+- **the user's input**: pasting a secret into the conversation exposes it
+  exactly as much.
 
-## Décision
+## Decision
 
-1. **Règle 8 du CLAUDE.md.** Un secret ne s'affiche jamais, même pour le
-   vérifier. La vérification se fait par **longueur** et **préfixe**
-   (12 caractères), jamais par la valeur :
-   `v=$(sed -nE 's/^NOM=//p' .env); echo "len=${#v} prefix=${v:0:12}"`.
-   Le préfixe suffit à distinguer une ancienne valeur d'une nouvelle,
-   ne permet pas de la reconstituer, et se compare à l'œil.
-2. **Une valeur ne transite que par des variables de shell**, jamais par
-   un argument littéral ni par une sortie : générée par `openssl rand`
-   dans une variable, écrite par `sed` depuis cette variable, passée à
-   `psql` par **stdin**, à `curl` par `-H "Authorization: Bearer $V"`.
-   Les arguments de processus restent visibles dans `/proc` un instant ;
-   c'est accepté sur une machine mono-utilisateur, la sortie ne l'est pas.
-3. **Un secret nouveau fourni par l'humain n'entre pas dans la
-   conversation.** Il l'écrit lui-même dans `.env` depuis son terminal
-   (`read -rs K && sed -i … && unset K`) et l'agent ne vérifie que
-   longueur et préfixe. Le chemin « je te la colle, tu l'écris » est
-   accepté seulement si l'humain le décide en connaissance de cause : la
-   valeur est alors dans la transcription comme si elle avait fui.
-4. **Après toute exposition, rotation, pas nettoyage.** Une transcription
-   ne se purge pas de façon fiable. La procédure de rotation, avec ses
-   deux pièges (Postgres et Grafana ne relisent pas `.env` après la
-   première initialisation), est dans `gateway/README.md`.
-5. **Extension du hook au matcher `Bash`, version « littéraux
-   seulement »** (décidé le 2026-08-27). Un second bloc `PreToolUse`
-   avec le matcher `Bash` appelle le même `block-secrets.sh`, qui lit
-   `.tool_input.command` en plus de `content` / `new_string`, avec les
-   **motifs existants** (préfixes `sk-ant-`, `sk-master-`, `sk-proj-`,
-   `AKIA`, `ghp_`, `glpat-`, en-tête de clé privée) et **rien d'autre**.
-   Il bloque une commande dont le texte porte une valeur en clair
-   (`sed -i "s|…|CLE=sk-…|" .env`, `curl -H "x-api-key: sk-…"`) et
-   laisse passer une commande qui charge ou vérifie sans afficher
-   (`sed -nE 's/^NOM=//p' .env`, `${v:0:12}`). Les tests, dans les deux
-   sens, sont dans `.claude/hooks/test-block-secrets.sh` ; ils
-   assemblent leurs fausses clés à l'exécution, précisément parce qu'un
-   littéral dans le fichier de test déclencherait le hook.
+1. **Rule 8 of CLAUDE.md.** A secret is never displayed, not even to check
+   it. Verification is done by **length** and **prefix** (12 characters),
+   never by the value:
+   `v=$(sed -nE 's/^NAME=//p' .env); echo "len=${#v} prefix=${v:0:12}"`.
+   The prefix is enough to tell an old value from a new one, does not allow
+   reconstructing it, and can be compared by eye.
+2. **A value transits only through shell variables**, never through a literal
+   argument nor through an output: generated by `openssl rand` into a
+   variable, written by `sed` from that variable, passed to `psql` through
+   **stdin**, to `curl` through `-H "Authorization: Bearer $V"`. Process
+   arguments remain visible in `/proc` for an instant; that is accepted on a
+   single-user machine, the output is not.
+3. **A new secret provided by the human does not enter the conversation.**
+   They write it themselves into `.env` from their terminal
+   (`read -rs K && sed -i … && unset K`) and the agent only checks length and
+   prefix. The "I paste it to you, you write it" path is accepted only if the
+   human decides so knowingly: the value is then in the transcript as if it
+   had leaked.
+4. **After any exposure, rotate, do not clean.** A transcript cannot be
+   reliably purged. The rotation procedure, with its two traps (Postgres and
+   Grafana do not re-read `.env` after first initialisation), is in
+   `gateway/README.md`.
+5. **Extension of the hook to the `Bash` matcher, "literals only" version**
+   (decided on 2026-08-27). A second `PreToolUse` block with the `Bash`
+   matcher calls the same `block-secrets.sh`, which reads
+   `.tool_input.command` in addition to `content` / `new_string`, with the
+   **existing patterns** (prefixes `sk-ant-`, `sk-master-`, `sk-proj-`,
+   `AKIA`, `ghp_`, `glpat-`, private-key header) and **nothing else**. It
+   blocks a command whose text carries a value in clear
+   (`sed -i "s|…|KEY=sk-…|" .env`, `curl -H "x-api-key: sk-…"`) and lets
+   through a command that loads or checks without displaying
+   (`sed -nE 's/^NAME=//p' .env`, `${v:0:12}`). The tests, in both directions,
+   are in `.claude/hooks/test-block-secrets.sh`; they assemble their fake keys
+   at runtime, precisely because a literal in the test file would trigger the
+   hook.
 
-   La famille « formes afficheuses » (`cat .env`, `compose config` sans
-   `--quiet`, `docker inspect`, `printenv`…) envisagée dans la première
-   version de cet ADR est **écartée**. C'est une liste noire de formes
-   de commande, dont la conception même a montré qu'elle se contourne
-   de six manières sans la moindre intention : une variable
-   (`f=.env; cat $f`), une substitution (`cat $(echo .env)`), un glob
-   (`cat .en?`), un autre interpréteur
-   (`python -c 'print(open(".env").read())'`), une copie intermédiaire
-   (`cp .env /tmp/x; cat /tmp/x`), un outil non listé (`awk`, `tail`,
-   `less`, `bat`). Son coût réel n'est pas l'entretien de la liste,
-   c'est le **faux sentiment de frontière** : une fois en place, on
-   cesse de se demander si la commande va afficher, parce que « le hook
-   l'aurait arrêtée ». Un garde-fou auquel on fait confiance à tort est
-   pire qu'un garde-fou absent, qui laisse la vigilance intacte. Le hook
-   retenu reste donc ce qu'il est honnêtement : un filet contre
-   l'inattention sur un cas net (une valeur collée en clair dans une
-   commande), pas une frontière de sécurité.
+   The "displaying forms" family (`cat .env`, `compose config` without
+   `--quiet`, `docker inspect`, `printenv`…) considered in the first version
+   of this ADR is **rejected**. It is a blocklist of command shapes, whose
+   very design showed that it is bypassed in six ways without the slightest
+   intent: a variable (`f=.env; cat $f`), a substitution
+   (`cat $(echo .env)`), a glob (`cat .en?`), another interpreter
+   (`python -c 'print(open(".env").read())'`), an intermediate copy
+   (`cp .env /tmp/x; cat /tmp/x`), an unlisted tool (`awk`, `tail`, `less`,
+   `bat`). Its real cost is not maintaining the list, it is the **false sense
+   of a boundary**: once in place, one stops asking whether the command will
+   display, because "the hook would have stopped it". A guardrail wrongly
+   trusted is worse than an absent guardrail, which leaves vigilance intact.
+   The hook retained therefore stays what it honestly is: a net against
+   inattention on a clear-cut case (a value pasted in clear into a command),
+   not a security boundary.
 
-## Ce que cela ne résout pas
+## What this does not solve
 
-- **La limite structurelle, qui compte plus que le hook lui-même** : un
-  `PreToolUse` voit la commande, jamais sa sortie. Le canal de fuite
-  réel de l'incident, **une valeur qui apparaît dans un `tool_result`**,
-  n'est **pas couvrable à ce niveau**. Le hook retenu n'aurait arrêté
-  aucune des fuites de la table ci-dessus : `cat .env`,
-  `compose config`, `docker inspect`, `printenv` ont un texte de
-  commande qui ne contient aucun secret ; le secret est dans ce qu'ils
-  renvoient. Un `PostToolUse` voit la sortie, mais après qu'elle est
-  entrée dans le contexte, et sans pouvoir la réécrire. Aucun hook
-  n'empêche donc une fuite par la sortie. Ce qui protège, c'est la
-  règle 8 appliquée par l'agent et par l'humain : ne jamais produire une
-  commande dont la sortie **peut** contenir une valeur, et juger cela
-  avant de la lancer, pas après.
-- `deny Read(.env)` reste utile (il ferme l'outil le plus direct) mais
-  ne protège que contre l'outil `Read`. Ne pas le lire comme « l'agent
-  ne peut pas voir `.env` ».
-- La seule défense complète est qu'une valeur secrète n'ait **jamais
-  besoin** d'apparaître dans une session : préparée hors session, testée
-  par ses effets (une connexion qui réussit, un code HTTP), jamais par
-  sa lecture.
+- **The structural limit, which matters more than the hook itself**: a
+  `PreToolUse` sees the command, never its output. The actual leak channel of
+  the incident, **a value appearing in a `tool_result`**, is **not coverable
+  at that level**. The retained hook would have stopped none of the leaks in
+  the table above: `cat .env`, `compose config`, `docker inspect`, `printenv`
+  have a command text that contains no secret; the secret is in what they
+  return. A `PostToolUse` sees the output, but after it has entered the
+  context, and without being able to rewrite it. No hook therefore prevents a
+  leak through output. What protects is rule 8, applied by the agent and by
+  the human: never produce a command whose output **may** contain a value,
+  and judge that before running it, not after.
+- `deny Read(.env)` remains useful (it closes the most direct tool) but only
+  protects against the `Read` tool. Do not read it as "the agent cannot see
+  `.env`".
+- The only complete defence is that a secret value should **never need** to
+  appear in a session: prepared outside the session, tested by its effects (a
+  connection that succeeds, an HTTP status code), never by reading it.
 
-## Retour d'expérience : la rotation
+## Lessons learned: the rotation
 
-La rotation de `ANTHROPIC_API_KEY` a coûté plus cher que l'incident qui
-l'a déclenchée, pour une raison de méthode. Trois clés ont été créées et
-révoquées dans la console en moins d'une heure, dans l'urgence, pendant
-que `.env` était mis à jour en parallèle. Résultat : `.env` a fini par
-contenir une clé **déjà révoquée** (finissant par `NAAA`, absente de la
-liste des clés actives de la console), alors que rien localement ne le
-laissait voir : longueur correcte, préfixe correct, conteneur recréé.
-Le symptôme, une erreur d'authentification sur l'alias `fast`, a
-d'abord été cherché du côté de la passerelle (config, recréation du
-conteneur) avant que la comparaison avec la console ne montre que la
-clé était simplement morte. Le diagnostic a coûté plus que la rotation.
+The rotation of `ANTHROPIC_API_KEY` cost more than the incident that
+triggered it, for a reason of method. Three keys were created and revoked in
+the console in under an hour, under pressure, while `.env` was being updated
+in parallel. Result: `.env` ended up containing an **already revoked** key
+(ending in `NAAA`, absent from the console's list of active keys), while
+nothing locally showed it: correct length, correct prefix, container
+recreated. The symptom, an authentication error on the `fast` alias, was
+first investigated on the gateway side (config, container recreation) before
+comparison with the console showed that the key was simply dead. The
+diagnosis cost more than the rotation.
 
-Ce que la vérification par longueur et préfixe ne dit pas : qu'une clé
-est **valide**. Elle prouve seulement que la valeur a changé. Seul un
-appel bout en bout, une requête qui exerce ce secret et revient en 200,
-prouve que la valeur en place est celle qui vit côté fournisseur.
+What verification by length and prefix does not tell you: that a key is
+**valid**. It only proves that the value has changed. Only an end-to-end call,
+a request that exercises that secret and comes back 200, proves that the
+value in place is the one that lives at the provider.
 
-Recommandation, reprise dans la procédure de `gateway/README.md` :
+Recommendation, carried over into the procedure in `gateway/README.md`:
 
-1. **Une rotation à la fois.** Un seul secret, une seule nouvelle
-   valeur, créée une seule fois.
-2. **Vérifiée bout en bout avant la suivante** : `.env` mis à jour,
-   `docker compose up -d`, puis un appel réel qui exerce ce secret
-   (clé Anthropic : une complétion sur `fast` ; master key :
-   `/v1/models` ; Postgres : `/health/readiness` → `"db": "connected"`).
-   Tant que cet appel n'a pas répondu, on ne touche à rien d'autre.
-3. **Révoquer l'ancienne valeur après ce succès seulement**, jamais au
-   moment de créer la nouvelle. Quelques minutes de chevauchement
-   coûtent moins qu'une clé morte dans `.env`.
-4. Si une rotation échoue, **une seule** nouvelle tentative, même
-   protocole ; pas de rafale de clés dans la console. Chaque clé créée
-   « au cas où » est une clé de plus dont on ne sait plus si elle vit.
+1. **One rotation at a time.** One secret, one new value, created once.
+2. **Verified end to end before the next one**: `.env` updated,
+   `docker compose up -d`, then a real call that exercises that secret
+   (Anthropic key: a completion on `fast`; master key: `/v1/models`;
+   Postgres: `/health/readiness` → `"db": "connected"`). Until that call has
+   answered, nothing else is touched.
+3. **Revoke the old value after that success only**, never at the moment of
+   creating the new one. A few minutes of overlap cost less than a dead key
+   in `.env`.
+4. If a rotation fails, **one** retry, same protocol; no burst of keys in the
+   console. Every key created "just in case" is one more key whose liveness
+   you no longer know.
 
-## Alternatives écartées
+## Alternatives rejected
 
-- **Redaction automatique des sorties** (un filtre qui masque tout motif
-  `sk-…` avant que la sortie n'atteigne le contexte) : pas de point
-  d'accroche dans l'outillage actuel pour réécrire un résultat d'outil,
-  et un mot de passe hexadécimal ou un mot de passe libre n'a pas de
-  motif reconnaissable. Réduirait le risque pour les clés à préfixe,
-  donnerait un faux sentiment de sécurité pour le reste.
-- **Interdire tout `Bash` touchant `.env`** : la rotation elle-même lit
-  `.env` par `sed` pour charger des variables. Une interdiction en bloc
-  forcerait des contournements, qui sont précisément ce qu'on veut
-  éviter. On interdit les formes qui affichent, pas celles qui chargent.
-- **Liste noire de « formes afficheuses » dans le hook `Bash`** : voir
-  la décision 5. Contournable par toute indirection, et son coût réel
-  est de faire croire à une frontière qui n'existe pas.
+- **Automatic redaction of outputs** (a filter masking any `sk-…` pattern
+  before the output reaches the context): no hook point in the current
+  tooling to rewrite a tool result, and a hexadecimal password or a free-form
+  password has no recognisable pattern. It would reduce the risk for
+  prefixed keys and give a false sense of security for the rest.
+- **Forbidding any `Bash` touching `.env`**: the rotation itself reads `.env`
+  through `sed` to load variables. A blanket ban would force workarounds,
+  which are precisely what we want to avoid. We forbid the forms that
+  display, not those that load.
+- **A blocklist of "displaying forms" in the `Bash` hook**: see decision 5.
+  Bypassable by any indirection, and its real cost is to make people believe
+  in a boundary that does not exist.

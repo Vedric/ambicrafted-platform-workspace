@@ -1,145 +1,138 @@
-# ADR 0003 : agent SRE borné, sans framework
+# ADR 0003: bounded SRE agent, without a framework
 
-Statut : accepté, en service local depuis le 25/08/2026
-Date : 2026-08-25
+Status: accepted, in local service since 2026-08-25
+Date: 2026-08-25
 
-## Contexte
-La plateforme dispose des briques : passerelle avec alias et clés
-virtuelles, corpus de runbooks versionné, serveur MCP en lecture seule,
-recherche sémantique, traçage vers Tempo. Elles n'avaient jamais été
-assemblées en un objet exécutable.
+## Context
+The platform has the building blocks: a gateway with aliases and virtual
+keys, a versioned runbook corpus, a read-only MCP server, semantic search,
+tracing to Tempo. They had never been assembled into an executable object.
 
-Un agent d'astreinte est le cas le plus exposé qu'on puisse construire :
-il ingère de la donnée client non maîtrisée, il consomme du budget de
-manière non déterministe, et sa sortie sera lue par quelqu'un de fatigué
-qui l'exécutera. Les trois façons dont il peut nuire — fuite, dérive de
-coût, procédure inventée — appellent des garde-fous *structurels*, pas
-des consignes de prompt.
+An on-call agent is the most exposed thing one can build: it ingests
+uncontrolled client data, it consumes budget non-deterministically, and its
+output will be read by someone tired who will execute it. The three ways it
+can do harm — leak, cost drift, invented procedure — call for *structural*
+guardrails, not prompt instructions.
 
-## Décision
+## Decision
 
-### Pas de framework d'agent
-La boucle est écrite à la main dans `agent.py`, environ cent lignes. Ce
-sont exactement les lignes où se décident le décompte du budget, le choix
-de l'alias par classification de donnée, et l'encapsulation des résultats
-d'outils. Déléguer cette boucle à une bibliothèque, c'est déléguer les
-garde-fous à du code qu'on ne relit pas.
+### No agent framework
+The loop is hand-written in `agent.py`, about one hundred lines. Those are
+exactly the lines where budget accounting, alias selection by data
+classification, and the encapsulation of tool results are decided. Delegating
+that loop to a library means delegating the guardrails to code nobody
+re-reads.
 
-Ce choix est aussi une base de comparaison : un portage LangGraph est
-prévu comme étape ultérieure. Comparer suppose d'avoir la version nue.
+This choice is also a comparison baseline: a LangGraph port is planned as a
+later step. Comparing presupposes having the bare version.
 
-### Le cloisonnement l'emporte sur le choix d'alias par étape
-La spécification initiale plaçait la classification de l'alerte sur
-l'alias `fast`. Appliquée à l'alerte brute, elle enverrait de la donnée
-client à la frontière, en contradiction avec la règle 2 du CLAUDE.md.
+### Compartmentalisation wins over the per-step choice of alias
+The initial specification put alert classification on the `fast` alias.
+Applied to the raw alert, it would send client data across the border,
+contradicting rule 2 of CLAUDE.md.
 
-Le traitement est donc scindé en deux :
+Processing is therefore split in two:
 
 ```
-alerte brute ──[ local, CONFIDENTIEL ]──> extraction anonymisée
+raw alert ──[ local, CONFIDENTIAL ]──> anonymised extract
                                               │
-                      ═══ frontière ═══       │
-               ──[ fast,  DERIVE ]──> tri ────┤
-               ──[ smart, DERIVE ]──> boucle outillée ──> diagnostic
+                      ═══ border ═══          │
+               ──[ fast,  DERIVED ]──> triage ┤
+               ──[ smart, DERIVED ]──> tool loop ──> diagnostic
 ```
 
-L'étape locale extrait la signature technique, retire les identifiants et
-relève les tentatives d'injection. `fast` fait bien le tri, mais sur
-l'extraction. Aucun octet d'alerte brute ne franchit la frontière, et
-l'intention d'origine — un tri rapide et peu coûteux — est préservée.
+The local step extracts the technical signature, removes identifiers and
+records injection attempts. `fast` does perform the triage, but on the
+extract. No byte of the raw alert crosses the border, and the original intent
+— a fast, cheap triage — is preserved.
 
-Conséquence assumée : le modèle local raisonne avant de répondre, cette
-étape coûte 30 à 50 secondes. C'est le prix de la confidentialité, il est
-payé une fois par alerte.
+Accepted consequence: the local model reasons before answering, and this step
+costs 30 to 50 seconds. That is the price of confidentiality, paid once per
+alert.
 
-### Un point de passage unique vers la passerelle
-Tout appel LLM traverse `llm.appeler_llm`, qui prend une `Classification`
-obligatoire. Il y a un seul endroit à lire pour savoir si de la donnée
-client peut sortir. Un appel direct à `httpx` ailleurs dans le paquet
-serait un défaut d'architecture, pas une optimisation.
+### A single point of passage to the gateway
+Every LLM call goes through `llm.appeler_llm`, which takes a mandatory
+`Classification`. There is a single place to read in order to know whether
+client data can leave. A direct `httpx` call elsewhere in the package would
+be an architectural defect, not an optimisation.
 
-La garde repose sur une partition stricte des alias en `ALIAS_LOCAUX` et
-`ALIAS_FRONTIERE` : c'est elle qui rend la décision calculable plutôt
-qu'interprétable. Un test vérifie que les deux ensembles restent
-disjoints.
+The guard rests on a strict partition of aliases into `ALIAS_LOCAUX` and
+`ALIAS_FRONTIERE`: that partition is what makes the decision computable
+rather than interpretable. A test verifies that the two sets stay disjoint.
 
-### Trois barrières plutôt qu'une
-1. Garde applicative, avant tout accès réseau.
-2. Clé virtuelle restreinte pour les charges confidentielles — la
-   passerelle répond 403 si la première tombait.
-3. Aucune bascule depuis `local` dans la configuration de la passerelle.
+### Three barriers rather than one
+1. Application guard, before any network access.
+2. Restricted virtual key for confidential payloads — the gateway answers 403
+   if the first one fell.
+3. No fallback out of `local` in the gateway configuration.
 
-Elles sont indépendantes : aucune ne suppose la correction des autres.
+They are independent: none assumes the others are correct.
 
-### La sécurité vient de l'absence de l'outil
-L'agent n'a ni shell, ni écriture, ni HTTP arbitraire. Non parce qu'un
-prompt l'interdit, mais parce qu'aucune fonction du paquet ne les expose.
-`OUTILS_AUTORISES` est en outre une liste blanche fermée : un outil que
-le serveur MCP publierait sans y figurer ne serait jamais présenté au
-modèle. Ajouter un outil reste une décision de ce dépôt.
+### Security comes from the absence of the tool
+The agent has no shell, no file write, no arbitrary HTTP. Not because a
+prompt forbids it, but because no function in the package exposes them.
+`OUTILS_AUTORISES` is furthermore a closed allow-list: a tool the MCP server
+might publish without appearing there would never be presented to the model.
+Adding a tool remains a decision of this repository.
 
-### Budgets opposés au moment de la tentative
-Le budget d'outils est décompté *avant* exécution : un appel refusé
-n'atteint pas le serveur. Le budget monétaire est imputé *après*, depuis
-l'en-tête de coût de la passerelle — l'agent ne tient aucune table
-tarifaire, ce qui l'obligerait à connaître des noms de modèles.
+### Budgets opposed at the moment of the attempt
+The tool budget is decremented *before* execution: a refused call does not
+reach the server. The monetary budget is charged *after*, from the gateway's
+cost header — the agent holds no price table, which would force it to know
+model names.
 
-Sous-décision importante : à budget d'outils épuisé, les outils restent
-déclarés au modèle. La tentation était de les retirer pour « économiser »
-un tour ; cela ferait répondre le modèle sans avoir consulté les
-runbooks, et cette réponse dégradée serait rendue comme un diagnostic.
-Un budget doit être opposé au moment où l'agent tente de le dépasser, pas
-contourné en amont. Les deux budgets aboutissent au même arrêt : pas de
-demi-diagnostic.
+Important sub-decision: when the tool budget is exhausted, the tools stay
+declared to the model. The temptation was to remove them to "save" a turn;
+that would make the model answer without having consulted the runbooks, and
+that degraded answer would be returned as a diagnostic. A budget must be
+opposed at the moment the agent tries to exceed it, not worked around
+upstream. Both budgets lead to the same stop: no half-diagnostic.
 
-### Données non fiables encapsulées, jamais concaténées
-Le texte de l'alerte et le contenu des runbooks entrent dans le contexte
-entre deux marqueurs portant un jeton aléatoire tiré par exécution. Le
-jeton n'est pas de la cryptographie : il retire à qui rédige l'alerte la
-possibilité d'écrire le marqueur de fermeture. La consigne associée
-demande de **rapporter** toute instruction rencontrée plutôt que de la
-suivre — le signalement d'une injection est en soi une information de
-diagnostic, puisqu'une alerte porteuse d'injection est probablement
-forgée.
+### Untrusted data encapsulated, never concatenated
+The alert text and the runbook contents enter the context between two markers
+carrying a random token drawn once per run. The token is not cryptography: it
+removes from whoever writes the alert the ability to write the closing
+marker. The associated instruction asks to **report** any encountered
+instruction rather than follow it — reporting an injection is itself
+diagnostic information, since an alert carrying an injection is probably
+forged.
 
-Le texte hostile relevé reste local. Les étapes frontière n'en reçoivent
-que le décompte.
+The recorded hostile text stays local. The frontier steps only receive the
+count.
 
-### `runbook_source` nullable, et exploité par le code
-Un modèle à qui l'on impose une source en invente une. Autorisé à
-déclarer `null`, il fournit l'information la plus utile du rapport.
-`appliquer_garde_source()` retire alors ses actions de
-`actions_proposees`, les déplace dans `actions_ecartees_sans_source` et
-les remplace par une escalade humaine. Le code refuse la prose ; il ne se
-contente pas de la lire.
+### `runbook_source` nullable, and acted upon by the code
+A model forced to give a source invents one. Allowed to declare `null`, it
+provides the most useful information in the report. `appliquer_garde_source()`
+then removes its actions from `actions_proposees`, moves them into
+`actions_ecartees_sans_source` and replaces them with a human escalation. The
+code refuses the prose; it does not merely read it.
 
-## Conséquences
+## Consequences
 
-Vérifié en exécution :
-- Alerte PostgreSQL : `incident-p1-database.md` retrouvé, diagnostic
-  sourcé, 3 outils, 0,23 USD.
-- Alerte TLS hors corpus : `runbook_source = null`, actions écartées par
-  le code, aucune procédure inventée.
-- `SRE_MAX_APPELS_OUTILS=2` : arrêt propre au refus du 3ᵉ outil, code 2.
-- `SRE_MAX_COUT_USD=0.05` : arrêt propre, code 2.
-- Alerte porteuse d'injection : instruction rapportée, non suivie.
-- Trace complète dans Tempo : span parente et 8 spans enfants.
+Verified in execution:
+- PostgreSQL alert: `incident-p1-database.md` found, sourced diagnostic,
+  3 tools, 0.23 USD.
+- Out-of-corpus TLS alert: `runbook_source = null`, actions discarded by the
+  code, no invented procedure.
+- `SRE_MAX_APPELS_OUTILS=2`: clean stop on refusing the 3rd tool, exit code 2.
+- `SRE_MAX_COUT_USD=0.05`: clean stop, exit code 2.
+- Injection-bearing alert: instruction reported, not followed.
+- Complete trace in Tempo: parent span and 8 child spans.
 
-Coûts et limites acceptés :
-- 30 à 50 s d'extraction locale par alerte.
-- Le raisonnement sur `smart` consomme environ la moitié du plafond de
-  0,50 USD sur un cas nominal. Le plafond est serré, c'est voulu :
-  il faut qu'il puisse être atteint pour être crédible.
-- L'adresse OTLP de Tempo est une adresse de conteneur, sensible à une
-  recréation. Publier le port 4318 sur l'hôte serait le correctif
-  durable, mais relève du compose de la passerelle, pas de cet agent.
-
-## Alternatives écartées
-- **Plan de recherche codé en dur** (semantic_search puis read_runbook) :
-  rendrait le budget d'itérations décoratif, et supprimerait le
-  comportement qu'il s'agit précisément d'encadrer.
-- **Anonymisation par expressions régulières** : ne couvre pas les noms
-  propres ni les identifiants métier, et ne relève pas les injections.
-  Le modèle local fait les deux dans le même appel.
-- **Interdiction des actions non sourcées par le prompt seul** :
-  invérifiable. Le champ nullable plus le refus en aval sont testables.
+Accepted costs and limits:
+- 30 to 50 s of local extraction per alert.
+- Reasoning on `smart` consumes about half of the 0.50 USD cap on a nominal
+  case. The cap is tight, deliberately: it has to be reachable to be
+  credible.
+- Tempo's OTLP address is a container address, sensitive to a recreation.
+  Publishing port 4318 on the host would be the durable fix, but belongs to
+  the gateway's Compose file, not to this agent.
+## Alternatives rejected
+- **Hard-coded search plan** (semantic_search then read_runbook): would make
+  the iteration budget decorative, and remove the very behaviour that is
+  meant to be bounded.
+- **Anonymisation by regular expressions**: does not cover proper nouns or
+  business identifiers, and does not detect injections. The local model does
+  both in the same call.
+- **Forbidding unsourced actions by prompt alone**: unverifiable. The
+  nullable field plus the downstream refusal are testable.

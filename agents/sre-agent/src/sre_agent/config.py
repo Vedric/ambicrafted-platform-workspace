@@ -65,10 +65,13 @@ TIMEOUT_LLM_S = float(os.environ.get("SRE_TIMEOUT_LLM_S", "300"))
 
 # --- Traçage --------------------------------------------------------------
 
-# Tempo n'expose pas de port sur l'hôte : il est joint par son adresse
-# dans le réseau compose de la passerelle. Surchargeable par
-# OTEL_EXPORTER_OTLP_ENDPOINT si le conteneur est recréé.
-OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://172.28.0.3:4318")
+# Tempo publie son récepteur OTLP/HTTP sur 127.0.0.1:4318 (compose de la
+# passerelle). Ne JAMAIS remettre une adresse de conteneur ici : elles sont
+# attribuées dans l'ordre de démarrage et changent au premier `up`, ce qui
+# fait pointer l'export vers un autre service sans le moindre symptôme —
+# le traçage échoue en silence par conception. Surchargeable par
+# OTEL_EXPORTER_OTLP_ENDPOINT.
+OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4318")
 SERVICE_NAME = os.environ.get("SRE_SERVICE_NAME", "sre-agent")
 TRACAGE_ACTIF = os.environ.get("SRE_TRACAGE", "1") not in {"0", "false", "no"}
 

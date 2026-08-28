@@ -1,32 +1,31 @@
-# ADR 0001 : LiteLLM comme passerelle unique
+# ADR 0001: LiteLLM as the single gateway
 
-Statut : accepté, en production locale depuis le 24/08/2026
-Date : 2026-08-24
+Status: accepted, in local production since 2026-08-24
+Date: 2026-08-24
 
-## Contexte
-Quatre abonnements (sièges humains, non intégrables) et une enveloppe
-de crédits API Anthropic. Besoin d'un point unique pour le routage,
-le suivi de coût et le cloisonnement des données de mission
-(clients banque/énergie/défense).
+## Context
+Four subscriptions (human seats, not integrable) and an envelope of Anthropic
+API credits. We need a single point for routing, cost tracking and the
+compartmentalisation of mission data (banking / energy / defence clients).
 
-## Décision
-LiteLLM en compose (avec Postgres), endpoint compatible OpenAI sur
-127.0.0.1:4000. Alias sémantiques (smart/balanced/fast/local/local-embed).
-Clés virtuelles par consommateur, dont "confidential-only" restreinte
-à local + local-embed. Aucun fallback depuis "local".
-Subnet compose fixé à 172.28.0.0/24 (choisi hors des plages
-occupées, vérifié via ip route).
+## Decision
+LiteLLM in Compose (with Postgres), OpenAI-compatible endpoint on
+127.0.0.1:4000. Semantic aliases (smart/balanced/fast/local/local-embed).
+Virtual keys per consumer, including "confidential-only" restricted to
+local + local-embed. No fallback out of "local".
+Compose subnet fixed at 172.28.0.0/24 (chosen outside the ranges already in
+use, verified with ip route).
 
-## Alternatives écartées
-- Appels directs par fournisseur : pas de vue coût, cloisonnement
-  déclaratif seulement, changement de modèle intrusif.
-- OpenRouter : n'intègre pas le modèle local, intermédiaire de plus
-  sur la donnée.
+## Alternatives rejected
+- Direct per-provider calls: no cost view, compartmentalisation by declaration
+  only, changing model is intrusive.
+- OpenRouter: does not integrate the local model, one more intermediary on
+  the data.
 
-## Conséquences
-+ Changement de modèle = une ligne de YAML
-+ Cloisonnement vérifié par test négatif le 24/08 :
-  "key not allowed to access model" sur tentative local -> smart
-+ Dépense traçable par clé dans Postgres
-- Un service de plus à opérer (accepté sur un poste de travail)
-- Coûts des modèles à déclarer dans model_info pour un suivi exact
+## Consequences
++ Changing model = one line of YAML
++ Compartmentalisation verified by a negative test on 08-24:
+  "key not allowed to access model" on a local -> smart attempt
++ Spend traceable per key in Postgres
+- One more service to operate (accepted on a workstation)
+- Model costs must be declared in model_info for accurate tracking

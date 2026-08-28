@@ -1,143 +1,215 @@
-# Agent SRE borné
+# Bounded SRE agent
 
-Reçoit une alerte, la classe, cherche les runbooks, produit un diagnostic
-sourcé, propose des actions. **Puis s'arrête.** Il ne remédie jamais, et
-ce n'est pas une consigne de prompt : aucun outil dont il dispose ne
-modifie quoi que ce soit.
+Takes an alert, classifies it, searches the runbooks, produces a sourced
+diagnostic, proposes actions. **Then it stops.** It never remediates, and
+that is not a prompt instruction: none of the tools it has can change
+anything.
 
-Écrit sans framework d'agent, délibérément. La boucle tient dans
-`agent.py` et fait une centaine de lignes : ce sont exactement les lignes
-où se décident le budget, le cloisonnement et le traitement des résultats
-d'outils. Un portage LangGraph fera l'objet d'une étape ultérieure, pour
-comparaison.
+Two implementations, same guardrails, same output contract:
+
+| | `sre-agent` | `sre-agent-graph` |
+|---|---|---|
+| Module | `agent.py` | `graphe.py` |
+| Orchestration | hand-written loop, 167 lines of code | LangGraph, 7 nodes, 452 lines |
+| Extra dependencies | none | `--extra graphe`, 23 packages |
+| Human approval gate | no | **yes, durable — survives `kill -9`** |
+| State on disk | none | SQLite checkpoints, ~110 KiB per alert |
+| Status | reference implementation | recommended for on-call |
+
+Which to pick is settled by one question, and it is not about code style:
+**does a human have to approve before the agent delivers, or must execution
+survive the process?** If yes, the graph. If the caller is a machine in a
+flow that does not stop, the loop — the checkpoints and the 23 packages are
+pure liability there. The full measurement is in
+[ADR 0004](../../docs/adr/0004-langgraph-vs-boucle-maison.md); the summary is
+that orchestration gains 50 ms, and what you actually buy is durability of
+state.
 
 ## Usage
 
 ```bash
-# Depuis un shell où direnv a chargé le .env du workspace
+# From a shell where direnv has loaded the workspace .env
 uv run sre-agent "[CRITICAL] PostgreSQL: FATAL: sorry, too many clients already"
 uv run sre-agent --json "..." | jq .
 echo "$ALERTE" | uv run sre-agent
 ```
 
-Codes de sortie : `0` analyse complète, `2` budget épuisé (escalade
-humaine requise), `3` erreur d'exécution.
+Exit codes: `0` complete analysis, `2` budget exhausted (human escalation
+required), `3` execution error.
 
-## Chaîne de traitement
-
-```
-alerte brute ──[ local, CONFIDENTIEL ]──> extraction anonymisée
-                                              │
-                      ═══ frontière ═══       │  seule cette forme sort
-                                              │
-               ──[ fast,  DERIVE ]──> tri ────┤
-               ──[ smart, DERIVE ]──> boucle outillée ──> diagnostic
-```
-
-L'étape de tri emploie l'alias `fast` mais sur l'extraction, jamais sur
-l'alerte d'origine : le garde-fou de cloisonnement prime sur le choix
-d'alias. Voir `docs/adr/0003-agent-sre-borne.md`.
-
-## Les six garde-fous
-
-| # | Garde-fou | Où il vit | Comment le vérifier |
-|---|-----------|-----------|---------------------|
-| 1 | Budget d'itérations, 10 outils | `budget.py` | `SRE_MAX_APPELS_OUTILS=2 uv run sre-agent "..."` → code 2 |
-| 2 | Budget monétaire, 0.50 USD | `budget.py` | `SRE_MAX_COUT_USD=0.05 uv run sre-agent "..."` → code 2 |
-| 3 | Lecture seule | `outils.py` | `OUTILS_AUTORISES`, liste blanche fermée de 4 outils |
-| 4 | Cloisonnement | `llm.py` | `pytest -k confidentielle` : refus sans accès réseau |
-| 5 | Données non fiables confinées | `prompts.py` | `pytest -k bloc` : jeton par exécution |
-| 6 | Traçabilité | `tracage.py` | trace complète dans Grafana, spans enfants |
+The graph adds a pause, and therefore a life cycle:
 
 ```bash
-uv run pytest        # 23 tests, aucun réseau requis
+uv run --extra graphe sre-agent-graph "[CRITICAL] PostgreSQL: too many clients"
+# → exit code 10, prints a thread id. The process may now die.
+uv run --extra graphe sre-agent-graph --etat --thread-id ID
+uv run --extra graphe sre-agent-graph --thread-id ID --reprendre oui
+uv run --extra graphe sre-agent-graph --thread-id ID --reprendre "non, vérifier d'abord"
+uv run --extra graphe sre-agent-graph --purger [--avant N] [--simulation]
 ```
 
-### 1 et 2 — Budgets
+Exit codes: `0` approved, `2` budget exhausted, `3` error, `4` refused by the
+human, `10` awaiting approval.
 
-Un budget n'est pas une consigne donnée au modèle : c'est un compteur
-tenu par le code appelant, que le modèle ne peut ni lire ni modifier. Le
-budget d'outils est décompté **avant** l'exécution — un appel refusé
-n'atteint jamais le serveur. Le budget monétaire est imputé après coup,
-depuis le coût rapporté par la passerelle : l'agent ne tient pas de table
-tarifaire, ce qui lui éviterait de toute façon de connaître un nom de
-modèle.
+## Processing chain
 
-Les deux échouent de la même manière : arrêt, `budget épuisé, escalade
-humaine requise`, aucun diagnostic. Un diagnostic partiel présenté comme
-complet serait plus dangereux que pas de diagnostic.
+```
+raw alert ──[ local, CONFIDENTIEL ]──> anonymised extract
+                                              │
+                      ═══ border ═══          │  only this form leaves
+                                              │
+               ──[ fast,  DERIVE ]──> triage ─┤
+               ──[ smart, DERIVE ]──> tool loop ──> diagnostic
+```
 
-Point de conception : les outils restent déclarés au modèle même à budget
-épuisé. Les retirer le ferait répondre sans les avoir consultés, et cette
-réponse dégradée serait rendue comme un diagnostic.
+The triage step uses the `fast` alias, but on the extract, never on the
+original alert: the compartmentalisation guardrail outranks the choice of
+alias per step. See
+[ADR 0003](../../docs/adr/0003-agent-sre-borne.md).
 
-### 3 — Lecture seule
+## The guardrails
 
-Il n'y a ni shell, ni écriture fichier, ni HTTP arbitraire. Pas parce
-qu'un prompt l'interdit : parce qu'aucune fonction de ce paquet ne les
-expose au modèle. La sécurité vient de l'absence de l'outil.
+Seven controls, each validated by a **refusal that was observed** — not
+reasoned about. Two further controls exist that are not refusals and are
+listed after the table rather than padded into it.
 
-`OUTILS_AUTORISES` est une liste blanche fermée. Un outil que le serveur
-MCP viendrait à publier sans y figurer ne serait jamais présenté au
-modèle : ajouter un outil est une décision de ce dépôt, pas une
-conséquence d'une mise à jour du serveur.
+| # | Guardrail | Where it lives | How to check it |
+|---|---|---|---|
+| 1 | Tool-call budget, 10 | `budget.py` | `SRE_MAX_APPELS_OUTILS=2 uv run sre-agent "..."` → exit 2 |
+| 2 | Monetary budget, 0.50 USD | `budget.py` | `SRE_MAX_COUT_USD=0.05 uv run sre-agent "..."` → exit 2 |
+| 3 | Read-only | `outils.py` | `pytest -k liste_blanche` — closed allow-list of 4 tools |
+| 4 | Compartmentalisation | `llm.py` | `pytest -k confidentielle` — refusal with no network access |
+| 5 | Untrusted data confined | `prompts.py` | `pytest -k bloc` — per-run token |
+| 6 | Source guard | `modeles.py` | `pytest -k source` — unsourced actions discarded |
+| 7 | Durable human gate | `graphe.py` | `pytest -k porte` — silence is not approval |
 
-### 4 — Cloisonnement
+```bash
+uv run --extra graphe pytest        # 49 tests, no network required
+```
 
-Tout appel LLM traverse `appeler_llm`. Il y a donc **un seul endroit** à
-lire pour savoir si de la donnée client peut sortir, et un seul à
-modifier pour que ce ne soit plus vrai. Trois barrières indépendantes :
+All 49 run on an unplugged machine. That is the point: a guardrail that can
+only be verified in real conditions is not a guardrail, it is an intention.
 
-1. **Garde applicative** : classification `CONFIDENTIEL` + alias
-   frontière lève `FuiteConfidentielle` avant tout accès réseau.
-2. **Clé virtuelle** : une charge confidentielle part avec
-   `CONFIDENTIAL_KEY`, restreinte côté passerelle à `local` et
-   `local-embed`. La passerelle répond 403 si la première barrière
-   tombait.
-3. **Passerelle** : aucune bascule n'est configurée depuis `local`. Une
-   erreur locale n'a pas de repli vers la frontière.
+### 1 and 2 — Budgets
 
-La recherche sémantique du serveur MCP vectorise elle aussi par
-`local-embed` avec la clé restreinte : la requête de recherche ne quitte
-pas la machine non plus.
+A budget is not an instruction given to the model: it is a counter held by
+the calling code, which the model can neither read nor modify. The tool
+budget is decremented **before** execution — a refused call never reaches the
+server. The monetary budget is charged afterwards, from the cost the gateway
+reports: the agent holds no price table, which would force it to know a model
+name anyway.
 
-### 5 — Données non fiables
+Both fail identically: stop, `budget épuisé, escalade humaine requise`, no
+diagnostic. A partial diagnostic presented as complete would be more
+dangerous than no diagnostic.
 
-Le texte de l'alerte et le contenu des runbooks ne sont jamais concaténés
-à une instruction. Ils sont encapsulés par `prompts.bloc()`, entre deux
-marqueurs portant un jeton aléatoire tiré à chaque exécution. Le jeton
-n'est pas de la cryptographie : il retire simplement à l'attaquant la
-possibilité d'écrire le marqueur de fermeture, puisqu'il ne peut pas le
-deviner.
+Design point: the tools stay declared to the model even when the budget is
+spent. Removing them would make it answer without having consulted them, and
+that degraded answer would be returned as a diagnostic.
 
-La consigne associée est constante : ce qui est dans un bloc se décrit,
-ne s'exécute pas, et toute instruction rencontrée est **rapportée** dans
-un champ dédié. Le texte hostile relevé reste local : il n'est pas
-transmis aux étapes frontière, seul son décompte l'est.
+In the graph, the same cap is opposed **by the routing edge**, so a burst of
+three tools requested with two remaining is refused as a whole rather than
+half-executed. Stricter, deliberately.
 
-### 6 — Traçabilité
+### 3 — Read-only
 
-Une span parente `task.incident_analysis` par exécution, chaque appel LLM
-et chaque appel d'outil en span enfant. Attributs `gen_ai.*` standards,
-plus :
+There is no shell, no file write, no arbitrary HTTP. Not because a prompt
+forbids it: because no function in this package exposes them to the model.
+Security comes from the absence of the tool.
 
-| Attribut | Ce qu'il porte |
+`OUTILS_AUTORISES` is a closed allow-list. A tool the MCP server might
+publish without appearing there would never be presented to the model: adding
+a tool is a decision of this repository, not a consequence of a server
+update.
+
+### 4 — Compartmentalisation
+
+Every LLM call goes through `appeler_llm`. There is therefore **one place**
+to read to know whether client data can leave, and one to change to make that
+no longer true. Three independent barriers:
+
+1. **Application guard**: classification `CONFIDENTIEL` + a frontier alias
+   raises `FuiteConfidentielle` before any network access.
+2. **Virtual key**: a confidential payload travels with `CONFIDENTIAL_KEY`,
+   restricted gateway-side to `local` and `local-embed`. The gateway answers
+   403 if the first barrier fell.
+3. **Gateway**: no fallback is configured out of `local`. A local error has
+   no path to the frontier.
+
+The MCP server's semantic search also embeds through `local-embed` with the
+restricted key: the search query does not leave the machine either.
+
+### 5 — Untrusted data
+
+The alert text and the runbook contents are never concatenated to an
+instruction. They are wrapped by `prompts.bloc()`, between two markers
+carrying a random token drawn once per run. The token is not cryptography: it
+simply removes from the attacker the ability to write the closing marker,
+since they cannot guess it.
+
+The associated instruction is constant: what is inside a block is described,
+not executed, and any instruction encountered is **reported** in a dedicated
+field. The recorded hostile text stays local — it is not passed to the
+frontier steps, only its count is.
+
+### 6 — Source guard
+
+`Diagnostic.runbook_source` is nullable on purpose. A model required to give
+a source invents one; a model allowed to declare it has none provides the
+most useful line of the report. `appliquer_garde_source()` then removes the
+unfounded actions from `actions_proposees`, moves them into
+`actions_ecartees_sans_source`, and replaces them with a human escalation.
+They stay visible — they simply stop being presented as procedures.
+
+### 7 — Durable human gate
+
+Graph only. `porte_humaine` calls `interrupt()`: the complete state is
+written to SQLite and the process hands back control **before** the diagnostic
+is delivered. What is delivered has therefore never been delivered without a
+human seeing it, and that property holds even if the machine stops during the
+pause — demonstrated with `SIGKILL`, resumed in 1.28 s for 0 USD.
+
+Silence is not approval: anything that is not an explicit agreement counts as
+a refusal. A permissive default would turn the gate into a formality.
+
+### The two that are not refusals
+
+**Traceability** (`tracage.py`) is an observation control. One parent span
+`task.incident_analysis` per run, each LLM call and each tool call as a child
+span, with standard `gen_ai.*` attributes plus:
+
+| Attribute | What it carries |
 |---|---|
-| `ambicrafted.data_classification` | `confidentiel` ou `derive` |
-| `ambicrafted.cost_usd` | coût de la span |
+| `ambicrafted.data_classification` | `confidentiel` or `derive` |
+| `ambicrafted.cost_usd` | cost of the span |
 | `ambicrafted.task.type` | `incident_analysis`, `extraction`, `tool_call`… |
-| `ambicrafted.gateway.alias` | alias visé, jamais un nom de modèle |
+| `ambicrafted.gateway.alias` | the alias aimed at, never a model name |
 | `ambicrafted.outcome` | `complete`, `budget_exhausted`, `error` |
-| `ambicrafted.diagnostic.sourced` | le diagnostic cite-t-il un runbook |
+| `ambicrafted.diagnostic.sourced` | whether the diagnostic cites a runbook |
+| `ambicrafted.graph.path` | graph only: the nodes actually crossed |
 
-L'identifiant de trace est imprimé en fin de rapport. Dans Grafana
-(`http://localhost:3000`) : Explore → source Tempo → recherche par
-TraceQL, par exemple `{ .service.name = "sre-agent" }`.
+Since [ADR 0005](../../docs/adr/0005-propagation-contexte-trace.md) the
+gateway's own spans attach beneath the agent's, so one alert is one trace:
+52 spans for the loop (10 agent + 42 gateway), 60 for the graph.
 
-Le traçage ne fait jamais échouer l'agent : si Tempo est injoignable,
-l'export échoue dans son thread de fond et l'analyse se poursuit.
+The trace id is printed at the end of the report. In Grafana
+(`http://localhost:3000`): Explore → Tempo → TraceQL, for example
+`{ resource.service.name = "sre-agent" }`. The `resource.` prefix is
+mandatory; without it the query silently matches nothing.
 
-## Le contrat de sortie
+**Tracing never fails the agent.** If Tempo is unreachable, the export fails
+in its background thread and the analysis continues. That is deliberate, and
+it is also a trap: a successful run with a printed trace id proves nothing
+about whether the trace was stored. The only valid check is to go and fetch
+it — see
+[`docs/OPERATIONS.md`](../../docs/OPERATIONS.md#traces-are-not-arriving-in-tempo).
+
+**Deserialisation allow-list** (`graphe.py`) closes a surface the framework
+opened: `TYPES_PERSISTABLES` with `pickle_fallback=False` restricts what the
+SQLite checkpoint may rebuild to four named types. It is a real control, but
+no test currently exercises its refusal — stated here rather than claimed.
+
+## The output contract
 
 ```python
 class Diagnostic(BaseModel):
@@ -145,58 +217,51 @@ class Diagnostic(BaseModel):
     confiance: Confiance                # haute | moyenne | faible
     elements_manquants: list[str]
     actions_proposees: list[str]
-    runbook_source: str | None          # nullable, à dessein
+    runbook_source: str | None          # nullable, on purpose
 ```
 
-`runbook_source` est nullable délibérément. Un modèle à qui on impose une
-source en invente une ; un modèle autorisé à déclarer qu'il n'en a pas
-fournit l'information la plus utile du rapport. Le code exploite ensuite
-cette déclaration plutôt que la prose : `appliquer_garde_source()` retire
-les actions non fondées de `actions_proposees` et les déplace dans
-`actions_ecartees_sans_source`, en les remplaçant par une escalade
-humaine. Elles restent visibles — elles ne sont simplement plus
-présentées comme des procédures.
+The agent actually returns a `Rapport`, which wraps the diagnostic in its
+conditions: which tools were called, what the budget allowed, what the code
+refused. The diagnostic alone is unverifiable; what surrounds it is what
+makes it auditable.
 
 ## Configuration
 
-Toutes les variables sont facultatives sauf les clés, qui viennent du
-`.env` du workspace chargé par direnv.
+Every variable is optional except the keys, which come from the workspace
+`.env` loaded by direnv.
 
-| Variable | Défaut | Rôle |
+| Variable | Default | Role |
 |---|---|---|
-| `CONFIDENTIAL_KEY` | — | clé virtuelle restreinte à `local` et `local-embed` |
-| `ORCHESTRATOR_KEY` | — | clé pour les charges dérivées |
-| `SRE_MAX_APPELS_OUTILS` | `10` | garde-fou 1 |
-| `SRE_MAX_COUT_USD` | `0.50` | garde-fou 2 |
-| `SRE_MAX_TOURS` | `12` | plafond de tours de boucle |
-| `SRE_ALIAS_RAISONNEMENT` | `smart` | alias du raisonnement final, voir ci-dessous |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://172.28.0.3:4318` | collecteur Tempo |
-| `SRE_TRACAGE` | `1` | `0` désactive l'export |
-| `SRE_DEBUG_MCP` | — | laisse passer le stderr du serveur MCP |
+| `CONFIDENTIAL_KEY` | — | virtual key restricted to `local` and `local-embed` |
+| `ORCHESTRATOR_KEY` | — | key for derived payloads |
+| `SRE_MAX_APPELS_OUTILS` | `10` | guardrail 1 |
+| `SRE_MAX_COUT_USD` | `0.50` | guardrail 2 |
+| `SRE_MAX_TOURS` | `12` | cap on loop turns |
+| `SRE_ALIAS_RAISONNEMENT` | `smart` | alias for the final reasoning, see below |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://127.0.0.1:4318` | Tempo's OTLP/HTTP receiver |
+| `SRE_TRACAGE` | `1` | `0` disables the export |
+| `SRE_DEBUG_MCP` | — | lets the MCP server's stderr through |
+| `SRE_CHECKPOINT_DB` | `~/.local/state/sre-agent/graphe.sqlite` | graph only |
+| `SRE_RETENTION_JOURS` | `14` | graph only, purge window |
 
-**Raisonnement local.** `SRE_ALIAS_RAISONNEMENT=local` bascule la boucle
-outillée sur le modèle local : vérifié, il mène la boucle d'outils, retrouve
-le runbook et produit un diagnostic sourcé, pour 0,001 USD au lieu de 0,20.
-L'étape de tri reste sur `fast` — elle ne voit que des données dérivées, mais
-elle atteint la frontière. Pour une mission strictement hors ligne, il faut
-donc aussi la basculer, ce qui n'est pas exposé aujourd'hui.
+**Local reasoning.** `SRE_ALIAS_RAISONNEMENT=local` moves the tool loop onto
+the local model: verified — it drives the tool loop, finds the runbook and
+produces a sourced diagnostic, for about 0.001 USD instead of 0.20. The
+triage step stays on `fast`; it only ever sees derived data, but it does
+reach the frontier. A strictly offline mission would need that step moved
+too, which is not exposed today.
 
-**Adresse de Tempo** : le conteneur n'expose pas de port sur l'hôte, il
-est joint par son adresse dans le réseau compose de la passerelle. Cette
-adresse change si le conteneur est recréé. La retrouver :
+**Tempo's address.** Compose publishes Tempo's OTLP/HTTP receiver on
+`127.0.0.1:4318`, and that is the default. Never put a container address here:
+they are assigned in start order and change at the first `docker compose up`
+that recreates a container — which is exactly how this default previously came
+to point at Grafana instead of Tempo, silently.
 
-```bash
-docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tempo
-```
+## What this agent does not do
 
-Le correctif durable serait d'ajouter `ports: ["127.0.0.1:4318:4318"]` au
-service `tempo` du compose de la passerelle. Non fait ici : cet agent ne
-modifie pas l'infrastructure partagée.
-
-## Ce que cet agent ne fait pas
-
-- Il ne remédie pas, et ne peut pas : il n'a aucun outil d'écriture.
-- Il n'invente pas de procédure. Hors corpus, il le dit et escalade.
-- Il ne dégrade pas silencieusement : à budget épuisé, il n'y a pas de
-  demi-diagnostic.
-- Il ne connaît aucun nom de modèle fournisseur, seulement des alias.
+- It does not remediate, and cannot: it has no write tool.
+- It does not invent procedures. Outside the corpus, it says so and
+  escalates.
+- It does not degrade silently: when the budget is exhausted, there is no
+  half-diagnostic.
+- It knows no provider model name, only aliases.

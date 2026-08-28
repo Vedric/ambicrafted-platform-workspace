@@ -1,173 +1,165 @@
-# ADR 0005 : propagation du contexte de trace vers la passerelle
+# ADR 0005: propagation of the trace context to the gateway
 
-Statut : accepté
-Date : 2026-08-25
-Complète l'ADR 0004, qui constatait deux arbres de spans disjoints par
-appel LLM et renvoyait la décision à part, parce qu'elle touche `llm.py`.
+Status: accepted
+Date: 2026-08-25
+Completes ADR 0004, which observed two disjoint span trees per LLM call and
+deferred the decision, because it touches `llm.py`.
 
-## Contexte
+## Context
 
-Chaque appel LLM produisait deux traces sans lien dans Tempo : la span
-`llm.*` de `sre-agent`, et une trace `litellm-gateway` de 8 à 9 spans,
-sans aucun `trace_id` commun. Cause : `llm.py` n'envoyait pas d'en-tête
-`traceparent`. Les réunir suppose de modifier un garde-fou. Avant de le
-faire, il fallait établir que la passerelle exploiterait cet en-tête.
+Every LLM call produced two unrelated traces in Tempo: the `llm.*` span of
+`sre-agent`, and a `litellm-gateway` trace of 8 to 9 spans, with no common
+`trace_id`. Cause: `llm.py` did not send a `traceparent` header. Joining them
+means modifying a guardrail. Before doing so, it had to be established that
+the gateway would actually make use of that header.
 
-## Mesure préalable : la passerelle extrait-elle un `traceparent` ?
+## Preliminary measurement: does the gateway extract a `traceparent`?
 
-Mesuré, pas lu. Un `curl` vers `/v1/chat/completions` (alias `local`)
-avec un en-tête forgé au format W3C :
+Measured, not read. A `curl` to `/v1/chat/completions` (alias `local`) with a
+forged header in W3C format:
 
 ```
 traceparent: 00-54cb2370448e764738e06d8816eb52ff-33cb89ad348d45ce-01
 ```
 
-puis `GET http://tempo:3200/api/traces/54cb2370448e764738e06d8816eb52ff` :
-HTTP 200, 9 spans, toutes de `litellm-gateway`. La span racine
-`Received Proxy Server Request` (SERVER) porte comme `parentSpanId`
-**`33cb89ad348d45ce`, le span_id forgé**. La passerelle (LiteLLM 1.98.0,
-`callbacks: ["otel"]`, configuration inchangée) ne se contente pas de
-réutiliser l'identifiant de trace : elle rattache sa span serveur sous
-la span cliente qu'on lui désigne. Aucune trace orpheline créée à côté.
+then `GET http://tempo:3200/api/traces/54cb2370448e764738e06d8816eb52ff`:
+HTTP 200, 9 spans, all from `litellm-gateway`. The root span
+`Received Proxy Server Request` (SERVER) carries as `parentSpanId`
+**`33cb89ad348d45ce`, the forged span_id**. The gateway (LiteLLM 1.98.0,
+`callbacks: ["otel"]`, configuration unchanged) does not merely reuse the
+trace identifier: it attaches its server span under the client span it is
+given. No orphan trace is created alongside.
 
-Issue (a) : la propagation sert. La corrélation de repli par attribut
-partagé (`x-litellm-call-id` existe dans les en-têtes de réponse) n'a
-pas été nécessaire.
+Outcome (a): propagation is useful. The fallback correlation by shared
+attribute (`x-litellm-call-id` exists in the response headers) was not needed.
 
-## Décision
+## Decision
 
-`llm.py` injecte le contexte courant dans les en-têtes de la requête par
-`opentelemetry.propagate.inject`, à l'intérieur de la span `llm.*`.
+`llm.py` injects the current context into the request headers through
+`opentelemetry.propagate.inject`, inside the `llm.*` span.
 
-Ce qui ne change pas, et qui est vérifié par test :
+What does not change, and is verified by test:
 
-- **L'ordre des barrières.** Barrière 1 (`FuiteConfidentielle`), puis
-  budget, puis ouverture de la span, puis en-têtes (barrière 2 et
-  `traceparent`), puis réseau. Une charge refusée n'a jamais d'en-tête
-  construit : un test remplace `inject` et `httpx.post` par des
-  assertions et vérifie qu'aucun des deux n'est atteint.
-- **La signature de `appeler_llm`.**
-- **Le comportement sans span active.** Traçage coupé (`SRE_TRACAGE=0`),
-  le propagateur W3C n'écrit rien : les en-têtes sont exactement
-  `Authorization` et `Content-Type`, aucune exception. C'est le seul cas
-  où la modification aurait pu lever dans un chemin qui ne levait pas ;
-  il est verrouillé par un test, pas par une lecture du SDK.
-- **Les dépendances.** `opentelemetry.propagate` vient de
-  `opentelemetry-api`, déjà tirée par `opentelemetry-sdk` bornée
-  `>=1.30,<2`. Aucune bibliothèque ajoutée.
+- **The order of the barriers.** Barrier 1 (`FuiteConfidentielle`), then
+  budget, then opening of the span, then headers (barrier 2 and
+  `traceparent`), then network. A refused payload never gets a header built:
+  a test replaces `inject` and `httpx.post` with assertions and verifies that
+  neither is reached.
+- **The signature of `appeler_llm`.**
+- **The behaviour with no active span.** With tracing off (`SRE_TRACAGE=0`),
+  the W3C propagator writes nothing: the headers are exactly `Authorization`
+  and `Content-Type`, no exception. This is the only case where the change
+  could have raised in a path that did not raise; it is locked by a test, not
+  by a reading of the SDK.
+- **The dependencies.** `opentelemetry.propagate` comes from
+  `opentelemetry-api`, already pulled by `opentelemetry-sdk` bounded to
+  `>=1.30,<2`. No library added.
 
-Détail relevé en test : le SDK 1.44 émet les drapeaux `03` (sampled +
-random, W3C Trace Context niveau 2) et non `01`. La passerelle rattache
-dans les deux cas.
+Detail noted in testing: SDK 1.44 emits the flags `03` (sampled + random, W3C
+Trace Context level 2) rather than `01`. The gateway attaches in both cases.
 
-Tests : 37 d'origine inchangés, 6 ajoutés dans
-`tests/test_propagation_trace.py`, 43 au total.
+Tests: 37 original unchanged, 6 added in `tests/test_propagation_trace.py`,
+43 in total.
 
-## Ce que ça change dans la lecture des traces
+## What this changes in reading traces
 
-Vérification, alerte `PostgreSQL: too many clients already`, une
-exécution par implémentation. La requête TraceQL
+Verification, alert `PostgreSQL: too many clients already`, one run per
+implementation. The TraceQL query
 
 ```
 { resource.service.name = "sre-agent" } && { resource.service.name = "litellm-gateway" }
 ```
 
-rend exactement une trace par exécution, racine `task.incident_analysis`.
+returns exactly one trace per run, rooted at `task.incident_analysis`.
 
-| Trace | spans | `sre-agent` | `litellm-gateway` | appels LLM rattachés |
+| Trace | spans | `sre-agent` | `litellm-gateway` | LLM calls attached |
 |---|--:|--:|--:|--:|
-| boucle maison `5556f616…` | **52** | 10 | 42 | 5 / 5 |
-| graphe `a6cb95ce…` (jusqu'à la porte) | **60** | 18 | 42 | 5 / 5 |
-| ADR 0004, graphe, avant propagation | 19 | 19 | 0 | 0 / 5 |
+| hand-written loop `5556f616…` | **52** | 10 | 42 | 5 / 5 |
+| graph `a6cb95ce…` (up to the gate) | **60** | 18 | 42 | 5 / 5 |
+| ADR 0004, graph, before propagation | 19 | 19 | 0 | 0 / 5 |
 
-Chaque `Received Proxy Server Request` a pour parent une span `llm.*`
-(`llm.extraction`, `llm.classification`, `llm.raisonnement` ×3). Somme
-des tokens d'entrée : 11 193 des deux côtés, sur les mêmes cinq appels.
+Each `Received Proxy Server Request` has an `llm.*` span as its parent
+(`llm.extraction`, `llm.classification`, `llm.raisonnement` ×3). Sum of input
+tokens: 11,193 on both sides, over the same five calls.
 
-**Écart avec la prédiction.** Le curl de la mesure préalable donnait
-9 spans par appel, d'où une prédiction de 19 + 5 × 9 = 64. Mesuré : 60.
-Deux causes, aucune n'est un défaut de propagation :
+**Gap with the prediction.** The curl of the preliminary measurement gave 9
+spans per call, hence a prediction of 19 + 5 × 9 = 64. Measured: 60. Two
+causes, neither of which is a propagation defect:
 
-- 42 et non 45 côté passerelle : la span `postgres` n'apparaît que sur
-  2 appels sur 5, quand l'authentification de la clé virtuelle n'est
-  pas en cache (deux clés, deux ratés de cache). Un appel coûte 8 ou
-  9 spans.
-- 18 et non 19 côté agent : trois outils appelés au lieu de quatre,
-  variance de la génération, pas de la trace.
+- 42 and not 45 on the gateway side: the `postgres` span appears on only 2
+  calls out of 5, when the virtual key's authentication is not cached (two
+  keys, two cache misses). A call costs 8 or 9 spans.
+- 18 and not 19 on the agent side: three tools called instead of four,
+  generation variance, not trace variance.
 
-**Ce qui n'est pas propagé**, et qu'il faut savoir en lisant Tempo :
+**What is not propagated**, and what must be known when reading Tempo:
 
-1. **La vectorisation de la requête de `semantic_search`.** Le serveur
-   MCP appelle `/v1/embeddings` (alias `local-embed`) avec son propre
-   `httpx`, dans son propre processus, sans OTel. Mesuré sur la boucle
-   maison : une trace `litellm-gateway` orpheline de 5 spans et 2,3 s,
-   `url.path = /v1/embeddings`, `litellm.model_group = local-embed`,
-   entièrement comprise dans la fenêtre de `tool.semantic_search`
-   (2,4 s). Ce chemin ne passe pas par `llm.py` : hors périmètre de cet
-   ADR, et c'est la raison pour laquelle un `tool.semantic_search`
-   restera une feuille dans la trace unifiée.
-2. **Les spans `MCP send …` du SDK `mcp` 2.1.0.** Trouvé pendant la
-   vérification : le SDK émet ses propres spans (scope
-   `mcp-python-sdk`, service `sre-agent`) — `initialize`, `tools/list`,
-   un `tools/call` par outil. Elles sont **racines**, une trace
-   chacune, parce que le client MCP tourne dans un thread à sa propre
-   boucle d'événements (`outils.py`) où le contexte de la span `tool.*`
-   n'est pas transporté. Le SDK injecte pourtant un `traceparent` dans
-   `_meta` (SEP-414), mais c'est l'identifiant de cette trace orpheline
-   qu'il transmet au serveur. Antérieur à cet ADR, invisible tant que
-   personne ne cherchait de recoupement. Réunir ce chemin demande deux
-   choses hors périmètre : passer le contexte au thread MCP, et
-   instrumenter le serveur. À décider séparément.
+1. **The embedding of the `semantic_search` query.** The MCP server calls
+   `/v1/embeddings` (alias `local-embed`) with its own `httpx`, in its own
+   process, without OTel. Measured on the hand-written loop: an orphan
+   `litellm-gateway` trace of 5 spans and 2.3 s, `url.path = /v1/embeddings`,
+   `litellm.model_group = local-embed`, entirely contained within the window
+   of `tool.semantic_search` (2.4 s). That path does not go through `llm.py`:
+   outside the scope of this ADR, and the reason why a `tool.semantic_search`
+   will remain a leaf in the unified trace.
+2. **The `MCP send …` spans of the `mcp` SDK 2.1.0.** Found during
+   verification: the SDK emits its own spans (scope `mcp-python-sdk`, service
+   `sre-agent`) — `initialize`, `tools/list`, one `tools/call` per tool. They
+   are **roots**, one trace each, because the MCP client runs in a thread with
+   its own event loop (`outils.py`) where the context of the `tool.*` span is
+   not carried. The SDK does inject a `traceparent` into `_meta` (SEP-414),
+   but it is the identifier of that orphan trace that it transmits to the
+   server. Predates this ADR, invisible as long as nobody looked for an
+   overlap. Joining that path requires two things outside the scope: passing
+   the context to the MCP thread, and instrumenting the server. To be decided
+   separately.
 
-**Lecture.** Une trace d'alerte est désormais faite à 70–80 % de spans
-de passerelle (42 sur 52 ou 60), dont dix `router` et cinq
-`batch_write_to_db`. Dans Grafana, replier les nœuds `Received Proxy
-Server Request` rend la vue de l'ADR 0003 ; les déplier donne, par
-appel, le temps passé en authentification, en routage et chez le
-fournisseur. Le calcul d'orchestration de l'ADR 0004 (span parente moins
-`llm.*` et `tool.*`) reste valable : les spans de passerelle sont des
-descendantes de `llm.*`, déjà comptées.
+**Reading.** An alert trace is now made up 70–80% of gateway spans (42 out of
+52 or 60), including ten `router` and five `batch_write_to_db`. In Grafana,
+collapsing the `Received Proxy Server Request` nodes gives back the view of
+ADR 0003; expanding them gives, per call, the time spent in authentication,
+in routing and at the provider. The orchestration calculation of ADR 0004
+(parent span minus `llm.*` and `tool.*`) remains valid: the gateway spans are
+descendants of `llm.*`, already counted.
 
-## Le point ouvert de l'ADR 0004 : les cinq clés `gen_ai.*` partagées
+## The open point of ADR 0004: the five shared `gen_ai.*` keys
 
-L'unification permet de mesurer le conflit sur **un même appel**, ce
-qui était impossible avant. Résultat, sur les cinq appels des deux
-exécutions :
+Unification makes it possible to measure the conflict on **the same call**,
+which was impossible before. Result, over the five calls of the two runs:
 
-| Clé | `sre-agent` (`llm.*`) | `litellm-gateway` (`litellm_request`) | accord |
+| Key | `sre-agent` (`llm.*`) | `litellm-gateway` (`litellm_request`) | agreement |
 |---|---|---|---|
-| `gen_ai.system` | `anthropic`, `ollama_chat` | idem | oui |
-| `gen_ai.response.model` | l'alias | l'alias | oui |
-| `gen_ai.usage.input_tokens` | 746, 467, 2598, 3123, 4259 | idem | oui |
-| `gen_ai.usage.output_tokens` | 2373, 82, 124, 150, 1068 | idem | oui |
-| `gen_ai.request.model` | **l'alias** (`smart`, `fast`, `local`) | **le modèle fournisseur** | **non** |
+| `gen_ai.system` | `anthropic`, `ollama_chat` | same | yes |
+| `gen_ai.response.model` | the alias | the alias | yes |
+| `gen_ai.usage.input_tokens` | 746, 467, 2598, 3123, 4259 | same | yes |
+| `gen_ai.usage.output_tokens` | 2373, 82, 124, 150, 1068 | same | yes |
+| `gen_ai.request.model` | **the alias** (`smart`, `fast`, `local`) | **the provider model** | **no** |
 
-Le conflit de sens se réduit à une clé, `gen_ai.request.model`. Les
-quatre autres portent la même valeur des deux côtés — ce qui crée un
-problème différent : la duplication.
+The conflict of meaning reduces to one key, `gen_ai.request.model`. The other
+four carry the same value on both sides — which creates a different problem:
+duplication.
 
-**Aggravé pour les agrégats.** Une somme par trace sans filtre de
-service compte chaque appel deux fois. Mesuré :
+**Made worse for aggregates.** A sum per trace with no service filter counts
+each call twice. Measured:
 
 ```
 { trace:id = "5556f6169e19ab41f1af9712445fdec9" && span.gen_ai.usage.input_tokens > 0 }
   | sum(span.gen_ai.usage.input_tokens) > 0
-→ 22 386 (10 spans)
+→ 22,386 (10 spans)
 
 { trace:id = "5556f6169e19ab41f1af9712445fdec9" && resource.service.name = "sre-agent"
   && span.gen_ai.usage.input_tokens > 0 } | sum(span.gen_ai.usage.input_tokens) > 0
-→ 11 193 (5 spans)
+→ 11,193 (5 spans)
 ```
 
-Avant l'unification, la même somme sur une trace était juste parce que
-la trace n'avait qu'un service. Elle est maintenant fausse d'un facteur
-exactement 2 dès qu'on oublie `resource.service.name`. Règle pour tout
-tableau de bord : **aucun agrégat `gen_ai.usage.*` ni
-`ambicrafted.cost_usd` sans filtre de service.**
+Before unification, the same sum over a trace was correct because the trace
+had only one service. It is now wrong by a factor of exactly 2 as soon as
+`resource.service.name` is forgotten. Rule for any dashboard: **no
+`gen_ai.usage.*` or `ambicrafted.cost_usd` aggregate without a service
+filter.**
 
-**Clarifié pour la résolution.** La relation alias → modèle, qui
-n'était lisible nulle part, devient une relation parent-enfant
-interrogeable :
+**Clarified for resolution.** The alias → model relation, which was readable
+nowhere, becomes a queryable parent-child relation:
 
 ```
 { resource.service.name = "sre-agent" && span.gen_ai.request.model = "smart" }
@@ -175,27 +167,27 @@ interrogeable :
   | select(span.gen_ai.request.model, span.gen_ai.response.model)
 ```
 
-rend, sur la trace unifiée, les trois `litellm_request` descendantes des
-`llm.raisonnement`, avec le nom fournisseur que la passerelle a résolu
-derrière `smart`. La même requête avec `"local"` rend `coder`. C'est la
-règle 1 du CLAUDE.md rendue vérifiable depuis Tempo : le code ne connaît
-que l'alias, la passerelle seule connaît le modèle, et la trace montre
-la frontière entre les deux.
+returns, on the unified trace, the three `litellm_request` descendants of the
+`llm.raisonnement` spans, with the provider name the gateway resolved behind
+`smart`. The same query with `"local"` returns `coder`. This is rule 1 of
+CLAUDE.md made verifiable from Tempo: the code knows only the alias, the
+gateway alone knows the model, and the trace shows the border between the
+two.
 
-Verdict : **les deux, et c'est net.** Le sens divergent de
-`gen_ai.request.model` devient une information (l'alias d'un côté de la
-frontière, sa résolution de l'autre) dès qu'on lit par
-`resource.service.name` ; la duplication des quatre autres clés devient
-un piège d'agrégation qui n'existait pas. Aucune des deux ne se corrige
-sans toucher à la télémétrie de la passerelle ; ce n'est pas fait ici.
+Verdict: **both, and it is clear-cut.** The divergent meaning of
+`gen_ai.request.model` becomes information (the alias on one side of the
+border, its resolution on the other) as soon as one reads by
+`resource.service.name`; the duplication of the other four keys becomes an
+aggregation trap that did not exist before. Neither is fixed without touching
+the gateway's telemetry; that is not done here.
 
-## Conséquences
+## Consequences
 
-- `llm.py` : +14/−5 lignes, un import, un dict d'en-têtes nommé, un
-  appel `inject`. Barrières, signature, dépendances inchangées.
-- Trace unifiée : 52 spans (maison) ou 60 (graphe) par alerte au lieu
-  de 10 ou 19, plus une trace passerelle par appel avant.
-- Les chemins `local-embed` du serveur MCP et les spans du SDK `mcp`
-  restent disjoints. Deux candidats pour un ADR ultérieur, à ne pas
-  traiter dans `llm.py`.
-- Tout agrégat `gen_ai.*` porte un filtre `resource.service.name`.
+- `llm.py`: +14/−5 lines, one import, one named header dict, one `inject`
+  call. Barriers, signature, dependencies unchanged.
+- Unified trace: 52 spans (hand-written) or 60 (graph) per alert instead of
+  10 or 19, plus one gateway trace per call before.
+- The `local-embed` path of the MCP server and the spans of the `mcp` SDK
+  remain disjoint. Two candidates for a later ADR, not to be handled in
+  `llm.py`.
+- Every `gen_ai.*` aggregate carries a `resource.service.name` filter.

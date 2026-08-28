@@ -1,98 +1,91 @@
-# ADR 0002 : recherche sémantique sur les runbooks (Qdrant + MCP)
+# ADR 0002: semantic search over the runbooks (Qdrant + MCP)
 
-Statut : accepté, en service local depuis le 25/08/2026
-Date : 2026-08-25
+Status: accepted, in local service since 2026-08-25
+Date: 2026-08-25
 
-## Contexte
-Le serveur MCP runbooks n'offrait qu'une recherche par expression
-régulière, ligne à ligne. Elle est imbattable sur un terme exact
-(code d'erreur, nom de service) mais muette dès que la question
-reformule : en incident, on tape ce qu'on observe
-(« le service redémarre en boucle »), pas le vocabulaire du runbook
-(« crash-loop »). Un opérateur sous pression ne devine pas le mot-clé.
+## Context
+The runbooks MCP server only offered regular-expression search, line by line.
+It is unbeatable on an exact term (error code, service name) but goes silent
+as soon as the question rephrases: during an incident, you type what you
+observe ("the service keeps restarting"), not the runbook's vocabulary
+("crash-loop"). An operator under pressure does not guess the keyword.
 
-## Décision
+## Decision
 
-### Stockage
-Qdrant ajouté à la stack de la passerelle, image épinglée
-`qdrant/qdrant:v1.19.0`, port 6333 publié sur 127.0.0.1 uniquement,
-volume nommé `qdrantdata`. Collection `runbooks`, 768 dimensions,
-distance cosinus.
+### Storage
+Qdrant added to the gateway stack, image pinned to `qdrant/qdrant:v1.19.0`,
+port 6333 published on 127.0.0.1 only, named volume `qdrantdata`. Collection
+`runbooks`, 768 dimensions, cosine distance.
 
-### Découpage : par section markdown, jamais par nombre de caractères
-C'est la décision structurante. Un découpage à taille fixe coupe au
-milieu d'une procédure numérotée et restitue « 2. daemon-reload,
-reset-failed, restart » sans l'étape 1. En incident, un fragment de
-procédure est plus dangereux qu'une absence de résultat : il paraît
-complet. Le découpage suit donc la hiérarchie des titres, une section
-par fragment. Les titres situés dans un bloc de code clôturé sont
-ignorés (un commentaire shell n'est pas un titre).
+### Chunking: by markdown section, never by character count
+This is the structuring decision. Fixed-size chunking cuts in the middle of a
+numbered procedure and returns "2. daemon-reload, reset-failed, restart"
+without step 1. During an incident, a fragment of a procedure is more
+dangerous than no result at all: it looks complete. Chunking therefore
+follows the heading hierarchy, one section per fragment. Headings located
+inside a fenced code block are ignored (a shell comment is not a heading).
 
-### Préfixe de chemin de titres
-Chaque fragment porte son chemin complet, par exemple
-`# Service systemd en crash-loop > ## Diagnostic`. C'est le gain le
-plus rentable du pipeline : sans lui, un fragment « ## Diagnostic »
-est indistinguable entre le runbook systemd et le runbook PostgreSQL,
-à la vectorisation comme à la restitution.
+### Heading-path prefix
+Each fragment carries its full path, for example
+`# Service systemd en crash-loop > ## Diagnostic`. This is the most profitable
+gain in the pipeline: without it, a "## Diagnostic" fragment is
+indistinguishable between the systemd runbook and the PostgreSQL runbook,
+both at embedding time and at retrieval time.
 
 ### Embeddings
-Exclusivement via la passerelle (`/v1/embeddings`, alias `local-embed`),
-jamais en direct vers Ollama : sinon le routage, le suivi et le
-cloisonnement de l'ADR 0001 sont contournés. La clé utilisée est
-`CONFIDENTIAL_KEY` (clé virtuelle `confidential-only`), pas la clé
-maître — moindre privilège, et cohérence avec la règle 2.
-Les préfixes de tâche de nomic-embed-text sont appliqués
-(`search_document:` à l'indexation, `search_query:` à la requête) :
-le modèle est entraîné pour une recherche asymétrique, les omettre
-dégrade le rappel sur reformulation.
+Exclusively through the gateway (`/v1/embeddings`, alias `local-embed`),
+never directly to Ollama: otherwise the routing, the tracking and the
+compartmentalisation of ADR 0001 are bypassed. The key used is
+`CONFIDENTIAL_KEY` (virtual key `confidential-only`), not the master key —
+least privilege, and consistency with rule 2.
+The task prefixes of nomic-embed-text are applied
+(`search_document:` when indexing, `search_query:` when querying): the model
+is trained for asymmetric search, and omitting them degrades recall on
+rephrasing.
 
 ### Idempotence
-Collection recréée à chaque exécution, et identifiants de points
-déterministes (UUIDv5 sur `fichier:ligne:chemin_titres`). La recréation
-élimine les fragments orphelins d'une section supprimée ou renommée,
-que de simples upserts laisseraient en place ; les identifiants stables
-rendent deux exécutions comparables.
+The collection is recreated on every run, and point identifiers are
+deterministic (UUIDv5 over `fichier:ligne:chemin_titres`). Recreation
+eliminates orphan fragments from a deleted or renamed section, which plain
+upserts would leave in place; stable identifiers make two runs comparable.
 
-### Exposition
-`semantic_search(requete, k)` ajouté **à côté** de `search_runbooks`,
-qui est conservé tel quel. Les deux sont complémentaires et la
-description de l'outil le dit explicitement au modèle. La régression
-serait de remplacer un outil exact par un outil approximatif.
+### Exposure
+`semantic_search(requete, k)` added **alongside** `search_runbooks`, which is
+kept as it is. The two are complementary and the tool description says so
+explicitly to the model. The regression would be to replace an exact tool
+with an approximate one.
 
-### Dégradation
-Si Qdrant, la passerelle ou la dépendance manquent, `semantic_search`
-retourne un message qui nomme la cause, donne la commande de
-correction et renvoie vers `search_runbooks`. Il ne lève jamais
-d'exception : une brique RAG indisponible ne doit pas emporter les
-trois outils qui, eux, ne dépendent que du système de fichiers.
+### Degradation
+If Qdrant, the gateway or the dependency is missing, `semantic_search`
+returns a message that names the cause, gives the fixing command and points
+back to `search_runbooks`. It never raises: an unavailable RAG brick must not
+take down the three tools that depend only on the file system.
 
-## Alternatives écartées
-- **pgvector sur le Postgres existant** : évite un service de plus,
-  mais ce Postgres porte la comptabilité de dépense de la passerelle.
-  Y mêler un index applicatif couple deux cycles de vie sans rapport
-  (une réindexation ne doit pas pouvoir gêner la facturation).
-- **Découpage à taille fixe avec recouvrement** : simple, et faux ici.
-  Voir ci-dessus.
-- **Index en mémoire dans le serveur MCP** : réindexation à chaque
-  démarrage, pas d'inspection possible de l'état.
-- **Appel direct à Ollama** : contourne l'ADR 0001.
-- **Remplacer `search_runbooks`** : perdrait la recherche exacte, la
-  seule fiable sur un code d'erreur.
+## Alternatives rejected
+- **pgvector on the existing Postgres**: avoids one more service, but that
+  Postgres holds the gateway's spend accounting. Mixing an application index
+  into it couples two unrelated life cycles (a reindex must not be able to
+  disturb billing).
+- **Fixed-size chunking with overlap**: simple, and wrong here. See above.
+- **In-memory index inside the MCP server**: reindexing on every start, no
+  possible inspection of the state.
+- **Direct call to Ollama**: bypasses ADR 0001.
+- **Replacing `search_runbooks`**: would lose exact search, the only reliable
+  one on an error code.
 
-## Conséquences
-+ Valeur démontrée par test le 25/08 : `search_runbooks("redémarre en
-  boucle")` ne trouve rien (l'expression est absente du corpus), tandis
-  que `semantic_search("le service redémarre en boucle")` classe les
-  quatre fragments du runbook crash-loop aux rangs 1 à 4, devant le
-  runbook PostgreSQL.
-+ Dégradation vérifiée : Qdrant arrêté, l'outil rend un message
-  actionnable et `search_runbooks` continue de répondre.
-+ Idempotence vérifiée : deux exécutions consécutives, 7 points,
-  identifiants identiques.
-- L'index n'est pas rafraîchi automatiquement : `uv run indexer.py`
-  après toute modification de runbook. Un hook reste à décider.
-- La fenêtre de nomic-embed-text est de 2048 jetons. Le corpus actuel
-  en est très loin (fragment le plus long : 295 caractères), mais
-  l'indexeur alerte au-delà de 6 000 caractères car Ollama tronque
-  silencieusement.
-- Un service de plus à opérer.
+## Consequences
++ Value demonstrated by test on 08-25: `search_runbooks("redémarre en
+  boucle")` finds nothing (the expression is absent from the corpus), whereas
+  `semantic_search("le service redémarre en boucle")` ranks the four
+  fragments of the crash-loop runbook at positions 1 to 4, ahead of the
+  PostgreSQL runbook.
++ Degradation verified: with Qdrant stopped, the tool returns an actionable
+  message and `search_runbooks` keeps answering.
++ Idempotence verified: two consecutive runs, 7 points, identical
+  identifiers.
+- The index is not refreshed automatically: run `uv run indexer.py` after any
+  runbook change. A hook remains to be decided.
+- The window of nomic-embed-text is 2048 tokens. The current corpus is far
+  below it (longest fragment: 295 characters), but the indexer warns beyond
+  6,000 characters because Ollama truncates silently.
+- One more service to operate.

@@ -1,89 +1,86 @@
-# ADR 0006 : la stack de la passerelle vit dans le dépôt
+# ADR 0006: the gateway stack lives in the repository
 
-Statut : accepté
-Date : 2026-08-25
+Status: accepted
+Date: 2026-08-25
 
-## Contexte
+## Context
 
-La passerelle (LiteLLM, PostgreSQL, Tempo, Prometheus, Grafana, Qdrant)
-n'existait que sur le disque, dans `~/platform/gateway/`, hors de tout
-dépôt. Le principe fondateur de la plateforme est d'être reconstructible
-depuis le dépôt ; sans la stack, il n'était pas tenu : un disque perdu
-emportait la couche la plus critique.
+The gateway (LiteLLM, PostgreSQL, Tempo, Prometheus, Grafana, Qdrant) existed
+only on disk, in `~/platform/gateway/`, outside any repository. The founding
+principle of the platform is to be rebuildable from the repository; without
+the stack, that principle was not held: a lost disk took away the most
+critical layer.
 
-Inspection préalable des références croisées depuis le workspace vers
-`~/platform/gateway` : cinq fichiers (`CLAUDE.md`,
+Preliminary inspection of the cross-references from the workspace to
+`~/platform/gateway`: five files (`CLAUDE.md`,
 `mcp-servers/runbooks/{server,indexer}.py`, `sre_agent/config.py`,
-`.claude/settings.json`), **toutes des chaînes lisibles par un humain**
-(doc, messages d'erreur, docstring, règle de refus de lecture). Aucune
-dépendance fonctionnelle au chemin. Le seul couplage réel est côté
-Docker : les conteneurs portent `com.docker.compose.project=gateway` et
-le chemin absolu des montages ; les volumes s'appellent `gateway_*`, le
-préfixe venant du nom de base du dossier.
+`.claude/settings.json`), **all of them human-readable strings** (docs, error
+messages, docstring, read-refusal rule). No functional dependency on the
+path. The only real coupling is on the Docker side: the containers carry
+`com.docker.compose.project=gateway` and the absolute path of the mounts; the
+volumes are named `gateway_*`, the prefix coming from the base name of the
+directory.
 
 ## Options
 
-1. **Déplacer** `gateway/` dans le workspace.
-2. **Laisser en place et lier** : un lien symbolique
-   `workspace/gateway → ~/platform/gateway`. Git commite un lien
-   symbolique comme un lien : un clone propre n'a aucun contenu. Ne
-   remplit pas l'objectif.
-3. **Déplacer et garder un lien** à l'ancien emplacement, de façon
-   permanente. Deux chemins pour le même compose. Compose calcule un
-   hash de configuration par service qui inclut les chemins absolus des
-   bind mounts ; un `docker compose up` lancé tantôt depuis un chemin,
-   tantôt depuis l'autre, recréerait les conteneurs à chaque alternance.
-   Un piège permanent sans contrepartie, puisque rien ne dépend du chemin.
-4. **Dépôt séparé** pour la stack. Possible, mais contredit « le
-   workspace est le dépôt de la plateforme » et double la maintenance
-   (deux dépôts à cloner pour reconstruire).
+1. **Move** `gateway/` into the workspace.
+2. **Leave in place and link**: a symbolic link
+   `workspace/gateway → ~/platform/gateway`. Git commits a symbolic link as a
+   link: a clean clone has no content at all. Does not meet the objective.
+3. **Move and keep a link** at the old location, permanently. Two paths for
+   the same Compose file. Compose computes a configuration hash per service
+   that includes the absolute paths of the bind mounts; a `docker compose up`
+   launched sometimes from one path, sometimes from the other, would recreate
+   the containers on every alternation. A permanent trap with no upside,
+   since nothing depends on the path.
+4. **Separate repository** for the stack. Possible, but contradicts "the
+   workspace is the platform's repository" and doubles maintenance (two
+   repositories to clone in order to rebuild).
 
-## Décision
+## Decision
 
-Option 1 : `~/platform/gateway` devient `~/platform/workspace/gateway`,
-les cinq références sont mises à jour, aucun lien permanent.
+Option 1: `~/platform/gateway` becomes `~/platform/workspace/gateway`, the
+five references are updated, no permanent link.
 
-Avec, dans la même passe :
+With, in the same pass:
 
-- `name: gateway` en tête du compose. Sans lui, le nom de projet, donc
-  le préfixe des volumes, dépend du nom du dossier : un clone dans un
-  dossier nommé autrement créerait une seconde stack vide, en collision
-  de ports avec la première. C'est l'inverse de la reproductibilité
-  recherchée.
-- Épinglage par digest des trois images qui ne l'étaient pas
-  (`litellm:main-stable`, `postgres:16-alpine`, `qdrant:v1.19.0`),
-  relevé sur les conteneurs en service, pas sur le registre (règle 7).
-  Le tag `main-stable` pointait ce jour-là sur le même digest que celui
-  en service ; c'est une coïncidence de calendrier, pas une garantie.
-- `.env.example` avec valeurs factices explicites ; `.env` reste ignoré,
-  vérifié par `git check-ignore` avant tout `git add`. La règle `.env.*`
-  du `.gitignore` racine aurait ignoré `.env.example` : exception
-  `!.env.example` ajoutée.
-- `gateway/README.md` : reconstruction depuis zéro, vérifications, et la
-  liste explicite de ce que `docker compose config` ne prouve pas.
+- `name: gateway` at the top of the Compose file. Without it, the project
+  name, and therefore the volume prefix, depends on the directory name: a
+  clone into a differently named directory would create a second, empty stack
+  colliding on ports with the first. That is the opposite of the desired
+  reproducibility.
+- Digest pinning of the three images that were not pinned
+  (`litellm:main-stable`, `postgres:16-alpine`, `qdrant:v1.19.0`), recorded on
+  the running containers, not on the registry (rule 7). The `main-stable` tag
+  pointed that day to the same digest as the one in service; that is a
+  calendar coincidence, not a guarantee.
+- `.env.example` with explicitly fake values; `.env` stays ignored, verified
+  by `git check-ignore` before any `git add`. The `.env.*` rule of the root
+  `.gitignore` would have ignored `.env.example`: exception `!.env.example`
+  added.
+- `gateway/README.md`: rebuilding from scratch, verifications, and the
+  explicit list of what `docker compose config` does not prove.
 
-## Conséquences
+## Consequences
 
-- Un clone du dépôt plus un `.env` suffit pour `docker compose up -d`
-  sur une machine neuve. Ce que le dépôt ne reconstruit pas (clés
-  virtuelles, dépense, index Qdrant, traces) est listé dans le README
-  avec la procédure de recréation.
-- **Dette de recréation.** Le déplacement s'est fait sans arrêter les
-  services. Les conteneurs en cours portent encore les anciens chemins
-  de montage : au prochain `docker compose up -d` depuis le nouveau
-  dossier, compose les recréera (quelques secondes d'interruption,
-  volumes conservés grâce à `name: gateway`). Entre-temps, un lien
-  symbolique **transitoire** `~/platform/gateway → workspace/gateway`
-  protège les redémarrages automatiques (`restart: unless-stopped`,
-  montages déclarés en `Binds` absolus : sans le lien, Docker créerait
-  un dossier à la place du fichier et le conteneur ne repartirait pas).
-  Le lien est à supprimer juste après ce premier `up`, pour ne pas
-  retomber dans l'option 3.
-  **Soldée le 2026-08-27** : `up -d` depuis `workspace/gateway`, six
-  conteneurs recréés sur les nouveaux chemins de montage, lien supprimé.
-- La preuve de reconstructibilité apportée à cette date est
-  `docker compose config` sur un clone propre avec un `.env` fabriqué
-  depuis `.env.example`. Elle prouve la syntaxe, l'interpolation et la
-  présence des fichiers ; ni le démarrage, ni la communication entre
-  services, ni la recréation des volumes. Le déroulé complet sur machine
-  neuve reste à faire.
+- A clone of the repository plus a `.env` is enough for `docker compose up -d`
+  on a fresh machine. What the repository does not rebuild (virtual keys,
+  spend, Qdrant index, traces) is listed in the README with the recreation
+  procedure.
+- **Recreation debt.** The move was done without stopping the services. The
+  running containers still carried the old mount paths: on the next
+  `docker compose up -d` from the new directory, Compose would recreate them
+  (a few seconds of interruption, volumes preserved thanks to
+  `name: gateway`). In the meantime, a **transitional** symbolic link
+  `~/platform/gateway → workspace/gateway` protected automatic restarts
+  (`restart: unless-stopped`, mounts declared as absolute `Binds`: without the
+  link, Docker would create a directory in place of the file and the
+  container would not come back up). The link was to be deleted right after
+  that first `up`, so as not to fall back into option 3.
+  **Settled on 2026-08-27**: `up -d` from `workspace/gateway`, six containers
+  recreated on the new mount paths, link deleted.
+- The proof of rebuildability provided at that date is `docker compose config`
+  on a clean clone with a `.env` built from `.env.example`. It proves the
+  syntax, the interpolation and the presence of the files; neither the
+  startup, nor the communication between services, nor the recreation of the
+  volumes. A full run-through on a fresh machine remains to be done.
