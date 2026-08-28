@@ -160,12 +160,12 @@ agent's own output.
 It is also registered in `.mcp.json` at the repository root, so Claude Code
 can use the same four tools directly.
 
-**Note the entry point.** `[project.scripts]` declares `runbooks-mcp`, but
-that still points at the generator's scaffolding — running it prints
-`Hello from runbooks-mcp!` and starts nothing. The server is `server.py`.
-The scaffolding in `src/runbooks_mcp/__init__.py` and the placeholder
-`description` in `pyproject.toml` are leftovers worth cleaning up; they are
-recorded here rather than left to surprise someone.
+**Started by file path, not by a console script — and deliberately so.**
+`pyproject.toml` declares no `[project.scripts]` and sets `package = false`:
+`server.py` and `indexer.py` are scripts, and this component is never
+distributed as a wheel. A console script could only start the server at the
+cost of moving `server.py` into a package nobody installs. Please do not add
+one back out of packaging conformity.
 
 ## Dependencies
 

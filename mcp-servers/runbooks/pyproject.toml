@@ -1,7 +1,7 @@
 [project]
 name = "runbooks-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "Serveur MCP : accès en lecture seule au corpus de runbooks."
 readme = "README.md"
 authors = [
     { name = "Védric EBOA EBOLO", email = "vedric@icloud.com" }
@@ -13,9 +13,10 @@ dependencies = [
     "qdrant-client>=1.19,<2",
 ]
 
-[project.scripts]
-runbooks-mcp = "runbooks_mcp:main"
-
-[build-system]
-requires = ["uv_build>=0.12.5,<0.13.0"]
-build-backend = "uv_build"
+# Ni [project.scripts] ni [build-system] : ce projet n'est pas un paquet,
+# c'est une paire de scripts. Les entrées sont server.py (lancé par
+# .mcp.json et par outils.py) et indexer.py, toutes deux par chemin de
+# fichier. Un script console déclaré ici ne démarrerait le serveur qu'au
+# prix de le déplacer dans un paquet jamais distribué.
+[tool.uv]
+package = false
