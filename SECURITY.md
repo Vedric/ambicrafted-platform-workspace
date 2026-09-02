@@ -294,10 +294,16 @@ literal argument, never through an output.
 | Any real key, including in examples | `env`, `printenv`, `set`, `export -p`, `direnv export` |
 | | `echo "$VAR"`, `set -x`, `curl -v`, debug logs |
 
-`gateway/.env.example` is versioned and every value in it is deliberately
-fake. Its `ANTHROPIC_API_KEY` placeholder is kept short on purpose so that it
-does not match the hook's own pattern — a test asserts the real file stays
-editable.
+`gateway/.env.example` is versioned and every value in it is a placeholder
+written as an instruction in angle brackets (`<openssl rand -hex 16>`), never
+a random-looking string: a generic password detector cannot mistake it for a
+secret (two GitGuardian "Generic Password" false positives on the former
+`FACTICE-…` form taught that lesson). Its `ANTHROPIC_API_KEY` placeholder is
+kept short on purpose so that it does not match the hook's own pattern — a
+test asserts the real file stays editable. `.gitguardian.yaml` at the root
+excludes this one file from ggshield scans (pre-commit, CI); the GitGuardian
+dashboard does not read that file, its path exclusions live in the workspace
+settings.
 
 ### Rotation
 

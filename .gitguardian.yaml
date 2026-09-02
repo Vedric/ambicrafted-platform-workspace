@@ -1,0 +1,25 @@
+# Configuration ggshield (CLI GitGuardian : pre-commit, CI, scan local).
+# Schéma v2 : https://docs.gitguardian.com/ggshield-docs/configuration
+#
+# Portée : ggshield SEULEMENT. Le tableau de bord GitGuardian (intégration
+# GitHub, qui a levé les incidents) ne lit pas ce fichier ; ses exclusions de
+# chemins se règlent dans Settings > Secrets detection (excluded filepaths), et
+# ggshield ne remonte pas ses ignorés au tableau de bord. La vraie parade côté
+# plateforme est la forme des placeholders de gateway/.env.example : des
+# consignes entre <…>, qu'aucun détecteur générique ne peut prendre pour un secret.
+version: 2
+
+secret:
+  # gateway/.env.example est le gabarit versionné des variables de la passerelle.
+  # Ses valeurs sont des consignes entre <…> (règle 4, SECURITY.md), jamais des
+  # secrets ; le vrai gateway/.env est ignoré par git et n'est pas concerné.
+  #
+  # Pourquoi l'exclusion : deux incidents « Generic Password » (commits 121287a
+  # et ed18b2d) visaient les anciens placeholders FACTICE-… de ce fichier, dont
+  # la forme ressemblait à un mot de passe. Vérifié faux positif : aucun préfixe
+  # des secrets en service n'apparaît dans git log --all -p. Sans exclusion,
+  # chaque commit sur ce fichier relèverait l'alerte et on finirait par ignorer
+  # GitGuardian par habitude — c'est ce risque-là que l'exclusion supprime.
+  # Elle ne couvre QUE ce chemin : tout autre fichier reste scanné.
+  ignored_paths:
+    - gateway/.env.example
