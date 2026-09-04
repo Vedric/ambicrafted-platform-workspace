@@ -7,6 +7,10 @@
 !.claude/
 .claude/settings.local.json
 
+# Cache local de ggshield (empreintes des derniers matches, pour
+# `ggshield secret ignore --last-found`). Local, jamais versionné.
+.cache_ggshield
+
 # Dépendances et artefacts
 __pycache__/
 *.pyc

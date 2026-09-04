@@ -38,6 +38,7 @@ surrounding code allows them to reach.
 | T10 | A secret enters an agent transcript | Rule 8: a secret is never displayed, even to check it. Verification by length and 12-character prefix | Hook tested in both directions; and the incident of ADR 0007, which is what produced the rule |
 | T11 | A supply-chain change lands silently | Every image pinned by digest recorded on the running container; every dependency bounded floor-and-ceiling | `docker-compose.yml`, `pyproject.toml` |
 | T12 | Network exposure of the stack | Every published port bound to `127.0.0.1`; Postgres not published at all | `docker ps` port mapping |
+| T13 | A real secret reaches the pushed history | Placeholders written as instructions, never as random-looking strings; `ggshield` refuses the commit on the staged diff before it exists; GitGuardian's GitHub integration detects on the pushed history (external, after the fact, blocks nothing) | **Refusal observed in this repository on 2026-09-04**: two fake keys of valid form staged, `2 secrets detected`, exit code 1, `HEAD` unchanged; and the passing direction, a commit of placeholder forms accepted. Plus two dashboard incidents on 2026-08-27, raised within minutes of the push, both established as false positives by prefix, never by value (`4949a30c`) |
 
 ### What is explicitly **not** covered
 
@@ -47,10 +48,13 @@ what it defends against is marketing.
 - **Leaks through tool output into an agent transcript.** This is the central
   known gap and it is structural, not an oversight. A `PreToolUse` hook sees
   a command, never its output; a `PostToolUse` hook sees the output only
-  after it has entered the context, and cannot rewrite it. The hook in this
-  repository would have stopped **none** of the leaks that caused ADR 0007.
+  after it has entered the context, and cannot rewrite it. Neither of this
+  repository's two secret-scanning hooks would have stopped **any** of the
+  leaks that caused ADR 0007, and adding the second one did not narrow this
+  gap by a single case — see
+  [The two hooks](#the-two-hooks-different-moments-one-shared-blind-spot).
   What protects is a human and an agent applying rule 8 before running a
-  command, not the hook.
+  command, not a hook.
 - **A malicious local user.** The machine is single-user by assumption.
   Process arguments are briefly visible in `/proc`; the `0600` checkpoint
   file and the `0700` directory raise the bar but do not defend against root.
@@ -79,7 +83,9 @@ what it defends against is marketing.
 ## 🛡️ The seven controls
 
 Each one is a place where code refuses, and each entry names how that refusal
-was observed. Two further controls exist that are **not** refusals and are
+was observed. Two further controls exist that are **not** refusals, and a
+third-party secret scanner whose local half does refuse but is not this
+repository's code and does not work without a network call. All three are
 listed separately below rather than padded into this table.
 
 ### 1 — Tool-call budget
@@ -264,6 +270,160 @@ and it is held by this repository rather than by the framework — but **no
 test currently exercises its refusal**, so it is listed here rather than
 among the seven.
 
+### Secret scanning: ggshield and GitGuardian
+
+Its own category, for a reason different from the two above. There are two
+halves here and they are not the same kind of thing: `ggshield` **refuses** a
+commit on this machine; the GitGuardian dashboard **detects** on what has
+already been pushed. Neither is this repository's own code, and both depend
+on a third party being reachable, which is why they sit here rather than
+among the seven.
+
+#### The local half: ggshield refuses the commit
+
+`.pre-commit-config.yaml` runs `ggshield` on the **staged diff** at every
+commit (revision pinned to the one in service, rule 7). It sends that diff to
+GitGuardian's detection API; what that send does and does not expose is
+[ADR 0008](docs/adr/0008-diff-indexe-vers-l-api-gitguardian.md).
+
+Observed on 2026-09-04, in this repository — not in a sandbox — on a staged
+file carrying two fake keys of valid form, an AWS access-key/secret pair and
+a high-entropy string:
+
+```
+ggshield (pre-commit)....................................................Failed
+- hook id: ggshield
+- exit code: 1
+
+> commit://staged/tmp-test-ggshield.env: 2 secrets detected
+
+>> Secret detected: Generic High Entropy Secret
+   Validity: No Checker
+>> Secret detected: AWS Keys
+   Validity: Invalid
+```
+
+`HEAD` did not move. Three things in that output are worth keeping:
+
+- **The values are masked** in the report, never printed in full. The refusal
+  does not itself become the leak (rule 8).
+- **`Validity: Invalid`** means GitGuardian *tested* the AWS pair against
+  AWS. Detection is not only pattern matching: a credential that is staged is
+  a credential that gets tried. For a real one, that is one more reason the
+  answer is rotation and not deletion.
+- **ggshield's own remediation text advertises `SKIP=ggshield git commit`.**
+  It is not an option here, for the same reason `--no-verify` is not — see
+  [`CONTRIBUTING.md`](CONTRIBUTING.md#the-pre-commit-hook-ggshield).
+
+The other direction was exercised too, which is the standard applied to every
+control in this document: a commit carrying the repository's ordinary
+placeholder forms (`<openssl rand -hex 16>`) passes — `Passed`, commit
+created.
+
+Two traps came out of that test, both of which refuse a *clean* commit:
+
+- **`ggshield` writes `.cache_ggshield` at the repository root** and, if that
+  path is not already ignored, **appends its own entry to `.gitignore`**.
+  `pre-commit` then fails the commit with `files were modified by this hook`,
+  with `No secrets have been found` printed immediately above it. The entry
+  is committed here so that ggshield never needs to write it.
+- **`pre-commit` stashes unstaged changes before running the hooks.** A fix
+  that exists only in the working tree is invisible to them. This is why that
+  `.gitignore` entry has to be *staged* to take effect on the very commit
+  that introduces it.
+
+#### The external half: the GitGuardian dashboard
+
+GitGuardian watches the GitHub repository through its GitHub integration and
+opens an incident on its dashboard when a commit matches one of its
+detectors. It is a real control and an independent one: it owes nothing to
+the hooks, the tests or the discipline described in this document, which is
+exactly why it is worth having. It proved itself live on 2026-08-27 — two
+"Generic Password" incidents on `gateway/.env.example`, the first raised at
+19:34 UTC, within minutes of the push (commits `121287a` and `ed18b2d`; false
+positives, established and handled on 2026-09-02 in `4949a30c`).
+
+What it does, and what it does not:
+
+- **It detects after the push.** When the incident appears, the value is
+  already on GitHub: in the history, in every clone, in any mirror or cache.
+  A real secret caught this way is not caught, it is exposed, and the only
+  answer is rotation. That window, between the commit and the alert, is
+  exactly what the local half closes.
+- **It blocks nothing.** No push is refused, no commit is rewritten. This is
+  detection, not prevention.
+- **It does not read `.gitguardian.yaml`.** That file is read by `ggshield`
+  only, locally and in CI. The dashboard's path exclusions live in the
+  workspace settings, and `ggshield` does not report its own ignores to the
+  dashboard: the two are configured separately and can disagree.
+
+**When an incident lands**, in this order — the first step is not optional:
+
+1. **Establish whether a real secret is involved, by prefix, never by
+   value.** For each secret in service, read its first 10 characters from
+   the ignored `.env` into a shell variable and count the lines of
+   `git log --all -p` containing them; print the count and the length, never
+   the variable. A format token (`sk-ant-api03-`, `sk-master-`) legitimately
+   matches the hook's regex and the test fixtures, so count again at 11, 12
+   and 14 characters: the count must reach zero at the first character of
+   secret material. This is the method applied in `4949a30c`; a scratch
+   script that prints only lengths and counts is the right tool.
+2. **False positive:** close the incident on the dashboard as *false
+   positive*, with a comment naming what the value was (a placeholder, a test
+   fixture) and where the check of step 1 is recorded. Then make the value
+   undetectable so the alert cannot return: a placeholder reads as an
+   instruction, `<openssl rand -hex 16>`, never as a random-looking string.
+3. **Real secret:** rotation first, before any report or clean-up, following
+   [`gateway/README.md`](gateway/README.md) — rotate, do not clean (below).
+   The incident closes only once the new value is verified end to end and the
+   old one revoked.
+
+The risk that matters is not the false positive. **An alert that keeps firing
+on a known false positive trains its reader to close alerts without reading
+them, and that is the day the real one goes past.** Narrow exclusions and
+undetectable placeholders are what keep this control worth reading.
+
+### The two hooks: different moments, one shared blind spot
+
+Two hooks now scan for secrets, and both the reason to keep both and the
+reason neither is sufficient have to be written down, or someone will read
+the pair as complete coverage.
+
+| | `.claude/hooks/block-secrets.sh` | `ggshield` (`.pre-commit-config.yaml`) |
+|---|---|---|
+| Fires on | a Claude Code tool call, before it runs | `git commit`, before the commit exists |
+| Reads | the literal text of `content`, `new_string` or `command` | the staged diff |
+| Covers | this agent, this session | every commit, whatever the editor or the author |
+| Detects | seven prefix patterns, hard-coded | GitGuardian's detector set, plus validity checks |
+| Needs the network | no | yes; on failure the commit is refused, never skipped |
+
+Neither subsumes the other, and the overlap is smaller than it looks. A value
+pasted into a `Bash` command that is never committed is seen only by the
+first. A secret written by hand in an IDE, by a script, by `make`, or by a
+different agent is seen only by the second. Removing either one removes cases
+the other never covered.
+
+**What neither of them sees is the output of a command.** This is the gap of
+[ADR 0007](docs/adr/0007-secret-fuite-par-la-sortie.md), and adding
+`ggshield` did **not** close it — it was never a candidate to. The incident
+that produced rule 8 leaked four secrets through neither hook's channel:
+`cat`, `docker inspect`, `docker compose config` and `printenv` printed them
+into an agent's context. Their command text contains no secret and they write
+no file, so the first hook approves them; nothing is staged, so the second
+never runs. **Both hooks approve all four today, unchanged.**
+
+The same holds for every indirection ADR 0007 lists — a value in a shell
+variable, a substitution, a glob, a heredoc assembled at runtime, a value
+pasted into the conversation by the human. `ggshield` catches such a value
+only if it later reaches a staged diff, which is the file channel again, not
+the output channel.
+
+So the honest statement of coverage is: **the file channel is now covered
+twice; the output channel is still covered zero times.** What protects there
+is rule 8, applied by a human and by an agent *before* running a command, and
+nothing in this repository enforces it. This paragraph exists so that reading
+the two hooks as "secrets are handled" takes effort.
+
 ## 🔑 Secret handling
 
 ### The rule
@@ -301,9 +461,9 @@ secret (two GitGuardian "Generic Password" false positives on the former
 `FACTICE-…` form taught that lesson). Its `ANTHROPIC_API_KEY` placeholder is
 kept short on purpose so that it does not match the hook's own pattern — a
 test asserts the real file stays editable. `.gitguardian.yaml` at the root
-excludes this one file from ggshield scans (pre-commit, CI); the GitGuardian
-dashboard does not read that file, its path exclusions live in the workspace
-settings.
+excludes this one file from `ggshield` scans (pre-commit, CI); what that file
+does and does not cover is in
+[Secret scanning](#secret-scanning-ggshield-and-gitguardian).
 
 ### Rotation
 

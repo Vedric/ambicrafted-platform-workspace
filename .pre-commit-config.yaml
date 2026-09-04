@@ -1,0 +1,22 @@
+# Hook git pre-commit : ggshield refuse un commit dont le diff indexé contient
+# un secret reconnu par les détecteurs GitGuardian. Il complète le hook
+# PreToolUse de Claude Code (.claude/hooks/block-secrets.sh) : celui-là voit le
+# texte littéral d'un appel d'outil ; celui-ci voit le diff indexé, quel que
+# soit l'éditeur, et arrête le commit avant qu'il n'existe. Aucun des deux ne
+# remplace l'autre.
+#
+# Authentification : GITGUARDIAN_API_KEY (jeton d'accès personnel, scope
+# « scan », avec expiration) dans le .env racine chargé par direnv (règle 4).
+# Sans jeton, le hook échoue et le commit est refusé : il ne s'auto-désactive
+# pas. Exclusions : .gitguardian.yaml (gateway/.env.example seulement).
+# Installation et conduite à tenir en cas de blocage à tort : CONTRIBUTING.md.
+#
+# Révision épinglée (règle 7). La version en service est celle de
+# l'environnement du hook : ~/.cache/pre-commit/repo*/py_env-*/bin/ggshield --version
+minimum_pre_commit_version: '3.2.0'
+repos:
+  - repo: https://github.com/gitguardian/ggshield
+    rev: v1.54.0
+    hooks:
+      - id: ggshield
+        stages: [pre-commit]

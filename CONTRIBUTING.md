@@ -91,6 +91,10 @@ come from `.env` files loaded by `direnv` (rule 4).
 git clone <repo> && cd workspace
 direnv allow                        # loads .env at the root
 
+# The ggshield pre-commit hook — see "The pre-commit hook" below
+uv tool install pre-commit==4.5.1   # pinned (rule 7)
+pre-commit install --install-hooks  # writes .git/hooks/pre-commit, builds env
+
 # The agent, without the graph extra — this is the ADR 0003 footprint
 cd agents/sre-agent && uv sync
 
@@ -132,6 +136,76 @@ Two conventions worth copying when you add tests:
 - **Trap the network with an assertion, not a mock that returns.** A refusal
   test should fail loudly if the network is reached:
   `monkeypatch.setattr(llm.httpx, "post", interdit)` where `interdit` raises.
+
+### The pre-commit hook: ggshield
+
+Every commit is scanned by `ggshield` before it exists
+(`.pre-commit-config.yaml`, revision pinned). It sends the **staged diff** to
+GitGuardian's detection API and refuses the commit when a secret is
+recognised. It is the local half of the control described in
+[`SECURITY.md`](SECURITY.md#secret-scanning-ggshield-and-gitguardian):
+GitGuardian reads the pushed history after the fact, the hook keeps the
+secret from entering it. It does not replace `.claude/hooks/block-secrets.sh`,
+which sees the text of a Claude Code tool call before it runs; the two see
+different things at different moments, and neither sees a command's output.
+
+Setup, once per clone:
+
+1. A GitGuardian personal access token with the **`scan` scope only** and an
+   expiry (dashboard → API → Personal access tokens). It goes in the root
+   `.env` as `GITGUARDIAN_API_KEY` and nowhere else: not on a command line,
+   not in an agent session, not in the home-directory config that
+   `ggshield auth login` would write (rule 4). Check it by length only:
+   `echo ${#GITGUARDIAN_API_KEY}`.
+2. `uv tool install pre-commit==4.5.1 && pre-commit install --install-hooks`.
+
+Without a token the hook **fails and refuses the commit**; it does not skip
+itself:
+
+```
+ggshield (pre-commit)....................................................Failed
+- hook id: ggshield
+- exit code: 3
+
+Error: A GitGuardian API key is needed to use ggshield.
+```
+
+If you see this with a token in `.env`, the shell that ran `git commit` did
+not load `direnv`: an IDE's git integration, a script, a non-interactive
+shell. Run `direnv allow` once, or wrap the command:
+`direnv exec . git commit …`.
+
+**Refused with `No secrets have been found` printed just above?** Read the
+hook's line again: it says `files were modified by this hook`, not that
+something was detected. `ggshield` writes `.cache_ggshield` at the root and
+appends its own entry to `.gitignore` when that path is not already ignored;
+`pre-commit` sees a hook that rewrote a tracked file and fails the commit.
+The entry is committed here, so this should not happen — if it does, check
+that it is still in `.gitignore` and that your fix is **staged**:
+`pre-commit` stashes unstaged changes before running the hooks, so a
+correction left in the working tree is invisible to them.
+
+**Blocked wrongly?** ggshield names the detector and prints a masked value.
+In this order:
+
+1. **Make sure it is not a real secret.** A value copied from a terminal, a
+   `.env` or a browser is one, whatever its origin: rotate it first
+   ([`gateway/README.md`](gateway/README.md)). The refusal did its job.
+2. **A placeholder or a fixture?** Rewrite it so it cannot look like a
+   secret: an instruction in angle brackets (`<openssl rand -hex 16>`), or a
+   fixture assembled at runtime as `test-block-secrets.sh` does. This is the
+   fix in almost every case, and it holds for GitGuardian's post-push scan
+   too, which no local file can configure.
+3. **It has to stay as it is?** Record it in `.gitguardian.yaml` under
+   `ignored_matches` with `ggshield secret ignore --last-found`, which stores
+   a hash of the match rather than the value; give the entry an explicit
+   `name` and have the change reviewed. `ignored_paths` is for whole files
+   that exist to hold placeholders, nothing else.
+4. **Bypassing is not one of the options** — neither `--no-verify` nor the
+   `SKIP=ggshield git commit …` that ggshield's own remediation text
+   advertises. The value goes into the push, GitGuardian reads the push, and
+   the incident that follows is handled as a real exposure: rotation, not
+   clean-up.
 
 ### Before opening a change
 

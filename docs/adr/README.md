@@ -18,13 +18,16 @@ File names are kept in French, like every other identifier in this repository
 | [0005](0005-propagation-contexte-trace.md) | Propagation of the trace context to the gateway | Accepted | 2026-08-25 | One `traceparent` header turns two disjoint traces per call into a single 52-span trace per alert. |
 | [0006](0006-stack-passerelle-dans-le-depot.md) | The gateway stack lives in the repository | Accepted | 2026-08-25 | The most critical layer existed only on disk; a clone plus a `.env` must be enough to rebuild it. |
 | [0007](0007-secret-fuite-par-la-sortie.md) | A secret leaks through a command's output | Accepted | 2026-08-27 | The incident that rotated four secrets: nothing was written anywhere, the values were merely printed. |
+| [0008](0008-diff-indexe-vers-l-api-gitguardian.md) | The staged diff goes to GitGuardian's API | Accepted | 2026-09-04 | An outbound flow accepted because GitGuardian already reads the pushed repository — written down with the two conditions that would take that argument away. |
 
 ## Reading order
 
 - **Starting from scratch**: 0001 (the gateway), then 0003 (the agent), then
   0002 (the RAG pipeline).
-- **Interested in the security argument**: 0003, then 0007, then
-  [`SECURITY.md`](../../SECURITY.md).
+- **Interested in the security argument**: 0003, then 0007, then 0008, then
+  [`SECURITY.md`](../../SECURITY.md). 0007 and 0008 read together are the
+  point: the first says no hook can see a command's output, the second adds a
+  hook that does not change that and says what it does instead.
 - **Interested in the framework question**: 0004 alone answers it, with
   figures.
 - **Interested in observability**: 0005, which also documents the two
