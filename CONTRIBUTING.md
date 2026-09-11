@@ -34,15 +34,28 @@ If you cannot verify it, write it as uncertain.
 
 `type(scope): subject`, subject in the imperative, no trailing period.
 
-Types in use: `feat`, `fix`, `chore`. Scopes in use, one per area of the
-platform: `passerelle`, `agent`, `mcp`, `rag`, `evals`, `tracage`,
+Types in use: `feat`, `fix`, `chore`, `ci`, `docs`. Scopes in use, one per area of
+the platform: `passerelle`, `agent`, `mcp`, `rag`, `evals`, `tracage`,
 `securite`, `hooks`. Scopes are French, like every other identifier here.
 
 ```
 feat(agent): agent SRE borné (budgets, liste blanche fermée, cloisonnement)
 fix(hooks): passer -- à grep pour les motifs commençant par un tiret
 chore: dettes soldées (images épinglées, RUNBOOK_DIR, purge checkpoints)
+ci: intégration continue GitHub Actions, actions épinglées par SHA
+docs: documentation (README, ARCHITECTURE, SECURITY, CONTRIBUTING, OPERATIONS)
 ```
+
+`ci` covers the build pipeline itself: the workflow file, the pinned action
+SHAs, the jobs. It is **declared** rather than folded into `chore(ci)`: a
+scope bolted onto a catch-all type says where the change landed, a type says
+what kind of change it is, and the second is the one a reader is scanning
+for. Adding a type to this list is cheaper than bending a commit to fit it.
+
+`docs` is here for the same reason, retroactively: it was already used twice
+in this repository's history while the list still said `feat`, `fix`,
+`chore`. A convention that does not describe what is practised is not a
+convention. Declare the type, or stop using it.
 
 The body says *why*, and names what was verified. A commit that changes a
 guardrail and does not say how the refusal was observed is incomplete.
@@ -137,6 +150,43 @@ Two conventions worth copying when you add tests:
   test should fail loudly if the network is reached:
   `monkeypatch.setattr(llm.httpx, "post", interdit)` where `interdit` raises.
 
+### Proving a test is really offline
+
+"Everything runs offline" is a claim like any other, and the way to check it
+is to take the network away, not to read the test and be satisfied.
+`unshare -rn` runs a command in a fresh network namespace holding nothing but
+loopback: no route, no resolver. It needs no root and touches nothing outside
+the command.
+
+```sh
+cd agents/sre-agent
+unshare -rn uv run --no-sync pytest -q     # 49 passed
+```
+
+`--no-sync` is not optional here. `uv sync` would try to reach the index and
+fail for a reason that has nothing to do with the tests, which reads as a
+false positive for the wrong control. Install first, cut the network second.
+
+The method is worth nothing without its negative control: the proof that the
+namespace really removes the network, rather than the suite simply never
+reaching for it:
+
+```sh
+unshare -rn uv run --no-sync python -c "import httpx; httpx.get('https://example.com')"
+# httpx.ConnectError: [Errno -3] Temporary failure in name resolution
+```
+
+Run the two together, in that order. The first alone is the hollow half: a
+green suite in a namespace you have not shown to be cut proves only that the
+suite is green.
+
+This is the local, stronger form of what
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) does on the runner,
+where the network cannot be removed: there, `HTTP_PROXY` / `HTTPS_PROXY` /
+`ALL_PROXY` point every outbound HTTP call at a closed port so it raises
+instead of quietly succeeding. Under `unshare -rn` a stray call cannot even
+resolve a name, so nothing depends on `httpx` honouring a proxy variable.
+
 ### The pre-commit hook: ggshield
 
 Every commit is scanned by `ggshield` before it exists
@@ -212,22 +262,54 @@ In this order:
 ```sh
 uv run --extra graphe pytest -q                       # 49 passing
 bash .claude/hooks/test-block-secrets.sh              # 15 passing
-cd gateway && docker compose config --quiet && echo OK
+cd gateway && docker compose --env-file .env.example config --quiet 2>/tmp/e \
+  && ! grep -q 'variable is not set' /tmp/e && echo OK   # the template, not your .env
 git check-ignore -v gateway/.env .env                 # both must be ignored
+uvx ruff@0.15.10 check .                              # pinned: see below
 ```
+
+`ruff` is pinned to an exact version, in this checklist and in
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml). Its default rule set
+grew from 59 rules in 0.15.10 to 413 in 0.16.4; an unpinned `ruff` turns the
+build red on a morning when no line of the repository moved. Raising the
+version is a decision, taken in both places at once, not a chore. The counts
+per version, and the command that reproduces them, are in
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md). Run it from
+each project directory: first-party import detection (`I001`) depends on
+where `ruff` is invoked from.
+
+The compose line carries `--env-file .env.example` on purpose. Without it,
+Compose interpolates from **your** `gateway/.env`, and the check quietly
+becomes a check of your workstation rather than of the template a newcomer
+copies. The `variable is not set` test earns its place for a related reason:
+`config` warns and **exits 0** on a variable it cannot resolve, so the exit
+code on its own would report OK on an amputated template.
+
+One half of this cannot be checked from here at all, and saying so is part of
+the check. `docker-compose.yml` also carries `env_file: [.env]`, which
+requires the *file* to exist; on your machine it does, in a clone it never
+will. That half is only ever observed by the CI job, or by a clone. See
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md) for the mechanism, and rule 9 below
+for what follows from it.
 
 Note what `docker compose config` does **not** prove: that images are
 pullable, that services start, that they talk to each other, or that volumes
 recreate correctly. `gateway/README.md` has the full list. Only the
 "verify it works" section, run on a fresh machine, proves those.
 
-## 📜 The eight rules, explained
+## ⚖️ Licence of a contribution
+
+This repository is under the [Apache License 2.0](LICENSE): by opening a change
+you license your contribution under those same terms, patent grant included
+(section 5), and you keep the copyright on what you wrote.
+
+## 📜 The nine rules, explained
 
 They live in [`CLAUDE.md`](CLAUDE.md) as terse imperatives, because that file
 is the operating contract read by coding agents. Here is what each one is
 actually protecting.
 
-### 1 — The code never names a provider model. Aliases only.
+### 1. The code never names a provider model. Aliases only.
 
 `smart`, `balanced`, `fast`, `local`, `local-embed`. The alias → model mapping
 lives in `gateway/config.yaml` and nowhere else.
@@ -242,7 +324,7 @@ a dashboard that wants to reason in aliases must filter on
 *How it fails:* an unknown alias raises before any network call
 (`test_alias_inconnu_refuse` uses a real model name as the negative case).
 
-### 2 — No client data crosses the border.
+### 2. No client data crosses the border.
 
 Logs, configs, mission code. These payloads use the `local` alias through the
 `confidential-only` virtual key.
@@ -254,30 +336,30 @@ Logs, configs, mission code. These payloads use the `local` alias through the
 not distinguish data from metadata about data — which is why LangSmith was
 rejected despite already being installed.
 
-### 3 — Python is managed by `uv` exclusively. Never global `pip`.
+### 3. Python is managed by `uv` exclusively. Never global `pip`.
 
 *Why:* reproducibility. A committed lock file plus `uv sync` gives the same
 environment on another machine; a global `pip install` gives whatever that
 machine had.
 
-### 4 — Every secret in `.env`, loaded by `direnv`. No hard-coded secret, not even in an example.
+### 4. Every secret in `.env`, loaded by `direnv`. No hard-coded secret, not even in an example.
 
 *Why:* "not even in an example" is the load-bearing half. Example values get
 copied. Every value in `gateway/.env.example` is deliberately fake and says
 so.
 
-### 5 — Every architecture decision produces an ADR in `docs/adr/`.
+### 5. Every architecture decision produces an ADR in `docs/adr/`.
 
 *Why:* the expensive knowledge in this repository is not what was chosen, it
 is what was rejected and why. ADR 0004 is 300 lines of measurement whose
 conclusion is "the framework buys durability of state, not clarity of flow" —
 that conclusion is worthless without the numbers behind it.
 
-### 6 — Conventional Commits.
+### 6. Conventional Commits.
 
 See above.
 
-### 7 — Every container image and every dependency is pinned. Never a moving tag.
+### 7. Every container image and every dependency is pinned. Never a moving tag.
 
 Pin **what is running**, verified on the live instance — not what the
 registry offers under a nearby name.
@@ -286,7 +368,7 @@ registry offers under a nearby name.
 and `grafana/tempo:3.0.0` in the registry were two different builds; the
 Compose file pins the digest of the one that was actually tested here.
 
-### 8 — A secret is never displayed, not even to verify it.
+### 8. A secret is never displayed, not even to verify it.
 
 No `cat`/`grep`/`echo` on a `.env`, no `docker inspect`, no `compose config`
 without `--quiet`, no `env`/`printenv`. Verify by length and 12-character
@@ -302,6 +384,34 @@ command's text. It would have stopped none of the leaks that caused the
 incident. It is a net against inattention, not a boundary — and a guardrail
 wrongly trusted is worse than an absent one, which at least leaves vigilance
 intact.
+
+### 9. Nothing is claimed about the CI from a working tree.
+
+Verify in a clean clone (`git clone`, check out the commit under test, run
+the job's own commands there), or say nothing. A `.venv` that is already
+built and a `gateway/.env` that already exists measure the workstation, not
+the repository.
+
+*Why:* this rule was bought the same way rule 8 was, by an incident. On
+2026-09-08 a local run reported four green jobs for a workflow whose
+`compose` job had never worked and could not: it reaches `gateway/.env`
+through `env_file:`, a git-ignored file that exists on exactly one machine.
+Three runs were red, the workflow's own installing commit included, while
+the local check said green. Two things made the false green possible.
+`uv run --no-sync`, used to avoid a reinstall, skipped the very step that
+fails on a runner; and the commands were run in a tree carrying a `.venv`,
+a `.env` and untracked files that no clone will ever have. The first
+diagnosis then went to a wrong cause that a false comment in the workflow
+made plausible: `--frozen` was described as checking the lockfile, which it
+does not do. A clean clone answered all of it in one run.
+
+*What it does not give you:* a clean clone still runs on your machine. It
+says nothing about the runner image, about a pinned action SHA resolving, or
+about a tool version that sits in your local cache and not in the registry.
+It removes the dependency on your working tree, not the dependency on your
+machine. Those are settled by the run itself, and by nothing else. That is
+the whole content of the rule: a local result is evidence about the local
+machine until a run says otherwise.
 
 ## 🌍 Language policy
 

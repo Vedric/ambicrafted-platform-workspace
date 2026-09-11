@@ -7,6 +7,7 @@ authors = [
     { name = "Védric EBOA EBOLO", email = "vedric@icloud.com" }
 ]
 requires-python = ">=3.14"
+license = "Apache-2.0"
 
 # Dépendances bornées : un plancher pour l'API utilisée, un plafond au
 # majeur suivant. Aucun framework d'agent : la boucle est dans ce dépôt,

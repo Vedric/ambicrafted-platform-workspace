@@ -1,0 +1,183 @@
+# Intégration continue : prouver que la suite passe ailleurs que sur le poste
+# de développement. Rien d'autre. Ce workflow ne construit pas, ne publie pas,
+# ne déploie pas.
+#
+# AUCUN SECRET. Ce fichier ne référence aucun `secrets.*` et n'en a besoin
+# d'aucun : les 49 tests de l'agent et les 15 du hook tournent hors ligne, et
+# la validation du compose lit gateway/.env.example, dont toutes les valeurs
+# sont des consignes inertes. Une étape qui exigerait un jeton n'a rien à
+# faire ici, et c'est notamment pourquoi `pre-commit` n'est jamais invoqué :
+# son unique hook est ggshield, qui échoue sans GITGUARDIAN_API_KEY (ADR 0008).
+#
+# ÉPINGLAGE (règle 7). Les actions sont épinglées par SHA de commit : une
+# référence @v7 est un tag mouvant, réécrit par son auteur sans changer de nom.
+# Le commentaire à droite donne la version lisible, le SHA fait foi. Vérifier
+# une mise à jour :
+#   git ls-remote --tags https://github.com/<dépôt> | grep refs/tags/vX.Y.Z
+#
+# Ce que l'épinglage ne couvre pas, et qui est dit plutôt que passé sous
+# silence : l'image du runner. GitHub n'expose pas de digest pour ses runners
+# hébergés ; `ubuntu-24.04` est l'étiquette la plus précise disponible, et son
+# contenu (docker, jq, git) bouge d'une semaine à l'autre. C'est le seul
+# élément non épinglable de la chaîne.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Lecture seule : ce workflow n'écrit rien dans le dépôt.
+permissions:
+  contents: read
+
+# Une poussée qui en remplace une autre sur la même référence annule la
+# précédente. Les runs de `push` et de `pull_request` ont des références
+# distinctes et ne s'annulent donc pas entre eux.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests-agent:
+    name: Agent SRE, 49 tests hors ligne
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5" # version exacte, pas une plage
+          # Pas de cache : ce job doit prouver qu'un environnement reconstruit
+          # de zéro passe. Un cache restauré prouverait qu'un cache passe.
+          enable-cache: false
+
+      # --locked : uv.lock fait foi ET doit être à jour. Le travail échoue si
+      # le verrou ne correspond plus à pyproject.toml, ce qui vaut contrôle de
+      # la règle 7 en plus de l'installation. Un pyproject modifié sans
+      # régénération du verrou est le cas courant, et c'est celui-là qu'on
+      # veut attraper.
+      #
+      # À ne pas confondre avec --frozen, qui fige le verrou mais SAUTE cette
+      # vérification. C'est ce que ce travail faisait, sous un commentaire qui
+      # promettait le contrôle : la commande et sa description ne disaient pas
+      # la même chose. Refus observé sur les deux sens, en clone vierge :
+      # verrou à jour -> « Checked 70 packages » ; une dépendance ajoutée à
+      # pyproject.toml sans `uv lock` -> « The lockfile at `uv.lock` needs to
+      # be updated, but `--locked` was provided », code 2.
+      #
+      # Python 3.14 (.python-version) est téléchargé par uv, sans action
+      # setup-python.
+      - name: Synchroniser l'environnement, verrou vérifié et figé
+        working-directory: agents/sre-agent
+        run: uv sync --locked --extra graphe
+
+      # Le réseau est piégé, pas seulement inutilisé. httpx lit HTTP_PROXY /
+      # HTTPS_PROXY : toute sortie HTTP accidentelle part vers un port fermé
+      # et lève, au lieu de réussir discrètement. La convention du dépôt est
+      # de piéger le réseau par une assertion plutôt que par un bouchon qui
+      # répond (CONTRIBUTING.md) ; ceci l'étend à la suite entière.
+      # --no-sync : l'étape précédente a déjà installé, on n'y retouche pas.
+      - name: pytest, sortie réseau piégée
+        working-directory: agents/sre-agent
+        env:
+          HTTP_PROXY: http://127.0.0.1:9
+          HTTPS_PROXY: http://127.0.0.1:9
+          ALL_PROXY: http://127.0.0.1:9
+          NO_PROXY: ""
+        run: uv run --no-sync pytest -q
+
+  tests-hook:
+    name: Hook block-secrets, 15 tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Bash, jq, grep, sed : tout est déjà sur le runner. Le script sort 1 dès
+      # un échec. Il n'appelle ni ggshield ni le réseau : les chaînes « curl »
+      # et « https:// » qu'il contient sont des cas de test, du texte soumis au
+      # hook, jamais une commande exécutée.
+      - name: Les deux sens, ce qui doit bloquer et ce qui doit passer
+        run: bash .claude/hooks/test-block-secrets.sh
+
+  compose:
+    name: Passerelle, docker compose config
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # `docker compose config` a DEUX dépendances au fichier d'environnement,
+      # et elles ne sont pas le même mécanisme. La première a fait échouer ce
+      # travail sur les trois exécutions de ci/preuve-rouge :
+      #
+      #   1. `env_file: [.env]`, sur le service litellm, exige que le FICHIER
+      #      existe. Compose s'arrête là, avant toute interpolation, sur
+      #      « env file ... not found » et le code 1. Or `gateway/.env` est
+      #      ignoré par `gateway/.gitignore` et ne sera jamais dans un dépôt
+      #      cloné. Le travail passait sur le poste de développement au seul
+      #      motif que le fichier y existe : c'est exactement la dépendance à
+      #      l'état local qu'une CI est là pour attraper, et --env-file ne la
+      #      couvre pas.
+      #   2. --env-file fixe la source de l'INTERPOLATION, et il REMPLACE le
+      #      .env du répertoire au lieu de s'y ajouter. Vérifié : avec un
+      #      --env-file vide et un .env complet, les deux variables sont
+      #      signalées absentes. C'est ce qui garde le gabarit comme objet du
+      #      test plutôt qu'un .env ambiant.
+      #
+      # `cp .env.example .env` couvre (1) en faisant ce que fait un nouveau
+      # venu, ce qui vérifie le gabarit dans son rôle réel. Le fichier est
+      # ignoré par git et ne survit pas au runner. L'alternative, rendre
+      # `env_file` facultatif dans docker-compose.yml, a été écartée : elle
+      # ferait démarrer la passerelle sans ses secrets au lieu de refuser.
+      #
+      # --quiet : la sortie d'une commande est une fuite au même titre qu'un
+      # fichier (règle 8, ADR 0007) ; on ne veut que le code de sortie et les
+      # avertissements, jamais la configuration résolue, qui porte les valeurs.
+      #
+      # Attention enfin, `docker compose config` n'échoue PAS sur une variable
+      # absente : il avertit et substitue une chaîne vide. Sans le contrôle des
+      # avertissements ci-dessous, un gabarit amputé d'une variable passerait
+      # au vert. C'est là que .env.example est réellement vérifié.
+      - name: Valider le compose contre le gabarit .env.example
+        working-directory: gateway
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          erreurs=$(mktemp)
+          docker compose --env-file .env.example config --quiet 2> "$erreurs" || {
+            cat "$erreurs"
+            exit 1
+          }
+          if grep -q 'variable is not set' "$erreurs"; then
+            echo "::error file=gateway/.env.example::le gabarit ne fournit plus toutes les variables interpolées par docker-compose.yml"
+            grep 'variable is not set' "$erreurs"
+            exit 1
+          fi
+          echo "compose valide, gabarit complet"
+
+  lint:
+    name: ruff
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+          enable-cache: false
+
+      # Version de ruff exacte, pas « la dernière ». Ce n'est pas de la
+      # coquetterie : le jeu de règles activé par défaut change d'une version
+      # mineure à l'autre (59 règles en 0.15.10, 413 en 0.16.4). Une CI sur
+      # `ruff` non épinglé devient rouge un matin sans qu'aucune ligne du
+      # dépôt n'ait bougé. Monter de version est une décision, pas une routine.
+      #
+      # Un répertoire par projet, jamais depuis la racine : la détection du
+      # premier niveau (règle I001, tri des imports) dépend de la racine
+      # d'exécution, et `mcp-servers/runbooks/server.py` n'a pas le même
+      # verdict selon l'endroit d'où ruff est lancé. Ces deux commandes sont
+      # celles qu'un contributeur tape dans son propre répertoire de travail.
+      - name: ruff check (agents/sre-agent)
+        working-directory: agents/sre-agent
+        run: uvx ruff@0.15.10 check .
+
+      - name: ruff check (mcp-servers/runbooks)
+        working-directory: mcp-servers/runbooks
+        run: uvx ruff@0.15.10 check .

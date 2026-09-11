@@ -1,11 +1,12 @@
 # AI Platform
 
+[![CI](https://github.com/Vedric/ambicrafted-platform-workspace/actions/workflows/ci.yml/badge.svg)](https://github.com/Vedric/ambicrafted-platform-workspace/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.14%2B-3776AB?logo=python&logoColor=white)](agents/sre-agent/pyproject.toml)
 [![uv](https://img.shields.io/badge/deps-uv%20%C2%B7%20pinned-DE5FE9)](CONTRIBUTING.md)
 [![Docker Compose](https://img.shields.io/badge/Docker%20Compose-6%20services%20%C2%B7%20digest--pinned-2496ED?logo=docker&logoColor=white)](gateway/docker-compose.yml)
 [![Tests](https://img.shields.io/badge/tests-49%20passing%20%C2%B7%20offline-2ea44f)](agents/sre-agent/tests)
-[![ADRs](https://img.shields.io/badge/ADRs-7-6f42c1)](docs/adr/README.md)
-[![License](https://img.shields.io/badge/license-not%20declared-lightgrey)](#-documentation-map)
+[![ADRs](https://img.shields.io/badge/ADRs-8-6f42c1)](docs/adr/README.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Status](https://img.shields.io/badge/status-running%20locally-informational)](docs/OPERATIONS.md)
 
 A single-workstation LLM platform built around one rule: **client data never
@@ -232,14 +233,22 @@ Full threat model, including what is explicitly **not** covered:
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How a request flows end to end, the graph, the RAG pipeline, network topology, data model. |
 | [`SECURITY.md`](SECURITY.md) | Threat model, the seven controls, secret handling, how to report a vulnerability. |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Conventions, dev setup, the eight project rules, the language policy. |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Conventions, dev setup, the nine project rules, the language policy. |
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Runbook: start, stop, health, secret rotation, checkpoint purge, reindexing, troubleshooting. |
-| [`docs/adr/README.md`](docs/adr/README.md) | Index of the seven architecture decision records. |
+| [`docs/adr/README.md`](docs/adr/README.md) | Index of the eight architecture decision records. |
 | [`gateway/README.md`](gateway/README.md) | Rebuilding the stack from scratch, image pinning, secret rotation. |
 | [`agents/sre-agent/README.md`](agents/sre-agent/README.md) | The agent itself: guardrails, output contract, configuration. |
 | [`mcp-servers/runbooks/README.md`](mcp-servers/runbooks/README.md) | The MCP server and the indexer. |
 | [`evals/README.md`](evals/README.md) | The promptfoo harness and why it uses the least-privileged key. |
 | [`CLAUDE.md`](CLAUDE.md) | The operating contract for coding agents working in this repository. |
 
-No licence is declared for this repository yet; the badge above says so rather
-than implying one.
+## ⚖️ Licence
+
+Licensed under the [Apache License 2.0](LICENSE). You may use, modify and
+redistribute this code, including commercially, provided you keep the licence
+and copyright notice, state the changes you made, and do not use the author's
+name or marks to endorse your derivative. The licence also grants an explicit
+patent licence, and it terminates for anyone who starts patent litigation over
+this work. The code is provided **as is**, without warranty, which is the
+whole of section 7 and worth reading before running an agent against your own
+infrastructure.

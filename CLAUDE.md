@@ -26,6 +26,10 @@ Travailler exclusivement dans ~/, jamais dans /mnt/c (I/O très lentes).
    sur un .env, pas de docker inspect, pas de compose config sans --quiet, pas
    de env/printenv. Vérifier par longueur ou préfixe (12 car.). La sortie d'une
    commande est une fuite au même titre qu'un fichier (ADR 0007).
+9. Rien ne s'affirme sur la CI depuis l'arbre de travail. Vérifier dans un
+   clone vierge (git clone, commit visé, commandes du travail) ou se taire :
+   un .venv déjà construit et un gateway/.env présent mesurent le poste, pas
+   le dépôt.
 
 ## Commandes utiles
 - Passerelle : cd ~/platform/workspace/gateway && docker compose ps / logs litellm

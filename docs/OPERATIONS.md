@@ -379,6 +379,83 @@ longer resolves to `nomic-embed-text`. Fix the alias in
 `gateway/config.yaml`; do not adjust `DIMENSION` to match, or search quality
 will drop silently.
 
+### A CI job turns red and no line of the repository moved
+
+Symptom: the `ruff` job was green yesterday and is red this morning, and
+`git log` shows nothing in between. Before looking for the change that broke
+it, check whether the *tool* changed. The finding that produced this entry:
+
+| `ruff` version | Rules enabled by default |
+|---|---:|
+| 0.15.10 | 59 |
+| 0.16.0 | 413 |
+| 0.16.4 | 413 |
+
+Seven times more rules, arriving in a **minor** bump. Count them yourself, on
+any version: the resolved rule set is printed by `--show-settings`:
+
+```sh
+uvx ruff@0.15.10 check --isolated --show-settings . \
+  | awk '/^linter\.rules\.enabled = \[/{f=1;next} f&&/^\]/{f=0} f' \
+  | grep -c '('
+# 59        # and 413 with ruff@0.16.0
+```
+
+`--isolated` matters: without it the count reflects this repository's
+configuration rather than the tool's own default, which is the thing being
+compared.
+
+A pipeline running an unpinned `ruff` inherits those 354 extra rules the
+morning the new version ships. The red it then produces says nothing about
+the change under test, and the reflex it trains (reruns, `# noqa`, a hurried
+rule exclusion) is worse than the lint it reports.
+
+The fix is rule 7 applied to a tool and not only to a dependency. `ruff` is
+pinned to an exact version in two places, and they are kept equal:
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) and the pre-flight
+checklist of [`CONTRIBUTING.md`](../CONTRIBUTING.md). Raising it is a
+decision, taken in both places at once, whose diff is a lint pass of its
+own, never a silent side effect of a Tuesday.
+
+### The whole workflow is red, on every commit, including the very first
+
+Not a regression: a job that never worked. When every run of a new workflow
+is red, the run of the commit that *introduced* it included, the change under
+test is not the suspect. Look first for a job that **depends on a file the
+repository does not contain.**
+
+Such a job passes on the workstation, where the file exists, and fails on
+every runner, where it never will. This is the one class of defect a local run
+structurally cannot see: the local run is performed in the very environment
+that hides it. So the first move on a red workflow is a clone, not a rerun. This is rule 9
+of [`CLAUDE.md`](../CLAUDE.md); [`CONTRIBUTING.md`](../CONTRIBUTING.md)
+records what it cost.
+
+```sh
+git clone --no-hardlinks . /tmp/vierge && cd /tmp/vierge
+git checkout <the commit whose run is red>
+# run the job's commands here, and nowhere else
+```
+
+The observed case on this repository: the `compose` job died on
+`env file …/gateway/.env not found`, on all three runs of `ci/preuve-rouge`.
+Two properties kept it invisible locally: the file exists on the workstation,
+and Compose reaches it through `env_file:`, which `--env-file` does not cover.
+The mechanism and the fix are in the section below.
+
+Sweep the whole workflow once rather than one job at a time; this defect is
+rarely alone. Every host path the workflow and the compose file name, checked
+against the index:
+
+```sh
+git check-ignore -v <path>            # a line printed = excluded = absent from a clone
+git ls-files --error-unmatch <path>   # errors = never committed at all
+```
+
+Then check what the scripts read beyond their arguments: `$HOME`, `git
+config`, a tool that is installed on the workstation and not on the runner.
+A green local run says nothing about any of these.
+
 ## ⚠️ Hollow checks
 
 Checks that look like verification and prove nothing. Each of these has cost
@@ -386,7 +463,7 @@ time on this platform.
 
 | The check | What it actually proves | What it does not |
 |---|---|---|
-| `docker compose config --quiet` | syntax, variable interpolation, presence of mounted files | that images are pullable, that services start, that they talk to each other, that volumes recreate |
+| `docker compose config --quiet` | syntax, variable interpolation, presence of mounted files | that images are pullable, that services start, that they talk to each other, that volumes recreate, nor that the environment template is complete: a missing variable is a warning and the exit code stays 0. In a fresh clone it does not even run, `.env` being git-ignored (below) |
 | Length and prefix of a secret | the value **changed** | that it is **valid** — only an end-to-end call proves that |
 | `psql` on loopback **inside** the Postgres container | nothing about the password | the official image's `pg_hba.conf` sets `127.0.0.1` to `trust`; any password passes. Test from the Compose network, where `scram-sha-256` applies |
 | The agent ran with no error and printed a trace id | the agent worked | that the trace was stored — tracing fails silently by design. Go and fetch the trace |
@@ -400,3 +477,77 @@ The pattern is the same every time: **the check observes the thing that is
 easy to observe, next to the thing you care about.** When a control matters,
 verify it by its effect — a refusal that actually happened, a trace you
 actually retrieved, a call that actually returned 200.
+
+### `docker compose config`: two dependencies on `.env`, and they are not the same one
+
+The sharpest example on this platform, because it produced a hollow check and
+a red CI in that order, and the second hid behind the first.
+
+**The dependency that fails loudly.** A service carrying `env_file: [.env]`,
+here `litellm`, requires that *file* to exist. Compose stops there, before
+any interpolation, in a checkout where `.env` has not been created:
+
+```sh
+cd gateway
+docker compose --env-file .env.example config --quiet
+# env file …/gateway/.env not found: … no such file or directory
+# exit 1
+```
+
+`--env-file` does not stand in for it, because the two are different
+mechanisms: `--env-file` names the source of **interpolation**, `env_file:`
+names a file **injected into the container**. And `--env-file` *replaces* the
+directory's `.env` rather than adding to it. Verified: with an empty
+`--env-file` and a complete `.env`, both variables are still reported unset.
+Neither can cover for the other.
+
+**The dependency that fails silently.** Once the file exists, `config` does
+not fail on a variable it cannot resolve: it warns on **stderr**, substitutes
+an empty string, and **exits 0**.
+
+```sh
+cd gateway
+docker compose --env-file /dev/null config --quiet 2> /tmp/erreurs; echo $?
+# 0
+grep -c 'variable is not set' /tmp/erreurs
+# 2      POSTGRES_PASSWORD and GRAFANA_ADMIN_PASSWORD, the two that are interpolated
+```
+
+That command only gets this far on a machine where `gateway/.env` already
+exists, which is the first problem restated, and the reason this second one
+went unnoticed for as long as it did.
+
+So a `.env.example` amputated of a variable, the failure mode that matters
+because the template is what a newcomer copies, passes green on the one
+machine where anybody runs the check by hand.
+
+**The countermeasure retained** is the `compose` job of
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml), in three parts,
+none of which works alone:
+
+1. `cp .env.example .env`, which is what a newcomer does. It satisfies `env_file:`
+   and puts the template in its real role at the same time. Making `env_file`
+   optional in `docker-compose.yml` was rejected: it would let the gateway
+   start without its secrets instead of refusing.
+2. `--env-file .env.example`, so interpolation reads the template rather than
+   an ambient `.env` that exists on one machine only.
+3. stderr is captured, and **any** `variable is not set` fails the job with an
+   `::error` pointing at `gateway/.env.example`. The exit code is not the
+   verdict here: the warnings are.
+
+Observed, in a checkout with no `gateway/.env`: complete template → exit 0;
+template amputated of `POSTGRES_PASSWORD` → `::error`, exit 1.
+
+`--quiet` stays on throughout, and the warnings are grepped from a file
+rather than displayed: the resolved configuration carries the values, and a
+command's output is a leak on the same footing as a file (rule 8, ADR 0007).
+What the job prints is a variable **name**, never what it holds.
+
+Two generalisations worth keeping:
+
+- **A command that warns instead of failing is a hollow check by default.**
+  Decide explicitly what its stderr means, or the pipeline asserts nothing
+  beyond the binary having run.
+- **A command that reads a file the repository does not contain is a hollow
+  check on the only machine where you will ever run it by hand.** Its verdict
+  there is about your workstation, not about the change.
