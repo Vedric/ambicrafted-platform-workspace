@@ -11,7 +11,7 @@ on purpose, and keeping the proof.
 
 Concretely, a change that adds or touches a guardrail is not finished until:
 
-1. **A refusal has been observed.** Not reasoned about — run. Either a test
+1. **A refusal has been observed.** Not reasoned about: run. Either a test
    that fails without the guard, or a recorded run with its output.
 2. **The refusal is locked by a test that needs no network.** Every guardrail
    test in this repository runs on an unplugged machine. A guardrail that can
@@ -78,7 +78,7 @@ The index is at [`docs/adr/README.md`](docs/adr/README.md).
 
 ### Pinned dependencies (rule 7)
 
-Container images by **digest**, recorded on the container actually running —
+Container images by **digest**, recorded on the container actually running,
 not on what the registry currently offers under a nearby name:
 
 ```sh
@@ -88,7 +88,7 @@ docker image inspect "$(docker inspect litellm --format '{{.Image}}')" --format 
 The comment above each `image:` gives the version and the date of the reading.
 Never go back to a moving tag (`latest`, `main-stable`, `16-alpine`): they
 change content without changing name. ADR 0006 records a case where
-`main-stable` happened to point at the right digest that day — a calendar
+`main-stable` happened to point at the right digest that day, a calendar
 coincidence, not a guarantee.
 
 Python dependencies get a floor for the API in use and a ceiling at the next
@@ -104,11 +104,11 @@ come from `.env` files loaded by `direnv` (rule 4).
 git clone <repo> && cd workspace
 direnv allow                        # loads .env at the root
 
-# The ggshield pre-commit hook — see "The pre-commit hook" below
+# The ggshield pre-commit hook, see "The pre-commit hook" below
 uv tool install pre-commit==4.5.1   # pinned (rule 7)
 pre-commit install --install-hooks  # writes .git/hooks/pre-commit, builds env
 
-# The agent, without the graph extra — this is the ADR 0003 footprint
+# The agent, without the graph extra: this is the ADR 0003 footprint
 cd agents/sre-agent && uv sync
 
 # With the graph: two declarations, twenty-three packages (ADR 0004)
@@ -230,7 +230,7 @@ hook's line again: it says `files were modified by this hook`, not that
 something was detected. `ggshield` writes `.cache_ggshield` at the root and
 appends its own entry to `.gitignore` when that path is not already ignored;
 `pre-commit` sees a hook that rewrote a tracked file and fails the commit.
-The entry is committed here, so this should not happen — if it does, check
+The entry is committed here, so this should not happen; if it does, check
 that it is still in `.gitignore` and that your fix is **staged**:
 `pre-commit` stashes unstaged changes before running the hooks, so a
 correction left in the working tree is invisible to them.
@@ -251,7 +251,7 @@ In this order:
    a hash of the match rather than the value; give the entry an explicit
    `name` and have the change reviewed. `ignored_paths` is for whole files
    that exist to hold placeholders, nothing else.
-4. **Bypassing is not one of the options** — neither `--no-verify` nor the
+4. **Bypassing is not one of the options**: neither `--no-verify` nor the
    `SKIP=ggshield git commit …` that ggshield's own remediation text
    advertises. The value goes into the push, GitGuardian reads the push, and
    the incident that follows is handled as a real exposure: rotation, not
@@ -333,7 +333,7 @@ Logs, configs, mission code. These payloads use the `local` alias through the
 [`SECURITY.md`](SECURITY.md) is downstream of it.
 
 *How it is enforced:* three independent barriers, not one. And the rule does
-not distinguish data from metadata about data — which is why LangSmith was
+not distinguish data from metadata about data, which is why LangSmith was
 rejected despite already being installed.
 
 ### 3. Python is managed by `uv` exclusively. Never global `pip`.
@@ -352,7 +352,7 @@ so.
 
 *Why:* the expensive knowledge in this repository is not what was chosen, it
 is what was rejected and why. ADR 0004 is 300 lines of measurement whose
-conclusion is "the framework buys durability of state, not clarity of flow" —
+conclusion is "the framework buys durability of state, not clarity of flow";
 that conclusion is worthless without the numbers behind it.
 
 ### 6. Conventional Commits.
@@ -361,7 +361,7 @@ See above.
 
 ### 7. Every container image and every dependency is pinned. Never a moving tag.
 
-Pin **what is running**, verified on the live instance — not what the
+Pin **what is running**, verified on the live instance, not what the
 registry offers under a nearby name.
 
 *Why:* the distinction is the whole rule. `grafana/tempo:latest` in service
@@ -375,13 +375,13 @@ without `--quiet`, no `env`/`printenv`. Verify by length and 12-character
 prefix. **A command's output is a leak exactly as much as a file is.**
 
 *Why:* this rule was bought with an incident. Four secrets were rotated on
-2026-08-27 because they appeared in the *output* of commands — nothing was
+2026-08-27 because they appeared in the *output* of commands; nothing was
 ever written to a versioned file, `.env` stayed ignored, and the `deny Read`
 rule was never bypassed. ADR 0007 is the post-mortem.
 
 *What it does not give you:* the hook that backs it up sees only literals in a
 command's text. It would have stopped none of the leaks that caused the
-incident. It is a net against inattention, not a boundary — and a guardrail
+incident. It is a net against inattention, not a boundary, and a guardrail
 wrongly trusted is worse than an absent one, which at least leaves vigilance
 intact.
 
@@ -421,7 +421,7 @@ than apologised for.
 
 The rule that decides every case: **translate what a developer reads, leave
 in French what a model or an on-call operator reads.** The criterion is the
-audience, not the syntactic type — a docstring is not automatically
+audience, not the syntactic type: a docstring is not automatically
 developer prose, and a string literal is not automatically off limits.
 Before translating anything, ask who reads it.
 
@@ -429,11 +429,11 @@ Before translating anything, ask who reads it.
 |---|---|---|
 | Documentation | **English** | `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, everything in `docs/`, all sub-READMEs |
 | Code comments and docstrings | **English** | module docstrings, inline comments |
-| Docstrings that are system inputs | **French** | the `@mcp.tool` / `@mcp.resource` / `@mcp.prompt` docstrings in `server.py`, the module docstring of `indexer.py` — see below |
+| Docstrings that are system inputs | **French** | the `@mcp.tool` / `@mcp.resource` / `@mcp.prompt` docstrings in `server.py`, the module docstring of `indexer.py`, see below |
 | Identifiers | **French, unchanged** | `appeler_llm`, `OUTILS_AUTORISES`, `FuiteConfidentielle`, `actions_ecartees_sans_source`, `porte_humaine`, `SRE_MAX_APPELS_OUTILS`, `0003-agent-sre-borne.md` |
 | System prompts | **French** | `SYSTEME_EXTRACTION`, `SYSTEME_RAISONNEMENT`, `CONSIGNE_NON_FIABLE` |
-| Package metadata and config-file comments | **French, for now** | the `description` field of both `pyproject.toml`, comments in TOML and YAML — see below |
-| Test assertion messages | **French, for now** | `pytest.fail("réseau non attendu")`, `AssertionError("Un appel réseau a été tenté…")` — see below |
+| Package metadata and config-file comments | **French, for now** | the `description` field of both `pyproject.toml`, comments in TOML and YAML, see below |
+| Test assertion messages | **French, for now** | `pytest.fail("réseau non attendu")`, `AssertionError("Un appel réseau a été tenté…")`, see below |
 | Operator-facing messages | **French** | CLI output, error messages, `budget épuisé, escalade humaine requise` |
 | `CLAUDE.md` | **French** | it is an agent operating contract, adjacent to a system prompt |
 
@@ -441,17 +441,17 @@ Before translating anything, ask who reads it.
 
 The documentation is the part meant to travel: to a reviewer, to a future
 maintainer, to anyone assessing whether the security argument holds. English
-is the working language of the ecosystem this platform sits in — OpenTelemetry
-semantics, LiteLLM, MCP, LangGraph — and the ADRs constantly quote it.
+is the working language of the ecosystem this platform sits in (OpenTelemetry
+semantics, LiteLLM, MCP, LangGraph), and the ADRs constantly quote it.
 
 ### Why identifiers stay French
 
-Not inertia — a risk calculation.
+Not inertia: a risk calculation.
 
 This is security code. Forty-nine tests cover it and **every guardrail was
 validated by an observed refusal**. A mass rename would touch
 `llm.appeler_llm`, `OUTILS_AUTORISES`, `Classification`, the graph node
-names — which are also persisted state values in checkpoint files — and the
+names (which are also persisted state values in checkpoint files) and the
 `ambicrafted.*` trace attributes that existing Grafana queries depend on.
 
 That is real risk for a cosmetic gain. The rename would have to be re-proved
@@ -483,7 +483,7 @@ resource and prompt descriptions, so they are routed to the model:
 `outils.py` reads `outil.description` off the MCP payload and copies it
 verbatim into the `tools` declaration sent to the gateway. They are read by
 a model, never by a developer. And `SYSTEME_RAISONNEMENT`, which is in
-French, describes those very same tools — translating one half would leave
+French, describes those very same tools: translating one half would leave
 the model with two descriptions of `semantic_search` in two languages.
 
 **The module docstring of `mcp-servers/runbooks/indexer.py`.** `main()`
@@ -500,9 +500,9 @@ Two categories are developer-facing by the audience rule, and so would in
 principle be English, but have not been translated. They are listed here so
 that the gap is a recorded decision rather than an oversight:
 
-- **Package metadata and config-file comments** — the `description` field
+- **Package metadata and config-file comments**: the `description` field
   of both `pyproject.toml`, and the comments inside TOML and YAML files.
-- **Test assertion messages** — the strings passed to `pytest.fail` and to
+- **Test assertion messages**: the strings passed to `pytest.fail` and to
   `AssertionError` in the test suite.
 
 The reason is consistency, not inertia. `agents/sre-agent` and
@@ -521,13 +521,13 @@ looking it up.
 ### In practice
 
 - Adding a function? English docstring, French name.
-- Adding a docstring the model or the operator will read — an MCP tool, a
-  `__doc__` served as `--help`? French, with a comment above it saying why.
+- Adding a docstring the model or the operator will read (an MCP tool, a
+  `__doc__` served as `--help`)? French, with a comment above it saying why.
 - Adding an error message the operator will read? French.
 - Adding an exception class? French name, English docstring.
 - Adding an ADR? English content, French file name, next free number.
 - Quoting an identifier in English prose? Leave it in French, in code font,
-  and gloss it if the meaning is not obvious — as this documentation does
+  and gloss it if the meaning is not obvious, as this documentation does
   with `porte_humaine` (human gate) and `actions_ecartees_sans_source`
   (actions discarded for lack of a source).
 - Adding a `pyproject.toml` description, a TOML/YAML comment, or a test

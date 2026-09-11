@@ -13,7 +13,7 @@ A single-workstation LLM platform built around one rule: **client data never
 leaves the machine, and that is enforced by code paths rather than by prompts.**
 It routes every model call through one gateway that speaks only in semantic
 aliases, and it ships a bounded SRE agent that reads runbooks, cites them, and
-stops — it has no tool that can change anything.
+stops: it has no tool that can change anything.
 
 Every guardrail documented here was accepted only after a **refusal was
 observed**: a test, a run, or a gateway response that actually said no.
@@ -27,11 +27,11 @@ flowchart TB
     classDef infra    fill:#d6eaf8,stroke:#2874a6,stroke-width:1px,color:#0e3550
     classDef guard    fill:#fadbd8,stroke:#c0392b,stroke-width:2px,color:#641e16
 
-    subgraph HOST["Workstation — WSL2, RTX 5090"]
+    subgraph HOST["Workstation (WSL2, RTX 5090)"]
 
         ALERT["Raw alert<br/>(client data)"]:::local
 
-        subgraph AGT["sre-agent — agent.py loop · graphe.py graph"]
+        subgraph AGT["sre-agent (agent.py loop · graphe.py graph)"]
             direction TB
             EXTRACT["extraction<br/>alias local"]:::local
             TRIAGE["triage<br/>alias fast"]:::frontier
@@ -87,7 +87,7 @@ flowchart TB
     style AGT  fill:#f4f6f8,stroke:#98a2b3,color:#344054
 ```
 
-**Legend** — the same four colours are used in every diagram of this repository
+**Legend**: the same four colours are used in every diagram of this repository
 (see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)):
 
 | Colour | Meaning |
@@ -115,13 +115,13 @@ gateway, never at the agent: the agent knows aliases, the gateway knows models.
 | **`sre-agent-graph`** | The same analysis as a LangGraph state graph, plus a durable human approval gate that survives `kill -9`. Optional extra. | `agents/sre-agent/src/sre_agent/graphe.py` |
 | **Runbook corpus** | The operational knowledge itself, versioned as an asset of the repository. | [`runbooks/`](runbooks/) |
 | **Eval harness** | promptfoo comparison of `local` against `balanced` on real SRE tasks, with an LLM judge. Uses the least-privileged virtual key. | [`evals/`](evals/) |
-| **Secret hook** | `PreToolUse` hook on `Write`/`Edit`/`Bash` that refuses a literal secret. Deliberately narrow — see rule 8. | [`.claude/hooks/`](.claude/hooks/) |
+| **Secret hook** | `PreToolUse` hook on `Write`/`Edit`/`Bash` that refuses a literal secret. Deliberately narrow, see rule 8. | [`.claude/hooks/`](.claude/hooks/) |
 
 ## 🚀 Quick start
 
 From nothing to an answered call. Steps are ordered; each assumes the previous.
 
-**Prerequisites** — Docker Engine with Compose v2, [uv](https://docs.astral.sh/uv/),
+**Prerequisites**: Docker Engine with Compose v2, [uv](https://docs.astral.sh/uv/),
 [direnv](https://direnv.net/), and Ollama on the host with `coder` and
 `nomic-embed-text` pulled. The subnet `172.28.0.0/24` and the ports `4000`,
 `4318`, `9090`, `3000`, `6333` must be free on `127.0.0.1`.
@@ -130,7 +130,7 @@ From nothing to an answered call. Steps are ordered; each assumes the previous.
 # 1. Gateway secrets. Every value in the template is fake and must be replaced.
 cd gateway
 cp .env.example .env && chmod 600 .env
-$EDITOR .env                       # never echo a secret back — see rule 8
+$EDITOR .env                       # never echo a secret back, see rule 8
 docker compose config --quiet && echo OK
 
 # 2. Bring the stack up. Compose orders it: postgres healthy, then litellm.
@@ -138,7 +138,7 @@ docker compose up -d               # first run: LiteLLM creates its schema
 docker compose ps                  # 6 services Up; postgres and qdrant healthy
 
 # 3. Create the two virtual keys. `confidential-only` is the compartment.
-#    direnv loads the ROOT .env, not this one — load it without printing it.
+#    direnv loads the ROOT .env, not this one; load it without printing it.
 set -a && . ./.env && set +a
 curl -s localhost:4000/key/generate \
   -H "Authorization: Bearer $LITELLM_MASTER_KEY" -H "Content-Type: application/json" \
@@ -179,7 +179,7 @@ uv run --extra graphe sre-agent-graph "[CRITICAL] PostgreSQL: too many clients a
 uv run --extra graphe sre-agent-graph --thread-id <id> --reprendre oui
 ```
 
-**Verification without the stack** — the guardrails are tested on an unplugged
+**Verification without the stack**: the guardrails are tested on an unplugged
 machine. No gateway, no MCP server, no network:
 
 ```sh
@@ -190,7 +190,7 @@ bash ../../.claude/hooks/test-block-secrets.sh           # 15 checks, both direc
 ## 🔒 Security by construction
 
 The claim of this project is not that the agent is well-behaved. It is that the
-agent **cannot** misbehave in seven specific ways, because a code path refuses —
+agent **cannot** misbehave in seven specific ways, because a code path refuses,
 and that each refusal has been observed rather than reasoned about.
 
 | # | Control | Where it lives | Observed refusal |
@@ -199,7 +199,7 @@ and that each refusal has been observed rather than reasoned about.
 | 2 | **Monetary budget** | `budget.py` | `SRE_MAX_COUT_USD=0.05` → exit code `2`. Cost is charged from what the gateway reports, so the agent holds no price table and needs no model name. |
 | 3 | **Read-only by absence of tool** | `outils.py` | `ecrire_runbook` → `"Refusé : … n'est pas un outil de cet agent"`, returned before the MCP session is even consulted. There is no shell, no file write, no arbitrary HTTP anywhere in the package. |
 | 4 | **Data compartmentalisation** | `llm.py`, `config.py`, `gateway/config.yaml` | Confidential payload aimed at a frontier alias → `FuiteConfidentielle` raised with **zero network calls attempted** and zero cost. Independently, the gateway answered `key not allowed to access model` on a `confidential-only` → `smart` attempt (2026-08-24). |
-| 5 | **Untrusted-data confinement** | `prompts.py` | A forged closing marker does not close the block — the only valid one carries a per-run random token the alert author cannot guess. An injection-bearing alert was **reported, not followed**, and the hostile text stayed local: the triage payload never contains it. |
+| 5 | **Untrusted-data confinement** | `prompts.py` | A forged closing marker does not close the block: the only valid one carries a per-run random token the alert author cannot guess. An injection-bearing alert was **reported, not followed**, and the hostile text stayed local: the triage payload never contains it. |
 | 6 | **Source guard** | `modeles.py` | A diagnostic declaring `runbook_source: null` has its actions **removed** from `actions_proposees`, moved to `actions_ecartees_sans_source`, and replaced by a human escalation. Observed on an out-of-corpus TLS alert: no procedure was invented. |
 | 7 | **Durable human gate** | `graphe.py` | The graph writes its full state and stops **before** delivering. Silence is not approval: an empty answer yields `rejete_par_humain` and nothing is delivered. The process was `SIGKILL`ed during the pause; a fresh process resumed on the same thread id in **1.28 s for 0.00 USD**, context intact. |
 
@@ -216,12 +216,12 @@ listed separately rather than padded into the seven:
 - **Deserialisation allow-list** (`graphe.py`) closes a surface the framework
   itself opened: `TYPES_PERSISTABLES` with `pickle_fallback=False` restricts
   what the SQLite checkpoint may rebuild. It is a real control, but no test
-  currently exercises its refusal — stated here rather than claimed.
+  currently exercises its refusal, stated here rather than claimed.
 
 Three properties hold across all of it: **the code never names a provider
 model**, only aliases; **secrets are never displayed, even to check them**
 (length and 12-character prefix only, ADR 0007); and **the guardrails were not
-rewritten for the graph port** — the same five modules are imported unchanged,
+rewritten for the graph port**: the same five modules are imported unchanged,
 which is what makes the ADR 0004 comparison mean anything.
 
 Full threat model, including what is explicitly **not** covered:

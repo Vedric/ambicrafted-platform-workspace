@@ -34,7 +34,7 @@ Never versioned (secret or data):
   with the `coder` and `nomic-embed-text` models pulled (`ollama ls`).
   Without it, `local` and `local-embed` return errors; the frontier aliases
   still work.
-- The subnet `172.28.0.0/24` free (`ip route`) — it is fixed in the Compose
+- The subnet `172.28.0.0/24` free (`ip route`), it is fixed in the Compose
   file.
 - Ports `4000`, `4318`, `9090`, `3000`, `6333` free on `127.0.0.1`.
 
@@ -83,7 +83,7 @@ original machine, not "the latest version".
 
 ### 3. Verify it works
 
-In order — each step assumes the previous one:
+In order, each step assuming the previous one:
 
 ```sh
 docker compose ps                     # 6 services Up, postgres and qdrant (healthy)
@@ -216,7 +216,7 @@ Traps encountered:
   has nothing to propagate; an `ORCHESTRATOR_KEY` rotation happens in the
   workspace `.env`.
 
-Check a value without exposing it — length and prefix, never the value
+Check a value without exposing it: length and prefix, never the value
 (rule 8 of CLAUDE.md):
 
 ```sh

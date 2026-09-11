@@ -11,7 +11,7 @@ tracing to Tempo. They had never been assembled into an executable object.
 An on-call agent is the most exposed thing one can build: it ingests
 uncontrolled client data, it consumes budget non-deterministically, and its
 output will be read by someone tired who will execute it. The three ways it
-can do harm — leak, cost drift, invented procedure — call for *structural*
+can do harm (leak, cost drift, invented procedure) call for *structural*
 guardrails, not prompt instructions.
 
 ## Decision
@@ -44,7 +44,7 @@ raw alert ──[ local, CONFIDENTIAL ]──> anonymised extract
 The local step extracts the technical signature, removes identifiers and
 records injection attempts. `fast` does perform the triage, but on the
 extract. No byte of the raw alert crosses the border, and the original intent
-— a fast, cheap triage — is preserved.
+(a fast, cheap triage) is preserved.
 
 Accepted consequence: the local model reasons before answering, and this step
 costs 30 to 50 seconds. That is the price of confidentiality, paid once per
@@ -62,7 +62,7 @@ rather than interpretable. A test verifies that the two sets stay disjoint.
 
 ### Three barriers rather than one
 1. Application guard, before any network access.
-2. Restricted virtual key for confidential payloads — the gateway answers 403
+2. Restricted virtual key for confidential payloads: the gateway answers 403
    if the first one fell.
 3. No fallback out of `local` in the gateway configuration.
 
@@ -78,7 +78,7 @@ Adding a tool remains a decision of this repository.
 ### Budgets opposed at the moment of the attempt
 The tool budget is decremented *before* execution: a refused call does not
 reach the server. The monetary budget is charged *after*, from the gateway's
-cost header — the agent holds no price table, which would force it to know
+cost header; the agent holds no price table, which would force it to know
 model names.
 
 Important sub-decision: when the tool budget is exhausted, the tools stay
@@ -93,7 +93,7 @@ The alert text and the runbook contents enter the context between two markers
 carrying a random token drawn once per run. The token is not cryptography: it
 removes from whoever writes the alert the ability to write the closing
 marker. The associated instruction asks to **report** any encountered
-instruction rather than follow it — reporting an injection is itself
+instruction rather than follow it: reporting an injection is itself
 diagnostic information, since an alert carrying an injection is probably
 forged.
 

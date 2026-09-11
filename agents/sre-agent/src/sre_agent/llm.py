@@ -169,7 +169,7 @@ def appeler_llm(
         if reponse.status_code != 200:
             span.set_status(Status(StatusCode.ERROR, f"HTTP {reponse.status_code}"))
             raise ErreurPasserelle(
-                f"Passerelle : HTTP {reponse.status_code} sur l'alias {alias!r} — "
+                f"Passerelle : HTTP {reponse.status_code} sur l'alias {alias!r}. "
                 f"{reponse.text[:400]}"
             )
 

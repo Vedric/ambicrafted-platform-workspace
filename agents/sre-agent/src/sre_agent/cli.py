@@ -75,7 +75,7 @@ def rendre(rapport: Rapport) -> str:
     if rapport.injections_signalees:
         lignes += [
             "",
-            "TENTATIVE D'INJECTION DANS L'ALERTE — rapportée, non suivie",
+            "TENTATIVE D'INJECTION DANS L'ALERTE : rapportée, non suivie",
         ]
         for texte in rapport.injections_signalees:
             lignes.append(f"  · {texte}")
@@ -93,7 +93,7 @@ def rendre(rapport: Rapport) -> str:
 
     if rapport.diagnostic:
         d = rapport.diagnostic
-        source = d.runbook_source or "AUCUNE — non couvert par les runbooks"
+        source = d.runbook_source or "AUCUNE (non couvert par les runbooks)"
         lignes += [
             "",
             f"DIAGNOSTIC (confiance : {d.confiance.value})",
@@ -105,13 +105,13 @@ def rendre(rapport: Rapport) -> str:
             lignes += ["", "ÉLÉMENTS MANQUANTS"]
             lignes += [f"  · {e}" for e in d.elements_manquants]
         if d.actions_proposees:
-            lignes += ["", "ACTIONS PROPOSÉES — à exécuter par un humain"]
+            lignes += ["", "ACTIONS PROPOSÉES : à exécuter par un humain"]
             lignes += [f"  {i}. {a}" for i, a in enumerate(d.actions_proposees, 1)]
 
     if rapport.actions_ecartees_sans_source:
         lignes += [
             "",
-            "ACTIONS ÉCARTÉES PAR LE CODE — aucune source de runbook déclarée",
+            "ACTIONS ÉCARTÉES PAR LE CODE : aucune source de runbook déclarée",
         ]
         lignes += [f"  · {a}" for a in rapport.actions_ecartees_sans_source]
 

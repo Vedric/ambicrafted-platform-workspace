@@ -8,7 +8,7 @@ Date: 2026-09-04
 The `ggshield` pre-commit hook (`.pre-commit-config.yaml`) refuses a commit
 whose staged diff contains a recognisable secret. It does not detect locally:
 it **sends the staged diff to GitGuardian's API** at every commit and acts on
-the answer. Version 1.54.0 offers no offline mode — verified, there is no such
+the answer. Version 1.54.0 offers no offline mode: verified, there is no such
 option on `ggshield secret scan`. Installing that hook therefore opens an
 outbound data flow, and under rule 2 a data flow is decided, not discovered.
 
@@ -43,7 +43,7 @@ the content: in both cases, content GitGuardian was going to see anyway.
 amended, or committed on a branch that is never pushed reaches the API
 without ever reaching GitHub. What GitGuardian sees is therefore a superset
 of what the integration alone would show it. That superset is made of this
-repository's own material, so fact 2 covers it — but it is a difference, and
+repository's own material, so fact 2 covers it, but it is a difference, and
 calling it zero would be wrong.
 
 **One consequence observed while testing the hook.** GitGuardian does not
@@ -71,7 +71,7 @@ section is the reason the ADR is worth writing at all.
 - **The GitHub integration is removed, or its scope changes.** Fact 1 falls
   entirely: the API call stops duplicating an existing flow and becomes the
   only one. This is the condition most likely to change in silence, because
-  removing a dashboard integration feels like *reducing* exposure — which is
+  removing a dashboard integration feels like *reducing* exposure, which is
   precisely when this ADR needs re-reading.
 
 ## Alternatives rejected
@@ -79,7 +79,7 @@ section is the reason the ADR is worth writing at all.
 - **A purely local scanner** (`gitleaks`, `detect-secrets`). It removes the
   flow and removes most of the reason to have the hook: the detector set, its
   upkeep and the validity checks are what GitGuardian provides. A weaker
-  detector would buy the same feeling of coverage for less coverage — the
+  detector would buy the same feeling of coverage for less coverage, the
   failure mode ADR 0007 already names.
 - **No pre-commit hook, the dashboard alone.** That was the situation before,
   and it is detection after the push: by the time the alert arrives the value

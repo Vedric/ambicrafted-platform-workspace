@@ -4,7 +4,7 @@ Security: every file access is confined to RUNBOOK_DIR. No path supplied
 by the model is used without validation.
 
 Language note: the docstrings of the @mcp.tool, @mcp.resource and
-@mcp.prompt functions below stay in French. They are not developer prose —
+@mcp.prompt functions below stay in French. They are not developer prose:
 MCP publishes them as the tool, resource and prompt descriptions, so a
 model reads them, not a developer, and `outils.py` copies them straight
 into the payload sent to the gateway. SYSTEME_RAISONNEMENT, which is in
@@ -52,7 +52,7 @@ try:
     )
 
     _RAG_ERREUR = ""
-except Exception as _e:  # noqa: BLE001 — a failed import does not kill the server
+except Exception as _e:  # noqa: BLE001 (a failed import does not kill the server)
     _RAG_ERREUR = f"{type(_e).__name__} : {_e}"
 
 _REPLI = (
@@ -175,7 +175,7 @@ def semantic_search(requete: str, k: int = 5) -> str:
         vecteur = embarquer([requete], prefixe=PREFIXE_REQUETE)[0]
     except ErreurPipeline as e:
         return f"Vectorisation de la requête impossible.\n{e}\n{_REPLI}"
-    except Exception as e:  # noqa: BLE001 — degrade, never raise
+    except Exception as e:  # noqa: BLE001 (degrade, never raise)
         return (
             f"Vectorisation de la requête impossible : {type(e).__name__} : {e}\n"
             f"{_REPLI}"
@@ -193,7 +193,7 @@ def semantic_search(requete: str, k: int = 5) -> str:
         points = client.query_points(
             COLLECTION, query=vecteur, limit=k, with_payload=True
         ).points
-    except Exception as e:  # noqa: BLE001 — degrade, never raise
+    except Exception as e:  # noqa: BLE001 (degrade, never raise)
         return (
             f"Qdrant injoignable sur {QDRANT_URL} : {type(e).__name__} : {e}\n"
             "Corriger : cd ~/platform/workspace/gateway && docker compose up -d qdrant\n"

@@ -3,7 +3,7 @@
 This platform processes operational data from banking, energy and defence
 clients on a single workstation. Its security argument is narrow and
 deliberate: **a small number of things cannot happen, because a code path
-refuses them — and every one of those refusals has been observed.**
+refuses them, and every one of those refusals has been observed.**
 
 Nothing here claims that the models behave well. The claim is about what the
 surrounding code allows them to reach.
@@ -29,12 +29,12 @@ surrounding code allows them to reach.
 | T1 | Client data reaches an external provider | Three independent barriers, from `llm.appeler_llm` to the gateway configuration | `FuiteConfidentielle` with zero network calls; gateway 403 on a cross-alias attempt |
 | T2 | Prompt injection carried by an alert makes the agent act | Untrusted data is confined between per-run tokenised markers; instructions are reported, never followed | An injection-bearing alert was reported and not followed; the hostile text never enters the frontier payload |
 | T3 | Injection carried by a **runbook** (tampered corpus) | Runbook contents are wrapped by the same `prompts.bloc()`; the system prompt states they inform, they do not command | Same confinement mechanism; the corpus is versioned and reviewed |
-| T4 | The agent modifies production | It has no tool that writes. Not a prompt rule — no function in the package exposes a shell, a file write or arbitrary HTTP | Closed allow-list of four read-only tools; out-of-list names refused before the session is consulted |
+| T4 | The agent modifies production | It has no tool that writes. Not a prompt rule: no function in the package exposes a shell, a file write or arbitrary HTTP | Closed allow-list of four read-only tools; out-of-list names refused before the session is consulted |
 | T5 | Uncontrolled cost drift | Two budgets held by the calling code, which the model can neither read nor modify | Both caps reached in execution, clean stop, exit code 2 |
 | T6 | An invented procedure gets executed by a tired human | `runbook_source` is nullable and the code acts on it: unsourced actions are removed and replaced with an escalation | Out-of-corpus TLS alert: no procedure invented |
 | T7 | A diagnostic is delivered without anyone seeing it | Durable human gate before delivery (graph implementation) | Survived `SIGKILL`; silence is not approval |
 | T8 | Path traversal through a tool argument | `_resoudre()` refuses separators and leading dots, then re-checks containment after resolution | Refusal returned as a message to the model, not an exception |
-| T9 | Code execution through the checkpoint file | Deserialisation allow-list, `pickle_fallback=False`, four named types | **Not exercised by a test** — see the honesty note below |
+| T9 | Code execution through the checkpoint file | Deserialisation allow-list, `pickle_fallback=False`, four named types | **Not exercised by a test**, see the honesty note below |
 | T10 | A secret enters an agent transcript | Rule 8: a secret is never displayed, even to check it. Verification by length and 12-character prefix | Hook tested in both directions; and the incident of ADR 0007, which is what produced the rule |
 | T11 | A supply-chain change lands silently | Every image pinned by digest recorded on the running container; every dependency bounded floor-and-ceiling | `docker-compose.yml`, `pyproject.toml` |
 | T12 | Network exposure of the stack | Every published port bound to `127.0.0.1`; Postgres not published at all | `docker ps` port mapping |
@@ -51,7 +51,7 @@ what it defends against is marketing.
   after it has entered the context, and cannot rewrite it. Neither of this
   repository's two secret-scanning hooks would have stopped **any** of the
   leaks that caused ADR 0007, and adding the second one did not narrow this
-  gap by a single case — see
+  gap by a single case, see
   [The two hooks](#the-two-hooks-different-moments-one-shared-blind-spot).
   What protects is a human and an agent applying rule 8 before running a
   command, not a hook.
@@ -68,7 +68,7 @@ what it defends against is marketing.
 - **Anonymisation completeness.** The extraction step is performed by a local
   model, which is better than regular expressions at proper nouns and
   business identifiers, but it is a model: it can miss one. The compartment
-  is what makes this tolerable — the extract goes to the frontier, but the
+  is what makes this tolerable: the extract goes to the frontier, but the
   raw alert never does, so a missed identifier is a degradation, not a
   breach of the primary rule.
 - **Availability.** Nothing here is redundant. This is a workstation.
@@ -88,7 +88,7 @@ third-party secret scanner whose local half does refuse but is not this
 repository's code and does not work without a network call. All three are
 listed separately below rather than padded into this table.
 
-### 1 — Tool-call budget
+### 1. Tool-call budget
 
 `budget.py`. A cap on tool calls per alert, default 10, `SRE_MAX_APPELS_OUTILS`.
 
@@ -109,12 +109,12 @@ having consulted the runbooks, and that degraded answer would be returned as
 a diagnostic. A budget must be opposed at the moment of the attempt, not
 worked around upstream.
 
-### 2 — Monetary budget
+### 2. Monetary budget
 
 `budget.py`. A cap in USD per alert, default 0.50, `SRE_MAX_COUT_USD`.
 
 Charged from the cost the gateway reports in its response headers. The agent
-holds no price table — which would force it to know model names, in breach of
+holds no price table, which would force it to know model names, in breach of
 rule 1. The overrun is therefore *observed*, never predicted, and it
 interrupts the following step.
 
@@ -126,10 +126,10 @@ Both budgets fail identically: stop, `budget épuisé, escalade humaine
 requise`, no diagnostic. A partial diagnostic presented as complete would be
 more dangerous than no diagnostic.
 
-### 3 — Read-only, by absence of the tool
+### 3. Read-only, by absence of the tool
 
 `outils.py`. There is no shell, no file write, no arbitrary HTTP anywhere in
-the package. Not because a prompt forbids it — because no function exposes
+the package. Not because a prompt forbids it, but because no function exposes
 them. Security comes from the absence of the tool.
 
 Second layer: `OUTILS_AUTORISES` is a **closed** allow-list of four read-only
@@ -139,7 +139,7 @@ consequence of a server update.
 
 > **Observed refusal.** `client.appeler("ecrire_runbook", …)` returns
 > `"Refusé : 'ecrire_runbook' n'est pas un outil de cet agent"`, and the
-> refusal happens **before** the MCP session is consulted — verified by
+> refusal happens **before** the MCP session is consulted, verified by
 > calling it on a client that was never started, where any later access would
 > have raised instead. Locked by
 > `test_outil_hors_liste_blanche_refuse_sans_session` and
@@ -151,14 +151,14 @@ after resolution. The file name returned by a Qdrant payload is re-validated
 before being offered to the model, because that payload comes from outside
 the process.
 
-### 4 — Data compartmentalisation
+### 4. Data compartmentalisation
 
 `llm.py`, `config.py`, `gateway/config.yaml`. Every LLM call goes through
 `appeler_llm`, which takes a mandatory `Classification`. There is a single
 place to read to know whether client data can leave, and a single place to
 change to make that no longer true.
 
-Three barriers, independent — none assumes the others are correct:
+Three independent barriers; none assumes the others are correct:
 
 1. **Application guard.** `CONFIDENTIEL` + a frontier alias raises
    `FuiteConfidentielle` before any network access. It is decidable rather
@@ -172,7 +172,7 @@ Three barriers, independent — none assumes the others are correct:
 
 > **Observed refusal.** A confidential payload aimed at each of the three
 > frontier aliases raises `FuiteConfidentielle` with **zero network calls
-> attempted** and zero cost — verified with `httpx.post` replaced by an
+> attempted** and zero cost, verified with `httpx.post` replaced by an
 > assertion that fails if reached. Independently, the gateway answered
 > `key not allowed to access model` on a `confidential-only` → `smart`
 > attempt on 2026-08-24 (ADR 0001). Locked by
@@ -184,12 +184,12 @@ The MCP server's semantic search embeds its query through the same
 `local-embed` alias with the same restricted key: the search query does not
 leave the machine either.
 
-### 5 — Untrusted-data confinement
+### 5. Untrusted-data confinement
 
 `prompts.py`. Two kinds of text enter the context: instructions, written in
-this repository and reviewed; and untrusted data — the alert text, from a
+this repository and reviewed; and untrusted data (the alert text, from a
 monitoring system we do not control, and runbook contents, from editable
-files.
+files).
 
 They are **never concatenated**. Untrusted data is always wrapped by
 `bloc()`, between two markers carrying a random token drawn once per run. The
@@ -198,19 +198,19 @@ ability to write the closing marker, since they cannot guess it.
 
 The associated instruction is constant: what is inside a block is described,
 not executed, and any instruction encountered is **reported** in a dedicated
-field. Reporting an injection is itself diagnostic information — an alert
+field. Reporting an injection is itself diagnostic information: an alert
 carrying an injection is probably forged.
 
 > **Observed refusal.** A forged closing marker does not close the block: the
 > real marker appears exactly once, at the end, written by us. An
 > injection-bearing alert had its instruction reported and not followed
 > (ADR 0003). The recorded hostile text **stays local**: the triage payload,
-> which crosses the border, excludes `instructions_detectees` entirely — only
+> which crosses the border, excludes `instructions_detectees` entirely: only
 > the count goes on. Locked by `test_une_alerte_ne_peut_pas_fermer_le_bloc`,
 > `test_l_alerte_n_est_jamais_concatenee_a_une_instruction` and
 > `test_le_texte_d_injection_ne_franchit_pas_la_frontiere`.
 
-### 6 — Source guard
+### 6. Source guard
 
 `modeles.py`. `Diagnostic.runbook_source` is nullable on purpose. A model
 required to give a source invents one; a model allowed to declare it has none
@@ -220,7 +220,7 @@ provides the most useful line of the report.
 prose: it removes the actions from `actions_proposees`, moves them into
 `actions_ecartees_sans_source`, replaces them with a human escalation, and
 adds "runbook missing from the corpus" to the missing elements. They are not
-deleted — they stay visible, they simply stop being presented as procedures.
+deleted: they stay visible, they simply stop being presented as procedures.
 
 > **Observed refusal.** An out-of-corpus TLS alert produced
 > `runbook_source = null`; the code discarded the actions and no procedure was
@@ -228,7 +228,7 @@ deleted — they stay visible, they simply stop being presented as procedures.
 > `test_action_sans_source_est_ecartee_par_le_code` and its positive
 > counterpart `test_action_sourcee_est_conservee`.
 
-### 7 — Durable human gate
+### 7. Durable human gate
 
 `graphe.py`, graph implementation only. `porte_humaine` calls `interrupt()`:
 LangGraph writes the complete state to SQLite and hands control back
@@ -238,7 +238,7 @@ Of all the controls, this is the only one that bounds not what the agent
 *does* but what it earns the right to *hand over*. And it is durable, which
 is the point: the property holds even if the machine stops during the pause.
 
-> **Observed refusal.** Silence is not approval — `_lire_decision` treats
+> **Observed refusal.** Silence is not approval: `_lire_decision` treats
 > anything that is not an explicit agreement as a refusal, yielding
 > `rejete_par_humain` with nothing delivered. The process was `SIGKILL`ed
 > during the pause; a fresh process resumed on the same `thread_id` and
@@ -255,18 +255,18 @@ would be false.
 **Traceability** (`tracage.py`) is an *observation* control. One parent span
 `task.incident_analysis` per run, each LLM call and each tool call as a child
 span, carrying data classification, cost, alias and outcome. Since ADR 0005
-the gateway's spans attach beneath the agent's, so one alert is one trace —
+the gateway's spans attach beneath the agent's, so one alert is one trace,
 measured again while writing this documentation: 52 spans, 10 from
 `sre-agent` and 42 from `litellm-gateway`, single root, 5/5 LLM calls
 attached. Tracing never fails the agent: if Tempo is unreachable the export
 fails in a background thread and the analysis continues. That property is
-also a trap — see
+also a trap, see
 [`OPERATIONS.md`](docs/OPERATIONS.md#traces-are-not-arriving-in-tempo).
 
 **Deserialisation allow-list** (`graphe.py`) closes a surface the framework
 opened. `TYPES_PERSISTABLES` with `pickle_fallback=False` restricts what the
 SQLite checkpoint may reconstruct to four named types. It is a real control
-and it is held by this repository rather than by the framework — but **no
+and it is held by this repository rather than by the framework, but **no
 test currently exercises its refusal**, so it is listed here rather than
 among the seven.
 
@@ -286,7 +286,7 @@ commit (revision pinned to the one in service, rule 7). It sends that diff to
 GitGuardian's detection API; what that send does and does not expose is
 [ADR 0008](docs/adr/0008-diff-indexe-vers-l-api-gitguardian.md).
 
-Observed on 2026-09-04, in this repository — not in a sandbox — on a staged
+Observed on 2026-09-04, in this repository (not in a sandbox), on a staged
 file carrying two fake keys of valid form, an AWS access-key/secret pair and
 a high-entropy string:
 
@@ -312,12 +312,12 @@ ggshield (pre-commit)....................................................Failed
   a credential that gets tried. For a real one, that is one more reason the
   answer is rotation and not deletion.
 - **ggshield's own remediation text advertises `SKIP=ggshield git commit`.**
-  It is not an option here, for the same reason `--no-verify` is not — see
+  It is not an option here, for the same reason `--no-verify` is not, see
   [`CONTRIBUTING.md`](CONTRIBUTING.md#the-pre-commit-hook-ggshield).
 
 The other direction was exercised too, which is the standard applied to every
 control in this document: a commit carrying the repository's ordinary
-placeholder forms (`<openssl rand -hex 16>`) passes — `Passed`, commit
+placeholder forms (`<openssl rand -hex 16>`) passes: `Passed`, commit
 created.
 
 Two traps came out of that test, both of which refuse a *clean* commit:
@@ -338,7 +338,7 @@ GitGuardian watches the GitHub repository through its GitHub integration and
 opens an incident on its dashboard when a commit matches one of its
 detectors. It is a real control and an independent one: it owes nothing to
 the hooks, the tests or the discipline described in this document, which is
-exactly why it is worth having. It proved itself live on 2026-08-27 — two
+exactly why it is worth having. It proved itself live on 2026-08-27: two
 "Generic Password" incidents on `gateway/.env.example`, the first raised at
 19:34 UTC, within minutes of the push (commits `121287a` and `ed18b2d`; false
 positives, established and handled on 2026-09-02 in `4949a30c`).
@@ -357,7 +357,7 @@ What it does, and what it does not:
   workspace settings, and `ggshield` does not report its own ignores to the
   dashboard: the two are configured separately and can disagree.
 
-**When an incident lands**, in this order — the first step is not optional:
+**When an incident lands**, in this order, and the first step is not optional:
 
 1. **Establish whether a real secret is involved, by prefix, never by
    value.** For each secret in service, read its first 10 characters from
@@ -374,7 +374,7 @@ What it does, and what it does not:
    undetectable so the alert cannot return: a placeholder reads as an
    instruction, `<openssl rand -hex 16>`, never as a random-looking string.
 3. **Real secret:** rotation first, before any report or clean-up, following
-   [`gateway/README.md`](gateway/README.md) — rotate, do not clean (below).
+   [`gateway/README.md`](gateway/README.md): rotate, do not clean (below).
    The incident closes only once the new value is verified end to end and the
    old one revoked.
 
@@ -405,14 +405,14 @@ the other never covered.
 
 **What neither of them sees is the output of a command.** This is the gap of
 [ADR 0007](docs/adr/0007-secret-fuite-par-la-sortie.md), and adding
-`ggshield` did **not** close it — it was never a candidate to. The incident
+`ggshield` did **not** close it: it was never a candidate to. The incident
 that produced rule 8 leaked four secrets through neither hook's channel:
 `cat`, `docker inspect`, `docker compose config` and `printenv` printed them
 into an agent's context. Their command text contains no secret and they write
 no file, so the first hook approves them; nothing is staged, so the second
 never runs. **Both hooks approve all four today, unchanged.**
 
-The same holds for every indirection ADR 0007 lists — a value in a shell
+The same holds for every indirection ADR 0007 lists: a value in a shell
 variable, a substitution, a glob, a heredoc assembled at runtime, a value
 pasted into the conversation by the human. `ggshield` catches such a value
 only if it later reaches a staged diff, which is the file channel again, not
@@ -437,7 +437,7 @@ v=$(sed -nE 's/^LITELLM_MASTER_KEY=//p' .env); echo "len=${#v} prefix=${v:0:12}"
 
 The prefix distinguishes an old value from a new one, cannot reconstruct it,
 and can be compared by eye. What it does **not** prove is that the key is
-valid — only an end-to-end call returning 200 proves that.
+valid; only an end-to-end call returning 200 proves that.
 
 A value transits only through shell variables: generated by `openssl rand`
 into a variable, written by `sed` from that variable, passed to `psql` on
@@ -449,8 +449,8 @@ literal argument, never through an output.
 | Never in the repository | Never on screen |
 |---|---|
 | `gateway/.env`, workspace `.env` (ignored, `0600`) | file contents (`cat`, `head`, `grep`, `sed -n p`) |
-| Docker volumes (`gateway_*`) | `docker compose config` without `--quiet` — it interpolates every `${VAR}` |
-| Checkpoint file | `docker inspect` — the complete `Config.Env` |
+| Docker volumes (`gateway_*`) | `docker compose config` without `--quiet`: it interpolates every `${VAR}` |
+| Checkpoint file | `docker inspect`: the complete `Config.Env` |
 | Any real key, including in examples | `env`, `printenv`, `set`, `export -p`, `direnv export` |
 | | `echo "$VAR"`, `set -x`, `curl -v`, debug logs |
 
@@ -459,7 +459,7 @@ written as an instruction in angle brackets (`<openssl rand -hex 16>`), never
 a random-looking string: a generic password detector cannot mistake it for a
 secret (two GitGuardian "Generic Password" false positives on the former
 `FACTICE-…` form taught that lesson). Its `ANTHROPIC_API_KEY` placeholder is
-kept short on purpose so that it does not match the hook's own pattern — a
+kept short on purpose so that it does not match the hook's own pattern; a
 test asserts the real file stays editable. `.gitguardian.yaml` at the root
 excludes this one file from `ggshield` scans (pre-commit, CI); what that file
 does and does not cover is in
@@ -490,7 +490,7 @@ protocol. Three keys created and revoked inside an hour left a dead key in
 A value that has passed through a model context is compromised, whatever
 follows. It is in the local transcript, in context summaries, and in anything
 that reuses them. Transcripts cannot be reliably purged. This is not a
-theoretical position — it is what ADR 0007 records, and it cost a full
+theoretical position: it is what ADR 0007 records, and it cost a full
 rotation of four secrets.
 
 ## 📮 Reporting a vulnerability

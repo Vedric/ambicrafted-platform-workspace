@@ -68,7 +68,7 @@ TIMEOUT_LLM_S = float(os.environ.get("SRE_TIMEOUT_LLM_S", "300"))
 # Tempo publishes its OTLP/HTTP receiver on 127.0.0.1:4318 (the gateway
 # compose stack). NEVER put a container address back here: they are handed
 # out in start-up order and change on the first `up`, which points the
-# export at another service with no symptom whatsoever — tracing fails
+# export at another service with no symptom whatsoever: tracing fails
 # silently by design. Overridable through OTEL_EXPORTER_OTLP_ENDPOINT.
 OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4318")
 SERVICE_NAME = os.environ.get("SRE_SERVICE_NAME", "sre-agent")

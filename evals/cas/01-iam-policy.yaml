@@ -22,7 +22,7 @@
     # L ancien not-contains-any etait faux dans les DEUX sens : "aucun probleme"
     # sans accent ne matchait jamais "aucun probleme" ecrit correctement (garde
     # morte), et le simple substring "conforme" se declenchait sur "n est pas
-    # conforme" — donc echouait une BONNE reponse. Reecrit en not-regex :
+    # conforme", donc echouait une BONNE reponse. Reecrit en not-regex :
     # tolerant aux accents, et immunise contre la negation par lookbehind.
     - type: not-regex
       value: '([Aa][Uu][Cc][Uu][Nn]\s+([Pp][Rr][Oo][Bb][Ll][EeÈè][Mm][Ee]|[Rr][Ii][Ss][Qq][Uu][Ee]|[Ss][Oo][Uu][Cc][Ii])|[Rr][Ii][Ee][Nn]\s+[AaÀà]\s+[Ss][Ii][Gg][Nn][Aa][Ll][Ee][Rr]|[Pp][Aa][Ss]\s+[Dd][Ee]\s+[Pp][Rr][Oo][Bb][Ll][EeÈè][Mm][Ee]|(?<![Nn][Oo][Nn]\s)(?<![Pp][Aa][Ss]\s)[Cc][Oo][Nn][Ff][Oo][Rr][Mm][Ee][Ss]?\b)'

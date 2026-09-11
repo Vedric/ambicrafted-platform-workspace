@@ -30,7 +30,7 @@ classDef guard    fill:#fadbd8,stroke:#c0392b,stroke-width:2px,color:#641e16
 The rule that makes the green/amber split decidable is a strict partition in
 `config.py`: `ALIAS_LOCAUX = {local, local-embed}` and
 `ALIAS_FRONTIERE = {smart, balanced, fast}`. A test asserts the two sets stay
-disjoint — without that, the compartmentalisation guard would be
+disjoint; without that, the compartmentalisation guard would be
 interpretable rather than computable.
 
 ## 🔄 One alert, end to end
@@ -42,7 +42,7 @@ sequenceDiagram
     autonumber
     actor OP as On-call operator
 
-    box rgb(213,245,227) Local — may see client data
+    box rgb(213,245,227) Local, may see client data
     participant CLI as sre-agent CLI
     participant AG as agent.analyser
     end
@@ -71,9 +71,9 @@ sequenceDiagram
     CLI->>AG: analyser(alerte)
     AG->>TP: open span task.incident_analysis
 
-    Note over AG,LLM: Step 1 — extraction, classified CONFIDENTIEL
+    Note over AG,LLM: Step 1, extraction, classified CONFIDENTIEL
     AG->>LLM: alias=local, classification=CONFIDENTIEL
-    LLM->>LLM: barrier 1 — alias in ALIAS_LOCAUX ? yes
+    LLM->>LLM: barrier 1, alias in ALIAS_LOCAUX ? yes
     LLM->>LLM: budget.verifier_avant_llm()
     LLM->>GW: POST /chat/completions + CONFIDENTIAL_KEY + traceparent
     GW->>OLL: coder (never leaves the machine)
@@ -83,7 +83,7 @@ sequenceDiagram
     LLM-->>AG: Extraction (identifiers removed, injections recorded)
 
     Note over AG,AN: ═══ BORDER ═══ only the extract goes on
-    Note over AG,LLM: Step 2 — triage, classified DERIVE
+    Note over AG,LLM: Step 2, triage, classified DERIVE
     AG->>LLM: alias=fast, classification=DERIVE
     LLM->>GW: + ORCHESTRATOR_KEY
     GW->>AN: haiku
@@ -91,7 +91,7 @@ sequenceDiagram
     GW-->>LLM: response
     LLM-->>AG: ClassificationAlerte (known, urgency, actionable)
 
-    Note over AG,QD: Step 3 — tool loop, up to MAX_TOURS turns
+    Note over AG,QD: Step 3, tool loop, up to MAX_TOURS turns
     loop until JSON diagnostic, or a cap bites
         AG->>LLM: alias=smart, tools declared even if budget spent
         LLM->>GW: + ORCHESTRATOR_KEY
@@ -100,7 +100,7 @@ sequenceDiagram
         GW-->>AG: response
         alt the model requests tools
             AG->>TOOL: executer_outil(name, args)
-            TOOL->>TOOL: budget.consommer_outil() — BEFORE execution
+            TOOL->>TOOL: budget.consommer_outil(), BEFORE execution
             TOOL->>MCP: name in OUTILS_AUTORISES only
             MCP->>QD: semantic_search → /v1/embeddings (local-embed)
             QD-->>MCP: k fragments with heading path
@@ -132,7 +132,7 @@ because they are what the tests lock:
 
 The graph implementation (`graphe.py`) produces the **same `Rapport` object**
 through the same five guardrail modules; only the orchestration differs, plus
-one extra step — the human gate — described below.
+one extra step, the human gate, described below.
 
 ## 🕸️ The LangGraph state graph
 
@@ -187,7 +187,7 @@ and remains authoritative if an edge ever let something through.
 **The gate is the point of the port.** `porte_humaine` calls `interrupt()`:
 LangGraph writes the complete state to SQLite and hands control back *before*
 the diagnostic is delivered. The process may then be killed. A later resume
-on the same `thread_id` with `Command(resume=…)` picks up exactly there —
+on the same `thread_id` with `Command(resume=…)` picks up exactly there,
 measured at 1.28 s for 0.00 USD, budget and tool history intact (ADR 0004).
 Silence is not approval: `_lire_decision` treats anything that is not an
 explicit agreement as a refusal.
@@ -200,8 +200,8 @@ and can diverge. A test locks the attribution.
 
 ## 🔍 The RAG pipeline
 
-Two paths through the same embedding model, with **asymmetric task prefixes**
-— nomic-embed-text is trained for that, and omitting them measurably degrades
+Two paths through the same embedding model, with **asymmetric task prefixes**:
+nomic-embed-text is trained for that, and omitting them measurably degrades
 recall on rephrasing.
 
 ```mermaid
@@ -210,7 +210,7 @@ flowchart TB
     classDef infra    fill:#d6eaf8,stroke:#2874a6,stroke-width:1px,color:#0e3550
     classDef guard    fill:#fadbd8,stroke:#c0392b,stroke-width:2px,color:#641e16
 
-    subgraph IDX["Indexing — indexer.py, manual, idempotent"]
+    subgraph IDX["Indexing (indexer.py, manual, idempotent)"]
         direction TB
         MD[("runbooks/*.md")]:::local
         CUT["decouper()<br/>one fragment per markdown section<br/>headings inside code fences ignored"]:::local
@@ -221,7 +221,7 @@ flowchart TB
         UPS["delete_collection + create_collection (cosine · 768d)<br/>upsert · id = UUIDv5(fichier:ligne:chemin_titres)"]:::infra
     end
 
-    subgraph QRY["Query — semantic_search(requete, k)"]
+    subgraph QRY["Query (semantic_search(requete, k))"]
         direction TB
         Q["natural-language question"]:::local
         EMB2["embarquer(prefixe='search_query: ')"]:::local
@@ -236,12 +236,12 @@ flowchart TB
 
     MD --> CUT --> FRG --> WARN
     WARN -->|"no"| EMB1
-    WARN -.->|"yes — Ollama truncates silently"| EMB1
+    WARN -.->|"yes, Ollama truncates silently"| EMB1
     EMB1 --> GW
     GW --> OLL
     OLL --> DIM
     DIM -->|"ok"| UPS --> QDB
-    DIM -.->|"no — alias no longer nomic-embed-text"| STOP["ErreurPipeline"]:::guard
+    DIM -.->|"no, alias no longer nomic-embed-text"| STOP["ErreurPipeline"]:::guard
 
     Q --> EMB2 --> GW
     QDB --> SRCH --> VALID --> OUT
@@ -302,7 +302,7 @@ diagnosis are in
 [`OPERATIONS.md`](OPERATIONS.md#traces-are-not-arriving-in-tempo).
 
 **Ollama is not in Compose.** It runs on the host. Containers reach it at
-`http://172.17.0.1:11434` — the Docker bridge address, never `localhost`,
+`http://172.17.0.1:11434`, the Docker bridge address, never `localhost`,
 which inside a container means the container itself.
 
 **Two paths cross the border**, and only two: the gateway to the Anthropic
@@ -338,14 +338,14 @@ on that declaration rather than on the prose.
 
 ### Graph state and checkpoints
 
-`EtatSRE` is a `TypedDict`, and above all it is **serialisable** — anything
+`EtatSRE` is a `TypedDict`, and above all it is **serialisable**: anything
 that must survive the death of the process is in it. The MCP session and the
 HTTP client are not: they are process resources, re-established on resume.
 
 Six fields are accumulators annotated with `operator.add`: `messages`,
 `outils_appeles`, `injections_signalees`, `actions_ecartees_sans_source`,
 `journal`, `depenses`. Two nodes writing in the same super-step concatenate
-instead of the last one overwriting the first — which matters even in a
+instead of the last one overwriting the first, which matters even in a
 sequential graph, because the `raisonnement → recherche_runbooks →
 raisonnement` cycle writes into `messages` on every turn.
 
@@ -359,10 +359,10 @@ real call.
 | Fact about the checkpoint file | Value |
 |---|---|
 | Path | `~/.local/state/sre-agent/graphe.sqlite` (`SRE_CHECKPOINT_DB`) |
-| Permissions | file `0600`, directory `0700` — it holds alert-derived data |
+| Permissions | file `0600`, directory `0700`, it holds alert-derived data |
 | Checkpoints per alert | 11 (ADR 0004) |
 | On-disk volume per alert | ~110 KiB (ADR 0004) |
-| Deserialisation | `JsonPlusSerializer(pickle_fallback=False, allowed_msgpack_modules=TYPES_PERSISTABLES)` — four named types |
+| Deserialisation | `JsonPlusSerializer(pickle_fallback=False, allowed_msgpack_modules=TYPES_PERSISTABLES)`, four named types |
 | Retention | 14 days by default (`SRE_RETENTION_JOURS`), matching Tempo's 336 h |
 | Purge | `sre-agent-graph --purger [--avant N] [--simulation]`, then `VACUUM` and WAL truncation |
 
@@ -395,5 +395,5 @@ ADR 0005 and both worth repeating because a dashboard will hit them:
    is wrong by a factor of exactly 2.
 2. `gen_ai.request.model` means different things on each side: the alias on
    the agent's spans, the resolved provider model on the gateway's. That is
-   not a defect — read by service, it is precisely how rule 1 becomes
+   not a defect: read by service, it is precisely how rule 1 becomes
    verifiable from Tempo.

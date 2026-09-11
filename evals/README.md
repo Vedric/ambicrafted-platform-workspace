@@ -67,8 +67,8 @@ variants (`r[oô]le`).
 
 **A `not-contains-any` was wrong in both directions at once.** Written
 without accents, `"aucun probleme"` never matched a correctly accented
-`"aucun problème"` — a dead guard. And the bare substring `"conforme"` fired
-on `"n'est pas conforme"` — so it failed a *good* answer. Rewritten as a
+`"aucun problème"`, a dead guard. And the bare substring `"conforme"` fired
+on `"n'est pas conforme"`, so it failed a *good* answer. Rewritten as a
 `not-regex`, tolerant of accents and immunised against negation with a
 lookbehind.
 
@@ -78,7 +78,7 @@ point that was absent because it was truncated, not because it was
 unaddressed. Raised to 4096: we measure the answer, not the truncation.
 
 There is also a provider-specific one: Qwen3 has reflection mode on by
-default, which consumes the whole token budget and leaves `content` empty —
+default, which consumes the whole token budget and leaves `content` empty;
 promptfoo then displays the `reasoning_content` prefixed with `Thinking:`.
 `passthrough: { think: false }` disables it; `passthrough` is the only
 channel promptfoo offers for a parameter outside the OpenAI spec.

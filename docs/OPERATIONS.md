@@ -38,7 +38,7 @@ systemctl status ollama
 
 ## 🩺 Health
 
-In order — each step assumes the previous one.
+In order, each step assuming the previous one.
 
 ```sh
 docker compose ps                                  # 6 Up
@@ -57,7 +57,7 @@ curl -s -H "Authorization: Bearer $ORCHESTRATOR_KEY" localhost:4000/v1/models \
   | jq -r '.data[].id'      # 5 aliases, and no provider model name
 ```
 
-End-to-end on the local path — proves Ollama, the gateway and the routing at
+End-to-end on the local path, proves Ollama, the gateway and the routing at
 once, and costs nothing:
 
 ```sh
@@ -93,7 +93,7 @@ Check a value without displaying it (rule 8):
 v=$(sed -nE 's/^LITELLM_MASTER_KEY=//p' .env); echo "len=${#v} prefix=${v:0:12}"
 ```
 
-That proves the value **changed**. It does not prove it is **valid** — only
+That proves the value **changed**. It does not prove it is **valid**; only
 an end-to-end call does. ADR 0007 exists because that distinction was learned
 the expensive way: a correctly-shaped but already-revoked key sat in `.env`
 while the investigation went looking at the gateway.
@@ -102,7 +102,7 @@ while the investigation went looking at the gateway.
 
 Graph checkpoints contain the `Extraction`, i.e. data derived from a client
 alert, and they survive the process. They are retained for 14 days by
-default — the same window as Tempo's trace retention (336 h), so a thread and
+default, the same window as Tempo's trace retention (336 h), so a thread and
 its trace expire together.
 
 ```sh
@@ -117,7 +117,7 @@ Nothing triggers this automatically. It is a manual step or a cron entry.
 
 A thread paused on the human gate ages like any other and is purged like any
 other; the report flags it (`en_pause`) so the operator can see it. An
-approval that has not come in two weeks is not coming — the alert was handled
+approval that has not come in two weeks is not coming: the alert was handled
 another way.
 
 The purge runs `VACUUM` and truncates the WAL afterwards. That is not
@@ -150,7 +150,7 @@ The run is idempotent: the collection is recreated and point ids are
 deterministic (UUIDv5), so reindexing never duplicates and never leaves an
 orphan fragment behind from a renamed section.
 
-Requires `CONFIDENTIAL_KEY` in the environment — the embeddings go through
+Requires `CONFIDENTIAL_KEY` in the environment: the embeddings go through
 the gateway on `local-embed`, with the restricted key, never straight to
 Ollama.
 
@@ -165,7 +165,7 @@ curl -s localhost:6333/collections/runbooks \
 ## 💸 Reading spend
 
 The UI is at `http://localhost:4000/ui`. For the API, note that
-`LITELLM_MASTER_KEY` lives in `gateway/.env`, which direnv does **not** load —
+`LITELLM_MASTER_KEY` lives in `gateway/.env`, which direnv does **not** load;
 the root `.envrc` only loads the root `.env`. Load it without printing it:
 
 ```sh
@@ -179,7 +179,7 @@ this instance:
 - **It is sorted newest-first**, not chronologically. `.[0]` is the most
   recent call and `.[-1]` the oldest. A `tail` gives you the beginning of
   history, not the end.
-- **It returns everything** — 226 rows here, with no default limit. Filter
+- **It returns everything**: 226 rows here, with no default limit. Filter
   client-side or use the date parameters.
 - **The `model` field mixes aliases and resolved provider names.** The same
   traffic appears as `balanced` on some rows and
@@ -208,19 +208,19 @@ Grafana → Explore → Tempo data source. One alert is one trace, rooted at
 `service.name` alone matches nothing; it must be `resource.service.name`.
 Span attributes need `span.`, resource attributes need `resource.`, and
 trace-level fields use the `trace:` namespace. An unprefixed attribute is not
-an error — it silently matches nothing, which reads exactly like "no data".
+an error: it silently matches nothing, which reads exactly like "no data".
 
 **Never aggregate `gen_ai.*` or `ambicrafted.cost_usd` without a service
 filter.** Since ADR 0005 unified the traces, four `gen_ai.usage.*` keys are
 emitted identically by the agent and by the gateway, so a sum over a trace
-counts every call twice — wrong by a factor of exactly 2:
+counts every call twice, wrong by a factor of exactly 2:
 
 ```traceql
 { trace:id = "…" && resource.service.name = "sre-agent" && span.gen_ai.usage.input_tokens > 0 }
   | sum(span.gen_ai.usage.input_tokens) > 0
 ```
 
-To see which provider model an alias resolved to — rule 1 made verifiable
+To see which provider model an alias resolved to, rule 1 made verifiable
 from the trace, since the code only ever knows the alias:
 
 ```traceql
@@ -239,14 +239,14 @@ at the provider.
 ### Traces are not arriving in Tempo
 
 **The trap first: the absence of an error proves nothing.** Tracing is
-designed never to fail the agent — if the collector is unreachable, the
+designed never to fail the agent: if the collector is unreachable, the
 export fails inside a background thread and the analysis continues normally.
 A perfectly successful run with a printed trace id is entirely compatible
 with nothing having been stored. **The only valid test is to go and find the
 trace.**
 
 This is not hypothetical. `config.py` shipped a default OTLP endpoint of
-`http://172.28.0.3:4318` — a container address. Container addresses are
+`http://172.28.0.3:4318`, a container address. Container addresses are
 handed out in start order and change at the first `up` that recreates a
 container; `172.28.0.3` had since become **Grafana**, while Tempo had moved
 to `.4`. The agent had been exporting into a closed port, silently, with no
@@ -261,7 +261,7 @@ cd agents/sre-agent && uv run python -c \
   "from sre_agent import config; print(config.OTLP_ENDPOINT, config.TRACAGE_ACTIF)"
 
 # 2. Is that endpoint alive? 405 is the RIGHT answer (GET on a POST route).
-#    000 means the connection failed — that is the symptom.
+#    000 means the connection failed, and that is the symptom.
 curl -s -o /dev/null -w '%{http_code}\n' --max-time 4 http://127.0.0.1:4318/v1/traces
 
 # 3. Is Tempo publishing the port at all?
@@ -279,7 +279,7 @@ A healthy run currently gives 52 spans for the hand-written loop: 10 from
 `sre-agent` and 42 from `litellm-gateway`, one root, and the five gateway
 server spans attached under their `llm.*` parents.
 
-If tracing is deliberately off, `SRE_TRACAGE=0` — that is also what the test
+If tracing is deliberately off, `SRE_TRACAGE=0`, which is also what the test
 suite sets, in `conftest.py`, so that an absent collector does not turn a
 test failure into a timeout.
 
@@ -310,7 +310,7 @@ rather than in a global daemon file.
 
 `Start request repeated too quickly` is not a cause. It only says that
 systemd gave up on restarting, and while that state persists it masks the
-real error — you will read the same misleading line no matter what you fix.
+real error: you will read the same misleading line no matter what you fix.
 
 ```sh
 sudo systemctl reset-failed <service>      # FIRST, always
@@ -335,8 +335,8 @@ result is a permanent crash loop, and the message points at the model
 directory rather than at the permission.
 
 Leave the model store where the package put it. On this machine the service
-sets `OLLAMA_HOST=172.17.0.1:11434` — the Docker bridge address, so that
-containers can reach it — plus keep-alive and cache tuning, and deliberately
+sets `OLLAMA_HOST=172.17.0.1:11434`, the Docker bridge address, so that
+containers can reach it, plus keep-alive and cache tuning, and deliberately
 does **not** set `OLLAMA_MODELS`.
 
 From inside a container, Ollama is `http://172.17.0.1:11434`. Never
@@ -344,16 +344,16 @@ From inside a container, Ollama is `http://172.17.0.1:11434`. Never
 
 ### The gateway answers 401 or 403
 
-- **401** — the key is not recognised. Check length and prefix (never the
+- **401**: the key is not recognised. Check length and prefix (never the
   value). Remember that virtual keys are hashed in Postgres, so rotating the
   master key does **not** invalidate them.
-- **403 `key not allowed to access model`** — this is usually the
+- **403 `key not allowed to access model`**: this is usually the
   compartment working as designed: `confidential-only` is restricted to
   `local` and `local-embed`, so a frontier alias is refused. If you see this
   from the agent, something upstream chose the wrong alias for a confidential
   payload, and barrier 1 should have caught it first. That is a bug worth a
   test, not a configuration to relax.
-- **Authentication error on `fast` only** — the Anthropic key. Length and
+- **Authentication error on `fast` only**: the Anthropic key. Length and
   prefix will look right even if the key was revoked provider-side. Compare
   against the provider console.
 
@@ -369,7 +369,7 @@ says:
 | Qdrant unreachable | `cd gateway && docker compose up -d qdrant` |
 | embedding failed | check `CONFIDENTIAL_KEY` is loaded, and the `local-embed` alias |
 
-In every case `search_runbooks` still works — it depends only on the file
+In every case `search_runbooks` still works: it depends only on the file
 system. That is the whole point of degrading rather than raising.
 
 ### The indexer reports an unexpected dimension
@@ -464,18 +464,18 @@ time on this platform.
 | The check | What it actually proves | What it does not |
 |---|---|---|
 | `docker compose config --quiet` | syntax, variable interpolation, presence of mounted files | that images are pullable, that services start, that they talk to each other, that volumes recreate, nor that the environment template is complete: a missing variable is a warning and the exit code stays 0. In a fresh clone it does not even run, `.env` being git-ignored (below) |
-| Length and prefix of a secret | the value **changed** | that it is **valid** — only an end-to-end call proves that |
+| Length and prefix of a secret | the value **changed** | that it is **valid**; only an end-to-end call proves that |
 | `psql` on loopback **inside** the Postgres container | nothing about the password | the official image's `pg_hba.conf` sets `127.0.0.1` to `trust`; any password passes. Test from the Compose network, where `scram-sha-256` applies |
-| The agent ran with no error and printed a trace id | the agent worked | that the trace was stored — tracing fails silently by design. Go and fetch the trace |
-| `docker compose restart` after editing `.env` | the container restarted | that it read the new environment — only `up -d` recreates it |
+| The agent ran with no error and printed a trace id | the agent worked | that the trace was stored: tracing fails silently by design. Go and fetch the trace |
+| `docker compose restart` after editing `.env` | the container restarted | that it read the new environment; only `up -d` recreates it |
 | A `gen_ai.usage.*` sum over a trace | nothing usable | it double-counts without a `resource.service.name` filter |
 | A TraceQL query returning nothing | nothing | an unprefixed attribute matches nothing silently; check `span.` / `resource.` first |
-| The `block-secrets.sh` hook is installed | literal secrets in a command or a write are refused | that a secret cannot leak — it never sees command **output**, which is how the ADR 0007 incident actually happened |
+| The `block-secrets.sh` hook is installed | literal secrets in a command or a write are refused | that a secret cannot leak: it never sees command **output**, which is how the ADR 0007 incident actually happened |
 | Grafana shows a `litellm-gateway` trace | the gateway is exporting | that the **agent** is exporting; before ADR 0005 those were two disconnected trees |
 
 The pattern is the same every time: **the check observes the thing that is
 easy to observe, next to the thing you care about.** When a control matters,
-verify it by its effect — a refusal that actually happened, a trace you
+verify it by its effect: a refusal that actually happened, a trace you
 actually retrieved, a call that actually returned 200.
 
 ### `docker compose config`: two dependencies on `.env`, and they are not the same one

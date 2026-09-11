@@ -1,6 +1,6 @@
 # ADR 0004: LangGraph against the hand-written loop
 
-Status: accepted — both implementations coexist, `agent.py` remains the
+Status: accepted, both implementations coexist, `agent.py` remains the
 reference, `graphe.py` becomes the recommended path for on-call
 Date: 2026-08-25
 Completes ADR 0003, which announced this port as a later step.
@@ -14,7 +14,7 @@ The port was carried out under a single constraint: `llm.py`, `outils.py`,
 `prompts.py`, `budget.py`, `tracage.py` are imported as they are by
 `graphe.py`, without a single modified line. Same compartmentalisation, same
 allow-list, same token confinement, same budgets. What differs is
-orchestration, and nothing else — a condition without which the figures below
+orchestration, and nothing else, a condition without which the figures below
 would only measure a rewrite.
 
 Verification: the 23 guardrail tests of ADR 0003 pass unmodified, and 14
@@ -49,7 +49,7 @@ more than the total:
 | Three entry points instead of one                |    155 | **new capability** |
 
 About 220 lines fund capabilities the loop does not have, and 110 lines are
-the framework's entry price — state serialisability and the loss of process
+the framework's entry price: state serialisability and the loss of process
 context.
 
 ### Dependencies
@@ -95,7 +95,7 @@ rule and no version of LangGraph makes it possible to avoid them:
 | of which MCP tools     |  0.13 s |  0.12 s |  0.13 s |  0.13 s |
 | **of which orchestration** | **1.46 s** | **1.43 s** | **1.70 s** | **1.53 s** |
 
-The naive reading — "the graph is 12% slower" — is wrong. The orchestration
+The naive reading, "the graph is 12% slower", is wrong. The orchestration
 durations, obtained by subtracting from the parent span the sum of the
 `llm.*` and `tool.*` spans, are **1.48 s against 1.53 s**, that is **50 ms of
 overhead**, checkpoint writes included (eleven per alert). The seven-second
@@ -144,7 +144,7 @@ human wait replays nothing.
 - **Be read in one pass.** The flow is a sequence of statements in a single
   file of 167 lines of code. The graph requires reading the nodes, then the
   edges, then the assembly, to reconstitute the same flow.
-- **Add no unused dependency** — neither `langchain-core` nor `langsmith`.
+- **Add no unused dependency**: neither `langchain-core` nor `langsmith`.
 - **Start in 767 ms** instead of 1,079.
 
 ### The graph alone
@@ -155,7 +155,7 @@ human wait replays nothing.
   with the same `thread_id` and `Command(resume="oui")`, delivered the
   diagnostic in 1.28 s for 0 USD, budget and tool history intact. The
   hand-written loop cannot do this, and cannot learn to without rewriting
-  itself around a serialisable state — that is, without becoming a graph.
+  itself around a serialisable state, that is, without becoming a graph.
 - **Resume in the middle, not only at the gate.** The eleven checkpoints
   cover every super-step. An interruption during reasoning resumes at the
   last node crossed, without replaying calls already paid for.
@@ -180,7 +180,7 @@ directory.
 
 Postgres was available: the gateway has one. It was rejected. Making an
 on-call agent's resume capability depend on the database that holds the
-gateway's accounting creates a coupling between two unrelated concerns — an
+gateway's accounting creates a coupling between two unrelated concerns: an
 agent that can no longer resume because billing is under maintenance. The
 agent is moreover single-machine: a `thread_id` is resumed on the machine
 that created it.
@@ -192,7 +192,7 @@ benefit of ADR 0003's compartmentalisation.
 
 **Evolution path towards Postgres.** Three conditions, all to be met:
 
-1. Several executors — a scheduler, or resumes from a machine other than the
+1. Several executors: a scheduler, or resumes from a machine other than the
    one that started the analysis. As long as a `thread_id` stays attached to
    its machine, SQLite is enough.
 2. A retention policy to enforce: checkpoints contain derived data, therefore
@@ -211,7 +211,7 @@ SQLite.
 The port introduces a trust boundary the loop did not have: a persistent file
 that the graph re-reads and deserialises. By default LangGraph accepts any
 Python type there, which its own documentation flags as a code-execution
-vector for whoever can write into that file — and it emits a warning
+vector for whoever can write into that file, and it emits a warning
 announcing the block in a future version.
 
 `TYPES_PERSISTABLES` closes that with the same figure as `OUTILS_AUTORISES`:
@@ -229,8 +229,8 @@ liabilities.
    code 2, no exception raised, no tool from the refused burst reaches the
    server. `executer_outil` stays in place and remains authoritative if the
    edge let something through.
-2. **The finalisation retry is an edge.** Same uniqueness — a single pass,
-   `relance_tentee` attests to it — but it becomes observable.
+2. **The finalisation retry is an edge.** Same uniqueness, a single pass
+   that `relance_tentee` attests to, but it becomes observable.
 
 ### The `abandon` node attributes the reason
 
@@ -273,14 +273,14 @@ service is hit.
 
 Two consequences, outside the scope of this ADR but to be handled:
 
-- Rule 1 of CLAUDE.md — no provider model name in the code — is respected by
+- Rule 1 of CLAUDE.md, no provider model name in the code, is respected by
   our code, but provider names arrive in Tempo through the gateway's own
   telemetry. A dashboard must filter on `resource.service.name` if it wants
   to reason in aliases.
 - The two trees are **disjoint**: no `trace_id` overlap between our traces and
   those of `litellm-gateway`, for lack of a `traceparent` header propagated
   by `llm.py`. An LLM call therefore produces two unrelated traces. Joining
-  them would require injecting the context into the HTTP headers —
+  them would require injecting the context into the HTTP headers,
   a modification of `llm.py`, therefore of a guardrail: outside the scope of
   this port, to be decided separately.
 
@@ -311,14 +311,14 @@ others bound what the agent does, this one bounds what it earns the right to
 hand over.
 
 **Take the hand-written loop when the agent is called by a machine, in a flow
-that does not get interrupted** — alert enrichment, automatic triage, batch
+that does not get interrupted**: alert enrichment, automatic triage, batch
 processing. There is then nobody to cross the gate, persistence serves no
 purpose, and the 23 packages and the state file are pure liability: two more
 unused dependencies, one more deserialisation surface, one retention policy
 to hold.
 
 **Do not take a framework for orchestration.** That is the sharpest result of
-the measurement: the orchestration gain is nil — 50 ms — and the cost in
+the measurement: the orchestration gain is nil (50 ms) and the cost in
 reading is real: 452 lines of code against 167 for the same flow. A
 seven-node graph is not read faster than a hundred-line loop, it is read
 slower, in three places instead of one. What you buy is not clarity of flow,
@@ -331,7 +331,7 @@ modified line. Verified in the graph, on an unplugged machine: a confidential
 payload directed at `smart` raises `FuiteConfidentielle`, no network call is
 attempted, the cost incurred is nil and the message is identical to that of
 the hand-written loop. The only thing the framework required is one more
-guardrail — the deserialisation allow-list — to close a surface it had opened
+guardrail, the deserialisation allow-list, to close a surface it had opened
 itself. That is the right division: the framework holds the state, this
 repository holds the rules.
 
@@ -368,7 +368,7 @@ Accepted costs and limits:
 ## Alternatives rejected
 
 - **Rewriting the hand-written loop to add a pause.** That means writing a
-  checkpointer, a serialisable state format and a resume path — that is, a
+  checkpointer, a serialisable state format and a resume path, that is, a
   graph, less well reviewed. The framework justifies itself precisely there.
 - **`interrupt_before` on a node rather than `interrupt()` inside the node.**
   The interruption would be decided at compile time rather than by the node's

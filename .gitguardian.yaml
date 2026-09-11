@@ -19,7 +19,7 @@ secret:
   # la forme ressemblait à un mot de passe. Vérifié faux positif : aucun préfixe
   # des secrets en service n'apparaît dans git log --all -p. Sans exclusion,
   # chaque commit sur ce fichier relèverait l'alerte et on finirait par ignorer
-  # GitGuardian par habitude — c'est ce risque-là que l'exclusion supprime.
+  # GitGuardian par habitude, et c'est ce risque-là que l'exclusion supprime.
   # Elle ne couvre QUE ce chemin : tout autre fichier reste scanné.
   ignored_paths:
     - gateway/.env.example

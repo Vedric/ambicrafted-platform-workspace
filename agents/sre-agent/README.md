@@ -12,14 +12,14 @@ Two implementations, same guardrails, same output contract:
 | Module | `agent.py` | `graphe.py` |
 | Orchestration | hand-written loop, 167 lines of code | LangGraph, 7 nodes, 452 lines |
 | Extra dependencies | none | `--extra graphe`, 23 packages |
-| Human approval gate | no | **yes, durable — survives `kill -9`** |
+| Human approval gate | no | **yes, durable: survives `kill -9`** |
 | State on disk | none | SQLite checkpoints, ~110 KiB per alert |
 | Status | reference implementation | recommended for on-call |
 
 Which to pick is settled by one question, and it is not about code style:
 **does a human have to approve before the agent delivers, or must execution
 survive the process?** If yes, the graph. If the caller is a machine in a
-flow that does not stop, the loop — the checkpoints and the 23 packages are
+flow that does not stop, the loop; the checkpoints and the 23 packages are
 pure liability there. The full measurement is in
 [ADR 0004](../../docs/adr/0004-langgraph-vs-boucle-maison.md); the summary is
 that orchestration gains 50 ms, and what you actually buy is durability of
@@ -69,7 +69,7 @@ alias per step. See
 
 ## The guardrails
 
-Seven controls, each validated by a **refusal that was observed** — not
+Seven controls, each validated by a **refusal that was observed**, not
 reasoned about. Two further controls exist that are not refusals and are
 listed after the table rather than padded into it.
 
@@ -77,11 +77,11 @@ listed after the table rather than padded into it.
 |---|---|---|---|
 | 1 | Tool-call budget, 10 | `budget.py` | `SRE_MAX_APPELS_OUTILS=2 uv run sre-agent "..."` → exit 2 |
 | 2 | Monetary budget, 0.50 USD | `budget.py` | `SRE_MAX_COUT_USD=0.05 uv run sre-agent "..."` → exit 2 |
-| 3 | Read-only | `outils.py` | `pytest -k liste_blanche` — closed allow-list of 4 tools |
-| 4 | Compartmentalisation | `llm.py` | `pytest -k confidentielle` — refusal with no network access |
-| 5 | Untrusted data confined | `prompts.py` | `pytest -k bloc` — per-run token |
-| 6 | Source guard | `modeles.py` | `pytest -k source` — unsourced actions discarded |
-| 7 | Durable human gate | `graphe.py` | `pytest -k porte` — silence is not approval |
+| 3 | Read-only | `outils.py` | `pytest -k liste_blanche`, closed allow-list of 4 tools |
+| 4 | Compartmentalisation | `llm.py` | `pytest -k confidentielle`, refusal with no network access |
+| 5 | Untrusted data confined | `prompts.py` | `pytest -k bloc`, per-run token |
+| 6 | Source guard | `modeles.py` | `pytest -k source`, unsourced actions discarded |
+| 7 | Durable human gate | `graphe.py` | `pytest -k porte`, silence is not approval |
 
 ```bash
 uv run --extra graphe pytest        # 49 tests, no network required
@@ -90,11 +90,11 @@ uv run --extra graphe pytest        # 49 tests, no network required
 All 49 run on an unplugged machine. That is the point: a guardrail that can
 only be verified in real conditions is not a guardrail, it is an intention.
 
-### 1 and 2 — Budgets
+### 1 and 2. Budgets
 
 A budget is not an instruction given to the model: it is a counter held by
 the calling code, which the model can neither read nor modify. The tool
-budget is decremented **before** execution — a refused call never reaches the
+budget is decremented **before** execution: a refused call never reaches the
 server. The monetary budget is charged afterwards, from the cost the gateway
 reports: the agent holds no price table, which would force it to know a model
 name anyway.
@@ -111,7 +111,7 @@ In the graph, the same cap is opposed **by the routing edge**, so a burst of
 three tools requested with two remaining is refused as a whole rather than
 half-executed. Stricter, deliberately.
 
-### 3 — Read-only
+### 3. Read-only
 
 There is no shell, no file write, no arbitrary HTTP. Not because a prompt
 forbids it: because no function in this package exposes them to the model.
@@ -122,7 +122,7 @@ publish without appearing there would never be presented to the model: adding
 a tool is a decision of this repository, not a consequence of a server
 update.
 
-### 4 — Compartmentalisation
+### 4. Compartmentalisation
 
 Every LLM call goes through `appeler_llm`. There is therefore **one place**
 to read to know whether client data can leave, and one to change to make that
@@ -139,7 +139,7 @@ no longer true. Three independent barriers:
 The MCP server's semantic search also embeds through `local-embed` with the
 restricted key: the search query does not leave the machine either.
 
-### 5 — Untrusted data
+### 5. Untrusted data
 
 The alert text and the runbook contents are never concatenated to an
 instruction. They are wrapped by `prompts.bloc()`, between two markers
@@ -149,25 +149,25 @@ since they cannot guess it.
 
 The associated instruction is constant: what is inside a block is described,
 not executed, and any instruction encountered is **reported** in a dedicated
-field. The recorded hostile text stays local — it is not passed to the
+field. The recorded hostile text stays local: it is not passed to the
 frontier steps, only its count is.
 
-### 6 — Source guard
+### 6. Source guard
 
 `Diagnostic.runbook_source` is nullable on purpose. A model required to give
 a source invents one; a model allowed to declare it has none provides the
 most useful line of the report. `appliquer_garde_source()` then removes the
 unfounded actions from `actions_proposees`, moves them into
 `actions_ecartees_sans_source`, and replaces them with a human escalation.
-They stay visible — they simply stop being presented as procedures.
+They stay visible: they simply stop being presented as procedures.
 
-### 7 — Durable human gate
+### 7. Durable human gate
 
 Graph only. `porte_humaine` calls `interrupt()`: the complete state is
 written to SQLite and the process hands back control **before** the diagnostic
 is delivered. What is delivered has therefore never been delivered without a
 human seeing it, and that property holds even if the machine stops during the
-pause — demonstrated with `SIGKILL`, resumed in 1.28 s for 0 USD.
+pause, demonstrated with `SIGKILL`, resumed in 1.28 s for 0 USD.
 
 Silence is not approval: anything that is not an explicit agreement counts as
 a refusal. A permissive default would turn the gate into a formality.
@@ -201,13 +201,13 @@ mandatory; without it the query silently matches nothing.
 in its background thread and the analysis continues. That is deliberate, and
 it is also a trap: a successful run with a printed trace id proves nothing
 about whether the trace was stored. The only valid check is to go and fetch
-it — see
+it, see
 [`docs/OPERATIONS.md`](../../docs/OPERATIONS.md#traces-are-not-arriving-in-tempo).
 
 **Deserialisation allow-list** (`graphe.py`) closes a surface the framework
 opened: `TYPES_PERSISTABLES` with `pickle_fallback=False` restricts what the
 SQLite checkpoint may rebuild to four named types. It is a real control, but
-no test currently exercises its refusal — stated here rather than claimed.
+no test currently exercises its refusal, stated here rather than claimed.
 
 ## The output contract
 
@@ -232,20 +232,20 @@ Every variable is optional except the keys, which come from the workspace
 
 | Variable | Default | Role |
 |---|---|---|
-| `CONFIDENTIAL_KEY` | — | virtual key restricted to `local` and `local-embed` |
-| `ORCHESTRATOR_KEY` | — | key for derived payloads |
+| `CONFIDENTIAL_KEY` | none | virtual key restricted to `local` and `local-embed` |
+| `ORCHESTRATOR_KEY` | none | key for derived payloads |
 | `SRE_MAX_APPELS_OUTILS` | `10` | guardrail 1 |
 | `SRE_MAX_COUT_USD` | `0.50` | guardrail 2 |
 | `SRE_MAX_TOURS` | `12` | cap on loop turns |
 | `SRE_ALIAS_RAISONNEMENT` | `smart` | alias for the final reasoning, see below |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://127.0.0.1:4318` | Tempo's OTLP/HTTP receiver |
 | `SRE_TRACAGE` | `1` | `0` disables the export |
-| `SRE_DEBUG_MCP` | — | lets the MCP server's stderr through |
+| `SRE_DEBUG_MCP` | none | lets the MCP server's stderr through |
 | `SRE_CHECKPOINT_DB` | `~/.local/state/sre-agent/graphe.sqlite` | graph only |
 | `SRE_RETENTION_JOURS` | `14` | graph only, purge window |
 
 **Local reasoning.** `SRE_ALIAS_RAISONNEMENT=local` moves the tool loop onto
-the local model: verified — it drives the tool loop, finds the runbook and
+the local model: verified; it drives the tool loop, finds the runbook and
 produces a sourced diagnostic, for about 0.001 USD instead of 0.20. The
 triage step stays on `fast`; it only ever sees derived data, but it does
 reach the frontier. A strictly offline mission would need that step moved
@@ -254,7 +254,7 @@ too, which is not exposed today.
 **Tempo's address.** Compose publishes Tempo's OTLP/HTTP receiver on
 `127.0.0.1:4318`, and that is the default. Never put a container address here:
 they are assigned in start order and change at the first `docker compose up`
-that recreates a container — which is exactly how this default previously came
+that recreates a container, which is exactly how this default previously came
 to point at Grafana instead of Tempo, silently.
 
 ## What this agent does not do

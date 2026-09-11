@@ -1,7 +1,7 @@
 """Access to the runbooks MCP server tools.
 
 Structural guardrail: this is the ONLY tool provider the agent has. There
-is no shell, no file write, no arbitrary HTTP call — and not because a
+is no shell, no file write, no arbitrary HTTP call, and not because a
 prompt forbids them, but because no function in this package exposes them
 to the model. The security comes from the tool being absent.
 
@@ -113,7 +113,7 @@ class ClientRunbooks:
                 else:
                     journal = pile.enter_context(open(os.devnull, "w"))
                 asyncio.run(self._piloter(journal))
-        except BaseException as e:  # noqa: BLE001 — handed back to the calling thread
+        except BaseException as e:  # noqa: BLE001 (handed back to the calling thread)
             self._erreur = e
         finally:
             self._pret.set()
@@ -123,7 +123,7 @@ class ClientRunbooks:
 
         The session is an async context manager: it has to live inside a
         single coroutine. So one cannot open it and then hand control
-        back — hence this service loop.
+        back: hence this service loop.
         """
         self._boucle = asyncio.get_running_loop()
         self._arret = asyncio.Event()
@@ -185,7 +185,7 @@ class ClientRunbooks:
                 try:
                     resultat = await session.call_tool(nom, arguments)
                     promesse.set_result(_texte(resultat))
-                except BaseException as e:  # noqa: BLE001 — returned to the caller
+                except BaseException as e:  # noqa: BLE001 (returned to the caller)
                     promesse.set_exception(e)
 
     # --- Synchronous facade -----------------------------------------------

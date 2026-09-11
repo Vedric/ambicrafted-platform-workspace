@@ -294,7 +294,7 @@ def main() -> int:
 
     fichiers = sorted({f.fichier for f in fragments})
     print(f"Source     : {RUNBOOK_DIR}")
-    print(f"Runbooks   : {len(fichiers)} — {', '.join(fichiers)}")
+    print(f"Runbooks   : {len(fichiers)} ({', '.join(fichiers)})")
     print(f"Fragments  : {len(fragments)}\n")
 
     for f in fragments:

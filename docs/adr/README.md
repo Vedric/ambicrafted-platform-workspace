@@ -6,19 +6,19 @@ decision** in the state of knowledge of its day: it is not updated when
 reality moves on. When a decision is superseded, a new ADR says so and the
 old one stays as it was written.
 
-File names are kept in French, like every other identifier in this repository
-— see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+File names are kept in French, like every other identifier in this repository,
+see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 | # | Title | Status | Date | In one line |
 |---|---|---|---|---|
 | [0001](0001-litellm-passerelle-unique.md) | LiteLLM as the single gateway | Accepted, in local production | 2026-08-24 | One OpenAI-compatible entry point, semantic aliases, virtual keys, and no fallback out of `local`. |
 | [0002](0002-recherche-semantique-runbooks.md) | Semantic search over the runbooks (Qdrant + MCP) | Accepted, in local service | 2026-08-25 | Chunk by markdown section rather than by character count, because a fragment of a procedure looks complete and is dangerous. |
 | [0003](0003-agent-sre-borne.md) | Bounded SRE agent, without a framework | Accepted, in local service | 2026-08-25 | A hand-written loop, because the hundred lines it occupies are exactly the lines where the guardrails are decided. |
-| [0004](0004-langgraph-vs-boucle-maison.md) | LangGraph against the hand-written loop | Accepted — both coexist, `agent.py` is the reference | 2026-08-25 | Measured: orchestration gains 50 ms and costs 23 packages; what you actually buy is a pause that survives `kill -9`. |
+| [0004](0004-langgraph-vs-boucle-maison.md) | LangGraph against the hand-written loop | Accepted, both coexist, `agent.py` is the reference | 2026-08-25 | Measured: orchestration gains 50 ms and costs 23 packages; what you actually buy is a pause that survives `kill -9`. |
 | [0005](0005-propagation-contexte-trace.md) | Propagation of the trace context to the gateway | Accepted | 2026-08-25 | One `traceparent` header turns two disjoint traces per call into a single 52-span trace per alert. |
 | [0006](0006-stack-passerelle-dans-le-depot.md) | The gateway stack lives in the repository | Accepted | 2026-08-25 | The most critical layer existed only on disk; a clone plus a `.env` must be enough to rebuild it. |
 | [0007](0007-secret-fuite-par-la-sortie.md) | A secret leaks through a command's output | Accepted | 2026-08-27 | The incident that rotated four secrets: nothing was written anywhere, the values were merely printed. |
-| [0008](0008-diff-indexe-vers-l-api-gitguardian.md) | The staged diff goes to GitGuardian's API | Accepted | 2026-09-04 | An outbound flow accepted because GitGuardian already reads the pushed repository — written down with the two conditions that would take that argument away. |
+| [0008](0008-diff-indexe-vers-l-api-gitguardian.md) | The staged diff goes to GitGuardian's API | Accepted | 2026-09-04 | An outbound flow accepted because GitGuardian already reads the pushed repository, written down with the two conditions that would take that argument away. |
 
 ## Reading order
 

@@ -1,12 +1,12 @@
 """Tests of the LangGraph port, on an unplugged machine.
 
 Same requirement as `test_gardefous.py`: no gateway, no MCP server, no
-network. What is checked here is not the framework — it is that the port
+network. What is checked here is not the framework: it is that the port
 loosened nothing, and that the new properties (edge routing, durable
 pause) actually hold.
 
 The substitution points are `appeler_llm` and the tool client. Everything
-else — budget, allowlist, containment, source guard — is the production
+else (budget, allowlist, containment, source guard) is the production
 code, run as is.
 """
 
@@ -439,7 +439,7 @@ def test_la_simulation_liste_sans_supprimer(monkeypatch, db):
 
 
 def test_la_purge_supprime_le_fil_ancien_et_compacte_le_fichier(monkeypatch, db):
-    """After a purge: no row, no free page, no WAL — the data is gone."""
+    """After a purge: no row, no free page, no WAL: the data is gone."""
     _fil_en_pause(monkeypatch, db, "t-vieux")
     dans_quinze_jours = datetime.now(UTC) + timedelta(days=15)
 

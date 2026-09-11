@@ -4,7 +4,7 @@ This module is the counterpart of `agent.py`, not its replacement. Both
 produce an identical `Rapport` on top of exactly the same guardrails:
 `llm.appeler_llm`, `outils.executer_outil`, `prompts.bloc`,
 `budget.Budget`, `modeles.appliquer_garde_source`. None of those five
-modules is modified or bypassed here — that is the condition for the
+modules is modified or bypassed here: that is the condition for the
 ADR 0004 comparison to be about orchestration and nothing else.
 
 What the graph adds, and the hand-written loop cannot do:
@@ -84,7 +84,7 @@ CHEMIN_CHECKPOINTS = os.environ.get(
 )
 
 # Thread retention, in days. 14: how long Tempo keeps traces
-# (block_retention, 336 h) — a thread and its trace expire together — and
+# (block_retention, 336 h), so a thread and its trace expire together, and
 # one on-call rotation. See ADR 0004, Consequences.
 RETENTION_JOURS = int(os.environ.get("SRE_RETENTION_JOURS", "14"))
 
@@ -96,7 +96,7 @@ class EtatSRE(TypedDict, total=False):
     """The shared state: typed, and above all serialisable.
 
     Everything that has to survive the death of the process is here. What
-    is not — the MCP session, the HTTP client — is a process resource,
+    is not (the MCP session, the HTTP client) is a process resource,
     re-established on resume.
 
     The fields annotated with `operator.add` are accumulators: two nodes
@@ -155,7 +155,7 @@ def _budget(etat: EtatSRE) -> Budget:
     `consommer_llm`, which would raise in the middle of the replay. This
     is not a way around the guardrail: the ceilings are still those of
     `config`, and it is still `Budget` that enforces them on the next real
-    call. The semantics of `agent.py` are preserved — an overrun is
+    call. The semantics of `agent.py` are preserved: an overrun is
     observed after the fact and stops the following step.
     """
     budget = Budget(
@@ -362,7 +362,7 @@ def diagnostic(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
     When prose comes back, the node does not retry by itself: it records
     the retry request in the state, and the edge decides to go through
-    `raisonnement` again. The difference is not cosmetic — the retry
+    `raisonnement` again. The difference is not cosmetic: the retry
     becomes an observable edge traversal instead of an `except` invisible
     from the outside.
     """

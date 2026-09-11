@@ -161,20 +161,20 @@ def rendre_graphe(rapport: Rapport, thread_id: str, chemin_db: str) -> str:
     if rapport.statut == "en_attente_humain":
         demande = json.loads(rapport.message) if rapport.message else {}
         lignes = [
-            "EN PAUSE — approbation humaine requise avant livraison",
+            "EN PAUSE : approbation humaine requise avant livraison",
             "",
             f"  {demande.get('demande', '')}",
             "",
             f"CAUSE PROBABLE (confiance : {demande.get('confiance', '?')})",
             f"  {demande.get('cause_probable', '')}",
             "",
-            f"SOURCE : {demande.get('runbook_source') or 'AUCUNE — non couvert par les runbooks'}",
+            f"SOURCE : {demande.get('runbook_source') or 'AUCUNE (non couvert par les runbooks)'}",
         ]
         if actions := demande.get("actions_proposees"):
             lignes += ["", "ACTIONS SOUMISES À APPROBATION"]
             lignes += [f"  {i}. {a}" for i, a in enumerate(actions, 1)]
         if ecartees := demande.get("actions_ecartees_sans_source"):
-            lignes += ["", "ACTIONS DÉJÀ ÉCARTÉES PAR LE CODE — aucune source"]
+            lignes += ["", "ACTIONS DÉJÀ ÉCARTÉES PAR LE CODE : aucune source"]
             lignes += [f"  · {a}" for a in ecartees]
         if outils := demande.get("outils_appeles"):
             lignes += ["", "OUTILS APPELÉS : " + ", ".join(outils)]
@@ -204,7 +204,7 @@ def rendre_graphe(rapport: Rapport, thread_id: str, chemin_db: str) -> str:
     corps = rendre(rapport)
     entete = []
     if rapport.statut == "rejete_par_humain":
-        entete = ["REFUSÉ PAR L'HUMAIN — rien n'est livré", "", f"  {rapport.message}", ""]
+        entete = ["REFUSÉ PAR L'HUMAIN : rien n'est livré", "", f"  {rapport.message}", ""]
     elif rapport.statut == "complet":
         entete = ["APPROUVÉ PAR L'HUMAIN", ""]
     return "\n".join([*entete, corps, "", f"THREAD : {thread_id}"]).strip()
@@ -222,7 +222,7 @@ def rendre_purge(bilan: dict) -> str:
         quand = (p["derniere_activite"] or "date inconnue")[:16]
         lignes.append(f"  · {p['thread_id']}  dernière activité {quand}  ({etat})")
     lignes.append(
-        f"FICHIER : {bilan['fichier']} — {bilan['octets_avant']} → {bilan['octets_apres']} octets"
+        f"FICHIER : {bilan['fichier']} ({bilan['octets_avant']} → {bilan['octets_apres']} octets)"
     )
     return "\n".join(lignes)
 

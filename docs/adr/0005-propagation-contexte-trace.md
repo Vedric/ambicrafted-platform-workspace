@@ -104,7 +104,7 @@ causes, neither of which is a propagation defect:
    will remain a leaf in the unified trace.
 2. **The `MCP send …` spans of the `mcp` SDK 2.1.0.** Found during
    verification: the SDK emits its own spans (scope `mcp-python-sdk`, service
-   `sre-agent`) — `initialize`, `tools/list`, one `tools/call` per tool. They
+   `sre-agent`): `initialize`, `tools/list`, one `tools/call` per tool. They
    are **roots**, one trace each, because the MCP client runs in a thread with
    its own event loop (`outils.py`) where the context of the `tool.*` span is
    not carried. The SDK does inject a `traceparent` into `_meta` (SEP-414),
@@ -136,7 +136,7 @@ which was impossible before. Result, over the five calls of the two runs:
 | `gen_ai.request.model` | **the alias** (`smart`, `fast`, `local`) | **the provider model** | **no** |
 
 The conflict of meaning reduces to one key, `gen_ai.request.model`. The other
-four carry the same value on both sides — which creates a different problem:
+four carry the same value on both sides, which creates a different problem:
 duplication.
 
 **Made worse for aggregates.** A sum per trace with no service filter counts

@@ -1,7 +1,7 @@
 # MCP server: runbooks
 
 Read-only access to the runbook corpus, exposed over MCP. Four tools, one
-resource, one prompt. Nothing here writes anything, anywhere — which is what
+resource, one prompt. Nothing here writes anything, anywhere, which is what
 makes it usable by an agent that must not be able to change production.
 
 This server is the agent's **only** tool provider. Its read-only nature is
@@ -25,8 +25,8 @@ regex is the only reliable one.
 
 Also exposed:
 
-- **Resource** `runbook://index` — the inventory, injectable as context.
-- **Prompt** `diagnostic(symptome)` — a guided diagnostic template that ends
+- **Resource** `runbook://index`: the inventory, injectable as context.
+- **Prompt** `diagnostic(symptome)`: a guided diagnostic template that ends
   with "propose no remediation without citing the runbook that grounds it, or
   saying clearly that it is undocumented".
 
@@ -66,7 +66,7 @@ correct course and stay auditable.
 
 The RAG import is **guarded**. `list_runbooks`, `read_runbook` and
 `search_runbooks` depend only on the file system and must keep working when
-the vector stack is absent or broken — a missing dependency must never stop
+the vector stack is absent or broken: a missing dependency must never stop
 the server from starting.
 
 When `semantic_search` cannot work, it names the cause, gives the fixing
@@ -93,7 +93,7 @@ uv run --directory mcp-servers/runbooks indexer.py             # embed and write
 
 **Chunking is by markdown section, never by character count.** This is the
 structuring decision, not an implementation detail. A fixed-size split cuts
-through a numbered procedure and returns step 2 without step 1 — and during
+through a numbered procedure and returns step 2 without step 1, and during
 an incident, a fragment of a procedure is more dangerous than no result,
 because it looks complete. Headings inside fenced code blocks are ignored: a
 shell comment is not a heading.
@@ -108,7 +108,7 @@ when embedding and when displaying.
 search: `search_document: ` when indexing, `search_query: ` when querying.
 Omitting them measurably degrades recall on rephrasing.
 
-**Embeddings go through the gateway, never straight to Ollama** — alias
+**Embeddings go through the gateway, never straight to Ollama**: alias
 `local-embed`, key `CONFIDENTIAL_KEY`, not the master key. A direct call
 would bypass the routing, the spend tracking and the compartmentalisation of
 ADR 0001. The consequence that matters: **the search query does not leave the
@@ -119,7 +119,7 @@ deterministic (UUIDv5 over `fichier:ligne:chemin_titres`). Recreation removes
 orphan fragments left by a deleted or renamed section, which plain upserts
 would keep; stable ids make two runs comparable.
 
-**Two checks that fail loudly.** The embedding dimension must be 768 — if it
+**Two checks that fail loudly.** The embedding dimension must be 768; if it
 is not, the `local-embed` alias no longer points at nomic-embed-text, and the
 run stops rather than building a subtly worse index. And any fragment over
 6,000 characters is flagged, because nomic-embed-text's window is 2,048
@@ -133,7 +133,7 @@ Current corpus: 2 runbooks → 7 fragments, longest 295 characters.
 |---|---|---|
 | `RUNBOOK_DIR` | `<repo>/runbooks` | corpus directory; every access is confined to it |
 | `LITELLM_BASE_URL` | `http://localhost:4000/v1` | the gateway |
-| `CONFIDENTIAL_KEY` | — | virtual key restricted to `local` / `local-embed` |
+| `CONFIDENTIAL_KEY` | none | virtual key restricted to `local` / `local-embed` |
 | `QDRANT_URL` | `http://127.0.0.1:6333` | vector store |
 | `QDRANT_COLLECTION` | `runbooks` | collection name |
 
@@ -160,7 +160,7 @@ agent's own output.
 It is also registered in `.mcp.json` at the repository root, so Claude Code
 can use the same four tools directly.
 
-**Started by file path, not by a console script — and deliberately so.**
+**Started by file path, not by a console script, and deliberately so.**
 `pyproject.toml` declares no `[project.scripts]` and sets `package = false`:
 `server.py` and `indexer.py` are scripts, and this component is never
 distributed as a wheel. A console script could only start the server at the

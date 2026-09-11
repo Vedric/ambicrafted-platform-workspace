@@ -7,7 +7,7 @@ and sometimes by a machine: it needs a stable shape.
 The `runbook_source` field is nullable on purpose. A model forced to give
 a source invents one. A model allowed to declare it has none supplies the
 most useful piece of the report: "I do not know where I got this from".
-The code then acts on that declaration — see `appliquer_garde_source` —
+The code then acts on that declaration (see `appliquer_garde_source`)
 instead of trusting the prose.
 """
 

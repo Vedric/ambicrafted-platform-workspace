@@ -36,7 +36,7 @@ both at embedding time and at retrieval time.
 Exclusively through the gateway (`/v1/embeddings`, alias `local-embed`),
 never directly to Ollama: otherwise the routing, the tracking and the
 compartmentalisation of ADR 0001 are bypassed. The key used is
-`CONFIDENTIAL_KEY` (virtual key `confidential-only`), not the master key —
+`CONFIDENTIAL_KEY` (virtual key `confidential-only`), not the master key:
 least privilege, and consistency with rule 2.
 The task prefixes of nomic-embed-text are applied
 (`search_document:` when indexing, `search_query:` when querying): the model
