@@ -85,7 +85,7 @@ describe("spoken text conversion", () => {
     );
     expect(texte).toContain("Bonjour");
     expect(texte).toContain("Équipe : guide");
-    expect(texte).toContain("Un exemple de code est disponible à l’écran.");
+    expect(texte).toContain("A code example is available on screen.");
     expect(texte).not.toContain("private.invalid");
     expect(texte).not.toContain("rm impossible");
     expect(texteOral("é".repeat(2500))).toHaveLength(2000);
@@ -97,13 +97,17 @@ describe("private assistant conversation", () => {
   it("keeps automatic playback off and sends an explicit local text message", async () => {
     afficher();
     expect(
-      screen.getByLabelText("Lire les réponses automatiquement"),
+      screen.getByRole("heading", { name: "Voice assistant" }),
+    ).toBeVisible();
+    expect(screen.getByText("French female voice")).toBeVisible();
+    expect(
+      screen.getByLabelText("Read replies automatically"),
     ).not.toBeChecked();
     await userEvent.type(
-      screen.getByLabelText("Votre message"),
+      screen.getByLabelText("Your message"),
       "Comment lancer une analyse ?",
     );
-    await userEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
     expect(await screen.findByText("Je vous accompagne.")).toBeVisible();
     expect(mocks.api).toHaveBeenCalledWith(
       "/assistant/dialogue",
@@ -120,19 +124,19 @@ describe("private assistant conversation", () => {
   it("restores the draft when the local model request fails", async () => {
     mocks.api.mockImplementation((route: string) =>
       route === "/assistant/dialogue"
-        ? Promise.reject(new Error("Modèle local indisponible."))
+        ? Promise.reject(new Error("Local assistant unavailable."))
         : Promise.resolve({ pret: true }),
     );
     afficher();
     await userEvent.type(
-      screen.getByLabelText("Votre message"),
+      screen.getByLabelText("Your message"),
       "Mon contexte à conserver",
     );
-    await userEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Modèle local indisponible.",
+      "Local assistant unavailable.",
     );
-    expect(screen.getByLabelText("Votre message")).toHaveValue(
+    expect(screen.getByLabelText("Your message")).toHaveValue(
       "Mon contexte à conserver",
     );
   });
@@ -150,13 +154,13 @@ describe("private assistant conversation", () => {
     );
     afficher();
     await userEvent.type(
-      screen.getByLabelText("Votre message"),
+      screen.getByLabelText("Your message"),
       "Contexte conservé",
     );
-    await userEvent.click(screen.getByRole("button", { name: "Envoyer" }));
-    await userEvent.click(screen.getByRole("button", { name: "Arrêter" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await userEvent.click(screen.getByRole("button", { name: "Stop" }));
     expect(signal?.aborted).toBe(true);
-    expect(screen.getByLabelText("Votre message")).toHaveValue(
+    expect(screen.getByLabelText("Your message")).toHaveValue(
       "Contexte conservé",
     );
   });
@@ -164,30 +168,29 @@ describe("private assistant conversation", () => {
   it("transcribes the microphone into an editable draft without sending or approving it", async () => {
     afficher();
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Dicter un message" }),
-      ).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Record" })).toBeEnabled(),
     );
+    await userEvent.click(screen.getByRole("button", { name: "Record" }));
     await userEvent.click(
-      screen.getByRole("button", { name: "Dicter un message" }),
-    );
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Arrêter l’enregistrement" }),
+      await screen.findByRole("button", { name: "Stop recording" }),
     );
     await waitFor(() =>
-      expect(screen.getByLabelText("Votre message")).toHaveValue(
+      expect(screen.getByLabelText("Your message")).toHaveValue(
         "Une alerte à vérifier.",
       ),
     );
     expect(piste.stop).toHaveBeenCalled();
+    expect(mocks.notifier).toHaveBeenCalledWith(
+      "Transcript ready. Review the text, then select Send.",
+    );
     expect(
       mocks.api.mock.calls.some(([route]) => route === "/assistant/dialogue"),
     ).toBe(false);
     await userEvent.type(
-      screen.getByLabelText("Votre message"),
+      screen.getByLabelText("Your message"),
       " Texte corrigé.",
     );
-    expect(screen.getByLabelText("Votre message")).toHaveValue(
+    expect(screen.getByLabelText("Your message")).toHaveValue(
       "Une alerte à vérifier. Texte corrigé.",
     );
   });
@@ -207,13 +210,9 @@ describe("private assistant conversation", () => {
     });
     const vue = afficher();
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Dicter un message" }),
-      ).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Record" })).toBeEnabled(),
     );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Dicter un message" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Record" }));
     vue.unmount();
     autoriser(stream);
     await waitFor(() => expect(piste.stop).toHaveBeenCalled());
@@ -228,20 +227,16 @@ describe("private assistant conversation", () => {
       .mockRejectedValue(new DOMException("Denied", "NotAllowedError"));
     afficher();
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Dicter un message" }),
-      ).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Record" })).toBeEnabled(),
     );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Dicter un message" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Record" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "L’accès au microphone est refusé",
+      "Microphone access was denied",
     );
-    expect(screen.getByLabelText("Votre message")).toBeEnabled();
+    expect(screen.getByLabelText("Your message")).toBeEnabled();
   });
 
-  it("releases the generated audio URL and stops playback on unmount", async () => {
+  it("stops playback explicitly and releases audio resources when leaving", async () => {
     const pause = vi.fn(),
       revocation = vi.fn();
     class UrlTest extends URL {
@@ -260,14 +255,23 @@ describe("private assistant conversation", () => {
     vi.stubGlobal("URL", UrlTest);
     vi.stubGlobal("Audio", AudioTest);
     const vue = afficher();
-    await userEvent.type(screen.getByLabelText("Votre message"), "Bonjour");
-    await userEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+    await userEvent.type(screen.getByLabelText("Your message"), "Bonjour");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
     await userEvent.click(
-      await screen.findByRole("button", { name: "Écouter la réponse" }),
+      await screen.findByRole("button", { name: "Listen" }),
     );
-    await screen.findByText("L’assistante vous parle…");
+    await screen.findByText("Speaking…");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Stop playback" }),
+    );
+    expect(screen.getByText("Ready when you are")).toBeVisible();
+    expect(pause).toHaveBeenCalledTimes(1);
+    expect(revocation).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "Listen" }));
+    await screen.findByText("Speaking…");
     vue.unmount();
-    expect(pause).toHaveBeenCalled();
+    expect(pause).toHaveBeenCalledTimes(2);
+    expect(revocation).toHaveBeenCalledTimes(2);
     expect(revocation).toHaveBeenCalledWith("blob:fixture");
   });
 });

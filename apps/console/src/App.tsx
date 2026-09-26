@@ -8,7 +8,12 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "motion/react";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  MotionConfig,
+  motion,
+} from "motion/react";
 import {
   Activity,
   ArrowRight,
@@ -26,6 +31,8 @@ import {
   LogOut,
   Menu,
   Moon,
+  Pause,
+  Play,
   Plus,
   Search,
   Settings2,
@@ -48,6 +55,8 @@ import {
   Vide,
   Modal,
   Orbit,
+  MotionPreference,
+  useReducedMotionPreference,
 } from "./ui";
 import { VueEnsemble } from "./pages/vue-ensemble";
 import { Analyses, NouvelleAnalyse, DetailAnalyse } from "./pages/analyses";
@@ -73,28 +82,28 @@ export {
 
 const navigation = [
   {
-    titre: "ESPACE DE TRAVAIL",
+    titre: "WORKSPACE",
     liens: [
-      { chemin: "/", nom: "Vue d’ensemble", icone: LayoutDashboard },
-      { chemin: "/assistant", nom: "Assistant vocal", icone: AudioLines },
+      { chemin: "/", nom: "Overview", icone: LayoutDashboard },
+      { chemin: "/assistant", nom: "Voice assistant", icone: AudioLines },
       { chemin: "/analyses", nom: "Analyses", icone: Workflow },
-      { chemin: "/approbations", nom: "Approbations", icone: ShieldCheck },
+      { chemin: "/approbations", nom: "Approvals", icone: ShieldCheck },
     ],
   },
   {
-    titre: "CONNAISSANCES",
+    titre: "KNOWLEDGE",
     liens: [
-      { chemin: "/runbooks", nom: "Bibliothèque", icone: BookOpen },
-      { chemin: "/recherche", nom: "Recherche", icone: Search },
+      { chemin: "/runbooks", nom: "Runbooks", icone: BookOpen },
+      { chemin: "/recherche", nom: "Search", icone: Search },
     ],
   },
   {
-    titre: "PLATEFORME",
+    titre: "PLATFORM",
     liens: [
-      { chemin: "/agents", nom: "Agents & outils", icone: Bot },
-      { chemin: "/sante", nom: "Santé & modèles", icone: Activity },
-      { chemin: "/observabilite", nom: "Observabilité", icone: Gauge },
-      { chemin: "/operations", nom: "Opérations", icone: Wrench },
+      { chemin: "/agents", nom: "Agents & tools", icone: Bot },
+      { chemin: "/sante", nom: "System health", icone: Activity },
+      { chemin: "/observabilite", nom: "Observability", icone: Gauge },
+      { chemin: "/operations", nom: "Operations", icone: Wrench },
     ],
   },
 ];
@@ -125,6 +134,26 @@ export default function App() {
   const [theme, setTheme] = useState(
     () => localStorage.getItem("ambicrafted-theme") || "dark",
   );
+  const [animations, setAnimations] = useState(
+    () => localStorage.getItem("ambicrafted-motion") !== "paused",
+  );
+  const reduced = useReducedMotionPreference();
+  const motionEnabled = animations && !reduced;
+  useEffect(() => {
+    const value = animations ? "enabled" : "paused";
+    document.documentElement.dataset.motion = value;
+    localStorage.setItem("ambicrafted-motion", value);
+  }, [animations]);
+  useEffect(() => {
+    const update = () => {
+      document.documentElement.dataset.visible = document.hidden
+        ? "hidden"
+        : "visible";
+    };
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
   const session = useQuery({
     queryKey: ["session"],
     queryFn: () => api<Session>("/auth"),
@@ -168,57 +197,89 @@ export default function App() {
   const notifier = (message: string, erreur = false) =>
     setToast({ message, erreur });
   return (
-    <ToastContext.Provider value={notifier}>
-      {session.isPending ? (
-        <Chargement />
-      ) : session.isError ? (
-        <main className="fatal">
-          <Logo />
-          <Erreur
-            erreur={session.error}
-            recommencer={() => session.refetch()}
-          />
-        </main>
-      ) : session.data?.connecte ? (
-        <Cadre
-          theme={theme}
-          changerTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
-        />
-      ) : (
-        <AccueilPublic
-          motDePasse={session.data?.mot_de_passe || false}
-          erreur={ticketErreur}
-        />
-      )}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            role={toast.erreur ? "alert" : "status"}
-            className={"toast " + (toast.erreur ? "toast-error" : "")}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-          >
-            {toast.erreur ? <XCircle size={20} /> : <Check size={20} />}
-            <span>{toast.message}</span>
-            <button
-              aria-label="Fermer la notification"
-              onClick={() => setToast(null)}
-            >
-              <X size={16} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </ToastContext.Provider>
+    <MotionPreference.Provider value={animations}>
+      <MotionConfig reducedMotion={motionEnabled ? "never" : "always"}>
+        <ToastContext.Provider value={notifier}>
+          {session.isPending ? (
+            <Chargement />
+          ) : session.isError ? (
+            <main className="fatal">
+              <Logo />
+              <Erreur
+                erreur={session.error}
+                recommencer={() => session.refetch()}
+              />
+            </main>
+          ) : session.data?.connecte ? (
+            <Cadre
+              theme={theme}
+              changerTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
+              animations={animations}
+              motionEnabled={motionEnabled}
+              changerAnimations={() => setAnimations((value) => !value)}
+            />
+          ) : (
+            <AccueilPublic
+              motDePasse={session.data?.mot_de_passe || false}
+              erreur={ticketErreur}
+              animations={animations}
+              changerAnimations={() => setAnimations((value) => !value)}
+            />
+          )}
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                role={toast.erreur ? "alert" : "status"}
+                className={"toast " + (toast.erreur ? "toast-error" : "")}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+              >
+                {toast.erreur ? <XCircle size={20} /> : <Check size={20} />}
+                <span>{toast.message}</span>
+                <button
+                  aria-label="Dismiss notification"
+                  onClick={() => setToast(null)}
+                >
+                  <X size={16} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </ToastContext.Provider>
+      </MotionConfig>
+    </MotionPreference.Provider>
+  );
+}
+function AnimationControl({
+  enabled,
+  toggle,
+}: {
+  enabled: boolean;
+  toggle: () => void;
+}) {
+  const label = enabled ? "Pause animations" : "Enable animations";
+  return (
+    <button
+      className="icon-button motion-control"
+      onClick={toggle}
+      aria-label={label}
+      title={label}
+    >
+      {enabled ? <Pause size={16} /> : <Play size={16} />}
+    </button>
   );
 }
 function AccueilPublic({
   motDePasse,
   erreur,
+  animations,
+  changerAnimations,
 }: {
   motDePasse: boolean;
   erreur: Error | null;
+  animations: boolean;
+  changerAnimations: () => void;
 }) {
   const [mot, setMot] = useState("");
   const [instructions, setInstructions] = useState(false);
@@ -234,37 +295,40 @@ function AccueilPublic({
     <div className="landing">
       <header className="landing-header">
         <Logo />
-        <span className="private-label">
-          <LockKeyhole size={14} /> Espace privé · Local
-        </span>
+        <div className="landing-controls">
+          <span className="private-label">
+            <LockKeyhole size={14} /> PRIVATE WORKSPACE
+          </span>
+          <AnimationControl enabled={animations} toggle={changerAnimations} />
+        </div>
       </header>
       <main className="landing-main">
-        <div className="landing-copy">
+        <div className="landing-copy reveal-copy">
           <div className="eyebrow">
-            <span className="live-dot" /> L’INTELLIGENCE, SOUS VOTRE CONTRÔLE
+            <span className="live-dot" /> INTELLIGENCE. WITH INTENTION.
           </div>
           <h1>
-            Votre astreinte.
+            Your next move.
             <br />
             <span>
-              Une longueur
+              Already
               <br />
-              d’avance.
+              in focus.
             </span>
           </h1>
           <p className="landing-lead">
-            De l’alerte à la décision, un espace agentique qui relie vos
-            connaissances, vos outils et votre expertise.
+            Turn signals into understanding. A private agentic workspace that
+            connects your knowledge, your tools, and your next decision.
           </p>
           <div className="landing-tags">
             <span>
-              <ShieldCheck size={16} /> Données locales
+              <ShieldCheck size={16} /> Local by design
             </span>
             <span>
-              <GitBranch size={16} /> Décisions traçables
+              <GitBranch size={16} /> Evidence-led decisions
             </span>
             <span>
-              <AudioLines size={16} /> Dialogue vocal
+              <AudioLines size={16} /> Voice enabled
             </span>
           </div>
           {(erreur || connexion.error) && (
@@ -278,13 +342,13 @@ function AccueilPublic({
                   connexion.mutate();
                 }}
               >
-                <label htmlFor="connexion-privee">Retrouver votre espace</label>
+                <label htmlFor="connexion-privee">Welcome back</label>
                 <div className="login-row">
                   <input
                     id="connexion-privee"
                     type="password"
                     autoComplete="current-password"
-                    placeholder="Votre mot de passe"
+                    placeholder="Enter your password"
                     value={mot}
                     onChange={(e) => setMot(e.target.value)}
                     required
@@ -299,14 +363,14 @@ function AccueilPublic({
                     ) : (
                       <ArrowRight size={18} />
                     )}
-                    <span>Entrer</span>
+                    <span>Enter workspace</span>
                   </button>
                 </div>
               </form>
             ) : (
               <>
-                <strong>Bienvenue dans votre espace de travail.</strong>
-                <p>Ouvrez une session sécurisée depuis votre terminal.</p>
+                <strong>Your workspace, one command away.</strong>
+                <p>Open a secure session from your terminal.</p>
                 <div className="command-line">
                   <SquareTerminal size={18} />
                   <code>./plateforme ouvrir</code>
@@ -317,25 +381,50 @@ function AccueilPublic({
               className="text-button"
               onClick={() => setInstructions(!instructions)}
             >
-              Connexion depuis le terminal <ChevronDown size={14} />
+              Sign in from your terminal <ChevronDown size={14} />
             </button>
             {instructions && (
               <p className="hint">
-                Dans le dossier du projet, exécutez{" "}
-                <code>./plateforme ouvrir</code>. Un lien à usage unique ouvre
-                votre session. Pour configurer un mot de passe :{" "}
-                <code>./plateforme mot-de-passe</code>.
+                From the project directory, run <code>./plateforme ouvrir</code>
+                . A single-use link opens your session. To set up a password,
+                run <code>./plateforme mot-de-passe</code>.
               </p>
             )}
           </div>
         </div>
         <Orbit />
       </main>
+      <section className="landing-principles" aria-label="Workspace principles">
+        <div>
+          <span>01</span>
+          <div>
+            <strong>Connected thinking.</strong>
+            <p>Knowledge and tools, in one considered workspace.</p>
+          </div>
+          <BookOpen size={21} />
+        </div>
+        <div>
+          <span>02</span>
+          <div>
+            <strong>Considered action.</strong>
+            <p>From an alert to a proposal you can actually review.</p>
+          </div>
+          <GitBranch size={21} />
+        </div>
+        <div>
+          <span>03</span>
+          <div>
+            <strong>Entirely your space.</strong>
+            <p>Local inference. A human at every decision.</p>
+          </div>
+          <ShieldCheck size={21} />
+        </div>
+      </section>
       <footer className="landing-footer">
         <span>
           AM B I C R A F T E D <b> / </b> MISSION CONTROL
         </span>
-        <span>Conçu pour décider. Avec vous.</span>
+        <span>Built for clarity. Designed for you.</span>
       </footer>
     </div>
   );
@@ -343,9 +432,15 @@ function AccueilPublic({
 function Cadre({
   theme,
   changerTheme,
+  animations,
+  changerAnimations,
+  motionEnabled,
 }: {
   theme: string;
   changerTheme: () => void;
+  animations: boolean;
+  changerAnimations: () => void;
+  motionEnabled: boolean;
 }) {
   const [mobile, setMobile] = useState(false),
     [palette, setPalette] = useState(false);
@@ -355,10 +450,10 @@ function Cadre({
   const titre =
     liens.find((l) => l.chemin === lieu.pathname)?.nom ||
     (lieu.pathname.startsWith("/analyses/")
-      ? "Détail de l’analyse"
+      ? "Analysis details"
       : lieu.pathname.startsWith("/runbooks/")
         ? "Runbook"
-        : "Paramètres");
+        : "Settings & help");
   useEffect(() => {
     setMobile(false);
     document.title = titre + " · Ambicrafted";
@@ -385,18 +480,18 @@ function Cadre({
   };
   const sidebar = (
     <>
-      <Link className="brand-link" to="/" aria-label="Ambicrafted, accueil">
+      <Link className="brand-link" to="/" aria-label="Ambicrafted home">
         <Logo />
       </Link>
       <div className="workspace-switch">
         <span className="workspace-avatar">A</span>
         <div>
-          <strong>Mon espace privé</strong>
-          <small>Poste local</small>
+          <strong>Personal workspace</strong>
+          <small>Private environment</small>
         </div>
         <LockKeyhole size={15} />
       </div>
-      <nav aria-label="Navigation principale">
+      <nav aria-label="Main navigation">
         {navigation.map((g) => (
           <div className="nav-group" key={g.titre}>
             <div className="nav-caption">{g.titre}</div>
@@ -409,10 +504,26 @@ function Cadre({
                   "nav-link " + (isActive ? "active" : "")
                 }
               >
-                <l.icone size={18} />
-                <span>{l.nom}</span>
-                {l.chemin === "/assistant" && (
-                  <span className="nav-new">VOIX</span>
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.span
+                        className="nav-active-plate"
+                        layoutId="active-navigation"
+                        transition={{
+                          type: "spring",
+                          stiffness: 440,
+                          damping: 38,
+                        }}
+                        aria-hidden="true"
+                      />
+                    )}
+                    <l.icone size={18} />
+                    <span>{l.nom}</span>
+                    {l.chemin === "/assistant" && (
+                      <span className="nav-new">VOICE</span>
+                    )}
+                  </>
                 )}
               </NavLink>
             ))}
@@ -422,21 +533,21 @@ function Cadre({
       <div className="sidebar-bottom">
         <div className="local-card">
           <span className="live-dot" />
-          <strong>Votre IA reste ici.</strong>
-          <p>Inférence locale. Vous gardez la main.</p>
+          <strong>Your intelligence. Your space.</strong>
+          <p>Local inference. Always in your control.</p>
         </div>
         <NavLink className="nav-link" to="/parametres">
-          <Settings2 size={18} /> Paramètres & aide
+          <Settings2 size={18} /> Settings & help
         </NavLink>
         <div className="operator">
-          <div className="operator-avatar">VO</div>
+          <div className="operator-avatar">YOU</div>
           <div>
-            <strong>Vous</strong>
-            <small>Opérateur local</small>
+            <strong>You</strong>
+            <small>Local operator</small>
           </div>
           <button
             className="icon-button"
-            aria-label="Déconnexion"
+            aria-label="Sign out"
             onClick={sortir}
           >
             <LogOut size={17} />
@@ -448,12 +559,16 @@ function Cadre({
   return (
     <div className="app-shell">
       <a className="skip-link" href="#contenu">
-        Aller au contenu
+        Skip to content
       </a>
-      <aside className="sidebar">{sidebar}</aside>
+      <aside className="sidebar">
+        <LayoutGroup id="desktop-navigation">{sidebar}</LayoutGroup>
+      </aside>
       {mobile && (
         <Modal titre="Navigation" fermer={() => setMobile(false)}>
-          <div className="mobile-nav">{sidebar}</div>
+          <div className="mobile-nav">
+            <LayoutGroup id="mobile-navigation">{sidebar}</LayoutGroup>
+          </div>
         </Modal>
       )}
       <div className="main-shell">
@@ -461,35 +576,36 @@ function Cadre({
           <div className="breadcrumb">
             <button
               className="icon-button mobile-menu"
-              aria-label="Ouvrir le menu"
+              aria-label="Open navigation"
               onClick={() => setMobile(true)}
             >
               <Menu size={22} />
             </button>
-            <span>Espace de travail</span>
+            <span>Workspace</span>
             <ChevronRight size={14} />
             <strong>{titre}</strong>
           </div>
           <div className="topbar-actions">
             <button
               className="command-button"
-              aria-label="Accès rapide"
+              aria-label="Open command menu"
               onClick={() => setPalette(true)}
             >
               <Search size={16} />
-              <span>Accès rapide</span>
+              <span>Quick search</span>
               <kbd>⌘ K</kbd>
             </button>
             <span className="private-pill">
-              <LockKeyhole size={13} /> PRIVÉ
+              <LockKeyhole size={13} /> PRIVATE
             </span>
+            <AnimationControl enabled={animations} toggle={changerAnimations} />
             <button
               className="icon-button"
               onClick={changerTheme}
               aria-label={
                 theme === "dark"
-                  ? "Activer le thème clair"
-                  : "Activer le thème sombre"
+                  ? "Switch to light theme"
+                  : "Switch to dark theme"
               }
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -498,10 +614,14 @@ function Cadre({
         </header>
         <main id="contenu" className="content" tabIndex={-1}>
           <motion.div
+            className="page-scene"
             key={lieu.pathname}
-            initial={{ opacity: 0, y: 8 }}
+            initial={motionEnabled ? { opacity: 0, y: 14 } : false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.22 }}
+            transition={{
+              duration: motionEnabled ? 0.42 : 0,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
             <Routes>
               <Route path="/" element={<VueEnsemble />} />
@@ -522,11 +642,11 @@ function Cadre({
                 path="*"
                 element={
                   <Vide
-                    titre="Cette page n’existe pas."
-                    texte="Retrouvez votre espace de travail."
+                    titre="This page is off the map."
+                    texte="Let’s get you back to your workspace."
                   >
                     <Link className="btn primary" to="/">
-                      Retour à l’accueil
+                      Back to overview
                     </Link>
                   </Vide>
                 }
@@ -535,10 +655,10 @@ function Cadre({
           </motion.div>
           <footer className="app-footer">
             <span>
-              Ambicrafted <b> / </b> Intelligence locale, décision humaine.
+              Ambicrafted <b> / </b> Local intelligence. Human decisions.
             </span>
             <Link to="/parametres">
-              Documentation CLI <ArrowRight size={12} />
+              CLI reference <ArrowRight size={12} />
             </Link>
           </footer>
         </main>
@@ -551,13 +671,13 @@ function Palette({ fermer }: { fermer: () => void }) {
   const [q, setQ] = useState("");
   const navigate = useNavigate();
   return (
-    <Modal titre="Aller à…" fermer={fermer}>
+    <Modal titre="Go anywhere" fermer={fermer}>
       <div className="search-input">
         <Search size={18} />
         <input
-          aria-label="Chercher une page"
+          aria-label="Search pages"
           autoFocus
-          placeholder="Une page, un outil, une action…"
+          placeholder="Find a page, a tool, your next move…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -567,12 +687,12 @@ function Palette({ fermer }: { fermer: () => void }) {
           ...liens,
           {
             chemin: "/analyses/nouvelle",
-            nom: "Nouvelle analyse",
+            nom: "New analysis",
             icone: Plus,
           },
         ]
           .filter((l) =>
-            l.nom.toLocaleLowerCase("fr").includes(q.toLocaleLowerCase("fr")),
+            l.nom.toLocaleLowerCase("en").includes(q.toLocaleLowerCase("en")),
           )
           .map((l) => (
             <button
@@ -588,9 +708,7 @@ function Palette({ fermer }: { fermer: () => void }) {
             </button>
           ))}
       </div>
-      <p className="hint">
-        Tab pour parcourir · Entrée pour ouvrir · Échap pour fermer
-      </p>
+      <p className="hint">Tab to browse · Enter to open · Esc to close</p>
     </Modal>
   );
 }

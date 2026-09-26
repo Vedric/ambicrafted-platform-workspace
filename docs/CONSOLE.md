@@ -7,6 +7,22 @@ an actionable diagnosis. It does not execute proposed remediation commands.
 This deployment supports one trusted workstation operator. Remote publication,
 multiple tenants and high availability require a separate design.
 
+## Interface and motion
+
+The interface, status labels, accessibility labels and error messages are in
+English. Runbooks, alert titles, generated diagnoses and voice transcripts retain
+their original content and language. CLI commands and API identifiers remain
+stable. The installed offline voice is labelled **French female voice**.
+
+The welcome screen and overview use a native SVG/CSS orbital scene. Ambient
+motion uses transforms and opacity; pointer parallax applies only to a mouse.
+Offscreen orbital scenes and background tabs pause their CSS animations.
+**Pause animations** is available on the welcome screen and in the workspace
+top bar. Its preference persists in this browser, alongside the light/dark theme.
+The operating system's reduced-motion preference also disables decorative
+motion. Navigation remains available by keyboard, with a command menu on
+`Ctrl+K` / `Cmd+K`, a focus-trapped mobile menu and a skip-to-content link.
+
 ## Install and start
 
 Run from the checkout root, with the pinned Node/npm versions declared in

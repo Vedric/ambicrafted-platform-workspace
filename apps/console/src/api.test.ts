@@ -4,15 +4,16 @@ import {
   apercu,
   definirCsrf,
   ErreurAPI,
+  date,
   type Diagnostic,
   type Rapport,
 } from "./api";
 
 const diagnostic: Diagnostic = {
-  cause_probable: "Connexions saturées",
+  cause_probable: "Connection pool exhausted",
   confiance: "moyenne",
   runbook_source: "postgres.md",
-  actions_proposees: ["Vérifier le nombre de connexions."],
+  actions_proposees: ["Check the connection count."],
   elements_manquants: [],
 };
 
@@ -44,7 +45,7 @@ describe("authenticated API contract", () => {
       const fetch = vi.fn().mockResolvedValue(new Response("{}"));
       vi.stubGlobal("fetch", fetch);
       definirCsrf("synthetic-csrf-value");
-      await api("/analyses", method, { titre: "Synthétique" });
+      await api("/analyses", method, { titre: "Synthetic" });
       expect(fetch).toHaveBeenCalledWith(
         "/api/analyses",
         expect.objectContaining({
@@ -54,7 +55,7 @@ describe("authenticated API contract", () => {
             "Content-Type": "application/json",
             "X-CSRF-Token": "synthetic-csrf-value",
           },
-          body: JSON.stringify({ titre: "Synthétique" }),
+          body: JSON.stringify({ titre: "Synthetic" }),
         }),
       );
     },
@@ -86,7 +87,7 @@ describe("authenticated API contract", () => {
     try {
       await expect(api("/analyses")).rejects.toMatchObject({
         status: 401,
-        message: "Session expirée.",
+        message: "Your session has expired. Sign in again.",
       });
       expect(expiree).toHaveBeenCalledOnce();
     } finally {
@@ -111,6 +112,43 @@ describe("authenticated API contract", () => {
     }
   });
 
+  it.each([
+    {
+      status: 409,
+      detail:
+        "Ce runbook a changé. Recharger sa dernière version avant d'enregistrer.",
+      message:
+        "This runbook has changed. Reload the latest version before saving.",
+    },
+    {
+      status: 403,
+      detail: "Validation de la session requise. Actualiser la page.",
+      message: "Refresh the page to validate your session.",
+    },
+    {
+      status: 503,
+      detail: "Unrecognized diagnostic containing synthetic-private-data",
+      message:
+        "This service is unavailable. Check system health and try again.",
+    },
+  ])(
+    "renders a safe English error for status $status",
+    async ({ status, detail, message }) => {
+      vi.stubGlobal(
+        "fetch",
+        vi
+          .fn()
+          .mockResolvedValue(
+            new Response(JSON.stringify({ detail }), { status }),
+          ),
+      );
+      await expect(api("/runbooks/postgres.md")).rejects.toMatchObject({
+        status,
+        message,
+      });
+    },
+  );
+
   it("replaces structured validation details and malformed error bodies with a safe message", async () => {
     const fetch = vi
       .fn()
@@ -124,9 +162,12 @@ describe("authenticated API contract", () => {
         new Response("<html>proxy error</html>", { status: 503 }),
       );
     vi.stubGlobal("fetch", fetch);
-    for (let i = 0; i < 2; i++) {
+    for (const message of [
+      "Check your input and try again.",
+      "This service is unavailable. Check system health and try again.",
+    ]) {
       await expect(api("/analyses")).rejects.toMatchObject({
-        message: "Requête refusée. Vérifier les données saisies.",
+        message,
       });
     }
   });
@@ -135,6 +176,13 @@ describe("authenticated API contract", () => {
     const erreur = new DOMException("Aborted", "AbortError");
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(erreur));
     await expect(api("/analyses")).rejects.toBe(erreur);
+  });
+});
+
+describe("English display locale", () => {
+  it("formats valid dates in English and keeps invalid dates inert", () => {
+    expect(date("2026-09-26T15:20:00Z")).toContain("Sep 26, 2026");
+    expect(date("not a date")).toBe("—");
   });
 });
 

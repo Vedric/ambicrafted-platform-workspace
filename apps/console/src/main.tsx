@@ -6,6 +6,7 @@ import { MotionConfig } from "motion/react";
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/jetbrains-mono";
 import "./style.css";
+import "./premium.css";
 import App from "./App";
 
 const client = new QueryClient({
@@ -24,9 +25,9 @@ class FrontiereErreur extends React.Component<
   render() {
     return this.state.erreur ? (
       <main className="fatal">
-        <h1>L’interface a rencontré une erreur.</h1>
-        <p>Vos analyses restent conservées sur ce poste.</p>
-        <button onClick={() => location.reload()}>Recharger l’interface</button>
+        <h1>Something interrupted your workspace.</h1>
+        <p>Your analyses are still safely stored on this device.</p>
+        <button onClick={() => location.reload()}>Reload workspace</button>
       </main>
     ) : (
       this.props.children

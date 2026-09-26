@@ -5,12 +5,22 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, { Markdown } from "./App";
 
-vi.mock("./Assistant", () => ({ default: () => <div>Assistant local</div> }));
+vi.mock("./Assistant", () => ({ default: () => <div>Local assistant</div> }));
 
 let clients: QueryClient[] = [];
 beforeEach(() => {
   localStorage.clear();
   window.history.replaceState(null, "", "/");
+  // jsdom has no viewport intersection API; actual animation behavior is
+  // exercised in Playwright with the real browser implementation.
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
 });
 afterEach(() => {
   cleanup();
@@ -49,14 +59,12 @@ describe("private landing and failure states", () => {
     );
     renderApp();
     expect(
-      await screen.findByRole("heading", { name: /Votre astreinte/ }),
+      await screen.findByRole("heading", { name: /Your next move/ }),
     ).toBeVisible();
     expect(screen.getByText("./plateforme ouvrir")).toBeVisible();
-    expect(
-      screen.queryByLabelText("Retrouver votre espace"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Welcome back")).not.toBeInTheDocument();
     await userEvent.click(
-      screen.getByRole("button", { name: /Connexion depuis le terminal/ }),
+      screen.getByRole("button", { name: /Sign in from your terminal/ }),
     );
     expect(screen.getByText("./plateforme mot-de-passe")).toBeVisible();
   });
@@ -79,19 +87,22 @@ describe("private landing and failure states", () => {
     );
     vi.stubGlobal("fetch", fetch);
     renderApp();
-    const champ = await screen.findByLabelText("Retrouver votre espace");
+    const champ = await screen.findByLabelText("Welcome back");
     expect(champ).toHaveAttribute("type", "password");
     expect(champ).toHaveAttribute("autocomplete", "current-password");
-    await userEvent.type(champ, "Saisie synthétique");
-    await userEvent.click(screen.getByRole("button", { name: "Entrer" }));
+    expect(champ).toHaveAttribute("placeholder", "Enter your password");
+    await userEvent.type(champ, "Synthetic input");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Enter workspace" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Connexion refusée.",
+      "Sign-in failed. Check your password and try again.",
     );
     expect(fetch).toHaveBeenCalledWith(
       "/api/auth/connexion",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ mot_de_passe: "Saisie synthétique" }),
+        body: JSON.stringify({ mot_de_passe: "Synthetic input" }),
       }),
     );
   });
@@ -99,7 +110,7 @@ describe("private landing and failure states", () => {
   it("shows a retryable offline state and recovers after service availability returns", async () => {
     const fetch = vi
       .fn()
-      .mockRejectedValueOnce(new TypeError("Réseau local indisponible."))
+      .mockRejectedValueOnce(new TypeError("Local service unavailable."))
       .mockResolvedValue(
         new Response(
           JSON.stringify({ connecte: false, mot_de_passe: false, csrf: null }),
@@ -108,11 +119,11 @@ describe("private landing and failure states", () => {
     vi.stubGlobal("fetch", fetch);
     renderApp();
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Réseau local indisponible.",
+      "The local API could not be reached. Check the connection and try again.",
     );
-    await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(
-      await screen.findByRole("heading", { name: /Votre astreinte/ }),
+      await screen.findByRole("heading", { name: /Your next move/ }),
     ).toBeVisible();
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
   });
@@ -135,11 +146,11 @@ describe("untrusted Markdown rendering", () => {
     const { container } = render(
       <Markdown
         texte={
-          "![Texte alternatif](https://outside.invalid/tracker.png)\n\n[Lien dangereux](javascript:alert%281%29)\n\n[Documentation](https://example.invalid/docs)"
+          "![Alternative text](https://outside.invalid/tracker.png)\n\n[Unsafe link](javascript:alert%281%29)\n\n[Documentation](https://example.invalid/docs)"
         }
       />,
     );
-    expect(screen.getByText("Texte alternatif")).toBeVisible();
+    expect(screen.getByText("Alternative text")).toBeVisible();
     expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
     const lien = screen.getByRole("link", { name: "Documentation" });
