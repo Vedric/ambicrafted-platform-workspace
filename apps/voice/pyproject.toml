@@ -15,7 +15,7 @@ dependencies = [
 voix-locale = "voix_locale.cli:main"
 
 [build-system]
-requires = ["uv_build==0.12.5"]
+requires = ["uv_build==0.12.18"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
