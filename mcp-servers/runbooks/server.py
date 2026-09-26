@@ -15,11 +15,14 @@ CONTRIBUTING.md.
 from __future__ import annotations
 
 import os
-import re
+import hashlib
+import json
+import contextlib
 import sys
 from pathlib import Path
 
 from mcp.server import MCPServer
+from fichiers import lire, noms, verifier_nom
 
 mcp = MCPServer("runbooks")
 
@@ -29,8 +32,12 @@ RACINE_DEPOT = Path(__file__).resolve().parents[2]
 RUNBOOK_DIR = Path(os.environ.get("RUNBOOK_DIR", RACINE_DEPOT / "runbooks")).resolve()
 MAX_RESULTATS = 50
 MAX_TAILLE = 200_000  # bytes, guardrail against context exhaustion
-MAX_K = 20            # ceiling on semantic fragments per call
-MAX_EXTRAIT = 4_000   # characters per returned fragment
+MAX_K = 20  # ceiling on semantic fragments per call
+MAX_EXTRAIT = 4_000  # characters per returned fragment
+MAX_REQUETE = 2_000
+MAX_CONTEXTE = 10
+MAX_LECTURE = 8_000
+SCORE_MINIMUM = 0.60
 
 # Guarded import: list_runbooks, read_runbook and search_runbooks must stay
 # usable even when the RAG part is absent or broken. A missing dependency
@@ -49,6 +56,8 @@ try:
         QDRANT_URL,
         ErreurPipeline,
         embarquer,
+        collecter,
+        empreinte,
     )
 
     _RAG_ERREUR = ""
@@ -63,8 +72,7 @@ _REPLI = (
 
 def _resoudre(nom: str) -> Path:
     """Resolve a file name, refusing any escape from the directory."""
-    if "/" in nom or "\\" in nom or nom.startswith("."):
-        raise ValueError("Nom de fichier invalide.")
+    verifier_nom(nom)
     chemin = (RUNBOOK_DIR / nom).resolve()
     if not chemin.is_relative_to(RUNBOOK_DIR):
         raise ValueError("Accès hors périmètre refusé.")
@@ -79,11 +87,17 @@ def list_runbooks() -> str:
         return f"Répertoire absent : {RUNBOOK_DIR}"
 
     lignes = []
-    for f in sorted(RUNBOOK_DIR.glob("*.md")):
-        texte = f.read_text(encoding="utf-8", errors="replace")
+    for nom in noms(RUNBOOK_DIR):
+        try:
+            texte = lire(RUNBOOK_DIR, nom)
+        except OSError, ValueError:
+            continue
         premiere = texte.splitlines()[:1]
-        titre = premiere[0].lstrip("# ").strip() if premiere else f.stem
-        lignes.append(f"{f.name} ({len(texte)} car.) : {titre}")
+        titre = premiere[0].lstrip("# ").strip()[:200] if premiere else nom
+        lignes.append(f"{nom} ({len(texte)} car.) : {titre}")
+        if sum(map(len, lignes)) > MAX_TAILLE:
+            lignes.append("[Limite atteinte]")
+            break
 
     return "\n".join(lignes) if lignes else "Aucun runbook."
 
@@ -91,23 +105,28 @@ def list_runbooks() -> str:
 @mcp.tool()
 def read_runbook(nom: str) -> str:
     # French on purpose: MCP publishes this as the tool description.
-    """Lit un runbook complet.
+    """Lit un runbook et renvoie fichier, texte, empreinte SHA-256 et troncature.
 
     Args:
         nom: nom du fichier seul, par exemple 'incident-p1-database.md'
     """
     try:
-        chemin = _resoudre(nom)
-    except ValueError as e:
-        return f"Refusé : {e}"
-
-    if not chemin.exists():
+        texte = lire(RUNBOOK_DIR, nom)
+    except FileNotFoundError:
         return f"Introuvable : {nom}. Utiliser list_runbooks pour voir les noms."
-
-    texte = chemin.read_text(encoding="utf-8", errors="replace")
-    if len(texte) > MAX_TAILLE:
-        return texte[:MAX_TAILLE] + f"\n\n[TRONQUÉ à {MAX_TAILLE} caractères]"
-    return texte
+    except ValueError, OSError:
+        return "Refusé : fichier inaccessible, non régulier, lien symbolique ou taille excessive."
+    tronque = len(texte) > MAX_LECTURE
+    texte = texte[:MAX_LECTURE]
+    return json.dumps(
+        {
+            "fichier": nom,
+            "texte": texte,
+            "tronque": tronque,
+            "sha256": hashlib.sha256(texte.encode()).hexdigest(),
+        },
+        ensure_ascii=False,
+    )
 
 
 @mcp.tool()
@@ -116,25 +135,37 @@ def search_runbooks(terme: str, contexte: int = 2) -> str:
     """Cherche un terme dans tous les runbooks.
 
     Args:
-        terme: chaîne ou expression régulière à chercher
+        terme: texte littéral à chercher, sans expression régulière
         contexte: nombre de lignes affichées avant et après chaque occurrence
     """
-    try:
-        motif = re.compile(terme, re.IGNORECASE)
-    except re.error as e:
-        return f"Expression invalide : {e}"
+    if not terme.strip() or len(terme) > MAX_REQUETE:
+        return "Recherche refusée : terme vide ou trop long."
+    if type(contexte) is not int or not 0 <= contexte <= MAX_CONTEXTE:
+        return f"Recherche refusée : contexte entre 0 et {MAX_CONTEXTE}."
+    motif = terme.casefold()
 
     resultats: list[str] = []
-    for f in sorted(RUNBOOK_DIR.glob("*.md")):
-        lignes = f.read_text(encoding="utf-8", errors="replace").splitlines()
+    for nom in noms(RUNBOOK_DIR):
+        try:
+            lignes = lire(RUNBOOK_DIR, nom).splitlines()
+        except OSError, ValueError:
+            continue
         for i, ligne in enumerate(lignes):
-            if motif.search(ligne):
+            if motif in ligne.casefold():
                 debut = max(0, i - contexte)
                 fin = min(len(lignes), i + contexte + 1)
-                extrait = "\n".join(f"  {lignes[j]}" for j in range(debut, fin))
-                resultats.append(f"--- {f.name}:{i+1} ---\n{extrait}")
-                if len(resultats) >= MAX_RESULTATS:
-                    return "\n\n".join(resultats) + "\n\n[Limite atteinte, affiner la recherche]"
+                extrait = "\n".join(f"  {lignes[j]}" for j in range(debut, fin))[
+                    :MAX_EXTRAIT
+                ]
+                resultats.append(f"--- {nom}:{i + 1} ---\n{extrait}")
+                if (
+                    len(resultats) >= MAX_RESULTATS
+                    or sum(map(len, resultats)) >= MAX_TAILLE
+                ):
+                    return (
+                        "\n\n".join(resultats)
+                        + "\n\n[Limite atteinte, affiner la recherche]"
+                    )
 
     return "\n\n".join(resultats) if resultats else f"Aucun résultat pour '{terme}'."
 
@@ -145,7 +176,7 @@ def semantic_search(requete: str, k: int = 5) -> str:
     """Cherche dans les runbooks par le sens, pas par les mots.
 
     Complémentaire de search_runbooks, les deux ne se remplacent pas :
-    - search_runbooks (regex) est imbattable sur un terme exact : code
+    - search_runbooks (littéral) retrouve un terme exact : code
       d'erreur, nom de service, chemin de fichier.
     - semantic_search retrouve le bon runbook quand la question le
       reformule, par exemple « redémarre en boucle » pour « crash-loop ».
@@ -159,6 +190,8 @@ def semantic_search(requete: str, k: int = 5) -> str:
     requete = requete.strip()
     if not requete:
         return "Requête vide. Fournir une question en langage naturel."
+    if len(requete) > MAX_REQUETE:
+        return "Requête trop longue. Réduire la question."
 
     if not isinstance(k, int) or k < 1:
         k = 5
@@ -176,11 +209,9 @@ def semantic_search(requete: str, k: int = 5) -> str:
     except ErreurPipeline as e:
         return f"Vectorisation de la requête impossible.\n{e}\n{_REPLI}"
     except Exception as e:  # noqa: BLE001 (degrade, never raise)
-        return (
-            f"Vectorisation de la requête impossible : {type(e).__name__} : {e}\n"
-            f"{_REPLI}"
-        )
+        return f"Vectorisation de la requête impossible : {type(e).__name__}.\n{_REPLI}"
 
+    client = None
     try:
         client = QdrantClient(url=QDRANT_URL, timeout=30.0)
         if not client.collection_exists(COLLECTION):
@@ -191,14 +222,22 @@ def semantic_search(requete: str, k: int = 5) -> str:
                 f"{_REPLI}"
             )
         points = client.query_points(
-            COLLECTION, query=vecteur, limit=k, with_payload=True
+            COLLECTION,
+            query=vecteur,
+            limit=k,
+            with_payload=True,
+            score_threshold=SCORE_MINIMUM,
         ).points
     except Exception as e:  # noqa: BLE001 (degrade, never raise)
         return (
-            f"Qdrant injoignable sur {QDRANT_URL} : {type(e).__name__} : {e}\n"
+            f"Qdrant indisponible : {type(e).__name__}.\n"
             "Corriger : cd ~/platform/workspace/gateway && docker compose up -d qdrant\n"
             f"{_REPLI}"
         )
+    finally:
+        if client is not None:
+            with contextlib.suppress(Exception):
+                client.close()
 
     if not points:
         return (
@@ -207,6 +246,12 @@ def semantic_search(requete: str, k: int = 5) -> str:
             "search_runbooks pour un terme exact."
         )
 
+    courant = empreinte(collecter(RUNBOOK_DIR))
+    if any((point.payload or {}).get("corpus_sha256") != courant for point in points):
+        return (
+            "Index périmé : réindexer le corpus avant la recherche sémantique. "
+            + _REPLI
+        )
     blocs: list[str] = []
     total = 0
     for rang, point in enumerate(points, start=1):

@@ -6,19 +6,10 @@ exactly the lines where the budget, the compartmentalisation and the
 handling of tool results are decided. Delegating them to a library means
 delegating the guardrails.
 
-Three steps, two data frontiers:
-
-  raw alert ──[ local, CONFIDENTIEL ]──> anonymised extraction
-                                                │
-                      ═══ frontier ═══          │  only this form
-                                                │  crosses the frontier
-               ──[ fast, DERIVE ]──> triage ────┤
-               ──[ smart, DERIVE ]──> tool loop ──> diagnosis
-
-The triage step uses the `fast` alias as intended, but on the extraction
-rather than on the alert: the compartmentalisation guardrail comes first,
-and there is no reason to pay in confidentiality for what can be obtained
-from derived data.
+Extraction, triage and reasoning all use the local alias and confidential
+classification. An extraction can retain identifying details; it never
+authorizes disclosure to an external model. Actions require a verified
+runbook read and a complete source paragraph before delivery.
 """
 
 from __future__ import annotations
@@ -46,12 +37,16 @@ from .outils import ClientRunbooks, ErreurOutil, executer_outil
 # The local model reasons before answering: the output budget has to cover
 # the reasoning AND the JSON, otherwise the response comes back truncated.
 MAX_TOKENS_LOCAL = 3_000
-MAX_TOKENS_TRI = 600
-MAX_TOKENS_RAISONNEMENT = 2_000
+MAX_TOKENS_TRI = 3_000
+MAX_TOKENS_RAISONNEMENT = 6_000
 
 
 def analyser(alerte: str) -> Rapport:
     """Analyse an alert and return a report. Never remediates."""
+    try:
+        config.valider(alerte)
+    except config.ConfigurationInvalide as e:
+        return Rapport(statut="erreur", message=str(e))
     budget = Budget(
         max_appels_outils=config.MAX_APPELS_OUTILS,
         max_cout_usd=config.MAX_COUT_USD,
@@ -72,9 +67,7 @@ def analyser(alerte: str) -> Rapport:
 
         try:
             rapport.extraction = _extraire(alerte, budget)
-            rapport.injections_signalees = list(
-                rapport.extraction.instructions_detectees
-            )
+            rapport.injections_signalees = list(rapport.extraction.instructions_detectees)
             if rapport.injections_signalees:
                 span.set_attribute("ambicrafted.prompt_injection.reported", True)
                 span.set_attribute(
@@ -92,7 +85,7 @@ def analyser(alerte: str) -> Rapport:
                 )
             rapport.outils_appeles = outils
 
-            diagnostic, ecartees = appliquer_garde_source(brut)
+            diagnostic, ecartees = appliquer_garde_source(brut, budget.sources_lues)
             rapport.diagnostic = diagnostic
             rapport.actions_ecartees_sans_source = ecartees
             rapport.statut = "complet"
@@ -109,15 +102,21 @@ def analyser(alerte: str) -> Rapport:
             span.set_attribute(tracage.ATTR_VERDICT, "budget_exhausted")
             span.set_status(Status(StatusCode.ERROR, str(e)))
 
-        except (FuiteConfidentielle, ErreurPasserelle, ErreurOutil, ValidationError) as e:
+        except (
+            FuiteConfidentielle,
+            ErreurPasserelle,
+            ErreurOutil,
+            config.ConfigurationInvalide,
+            ValidationError,
+        ) as e:
             rapport.statut = "erreur"
-            rapport.message = f"{type(e).__name__} : {e}"
+            rapport.message = message_erreur(e)
             span.set_attribute(tracage.ATTR_VERDICT, "error")
-            span.set_status(Status(StatusCode.ERROR, str(e)))
-            span.record_exception(e)
+            span.set_status(Status(StatusCode.ERROR, rapport.message))
 
         rapport.budget = budget.resume()
-        span.set_attribute(tracage.ATTR_COUT, round(budget.cout_usd, 6))
+        rapport.outils_appeles = list(budget.outils_appeles)
+        span.set_attribute(tracage.ATTR_COUT_TOTAL, round(budget.cout_usd, 6))
         span.set_attribute(tracage.ATTR_BUDGET_OUTILS, budget.appels_outils)
         if rapport.statut == "complet":
             span.set_attribute(tracage.ATTR_VERDICT, "complete")
@@ -146,9 +145,9 @@ def _extraire(alerte: str, budget: Budget) -> Extraction:
 
 def _trier(extraction: Extraction, budget: Budget) -> ClassificationAlerte:
     reponse = appeler_llm(
-        alias="fast",
+        alias=config.ALIAS_CLASSIFICATION,
         messages=prompts.messages_classification(extraction),
-        classification=Classification.DERIVE,
+        classification=Classification.CONFIDENTIEL,
         budget=budget,
         tache="classification",
         max_tokens=MAX_TOKENS_TRI,
@@ -181,7 +180,7 @@ def _raisonner(
         reponse = appeler_llm(
             alias=config.ALIAS_RAISONNEMENT,
             messages=messages,
-            classification=Classification.DERIVE,
+            classification=Classification.CONFIDENTIEL,
             budget=budget,
             tache="raisonnement",
             # The tools stay declared even once the budget is spent.
@@ -212,12 +211,11 @@ def _raisonner(
 
         try:
             return Diagnostic.model_validate(extraire_json(reponse.contenu)), appeles
-        except (ErreurPasserelle, ValidationError) as e:
+        except ErreurPasserelle, ValidationError:
             if relance_tentee:
                 raise ErreurPasserelle(
-                    f"Le modèle n'a pas produit de diagnostic exploitable après "
-                    f"relance : {e}"
-                ) from e
+                    "Le modèle n'a pas produit de diagnostic exploitable après relance."
+                ) from None
             # One retry only: the model has finished analysing but
             # returned prose. We ask again for the shape, not the content.
             relance_tentee = True
@@ -269,3 +267,9 @@ def _decoder_appel(appel: dict[str, Any]) -> tuple[str, dict[str, Any]]:
 def id_trace_courante() -> str | None:
     contexte = trace.get_current_span().get_span_context()
     return format(contexte.trace_id, "032x") if contexte.is_valid else None
+
+
+def message_erreur(erreur: Exception) -> str:
+    if isinstance(erreur, ValidationError):
+        return "ValidationError : réponse incompatible avec le contrat ; contenu masqué."
+    return f"{type(erreur).__name__} : {erreur}"

@@ -1,16 +1,23 @@
 {
   "name": "evals",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Évaluations reproductibles sur des données publiques et synthétiques.",
+  "private": true,
+  "engines": {
+    "node": ">=22.22.0 <23",
+    "npm": ">=11 <12"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/*.test.cjs",
+    "eval:local": "promptfoo eval --config promptfooconfig.local.yaml --no-share",
+    "eval:compare": "promptfoo eval --config promptfooconfig.yaml --no-share"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "type": "commonjs",
   "devDependencies": {
-    "promptfoo": "^0.122.0"
+    "promptfoo": "0.123.1",
+    "yaml": "2.9.1"
   }
 }

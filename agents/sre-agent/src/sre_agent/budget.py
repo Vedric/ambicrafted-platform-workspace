@@ -12,6 +12,10 @@ answer passed off as complete.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
+import time
+
+from . import config
 
 
 class BudgetEpuise(RuntimeError):
@@ -37,17 +41,34 @@ class Budget:
     tokens_sortie: int = 0
     # Log of the overruns avoided, useful in a post-mortem.
     historique: list[str] = field(default_factory=list)
+    outils_appeles: list[str] = field(default_factory=list)
+    sources_lues: dict[str, str] = field(default_factory=dict)
+    echeance: float = field(default_factory=lambda: time.monotonic() + config.MAX_DUREE_S)
+
+    def __post_init__(self) -> None:
+        if not math.isfinite(self.max_cout_usd) or self.max_cout_usd <= 0:
+            raise ValueError("Le plafond monétaire doit être fini et strictement positif.")
+        if self.max_appels_outils < 0:
+            raise ValueError("Le plafond d'outils doit être positif ou nul.")
+
+    def temps_restant(self) -> float:
+        restant = self.echeance - time.monotonic()
+        if restant <= 0:
+            raise BudgetEpuise("durée maximale atteinte", "échéance de l'exécution")
+        return restant
 
     # --- Tools -----------------------------------------------------------
 
     def consommer_outil(self, nom: str) -> None:
         """Charge one tool call. Raises BEFORE the call runs."""
+        self.temps_restant()
         if self.appels_outils >= self.max_appels_outils:
             raise BudgetEpuise(
                 "plafond d'appels d'outils atteint",
                 f"{self.appels_outils}/{self.max_appels_outils}, refus de '{nom}'",
             )
         self.appels_outils += 1
+        self.outils_appeles.append(nom)
         self.historique.append(f"outil #{self.appels_outils} : {nom}")
 
     def outils_restants(self) -> int:
@@ -57,6 +78,9 @@ class Budget:
 
     def verifier_avant_llm(self) -> None:
         """Refuse to commit an LLM call if the ceiling is already reached."""
+        self.temps_restant()
+        if not math.isfinite(self.cout_usd) or self.cout_usd < 0:
+            raise ValueError("Comptabilité monétaire invalide.")
         if self.cout_usd >= self.max_cout_usd:
             raise BudgetEpuise(
                 "plafond monétaire atteint",
@@ -70,6 +94,10 @@ class Budget:
         known once the response is in. An overrun is therefore observed,
         never predicted, and it stops the following turn.
         """
+        if not math.isfinite(cout_usd) or cout_usd < 0:
+            raise ValueError("Le coût doit être connu, fini et positif ou nul.")
+        if tokens_entree < 0 or tokens_sortie < 0:
+            raise ValueError("Les compteurs de jetons doivent être positifs ou nuls.")
         self.appels_llm += 1
         self.cout_usd += cout_usd
         self.tokens_entree += tokens_entree

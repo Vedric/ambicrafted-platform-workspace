@@ -30,6 +30,7 @@ from . import config
 # still resolves tomorrow.
 ATTR_CLASSIFICATION = "ambicrafted.data_classification"
 ATTR_COUT = "ambicrafted.cost_usd"
+ATTR_COUT_TOTAL = "ambicrafted.run.cost_usd"
 ATTR_TYPE_TACHE = "ambicrafted.task.type"
 ATTR_ALIAS = "ambicrafted.gateway.alias"
 ATTR_OUTIL_SOURCE = "ambicrafted.tool.source"

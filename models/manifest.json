@@ -1,0 +1,8 @@
+{
+  "ollama_version": "0.32.15",
+  "models": {
+    "coder:latest": "3e7ef0d80c78004e0a45c72e7d594e22093960c634afa0d5dd0fdd4960494aa4",
+    "nomic-embed-text:latest": "0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f",
+    "qwen3.6:27b": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e"
+  }
+}

@@ -17,9 +17,10 @@ Les embeddings passent exclusivement par la passerelle LiteLLM (alias
 machine, conformément à la règle 2 de CLAUDE.md : la clé virtuelle utilisée
 est "confidential-only" (CONFIDENTIAL_KEY), pas la clé maître.
 
-Le script est idempotent : la collection est recréée à chaque exécution et
-les identifiants de points sont déterministes (UUIDv5), donc une
-réindexation ne duplique rien et ne laisse aucun fragment orphelin.
+Chaque exécution construit une version isolée avec des identifiants de points
+déterministes (UUIDv5), puis bascule l'alias après validation. Les anciennes
+versions restent disponibles pour le retour arrière et nécessitent une purge
+explicite par l'opérateur.
 
 Usage :
     uv run indexer.py              # indexe
@@ -29,6 +30,10 @@ Usage :
 from __future__ import annotations
 
 import argparse
+import contextlib
+import hashlib
+import json
+import math
 import os
 import re
 import sys
@@ -38,7 +43,16 @@ from pathlib import Path
 
 import httpx
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (
+    CreateAlias,
+    CreateAliasOperation,
+    DeleteAlias,
+    DeleteAliasOperation,
+    Distance,
+    PointStruct,
+    VectorParams,
+)
+from fichiers import lire, noms
 
 # --- Configuration -------------------------------------------------------
 
@@ -48,7 +62,7 @@ RUNBOOK_DIR = Path(os.environ.get("RUNBOOK_DIR", RACINE_DEPOT / "runbooks")).res
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://127.0.0.1:6333")
 PASSERELLE_URL = os.environ.get("LITELLM_BASE_URL", "http://localhost:4000/v1")
 
-COLLECTION = os.environ.get("QDRANT_COLLECTION", "runbooks")
+COLLECTION = os.environ.get("QDRANT_COLLECTION", "runbooks-current")
 MODELE_EMBED = "local-embed"
 DIMENSION = 768  # nomic-embed-text
 
@@ -66,6 +80,7 @@ DELAI_HTTP = 120.0
 # nomic-embed-text has a 2048-token window; beyond that Ollama truncates
 # silently. We warn well before, estimating ~4 characters per token.
 SEUIL_ALERTE_CARACTERES = 6_000
+
 
 class ErreurPipeline(RuntimeError):
     """An actionable pipeline failure (gateway or Qdrant).
@@ -109,7 +124,7 @@ def decouper(chemin: Path) -> list[Fragment]:
     Headings inside a fenced code block are ignored: a shell comment
     "# ..." is not a heading.
     """
-    lignes = chemin.read_text(encoding="utf-8", errors="replace").splitlines()
+    lignes = lire(chemin.parent, chemin.name).splitlines()
     fragments: list[Fragment] = []
 
     pile: list[tuple[int, str]] = []  # (level, "## Heading")
@@ -161,9 +176,18 @@ def decouper(chemin: Path) -> list[Fragment]:
 def collecter(repertoire: Path) -> list[Fragment]:
     """Chunk every runbook in the directory, in name order."""
     fragments: list[Fragment] = []
-    for f in sorted(repertoire.glob("*.md")):
-        fragments.extend(decouper(f))
+    for nom in noms(repertoire):
+        try:
+            fragments.extend(decouper(repertoire / nom))
+        except OSError, ValueError:
+            # Unreadable files never enter an index of trusted source reads.
+            continue
     return fragments
+
+
+def empreinte(fragments: list[Fragment]) -> str:
+    charge = [(f.fichier, f.ligne_debut, f.texte) for f in fragments]
+    return hashlib.sha256(json.dumps(charge, ensure_ascii=False).encode()).hexdigest()
 
 
 # --- Embeddings ----------------------------------------------------------
@@ -196,27 +220,37 @@ def embarquer(textes: list[str], *, prefixe: str) -> list[list[float]]:
                 )
             except httpx.HTTPError as e:
                 raise ErreurPipeline(
-                    f"Passerelle injoignable ({PASSERELLE_URL}) : {e}\n"
+                    f"Passerelle injoignable : {type(e).__name__}.\n"
                     "  Vérifier : cd ~/platform/workspace/gateway && docker compose ps litellm"
                 ) from e
 
             if reponse.status_code != 200:
                 raise ErreurPipeline(
                     f"Passerelle : HTTP {reponse.status_code}\n"
-                    f"  Corps : {reponse.text[:300]}\n"
                     "  Vérifier l'alias 'local-embed' dans gateway/config.yaml "
                     "et les droits de la clé virtuelle."
                 )
 
-            donnees = reponse.json().get("data", [])
-            if len(donnees) != len(lot):
+            try:
+                donnees = reponse.json()["data"]
+                if sorted(e["index"] for e in donnees) != list(range(len(lot))):
+                    raise ValueError
+                for element in sorted(donnees, key=lambda d: d["index"]):
+                    vecteur = element["embedding"]
+                    if (
+                        len(vecteur) != DIMENSION
+                        or any(
+                            type(v) not in (int, float) or not math.isfinite(v)
+                            for v in vecteur
+                        )
+                        or not any(vecteur)
+                    ):
+                        raise ValueError
+                    vecteurs.append(vecteur)
+            except ValueError, TypeError, KeyError, AttributeError:
                 raise ErreurPipeline(
-                    f"Réponse incohérente : {len(donnees)} vecteurs pour {len(lot)} textes."
-                )
-            # The order is given by the 'index' field; we do not rely on
-            # the order of arrival.
-            for element in sorted(donnees, key=lambda d: d.get("index", 0)):
-                vecteurs.append(element["embedding"])
+                    "Réponse embeddings invalide : index, dimension ou valeurs."
+                ) from None
 
     return vecteurs
 
@@ -225,27 +259,37 @@ def embarquer(textes: list[str], *, prefixe: str) -> list[list[float]]:
 
 
 def indexer(fragments: list[Fragment]) -> int:
-    """Recreate the collection and write every fragment to it. Idempotent."""
-    vecteurs = embarquer([f.texte for f in fragments], prefixe=PREFIXE_DOCUMENT)
-
-    largeur = len(vecteurs[0])
-    if largeur != DIMENSION:
+    """Build an isolated version, validate it, then atomically switch the alias."""
+    if not fragments:
+        raise ErreurPipeline("Corpus vide : l'index actif est conservé.")
+    if any(len(f.texte) > SEUIL_ALERTE_CARACTERES for f in fragments):
         raise ErreurPipeline(
-            f"Dimension inattendue : {largeur} au lieu de {DIMENSION}.\n"
-            "  L'alias 'local-embed' ne pointe probablement plus vers "
-            "nomic-embed-text. Ajuster DIMENSION ou la config de la passerelle."
+            "Section trop longue : ajouter des sous-sections avant indexation."
         )
-
+    vecteurs = embarquer([f.texte for f in fragments], prefixe=PREFIXE_DOCUMENT)
+    if len(vecteurs) != len(fragments) or any(
+        len(v) != DIMENSION or any(not math.isfinite(x) for x in v) for v in vecteurs
+    ):
+        raise ErreurPipeline("Nombre ou dimension des vecteurs incohérents.")
+    version = f"{COLLECTION}--{uuid.uuid4().hex}"
+    digest = empreinte(fragments)
+    client = None
     try:
         client = QdrantClient(url=QDRANT_URL, timeout=DELAI_HTTP)
-        if client.collection_exists(COLLECTION):
-            client.delete_collection(COLLECTION)
+        aliases = {
+            a.alias_name: a.collection_name for a in client.get_aliases().aliases
+        }
+        if COLLECTION not in aliases and client.collection_exists(COLLECTION):
+            raise ErreurPipeline(
+                "QDRANT_COLLECTION doit être un alias libre, par exemple runbooks-current. "
+                "La collection historique est conservée."
+            )
         client.create_collection(
-            COLLECTION,
+            version,
             vectors_config=VectorParams(size=DIMENSION, distance=Distance.COSINE),
         )
         client.upsert(
-            COLLECTION,
+            version,
             points=[
                 PointStruct(
                     id=f.identifiant,
@@ -255,19 +299,39 @@ def indexer(fragments: list[Fragment]) -> int:
                         "chemin_titres": f.chemin_titres,
                         "ligne_debut": f.ligne_debut,
                         "texte": f.texte,
+                        "corpus_sha256": digest,
                     },
                 )
                 for f, v in zip(fragments, vecteurs, strict=True)
             ],
             wait=True,
         )
-    except Exception as e:  # actionable message, not a bare traceback
+        total = client.count(version, exact=True).count
+        if total != len(fragments):
+            raise ErreurPipeline("Index incomplet : aucune bascule de l'alias.")
+        operations = []
+        if COLLECTION in aliases:
+            operations.append(
+                DeleteAliasOperation(delete_alias=DeleteAlias(alias_name=COLLECTION))
+            )
+        operations.append(
+            CreateAliasOperation(
+                create_alias=CreateAlias(alias_name=COLLECTION, collection_name=version)
+            )
+        )
+        client.update_collection_aliases(change_aliases_operations=operations)
+        return total
+    except ErreurPipeline:
+        raise
+    except Exception as e:
         raise ErreurPipeline(
-            f"Qdrant injoignable ou en erreur ({QDRANT_URL}) : {e}\n"
-            "  Vérifier : cd ~/platform/workspace/gateway && docker compose ps qdrant"
-        ) from e
-
-    return client.count(COLLECTION, exact=True).count
+            f"Réindexation interrompue ({type(e).__name__}). "
+            "L'index précédent n'est jamais supprimé. Vérifier l'alias avant de nettoyer les versions."
+        ) from None
+    finally:
+        if client is not None:
+            with contextlib.suppress(Exception):
+                client.close()
 
 
 # --- Entry point ---------------------------------------------------------
@@ -284,12 +348,20 @@ def main() -> int:
 
     if not RUNBOOK_DIR.is_dir():
         print(f"Répertoire de runbooks absent : {RUNBOOK_DIR}", file=sys.stderr)
-        print("  Corriger : définir RUNBOOK_DIR, ou créer le répertoire.", file=sys.stderr)
+        print(
+            "  Corriger : définir RUNBOOK_DIR, ou créer le répertoire.", file=sys.stderr
+        )
         return 1
 
-    fragments = collecter(RUNBOOK_DIR)
+    try:
+        fragments = collecter(RUNBOOK_DIR)
+    except OSError, ValueError:
+        print("Corpus inaccessible ou limites de lecture dépassées.", file=sys.stderr)
+        return 1
     if not fragments:
-        print(f"Aucun fragment trouvé dans {RUNBOOK_DIR} (aucun .md ?)", file=sys.stderr)
+        print(
+            f"Aucun fragment trouvé dans {RUNBOOK_DIR} (aucun .md ?)", file=sys.stderr
+        )
         return 1
 
     fichiers = sorted({f.fichier for f in fragments})
@@ -298,7 +370,11 @@ def main() -> int:
     print(f"Fragments  : {len(fragments)}\n")
 
     for f in fragments:
-        alerte = " ⚠ dépasse la fenêtre du modèle" if len(f.texte) > SEUIL_ALERTE_CARACTERES else ""
+        alerte = (
+            " ⚠ dépasse la fenêtre du modèle"
+            if len(f.texte) > SEUIL_ALERTE_CARACTERES
+            else ""
+        )
         print(f"  {f.fichier}:{f.ligne_debut:>3}  ({len(f.texte):>4} car.){alerte}")
         print(f"      {f.chemin_titres}")
 

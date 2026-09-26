@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Resolve this checkout independently of the caller's directory.
+set -euo pipefail
+PLATEFORME_RACINE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+if command -v uv >/dev/null 2>&1; then
+  PLATEFORME_UV="$(command -v uv)"
+elif [[ -x "${HOME}/.local/bin/uv" ]]; then
+  PLATEFORME_UV="${HOME}/.local/bin/uv"
+else
+  echo 'uv est nécessaire. Installer uv puis relancer cette commande.' >&2
+  exit 127
+fi
+export PLATFORM_ROOT="${PLATEFORME_RACINE}"
+exec "${PLATEFORME_UV}" run --locked --project "${PLATEFORME_RACINE}/apps/control-api" plateforme "$@"

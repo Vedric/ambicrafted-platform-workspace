@@ -3,9 +3,8 @@
 This module is the counterpart of `agent.py`, not its replacement. Both
 produce an identical `Rapport` on top of exactly the same guardrails:
 `llm.appeler_llm`, `outils.executer_outil`, `prompts.bloc`,
-`budget.Budget`, `modeles.appliquer_garde_source`. None of those five
-modules is modified or bypassed here: that is the condition for the
-ADR 0004 comparison to be about orchestration and nothing else.
+`budget.Budget`, `modeles.appliquer_garde_source`. Shared guardrails apply
+to both implementations; ADR 0009 records the strengthened delivery contract.
 
 What the graph adds, and the hand-written loop cannot do:
 
@@ -41,8 +40,12 @@ import json
 import operator
 import os
 import sqlite3
+import stat
+import time
+import fcntl
+import threading
 from datetime import UTC, datetime, timedelta
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, TypedDict, cast
 
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.checkpoint.sqlite import SqliteSaver
@@ -59,6 +62,7 @@ from .agent import (
     MAX_TOKENS_TRI,
     _decoder_appel,
     _message_assistant,
+    message_erreur,
 )
 from .budget import Budget, BudgetEpuise
 from .config import Classification
@@ -86,7 +90,8 @@ CHEMIN_CHECKPOINTS = os.environ.get(
 # Thread retention, in days. 14: how long Tempo keeps traces
 # (block_retention, 336 h), so a thread and its trace expire together, and
 # one on-call rotation. See ADR 0004, Consequences.
-RETENTION_JOURS = int(os.environ.get("SRE_RETENTION_JOURS", "14"))
+RETENTION_JOURS = int(config._nombre("SRE_RETENTION_JOURS", 14))
+VERSION_CONTRAT = 2
 
 
 # --- State ----------------------------------------------------------------
@@ -109,11 +114,10 @@ class EtatSRE(TypedDict, total=False):
     history on each pass.
     """
 
-    alerte: str
-
     extraction: Extraction | None
     classification: ClassificationAlerte | None
     diagnostic: Diagnostic | None
+    sources_lues: dict[str, str]
 
     # --- Accumulators ----------------------------------------------------
     messages: Annotated[list[dict[str, Any]], operator.add]
@@ -129,6 +133,7 @@ class EtatSRE(TypedDict, total=False):
     depenses: Annotated[list[dict[str, float]], operator.add]
 
     # --- Control ---------------------------------------------------------
+    version_contrat: int
     tours: int
     relance_tentee: bool
     motif_abandon: str
@@ -162,6 +167,9 @@ def _budget(etat: EtatSRE) -> Budget:
         max_appels_outils=config.MAX_APPELS_OUTILS,
         max_cout_usd=config.MAX_COUT_USD,
     )
+    budget.sources_lues = dict(etat.get("sources_lues") or {})
+    if _echeance is not None:
+        budget.echeance = _echeance
     for depense in etat.get("depenses") or []:
         for champ in _CHAMPS_BUDGET:
             setattr(budget, champ, getattr(budget, champ) + depense.get(champ, 0))
@@ -186,6 +194,9 @@ def _delta(avant: dict[str, float], budget: Budget) -> dict[str, float]:
 _contexte_parent: Any = None
 _pile_ressources: contextlib.ExitStack | None = None
 _client_runbooks: ClientRunbooks | None = None
+_alerte_courante: str | None = None
+_echeance: float | None = None
+_verrou_execution = threading.Lock()
 
 
 def _client() -> ClientRunbooks:
@@ -220,7 +231,10 @@ def noeud(nom: str):
             budget = _budget(etat)
             avant = _instantane(budget)
             with tracage.tracer().start_as_current_span(
-                f"node.{nom}", context=_contexte_parent
+                f"node.{nom}",
+                context=_contexte_parent,
+                record_exception=False,
+                set_status_on_exception=False,
             ) as span:
                 span.set_attribute(tracage.ATTR_TYPE_TACHE, "graph_node")
                 span.set_attribute("ambicrafted.graph.node", nom)
@@ -236,17 +250,20 @@ def noeud(nom: str):
                     ErreurPasserelle,
                     ErreurOutil,
                     ValidationError,
+                    config.ConfigurationInvalide,
                 ) as e:
-                    maj = {"statut": "erreur", "message": f"{type(e).__name__} : {e}"}
+                    maj = {"statut": "erreur", "message": message_erreur(e), "diagnostic": None}
                     span.set_attribute(tracage.ATTR_VERDICT, "error")
-                    span.set_status(Status(StatusCode.ERROR, str(e)))
-                    span.record_exception(e)
+                    span.set_status(Status(StatusCode.ERROR, maj["message"]))
 
                 depense = _delta(avant, budget)
                 if any(depense.values()):
                     maj["depenses"] = [*maj.get("depenses", []), depense]
                 maj["journal"] = [*maj.get("journal", []), nom]
-                span.set_attribute(tracage.ATTR_COUT, round(budget.cout_usd, 6))
+                if budget.outils_appeles:
+                    maj["outils_appeles"] = list(budget.outils_appeles)
+                maj["sources_lues"] = budget.sources_lues
+                span.set_attribute("ambicrafted.budget.spent_usd", round(budget.cout_usd, 6))
                 span.set_attribute(tracage.ATTR_BUDGET_OUTILS, budget.appels_outils)
                 return maj
 
@@ -262,14 +279,17 @@ def noeud(nom: str):
 def extraction(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
     """Raw alert -> anonymised form. Local, classified CONFIDENTIEL.
 
-    The only node in the graph that sees customer data. The
-    compartmentalisation is not guaranteed by its position in the graph
-    but by the classification passed to `appeler_llm`, which would refuse
-    a frontier alias.
+    The raw alert is held only in invocation memory. Derived fields remain
+    confidential throughout the graph and can retain customer information.
+    The classification passed to `appeler_llm` refuses a frontier alias.
     """
+    if _alerte_courante is None:
+        raise ErreurPasserelle(
+            "Alerte absente de la mémoire du processus ; démarrer un nouveau fil."
+        )
     reponse = appeler_llm(
         alias=config.ALIAS_EXTRACTION,
-        messages=prompts.messages_extraction(etat["alerte"]),
+        messages=prompts.messages_extraction(_alerte_courante),
         classification=Classification.CONFIDENTIEL,
         budget=budget,
         tache="extraction",
@@ -284,17 +304,19 @@ def extraction(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
 @noeud("classification")
 def classification(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
-    """Triage over derived data, `fast` alias. Also seeds the reasoning.
+    """Triage over confidential extracted data, using the local alias.
 
     The node seeds `messages` with the system prompt and the payload:
     later turns only append to it, never replace it, thanks to the
     reducer.
     """
     extrait = etat["extraction"]
+    if extrait is None:
+        raise ErreurPasserelle("Extraction absente.")
     reponse = appeler_llm(
-        alias="fast",
+        alias=config.ALIAS_CLASSIFICATION,
         messages=prompts.messages_classification(extrait),
-        classification=Classification.DERIVE,
+        classification=Classification.CONFIDENTIEL,
         budget=budget,
         tache="classification",
         max_tokens=MAX_TOKENS_TRI,
@@ -318,7 +340,7 @@ def raisonnement(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
     reponse = appeler_llm(
         alias=config.ALIAS_RAISONNEMENT,
         messages=etat["messages"],
-        classification=Classification.DERIVE,
+        classification=Classification.CONFIDENTIEL,
         budget=budget,
         tache="raisonnement",
         outils=_client().outils_openai(),
@@ -369,18 +391,18 @@ def diagnostic(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
     contenu = etat["messages"][-1].get("content") or ""
     try:
         brut = Diagnostic.model_validate(extraire_json(contenu))
-    except (ErreurPasserelle, ValidationError) as e:
+    except ErreurPasserelle, ValidationError:
         if etat.get("relance_tentee"):
             raise ErreurPasserelle(
-                f"Le modèle n'a pas produit de diagnostic exploitable après "
-                f"relance : {e}"
-            ) from e
+                "Le modèle n'a pas produit de diagnostic exploitable après relance."
+            ) from None
         return {
             "relance_tentee": True,
+            "diagnostic": None,
             "messages": [{"role": "user", "content": prompts.RELANCE_FINALISATION}],
         }
 
-    retenu, ecartees = appliquer_garde_source(brut)
+    retenu, ecartees = appliquer_garde_source(brut, budget.sources_lues)
     return {"diagnostic": retenu, "actions_ecartees_sans_source": ecartees}
 
 
@@ -398,6 +420,8 @@ def porte_humaine(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
     the day the gate really matters.
     """
     d = etat["diagnostic"]
+    if d is None:
+        raise ErreurPasserelle("Diagnostic absent de la demande d'approbation.")
     decision = interrupt(
         {
             "demande": "Approuver la livraison de ce diagnostic ?",
@@ -405,6 +429,8 @@ def porte_humaine(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
             "confiance": d.confiance.value,
             "runbook_source": d.runbook_source,
             "actions_proposees": d.actions_proposees,
+            "elements_manquants": d.elements_manquants,
+            "injections_signalees": etat.get("injections_signalees", []),
             "actions_ecartees_sans_source": etat.get("actions_ecartees_sans_source", []),
             "outils_appeles": etat.get("outils_appeles", []),
             "budget": _budget(etat).resume(),
@@ -417,6 +443,7 @@ def porte_humaine(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
         "approbation": approbation,
         "statut": "complet" if approbation["approuve"] else "rejete_par_humain",
         "message": "" if approbation["approuve"] else approbation["commentaire"],
+        "diagnostic": d if approbation["approuve"] else None,
     }
 
 
@@ -430,7 +457,7 @@ def abandon(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
     re-read the graph to work it out.
     """
     if etat.get("statut") == "erreur":
-        return {}
+        return {"diagnostic": None}
     return {
         "statut": "budget_epuise",
         "message": _motif_abandon(etat, budget),
@@ -488,27 +515,22 @@ def _budget_epuise(etat: EtatSRE) -> bool:
 
 
 def apres_extraction(etat: EtatSRE) -> str:
-    return _sortie_forcee(etat) or (
-        "abandon" if _budget_epuise(etat) else "classification"
-    )
+    return _sortie_forcee(etat) or ("abandon" if _budget_epuise(etat) else "classification")
 
 
 def apres_classification(etat: EtatSRE) -> str:
-    return _sortie_forcee(etat) or (
-        "abandon" if _budget_epuise(etat) else "raisonnement"
-    )
+    return _sortie_forcee(etat) or ("abandon" if _budget_epuise(etat) else "raisonnement")
 
 
 def apres_raisonnement(etat: EtatSRE) -> str:
     """Tools, diagnosis or abort. Decided on the state, not inside the node."""
     if forcee := _sortie_forcee(etat):
         return forcee
-    if etat.get("tours", 0) >= config.MAX_TOURS:
-        return "abandon"
-
     demandes = _appels_outils(etat["messages"][-1])
     if not demandes:
         return "diagnostic"
+    if etat.get("tours", 0) >= config.MAX_TOURS:
+        return "abandon"
     # The budget is enforced before entering the node: a burst wider than
     # what remains is refused wholesale, not half executed.
     if len(demandes) > _budget(etat).outils_restants():
@@ -518,7 +540,9 @@ def apres_raisonnement(etat: EtatSRE) -> str:
 
 def apres_outils(etat: EtatSRE) -> str:
     return _sortie_forcee(etat) or (
-        "abandon" if _budget_epuise(etat) else "raisonnement"
+        "abandon"
+        if _budget_epuise(etat) or etat.get("tours", 0) >= config.MAX_TOURS
+        else "raisonnement"
     )
 
 
@@ -528,7 +552,11 @@ def apres_diagnostic(etat: EtatSRE) -> str:
     if etat.get("diagnostic") is None:
         # Retry requested: the model returned prose. Once only, and
         # `relance_tentee` is what attests to it on the node side.
-        return "abandon" if _budget_epuise(etat) else "raisonnement"
+        return (
+            "abandon"
+            if _budget_epuise(etat) or etat.get("tours", 0) >= config.MAX_TOURS
+            else "raisonnement"
+        )
     return "porte_humaine"
 
 
@@ -547,9 +575,7 @@ def construire() -> StateGraph:
     graphe.add_node("abandon", abandon)
 
     graphe.add_edge(START, "extraction")
-    graphe.add_conditional_edges(
-        "extraction", apres_extraction, ["classification", "abandon"]
-    )
+    graphe.add_conditional_edges("extraction", apres_extraction, ["classification", "abandon"])
     graphe.add_conditional_edges(
         "classification", apres_classification, ["raisonnement", "abandon"]
     )
@@ -558,9 +584,7 @@ def construire() -> StateGraph:
         apres_raisonnement,
         ["recherche_runbooks", "diagnostic", "abandon"],
     )
-    graphe.add_conditional_edges(
-        "recherche_runbooks", apres_outils, ["raisonnement", "abandon"]
-    )
+    graphe.add_conditional_edges("recherche_runbooks", apres_outils, ["raisonnement", "abandon"])
     graphe.add_conditional_edges(
         "diagnostic", apres_diagnostic, ["porte_humaine", "raisonnement", "abandon"]
     )
@@ -600,22 +624,48 @@ def compiler(chemin_db: str = CHEMIN_CHECKPOINTS):
     """
     dossier = os.path.dirname(os.path.abspath(chemin_db)) or "."
     os.makedirs(dossier, mode=0o700, exist_ok=True)
+    info = os.stat(dossier)
+    if info.st_uid != os.getuid() or info.st_mode & 0o022:
+        raise config.ConfigurationInvalide(
+            "Le dossier de checkpoints doit appartenir à l'utilisateur "
+            "et ne pas être modifiable par un tiers."
+        )
+    fd = os.open(chemin_db, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise config.ConfigurationInvalide("Le checkpoint doit être un fichier régulier.")
+        os.fchmod(fd, 0o600)
+    finally:
+        os.close(fd)
     connexion = sqlite3.connect(chemin_db, check_same_thread=False)
-    with contextlib.suppress(OSError):
-        # The directory as much as the file: SQLite creates a -wal and a
-        # -shm alongside it that carry the same data.
-        os.chmod(dossier, 0o700)
-        os.chmod(chemin_db, 0o600)
-    return construire().compile(
-        checkpointer=SqliteSaver(connexion, serde=_serialiseur())
-    )
+    connexion.execute("PRAGMA secure_delete=ON")
+    return construire().compile(checkpointer=SqliteSaver(connexion, serde=_serialiseur()))
+
+
+@contextlib.contextmanager
+def _application(chemin_db: str):
+    application = compiler(chemin_db)
+    fd = None
+    try:
+        fd = os.open(chemin_db + ".lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ErreurPasserelle(
+                "La base de checkpoints est utilisée par une autre exécution."
+            ) from None
+        yield application
+    finally:
+        application.checkpointer.conn.close()
+        if fd is not None:
+            os.close(fd)
 
 
 # --- Execution ------------------------------------------------------------
 
 
 @contextlib.contextmanager
-def _execution(trace_origine: dict[str, str] | None):
+def _execution(trace_origine: dict[str, str] | None, alerte: str | None = None):
     """Install the parent span and tool session for the length of an invoke.
 
     A resume after an interruption necessarily opens a new trace: the old
@@ -624,6 +674,7 @@ def _execution(trace_origine: dict[str, str] | None):
     both halves of a single story.
     """
     global _contexte_parent, _pile_ressources, _client_runbooks
+    global _alerte_courante, _echeance
 
     liens = []
     if trace_origine:
@@ -639,13 +690,16 @@ def _execution(trace_origine: dict[str, str] | None):
                 )
             )
 
+    if not _verrou_execution.acquire(blocking=False):
+        raise ErreurOutil("Une analyse de graphe est déjà active dans ce processus.")
     with contextlib.ExitStack() as pile:
+        pile.callback(_verrou_execution.release)
         _pile_ressources = pile
         _client_runbooks = None
+        _alerte_courante = alerte
+        _echeance = time.monotonic() + config.MAX_DUREE_S
         span = pile.enter_context(
-            tracage.tracer().start_as_current_span(
-                "task.incident_analysis", links=liens
-            )
+            tracage.tracer().start_as_current_span("task.incident_analysis", links=liens)
         )
         span.set_attribute(tracage.ATTR_TYPE_TACHE, "incident_analysis")
         span.set_attribute(tracage.ATTR_CLASSIFICATION, Classification.CONFIDENTIEL.value)
@@ -658,34 +712,56 @@ def _execution(trace_origine: dict[str, str] | None):
         contexte = span.get_span_context()
         _contexte_parent = trace.set_span_in_context(NonRecordingSpan(contexte))
         try:
-            yield span, format(contexte.trace_id, "032x"), {
-                "trace_id": format(contexte.trace_id, "032x"),
-                "span_id": format(contexte.span_id, "016x"),
-            }
+            yield (
+                span,
+                format(contexte.trace_id, "032x"),
+                {
+                    "trace_id": format(contexte.trace_id, "032x"),
+                    "span_id": format(contexte.span_id, "016x"),
+                },
+            )
         finally:
             _contexte_parent = None
             _pile_ressources = None
             _client_runbooks = None
+            _alerte_courante = None
+            _echeance = None
 
 
 def demarrer(alerte: str, thread_id: str, chemin_db: str = CHEMIN_CHECKPOINTS) -> Rapport:
     """Start an analysis. Stops at the human gate."""
-    application = compiler(chemin_db)
-    configuration = {"configurable": {"thread_id": thread_id}}
-    with _execution(None) as (span, id_trace, origine):
-        etat_initial: EtatSRE = {
-            "alerte": alerte,
-            "statut": "en_cours",
-            "trace_id": id_trace,
-            "trace_origine": origine,
-        }
-        resultat = application.invoke(etat_initial, configuration)
-        return _finaliser(span, resultat, id_trace)
+    try:
+        config.valider(alerte)
+        configuration = _configuration(thread_id)
+        with _application(chemin_db) as application:
+            if application.get_state(configuration).created_at:
+                return Rapport(
+                    statut="erreur",
+                    message="Ce thread existe déjà. Reprendre le fil "
+                    "en pause ou choisir un nouvel identifiant pour un nouvel incident.",
+                )
+            with _execution(None, alerte) as (span, id_trace, origine):
+                etat_initial: EtatSRE = {
+                    "version_contrat": VERSION_CONTRAT,
+                    "statut": "en_cours",
+                    "trace_id": id_trace,
+                    "trace_origine": origine,
+                }
+                resultat = application.invoke(etat_initial, configuration)
+                return _finaliser(span, resultat, id_trace)
+    except (config.ConfigurationInvalide, ErreurPasserelle, ErreurOutil) as e:
+        return Rapport(statut="erreur", message=message_erreur(e))
+    except (OSError, sqlite3.Error) as e:
+        return Rapport(statut="erreur", message=f"Persistance indisponible : {type(e).__name__}.")
 
 
-def reprendre(
-    decision: str, thread_id: str, chemin_db: str = CHEMIN_CHECKPOINTS
-) -> Rapport:
+def _configuration(thread_id: str) -> dict[str, Any]:
+    if not isinstance(thread_id, str) or not thread_id.strip() or len(thread_id) > 128:
+        raise config.ConfigurationInvalide("Identifiant de thread vide ou trop long.")
+    return {"configurable": {"thread_id": thread_id}, "recursion_limit": config.MAX_TOURS * 3 + 12}
+
+
+def reprendre(decision: str, thread_id: str, chemin_db: str = CHEMIN_CHECKPOINTS) -> Rapport:
     """Resume a paused analysis, on the same thread_id.
 
     No alert argument: everything needed is already in the checkpoint.
@@ -693,26 +769,39 @@ def reprendre(
     """
     from langgraph.types import Command
 
-    application = compiler(chemin_db)
-    configuration = {"configurable": {"thread_id": thread_id}}
-    instantane = application.get_state(configuration)
-    if not instantane.created_at:
-        raise ErreurPasserelle(
-            f"Aucun état enregistré pour le thread {thread_id!r} dans {chemin_db}."
-        )
-    origine = instantane.values.get("trace_origine")
-
-    with _execution(origine) as (span, id_trace, _):
-        resultat = application.invoke(Command(resume=decision), configuration)
-        return _finaliser(span, resultat, origine.get("trace_id") if origine else id_trace)
+    try:
+        config.valider()
+        configuration = _configuration(thread_id)
+        with _application(chemin_db) as application:
+            instantane = application.get_state(configuration)
+            if (
+                instantane.created_at
+                and instantane.values.get("version_contrat") != VERSION_CONTRAT
+            ):
+                return Rapport(
+                    statut="erreur",
+                    message="Checkpoint incompatible avec les garanties actuelles. "
+                    "Relancer l'analyse avec un nouvel identifiant de fil.",
+                )
+            if not instantane.created_at or not instantane.interrupts:
+                return Rapport(
+                    statut="erreur", message="Aucun diagnostic en attente sur ce thread."
+                )
+            origine = instantane.values.get("trace_origine")
+            with _execution(origine) as (span, id_trace, _):
+                resultat = application.invoke(Command(resume=decision), configuration)
+                return _finaliser(span, resultat, origine.get("trace_id") if origine else id_trace)
+    except (config.ConfigurationInvalide, ErreurPasserelle, ErreurOutil) as e:
+        return Rapport(statut="erreur", message=message_erreur(e))
+    except (OSError, sqlite3.Error) as e:
+        return Rapport(statut="erreur", message=f"Persistance indisponible : {type(e).__name__}.")
 
 
 def etat(thread_id: str, chemin_db: str = CHEMIN_CHECKPOINTS) -> dict[str, Any]:
     """Read the persisted state without running anything."""
-    instantane = compiler(chemin_db).get_state({"configurable": {"thread_id": thread_id}})
-    interruptions = [
-        i.value for i in (getattr(instantane, "interrupts", None) or ())
-    ]
+    with _application(chemin_db) as application:
+        instantane = application.get_state(_configuration(thread_id))
+    interruptions = [i.value for i in (getattr(instantane, "interrupts", None) or ())]
     return {
         "thread_id": thread_id,
         "existe": bool(instantane.created_at),
@@ -761,38 +850,37 @@ def purger(
         return bilan  # nothing to purge, and above all do not create the file
 
     bilan["octets_avant"] = _empreinte(chemin_db)
-    application = compiler(chemin_db)
-    checkpointer = application.checkpointer
-    checkpointer.setup()
-    connexion = checkpointer.conn
-    fils = [
-        fil
-        for (fil,) in connexion.execute(
-            "SELECT DISTINCT thread_id FROM checkpoints ORDER BY thread_id"
-        )
-    ]
-    for fil in fils:
-        instantane = application.get_state({"configurable": {"thread_id": fil}})
-        derniere = (
-            datetime.fromisoformat(instantane.created_at) if instantane.created_at else None
-        )
-        if derniere is not None and derniere >= seuil:
-            bilan["conserves"] += 1
-            continue
-        bilan["purges"].append(
-            {
-                "thread_id": fil,
-                "derniere_activite": derniere.isoformat() if derniere else None,
-                "en_pause": bool(instantane.next),
-            }
-        )
-        if not simulation:
-            checkpointer.delete_thread(fil)
+    with _application(chemin_db) as application:
+        checkpointer = application.checkpointer
+        checkpointer.setup()
+        connexion = checkpointer.conn
+        fils = [
+            fil
+            for (fil,) in connexion.execute(
+                "SELECT DISTINCT thread_id FROM checkpoints ORDER BY thread_id"
+            )
+        ]
+        for fil in fils:
+            instantane = application.get_state({"configurable": {"thread_id": fil}})
+            derniere = (
+                datetime.fromisoformat(instantane.created_at) if instantane.created_at else None
+            )
+            if derniere is not None and derniere >= seuil:
+                bilan["conserves"] += 1
+                continue
+            bilan["purges"].append(
+                {
+                    "thread_id": fil,
+                    "derniere_activite": derniere.isoformat() if derniere else None,
+                    "en_pause": bool(instantane.next),
+                }
+            )
+            if not simulation:
+                checkpointer.delete_thread(fil)
 
-    if not simulation and bilan["purges"]:
-        connexion.execute("VACUUM")
-        connexion.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    connexion.close()
+        if not simulation and bilan["purges"]:
+            connexion.execute("VACUUM")
+            connexion.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     bilan["octets_apres"] = _empreinte(chemin_db)
     return bilan
 
@@ -803,9 +891,7 @@ def _empreinte(chemin_db: str) -> int:
     In WAL mode the main file can be a single page while the whole state
     lives in `-wal`; measuring one without the other lies.
     """
-    return sum(
-        os.path.getsize(c) for c in (chemin_db, chemin_db + "-wal") if os.path.exists(c)
-    )
+    return sum(os.path.getsize(c) for c in (chemin_db, chemin_db + "-wal") if os.path.exists(c))
 
 
 def _finaliser(span: Any, resultat: dict[str, Any], id_trace: str | None) -> Rapport:
@@ -817,7 +903,7 @@ def _finaliser(span: Any, resultat: dict[str, Any], id_trace: str | None) -> Rap
     difference in the deliverable.
     """
     interruptions = resultat.get("__interrupt__") or []
-    budget = _budget(resultat)
+    budget = _budget(cast(EtatSRE, resultat))
 
     statut = resultat.get("statut", "erreur")
     if interruptions:
@@ -829,8 +915,10 @@ def _finaliser(span: Any, resultat: dict[str, Any], id_trace: str | None) -> Rap
         statut=statut,
         extraction=resultat.get("extraction"),
         classification=resultat.get("classification"),
-        diagnostic=resultat.get("diagnostic"),
-        actions_ecartees_sans_source=resultat.get("actions_ecartees_sans_source", []),
+        diagnostic=resultat.get("diagnostic") if statut == "complet" else None,
+        actions_ecartees_sans_source=(
+            resultat.get("actions_ecartees_sans_source", []) if statut == "complet" else []
+        ),
         injections_signalees=resultat.get("injections_signalees", []),
         outils_appeles=resultat.get("outils_appeles", []),
         budget=budget.resume(),
@@ -838,7 +926,7 @@ def _finaliser(span: Any, resultat: dict[str, Any], id_trace: str | None) -> Rap
         message=resultat.get("message", ""),
     )
 
-    span.set_attribute(tracage.ATTR_COUT, round(budget.cout_usd, 6))
+    span.set_attribute(tracage.ATTR_COUT_TOTAL, round(budget.cout_usd, 6))
     span.set_attribute(tracage.ATTR_BUDGET_OUTILS, budget.appels_outils)
     span.set_attribute("ambicrafted.graph.path", ",".join(resultat.get("journal", [])))
     span.set_attribute(tracage.ATTR_VERDICT, statut)
@@ -846,9 +934,7 @@ def _finaliser(span: Any, resultat: dict[str, Any], id_trace: str | None) -> Rap
         span.set_status(Status(StatusCode.ERROR, rapport.message or statut))
 
     if interruptions:
-        rapport.message = json.dumps(
-            interruptions[0].value, ensure_ascii=False, indent=2
-        )
+        rapport.message = json.dumps(interruptions[0].value, ensure_ascii=False, indent=2)
     tracage.vider()
     return rapport
 
@@ -871,7 +957,7 @@ def _lire_decision(decision: Any) -> dict[str, Any]:
     """
     if isinstance(decision, dict):
         return {
-            "approuve": bool(decision.get("approuve")),
+            "approuve": decision.get("approuve") is True,
             "commentaire": str(decision.get("commentaire", "")),
         }
     texte = str(decision or "").strip()

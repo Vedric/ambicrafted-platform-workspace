@@ -3,13 +3,14 @@
     "runbooks": {
       "command": "uv",
       "args": [
-        "run", "--directory",
-        "/home/vedric/platform/workspace/mcp-servers/runbooks",
+        "run", "--locked", "--directory",
+        "mcp-servers/runbooks",
         "server.py"
-      ],
-      "env": {
-        "RUNBOOK_DIR": "/home/vedric/platform/workspace/runbooks"
-      }
+      ]
+    },
+    "plateforme-controle": {
+      "command": "uv",
+      "args": ["run", "--locked", "--project", "apps/control-api", "python", "-m", "plateforme.mcp"]
     }
   }
 }

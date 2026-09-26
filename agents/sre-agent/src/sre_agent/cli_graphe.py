@@ -30,6 +30,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
+import sqlite3
 import sys
 import uuid
 
@@ -47,6 +49,25 @@ CODES = {
 
 
 def main(argv: list[str] | None = None) -> int:
+    try:
+        return _main(argv)
+    except (
+        OSError,
+        sqlite3.Error,
+        config.ConfigurationInvalide,
+        graphe.ErreurPasserelle,
+    ) as erreur:
+        rapport = Rapport(
+            statut="erreur", message=f"Opération interrompue : {type(erreur).__name__}."
+        )
+        if "--json" in (sys.argv[1:] if argv is None else argv):
+            print(rapport.model_dump_json())
+        else:
+            print(rendre(rapport))
+        return 3
+
+
+def _main(argv: list[str] | None = None) -> int:
     analyseur = argparse.ArgumentParser(
         prog="sre-agent-graph",
         description=(
@@ -61,12 +82,13 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Fil d'exécution. Obligatoire pour --reprendre et --etat.",
     )
-    analyseur.add_argument(
+    modes = analyseur.add_mutually_exclusive_group()
+    modes.add_argument(
         "--reprendre",
         metavar="DÉCISION",
         help="Reprend un fil en pause. « oui » approuve, tout le reste refuse.",
     )
-    analyseur.add_argument(
+    modes.add_argument(
         "--etat", action="store_true", help="Affiche l'état persistant, n'exécute rien."
     )
     analyseur.add_argument(
@@ -74,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
         default=graphe.CHEMIN_CHECKPOINTS,
         help="Fichier SQLite des checkpoints.",
     )
-    analyseur.add_argument(
+    modes.add_argument(
         "--purger",
         action="store_true",
         help=(
@@ -99,6 +121,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     analyseur.add_argument("--json", action="store_true", help="Sortie JSON.")
     arguments = analyseur.parse_args(argv)
+    if arguments.alerte and (arguments.etat or arguments.purger or arguments.reprendre is not None):
+        analyseur.error("Une alerte ne se combine pas avec un mode de gestion d'un fil existant.")
 
     if arguments.simulation and not arguments.purger:
         analyseur.error("--simulation n'a de sens qu'avec --purger.")
@@ -131,12 +155,10 @@ def main(argv: list[str] | None = None) -> int:
     if arguments.reprendre is not None:
         if not arguments.thread_id:
             analyseur.error("--reprendre exige --thread-id.")
-        rapport = graphe.reprendre(
-            arguments.reprendre, arguments.thread_id, arguments.checkpoints
-        )
+        rapport = graphe.reprendre(arguments.reprendre, arguments.thread_id, arguments.checkpoints)
         fil = arguments.thread_id
     else:
-        texte = " ".join(arguments.alerte).strip() or sys.stdin.read().strip()
+        texte = " ".join(arguments.alerte).strip() or sys.stdin.read(config.MAX_ALERTE + 1).strip()
         if not texte:
             analyseur.error("Aucune alerte fournie, ni en argument ni sur stdin.")
         fil = arguments.thread_id or f"sre-{uuid.uuid4().hex[:12]}"
@@ -173,6 +195,12 @@ def rendre_graphe(rapport: Rapport, thread_id: str, chemin_db: str) -> str:
         if actions := demande.get("actions_proposees"):
             lignes += ["", "ACTIONS SOUMISES À APPROBATION"]
             lignes += [f"  {i}. {a}" for i, a in enumerate(actions, 1)]
+        for champ, titre in (
+            ("elements_manquants", "RÉSERVES ET ÉLÉMENTS MANQUANTS"),
+            ("injections_signalees", "INJECTIONS SIGNALÉES DANS L'ALERTE"),
+        ):
+            if valeurs := demande.get(champ):
+                lignes += ["", titre, *[f"  · {v}" for v in valeurs]]
         if ecartees := demande.get("actions_ecartees_sans_source"):
             lignes += ["", "ACTIONS DÉJÀ ÉCARTÉES PAR LE CODE : aucune source"]
             lignes += [f"  · {a}" for a in ecartees]
@@ -194,9 +222,9 @@ def rendre_graphe(rapport: Rapport, thread_id: str, chemin_db: str) -> str:
             "",
             "L'état est persisté. Ce processus peut être arrêté sans perte.",
             "Pour livrer :",
-            f"  sre-agent-graph --thread-id {thread_id} --reprendre oui",
+            f"  sre-agent-graph --checkpoints {shlex.quote(chemin_db)} --thread-id {shlex.quote(thread_id)} --reprendre oui",
             "Pour refuser :",
-            f"  sre-agent-graph --thread-id {thread_id} --reprendre \"non, ...\"",
+            f"  sre-agent-graph --checkpoints {shlex.quote(chemin_db)} --thread-id {shlex.quote(thread_id)} --reprendre non",
             f"CHECKPOINTS : {chemin_db}",
         ]
         return "\n".join(lignes).strip()

@@ -1,10 +1,13 @@
 apiVersion: 1
 datasources:
-  - name: Tempo
+  # Dedicated names preserve previously provisioned sources with generated UIDs.
+  - name: Plateforme Tempo
+    uid: tempo
     type: tempo
     access: proxy
     url: http://tempo:3200
-  - name: Prometheus
+  - name: Plateforme Prometheus
+    uid: prometheus
     type: prometheus
     access: proxy
     url: http://prometheus:9090

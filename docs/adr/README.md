@@ -19,10 +19,15 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0006](0006-stack-passerelle-dans-le-depot.md) | The gateway stack lives in the repository | Accepted | 2026-08-25 | The most critical layer existed only on disk; a clone plus a `.env` must be enough to rebuild it. |
 | [0007](0007-secret-fuite-par-la-sortie.md) | A secret leaks through a command's output | Accepted | 2026-08-27 | The incident that rotated four secrets: nothing was written anywhere, the values were merely printed. |
 | [0008](0008-diff-indexe-vers-l-api-gitguardian.md) | The staged diff goes to GitGuardian's API | Accepted | 2026-09-04 | An outbound flow accepted because GitGuardian already reads the pushed repository, written down with the two conditions that would take that argument away. |
+| [0009](0009-garanties-verifiables-apres-audit.md) | Verifiable guarantees after the audit | Accepted; supersedes affected guarantees in 0002–0005 | 2026-09-26 | Local SRE pipeline, verified source paragraphs, refusal semantics, atomic indexing and operational recovery. |
+| [0010](0010-console-et-plan-de-controle.md) | Private console and shared control plane | Accepted | 2026-09-26 | Authenticated UI/CLI, bounded jobs, human decisions and operator tools. |
+| [0011](0011-voix-locale-et-outils-de-controle.md) | Offline voice and explicit control tools | Accepted | 2026-09-26 | Feminine French voice, local transcription, ephemeral conversation and read-only control MCP. |
+| [0012](0012-images-correctives-verifiees.md) | Verified corrective container derivatives | Accepted | 2026-09-26 | Narrow pinned Qdrant/PostgreSQL rebuilds, isolated recovery tests and visible residual findings. |
 
 ## Reading order
 
-- **Starting from scratch**: 0001 (the gateway), then 0003 (the agent), then
+- **Current behavior**: 0009, then the current README and security document.
+- **Historical context**: 0001 (the gateway), then 0003 (the agent), then
   0002 (the RAG pipeline).
 - **Interested in the security argument**: 0003, then 0007, then 0008, then
   [`SECURITY.md`](../../SECURITY.md). 0007 and 0008 read together are the

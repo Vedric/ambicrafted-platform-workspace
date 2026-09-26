@@ -1,6 +1,9 @@
 server:
   http_listen_port: 3200
 
+usage_report:
+  reporting_enabled: false
+
 distributor:
   receivers:
     otlp:

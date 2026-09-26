@@ -18,6 +18,7 @@ Three barriers, in this order:
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -50,21 +51,26 @@ class ReponseLLM:
     motif_arret: str = ""
 
 
-def _cout_depuis_entetes(entetes: httpx.Headers) -> float:
+def _cout_depuis_entetes(entetes: httpx.Headers, *, local: bool = False) -> float:
     """Read the cost the gateway reports.
 
     The gateway is the authority on price: the agent keeps no rate table,
-    which would in any case require it to know a model name. The flat
-    header is absent when the cost is zero.
+    which would in any case require it to know a model name. A missing
+    header is accepted only for local aliases; external costs must be explicit.
     """
     for nom in ("x-litellm-response-cost", "x-litellm-response-cost-original"):
         brut = entetes.get(nom)
-        if brut:
+        if brut is not None:
             try:
-                return float(brut)
+                valeur = float(brut)
             except ValueError:
-                continue
-    return 0.0
+                raise ErreurPasserelle("Coût de la réponse illisible.") from None
+            if not math.isfinite(valeur) or valeur < 0:
+                raise ErreurPasserelle("Coût de la réponse non fini ou négatif.")
+            return valeur
+    if local:
+        return 0.0
+    raise ErreurPasserelle("Coût externe absent : comptabilité indisponible, arrêt requis.")
 
 
 def _systeme_depuis_entetes(entetes: httpx.Headers) -> str:
@@ -112,6 +118,11 @@ def appeler_llm(
         )
 
     budget.verifier_avant_llm()
+    from .progression import signaler
+
+    signaler("modele")
+    if len(json.dumps(messages, ensure_ascii=False)) > config.MAX_CONTEXTE:
+        raise ErreurPasserelle("Contexte maximal dépassé : réduire l'alerte ou le corpus consulté.")
 
     corps: dict[str, Any] = {
         "model": alias,
@@ -119,6 +130,10 @@ def appeler_llm(
         "max_tokens": max_tokens,
         "temperature": temperature,
     }
+    # The local gateway maps this to Ollama think=false. Hidden deliberation
+    # can consume the entire output cap before a structured answer is emitted.
+    if alias == "local":
+        corps["reasoning_effort"] = "none"
     if outils:
         corps["tools"] = outils
         corps["tool_choice"] = "auto"
@@ -126,7 +141,10 @@ def appeler_llm(
         corps["response_format"] = {"type": "json_object"}
 
     with tracage.tracer().start_as_current_span(
-        f"llm.{tache}", kind=SpanKind.CLIENT
+        f"llm.{tache}",
+        kind=SpanKind.CLIENT,
+        record_exception=False,
+        set_status_on_exception=False,
     ) as span:
         span.set_attribute(tracage.ATTR_CLASSIFICATION, classification.value)
         span.set_attribute(tracage.ATTR_TYPE_TACHE, tache)
@@ -153,40 +171,53 @@ def appeler_llm(
                 f"{config.LITELLM_BASE_URL.rstrip('/')}/chat/completions",
                 headers=entetes,
                 json=corps,
-                timeout=config.TIMEOUT_LLM_S,
+                timeout=min(config.TIMEOUT_LLM_S, budget.temps_restant()),
             )
         except httpx.HTTPError as e:
-            span.set_status(Status(StatusCode.ERROR, str(e)))
-            raise ErreurPasserelle(
-                f"Passerelle injoignable sur {config.LITELLM_BASE_URL} : "
-                f"{type(e).__name__} : {e}"
-            ) from e
-
-        cout = _cout_depuis_entetes(reponse.headers)
-        span.set_attribute("gen_ai.system", _systeme_depuis_entetes(reponse.headers))
-        span.set_attribute(tracage.ATTR_COUT, cout)
+            span.set_status(Status(StatusCode.ERROR, type(e).__name__))
+            raise ErreurPasserelle(f"Passerelle injoignable : {type(e).__name__}.") from None
 
         if reponse.status_code != 200:
             span.set_status(Status(StatusCode.ERROR, f"HTTP {reponse.status_code}"))
             raise ErreurPasserelle(
-                f"Passerelle : HTTP {reponse.status_code} sur l'alias {alias!r}. "
-                f"{reponse.text[:400]}"
+                f"Passerelle : HTTP {reponse.status_code} sur l'alias {alias!r}."
             )
 
-        donnees = reponse.json()
-        usage = donnees.get("usage") or {}
-        entree = int(usage.get("prompt_tokens") or 0)
-        sortie = int(usage.get("completion_tokens") or 0)
-
-        choix = (donnees.get("choices") or [{}])[0]
-        message = choix.get("message") or {}
+        cout = _cout_depuis_entetes(reponse.headers, local=alias in ALIAS_LOCAUX)
+        span.set_attribute("gen_ai.system", _systeme_depuis_entetes(reponse.headers))
+        span.set_attribute(tracage.ATTR_COUT, cout)
+        try:
+            donnees = reponse.json()
+            usage = donnees.get("usage") or {}
+            entree = int(usage.get("prompt_tokens") or 0)
+            sortie = int(usage.get("completion_tokens") or 0)
+            choix = donnees["choices"][0]
+            message = choix["message"]
+            if not isinstance(message, dict) or not isinstance(message.get("content") or "", str):
+                raise ValueError
+            appels = message.get("tool_calls") or []
+            if not isinstance(appels, list) or any(not isinstance(a, dict) for a in appels):
+                raise ValueError
+            for appel in appels:
+                fonction = appel.get("function")
+                if (
+                    not isinstance(fonction, dict)
+                    or not isinstance(fonction.get("name"), str)
+                    or not isinstance(fonction.get("arguments", "{}"), (str, dict))
+                    or not isinstance(appel.get("id", ""), str)
+                ):
+                    raise ValueError
+            if entree < 0 or sortie < 0:
+                raise ValueError
+        except ValueError, KeyError, IndexError, TypeError, AttributeError, OverflowError:
+            raise ErreurPasserelle(
+                "Réponse de la passerelle mal formée ; contenu masqué."
+            ) from None
 
         span.set_attribute("gen_ai.response.model", str(donnees.get("model", alias)))
         span.set_attribute("gen_ai.usage.input_tokens", entree)
         span.set_attribute("gen_ai.usage.output_tokens", sortie)
-        span.set_attribute(
-            "gen_ai.response.finish_reasons", [str(choix.get("finish_reason", ""))]
-        )
+        span.set_attribute("gen_ai.response.finish_reasons", [str(choix.get("finish_reason", ""))])
 
         resultat = ReponseLLM(
             contenu=message.get("content") or "",
@@ -233,6 +264,4 @@ def extraire_json(texte: str) -> dict[str, Any]:
         if isinstance(valeur, dict):
             return valeur
 
-    raise ErreurPasserelle(
-        f"Réponse du modèle non exploitable comme JSON : {texte[:300]!r}"
-    )
+    raise ErreurPasserelle("Réponse du modèle non exploitable comme JSON ; contenu masqué.")
