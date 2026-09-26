@@ -24,7 +24,7 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:8789",
-    locale: "fr-FR",
+    locale: "en-US",
     timezoneId: "Europe/Paris",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

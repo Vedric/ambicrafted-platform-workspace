@@ -33,10 +33,7 @@ const MAX_AUDIO = 8 * 1024 * 1024;
 
 export function texteOral(texte: string): string {
   return texte
-    .replace(
-      /```[\s\S]*?```/g,
-      " Un exemple de code est disponible à l’écran. ",
-    )
+    .replace(/```[\s\S]*?```/g, " A code example is available on screen. ")
     .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/<[^>]*>/g, " ")
@@ -54,21 +51,21 @@ function encoderAudio(blob: Blob): Promise<string> {
     lecteur.onload = () =>
       typeof lecteur.result === "string"
         ? resolve(lecteur.result.split(",")[1] || "")
-        : reject(new Error("Lecture audio impossible."));
-    lecteur.onerror = () => reject(new Error("Lecture audio impossible."));
+        : reject(new Error("Unable to read the audio recording."));
+    lecteur.onerror = () =>
+      reject(new Error("Unable to read the audio recording."));
     lecteur.readAsDataURL(blob);
   });
 }
 
 const erreursMicro: Record<string, string> = {
   NotAllowedError:
-    "L’accès au microphone est refusé. Autorisez-le dans les réglages de ce site.",
-  NotFoundError:
-    "Aucun microphone détecté. Connectez un microphone ou écrivez votre message.",
+    "Microphone access was denied. Allow access in your browser’s site settings.",
+  NotFoundError: "No microphone was found. Connect one or type your message.",
   NotReadableError:
-    "Le microphone est utilisé par une autre application ou indisponible.",
+    "The microphone is unavailable or in use by another application.",
   SecurityError:
-    "Le navigateur bloque le microphone. Ouvrez la plateforme sur localhost.",
+    "Your browser blocked microphone access. Open the platform on localhost.",
 };
 
 export default function Assistant() {
@@ -162,7 +159,7 @@ export default function Assistant() {
   async function lire(texte: string) {
     const oral = texteOral(texte);
     if (!oral) {
-      notifier("Cette réponse ne contient pas de texte à lire.");
+      notifier("This reply has no text to read aloud.");
       return;
     }
     arreter();
@@ -188,7 +185,7 @@ export default function Assistant() {
         if (actuel(numero)) {
           couperSon();
           setPhase("repos");
-          setErreur(new Error("Le navigateur ne peut pas lire cet audio."));
+          setErreur(new Error("Your browser could not play this audio."));
         }
       };
       await son.play();
@@ -200,10 +197,10 @@ export default function Assistant() {
       setErreur(
         new Error(
           cause instanceof DOMException && cause.name === "NotAllowedError"
-            ? "Le navigateur demande un clic pour lire la voix. Cliquez sur Écouter la réponse."
+            ? "Your browser requires a click to play audio. Select Listen to hear this reply."
             : cause instanceof Error
               ? cause.message
-              : "La lecture vocale est indisponible.",
+              : "Voice playback is unavailable.",
         ),
       );
     }
@@ -240,7 +237,9 @@ export default function Assistant() {
       );
       if (!actuel(numero)) return;
       if (typeof resultat.texte !== "string" || !resultat.texte.trim())
-        throw new Error("La réponse locale est vide. Réessayez.");
+        throw new Error(
+          "The local assistant returned an empty reply. Please try again.",
+        );
       envoiEnCours.current = null;
       setMessages(
         [...suivants, { role: "assistant", content: resultat.texte }].slice(
@@ -258,7 +257,7 @@ export default function Assistant() {
       setErreur(
         cause instanceof Error
           ? cause
-          : new Error("Le modèle local n’a pas répondu."),
+          : new Error("The local assistant did not respond. Please try again."),
       );
     }
   }
@@ -267,7 +266,7 @@ export default function Assistant() {
     if (!microDisponible) {
       setErreur(
         new Error(
-          "Ce navigateur ne permet pas l’enregistrement. Utilisez un navigateur récent sur localhost ou écrivez votre message.",
+          "Recording is unavailable in this browser. Use a recent browser on localhost or type your message.",
         ),
       );
       return;
@@ -313,7 +312,7 @@ export default function Assistant() {
           setPhase("repos");
           setErreur(
             new Error(
-              "L’enregistrement dépasse 8 Mio. Dictez un message plus court.",
+              "The recording exceeds 8 MiB. Please record a shorter message.",
             ),
           );
         } else if (event.data.size) morceaux.push(event.data);
@@ -324,7 +323,9 @@ export default function Assistant() {
         couperMicro();
         setPhase("repos");
         setErreur(
-          new Error("L’enregistrement a été interrompu par le navigateur."),
+          new Error(
+            "Your browser interrupted the recording. Please try again.",
+          ),
         );
       };
       recorder.onstop = async () => {
@@ -332,7 +333,7 @@ export default function Assistant() {
         couperMicro();
         if (!taille) {
           setPhase("repos");
-          setErreur(new Error("Aucun audio enregistré. Réessayez."));
+          setErreur(new Error("No audio was recorded. Please try again."));
           return;
         }
         setPhase("transcription");
@@ -352,27 +353,25 @@ export default function Assistant() {
           if (!actuel(numero)) return;
           if (!resultat.texte?.trim())
             throw new Error(
-              "Aucune parole reconnue. Réessayez en parlant plus près du microphone.",
+              "No speech was detected. Try speaking closer to the microphone.",
             );
           const complet = [brouillon.trim(), resultat.texte.trim()]
             .filter(Boolean)
             .join("\n");
           if (complet.length > 4000)
             throw new Error(
-              "Le message avec cette transcription dépasse 4 000 caractères. Votre brouillon est conservé ; dictez un message plus court.",
+              "This transcript would exceed the 4,000-character message limit. Your draft is saved here; please record a shorter message.",
             );
           setBrouillon(complet);
           setPhase("repos");
-          notifier(
-            "Transcription prête. Vérifiez le texte, puis cliquez sur Envoyer.",
-          );
+          notifier("Transcript ready. Review the text, then select Send.");
         } catch (cause) {
           if (!actuel(numero)) return;
           setPhase("repos");
           setErreur(
             cause instanceof Error
               ? cause
-              : new Error("Transcription indisponible."),
+              : new Error("Transcription is unavailable. Please try again."),
           );
         }
       };
@@ -399,28 +398,28 @@ export default function Assistant() {
       setErreur(
         new Error(
           erreursMicro[nom] ||
-            "Le microphone est indisponible. Vous pouvez écrire votre message.",
+            "The microphone is unavailable. You can still type your message.",
         ),
       );
     }
   }
 
   const etats: Record<Phase, string> = {
-    repos: "À votre écoute",
-    permission: "Autorisation du microphone…",
-    micro: `Enregistrement · ${secondes} / 90 s`,
-    transcription: "Transcription sur votre poste…",
-    reflexion: "L’assistante prépare sa réponse…",
-    synthese: "Préparation de la voix locale…",
-    lecture: "L’assistante vous parle…",
+    repos: "Ready when you are",
+    permission: "Waiting for microphone permission…",
+    micro: `Recording · ${secondes} / 90 s`,
+    transcription: "Transcribing on your device…",
+    reflexion: "Preparing your reply…",
+    synthese: "Preparing local voice playback…",
+    lecture: "Speaking…",
   };
 
   return (
     <>
       <Titre
-        surligne="ASSISTANTE LOCALE"
-        titre="Une voix à vos côtés."
-        texte="Échangez naturellement, à l’écrit ou avec une voix française féminine. Vos données restent sur votre poste."
+        surligne="PRIVATE, BY DESIGN"
+        titre="Voice assistant"
+        texte="Think out loud. Get a fresh perspective. Chat privately on your device, with an optional French female voice."
       >
         <button
           className="btn"
@@ -432,19 +431,19 @@ export default function Assistant() {
             setErreur(null);
           }}
         >
-          <Trash2 size={16} /> Effacer le dialogue
+          <Trash2 size={16} /> Clear conversation
         </button>
       </Titre>
       <div className="chat-layout">
         <section
           className="panel chat-panel"
-          aria-label="Dialogue avec l’assistante"
+          aria-label="Assistant conversation"
         >
           <div
             className="chat-messages"
             ref={conversation}
             role="log"
-            aria-label="Messages du dialogue"
+            aria-label="Conversation messages"
             aria-live="polite"
             aria-relevant="additions"
           >
@@ -463,16 +462,16 @@ export default function Assistant() {
                 >
                   <AudioLines size={37} />
                 </div>
-                <h2>Parlons de votre prochaine étape.</h2>
+                <h2>What’s your next move?</h2>
                 <p>
-                  Un signal à comprendre, une procédure à retrouver, une
-                  question sur votre plateforme. Je vous accompagne.
+                  Explore a signal, find a procedure, or plan your next step.
+                  Start with a question.
                 </p>
                 <div className="chat-suggestions">
                   {[
-                    "Comment lancer une analyse ?",
-                    "Comment fonctionnent les agents ?",
-                    "Comment sauvegarder ma plateforme ?",
+                    "How do I start an analysis?",
+                    "How do the agents work?",
+                    "How do I back up my platform?",
                   ].map((suggestion) => (
                     <button
                       key={suggestion}
@@ -491,11 +490,11 @@ export default function Assistant() {
             {messages.map((message, index) => (
               <article className={"chat-message " + message.role} key={index}>
                 <div className="message-avatar" aria-hidden="true">
-                  {message.role === "assistant" ? <Bot size={17} /> : "VOUS"}
+                  {message.role === "assistant" ? <Bot size={17} /> : "YOU"}
                 </div>
                 <div className="message-body">
                   <strong>
-                    {message.role === "assistant" ? "Votre assistante" : "Vous"}
+                    {message.role === "assistant" ? "Your assistant" : "You"}
                   </strong>
                   {message.role === "assistant" ? (
                     <Markdown texte={message.content} />
@@ -507,10 +506,10 @@ export default function Assistant() {
                       <button
                         disabled={occupe || !voix?.pret}
                         onClick={() => void lire(message.content)}
-                        aria-label="Écouter la réponse"
+                        aria-label="Listen"
                       >
-                        <Volume2 size={14} /> Écouter
-                        {message.content.length > 2000 ? " un extrait" : ""}
+                        <Volume2 size={14} /> Listen
+                        {message.content.length > 2000 ? " · excerpt" : ""}
                       </button>
                     </div>
                   )}
@@ -533,7 +532,7 @@ export default function Assistant() {
           {erreur && <Erreur erreur={erreur} />}
           <form className="chat-compose" onSubmit={envoyer}>
             <label className="sr-only" htmlFor="message-assistante">
-              Votre message
+              Your message
             </label>
             <textarea
               ref={champ}
@@ -542,7 +541,7 @@ export default function Assistant() {
               maxLength={4000}
               disabled={occupe}
               rows={3}
-              placeholder="Écrivez votre message ou utilisez le microphone…"
+              placeholder="Type a message or record your thoughts…"
               onChange={(event) => setBrouillon(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
@@ -562,18 +561,17 @@ export default function Assistant() {
                     phase === "micro" ? couperMicro : () => void dicter()
                   }
                   disabled={phase !== "micro" && (occupe || !voix?.pret)}
-                  aria-label={
-                    phase === "micro"
-                      ? "Arrêter l’enregistrement"
-                      : "Dicter un message"
-                  }
+                  aria-label={phase === "micro" ? "Stop recording" : "Record"}
                 >
                   {phase === "micro" ? <Square size={15} /> : <Mic size={16} />}{" "}
-                  {phase === "micro" ? "Terminer" : "Dicter"}
+                  {phase === "micro" ? "Stop recording" : "Record"}
                 </button>
                 {phase !== "repos" && phase !== "micro" && (
                   <button type="button" className="btn small" onClick={arreter}>
-                    <Square size={14} /> Arrêter
+                    <Square size={14} />{" "}
+                    {phase === "synthese" || phase === "lecture"
+                      ? "Stop playback"
+                      : "Stop"}
                   </button>
                 )}
               </div>
@@ -582,14 +580,14 @@ export default function Assistant() {
                 className="btn primary"
                 disabled={occupe || !brouillon.trim()}
               >
-                <Send size={16} /> Envoyer
+                <Send size={16} /> Send
               </button>
             </div>
             <div className="field-foot">
               <span>
-                <CornerDownLeft size={12} /> Ctrl / ⌘ + Entrée pour envoyer
+                <CornerDownLeft size={12} /> Ctrl / ⌘ + Enter to send
               </span>
-              <span>{brouillon.length} / 4 000</span>
+              <span>{brouillon.length} / 4,000</span>
             </div>
           </form>
         </section>
@@ -598,33 +596,30 @@ export default function Assistant() {
             <span className="tile-icon">
               <Headphones size={23} />
             </span>
-            <h2>Une conversation privée.</h2>
-            <p>
-              La voix, la transcription et les réponses sont calculées
-              localement.
-            </p>
+            <h2>A private conversation.</h2>
+            <p>Voice, transcription, and replies run locally on your device.</p>
             <div className="voice-state">
-              <span>Moteur vocal</span>
+              <span>Voice engine</span>
               <strong>
                 {voix?.pret
-                  ? "Disponible"
+                  ? "Ready"
                   : erreurVoix || voix
-                    ? "Indisponible"
-                    : "Vérification…"}
+                    ? "Unavailable"
+                    : "Checking…"}
               </strong>
             </div>
             <div className="voice-state">
-              <span>Voix</span>
-              <strong>Féminine · Français</strong>
+              <span>Voice</span>
+              <strong>French female voice</strong>
             </div>
             <div className="voice-state">
               <span>Microphone</span>
               <strong>
                 {phase === "micro"
-                  ? "Enregistrement"
+                  ? "Recording"
                   : microDisponible
-                    ? "Au clic uniquement"
-                    : "Non pris en charge"}
+                    ? "Only when you record"
+                    : "Not supported"}
               </strong>
             </div>
             <label className="checkbox-label">
@@ -634,12 +629,12 @@ export default function Assistant() {
                 disabled={!voix?.pret}
                 onChange={(event) => setAutomatique(event.target.checked)}
               />{" "}
-              Lire les réponses automatiquement
+              Read replies automatically
             </label>
             {!voix?.pret && (erreurVoix || voix) && (
               <p className="hint">
-                La voix est indisponible. Le dialogue écrit reste accessible ;
-                vérifiez le moteur vocal dans le terminal.
+                Voice is unavailable. You can continue chatting by text. Check
+                the voice engine from the terminal to restore audio.
               </p>
             )}
           </section>
@@ -647,29 +642,29 @@ export default function Assistant() {
             <span className="tile-icon">
               <ShieldCheck size={23} />
             </span>
-            <h2>Vous gardez la main.</h2>
+            <h2>You’re in control.</h2>
             <p>
-              Relisez la transcription avant de l’envoyer. Une réponse vocale ne
-              valide aucune action.
+              Review every transcript before sending. Voice replies never
+              approve an action.
             </p>
             <p>
-              Pour un diagnostic avec sources et approbation, ouvrez une analyse
-              supervisée.
+              Need a diagnosis with evidence and approval? Start a supervised
+              analysis.
             </p>
             <Link className="text-button" to="/analyses/nouvelle">
-              <Workflow size={15} /> Nouvelle analyse
+              <Workflow size={15} /> New analysis
             </Link>
           </section>
           <div className="voice-disclaimer">
             <LockKeyhole size={16} />
             <p>
-              Dialogue éphémère : les sept derniers messages forment le
-              contexte. Quitter cette page efface la conversation. Aucun
-              enregistrement permanent.
+              This conversation is temporary. The last seven messages provide
+              context. Leaving this page clears the conversation. Recordings are
+              not stored permanently.
             </p>
             <p>
-              Voix SIWIS · Université d’Édimbourg · CC BY 4.0. Lecture limitée à
-              2 000 caractères par réponse.
+              SIWIS voice · University of Edinburgh · CC BY 4.0. Playback is
+              limited to 2,000 characters per reply.
             </p>
           </div>
         </aside>

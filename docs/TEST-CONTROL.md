@@ -78,3 +78,17 @@ measurements as JUnit test-suite properties.
 
 A release still requires checks on the final commit in a clean clone, browser
 end-to-end tests and a real local model/speech exercise with synthetic inputs.
+
+## Console regression checks
+
+The console has 40 unit tests and 20 desktop/mobile Chromium journeys. These
+cover English presentation, delayed and expired ticket exchanges under React
+StrictMode, semantic page headings, keyboard focus restoration, WCAG checks in
+both themes, responsive widths, persistent animation preferences, and changes to
+the operating system's reduced-motion setting during a session. A delayed
+signed-out response exposed a sign-in race: session discovery now waits for the
+single-use ticket exchange before requesting authenticated state.
+
+Failed console CI jobs retain Playwright reports, screenshots and traces for
+seven days. They originate only from the disposable synthetic test server,
+with ephemeral credentials. They do not capture the operator's live console.

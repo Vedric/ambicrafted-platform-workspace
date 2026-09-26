@@ -17,8 +17,92 @@ import {
   SquareTerminal,
   Wrench,
 } from "lucide-react";
-import { api, date, type Analyse, type Journal, type Sante } from "../api";
+import {
+  api,
+  date,
+  serviceName,
+  type Analyse,
+  type Journal,
+  type Sante,
+} from "../api";
 import { Erreur, Chargement, Vide, Titre, Modal } from "../ui";
+
+const indexStatusLabels: Record<string, string> = {
+  green: "Green",
+  yellow: "Yellow",
+  grey: "Grey",
+  red: "Red",
+};
+const auditActions: Record<string, string> = {
+  "analyse.creee": "Analysis created",
+  "analyse.en_file": "Analysis queued",
+  "analyse.en_cours": "Analysis started",
+  "analyse.en_attente_humain": "Proposal ready for review",
+  "analyse.decision": "Decision submitted",
+  "analyse.complet": "Analysis completed",
+  "analyse.rejete_par_humain": "Proposal rejected",
+  "analyse.budget_epuise": "Analysis budget reached",
+  "analyse.erreur": "Analysis failed",
+  "analyse.interrompu": "Analysis interrupted",
+  "analyse.annule": "Analysis cancelled",
+  "analyse.supprimee": "Analysis deleted",
+  "analyse.exportee": "Analysis exported",
+  "session.ouverte": "Session started",
+  "runbook.enregistre": "Runbook saved",
+  "retention.appliquee": "Retention policy applied",
+  "securite.mot_de_passe_modifie": "Console password changed",
+};
+const actorLabels: Record<string, string> = {
+  systeme: "System",
+  operateur: "Operator",
+  cli: "CLI",
+};
+const toolLabels: Record<string, { name: string; description: string }> = {
+  list_runbooks: {
+    name: "List runbooks",
+    description: "Browse the procedures stored on this device.",
+  },
+  read_runbook: {
+    name: "Read a runbook",
+    description: "Read a source document and verify its fingerprint.",
+  },
+  search_runbooks: {
+    name: "Search runbook text",
+    description: "Find exact text in your procedures.",
+  },
+  semantic_search: {
+    name: "Semantic search",
+    description: "Find related passages using local embeddings and Qdrant.",
+  },
+  plateforme_runbooks: {
+    name: "Runbook inventory",
+    description:
+      "Read the runbook inventory through the control API’s MCP server.",
+  },
+  plateforme_sante: {
+    name: "System health",
+    description: "Check local services and models through MCP.",
+  },
+  plateforme_analyses: {
+    name: "Analysis history",
+    description: "Read analyses and their current status through MCP.",
+  },
+  voix_feminine_fr: {
+    name: "French voice synthesis",
+    description:
+      "Generate speech locally with Piper’s female French SIWIS voice.",
+  },
+  transcription_fr: {
+    name: "Local transcription",
+    description:
+      "Transcribe on the local CPU and review the text before sending.",
+  },
+  operations_locales: {
+    name: "Platform operations",
+    description:
+      "Verify, reindex, back up and test restoration from the CLI or console.",
+  },
+};
 
 export function SantePage() {
   const q = useQuery({
@@ -29,16 +113,16 @@ export function SantePage() {
   return (
     <>
       <Titre
-        surligne="ÉCOSYSTÈME LOCAL"
-        titre="Chaque composant, à sa place."
-        texte="Disponibilité mesurée, modèles installés et état de la mémoire vectorielle."
+        surligne="LOCAL INFRASTRUCTURE"
+        titre="System health"
+        texte="Live service availability, installed models and the runbook index."
       >
         <button
           className="btn"
           onClick={() => q.refetch()}
           disabled={q.isFetching}
         >
-          <Activity size={17} /> Actualiser
+          <Activity size={17} /> Refresh
         </button>
       </Titre>
       {q.isPending ? (
@@ -60,12 +144,12 @@ export function SantePage() {
                     }
                   >
                     <i />
-                    {s.ok ? "Disponible" : "Indisponible"}
+                    {s.ok ? "Available" : "Unavailable"}
                   </span>
                 </div>
-                <h2>{s.nom}</h2>
+                <h2>{serviceName(s.id)}</h2>
                 <p>
-                  Temps de réponse{" "}
+                  Response time{" "}
                   <strong className="mono">{s.latence_ms} ms</strong>
                 </p>
                 {s.lien && (
@@ -75,7 +159,7 @@ export function SantePage() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Ouvrir la console <ExternalLink size={14} />
+                    Open console <ExternalLink size={14} />
                   </a>
                 )}
               </section>
@@ -84,7 +168,7 @@ export function SantePage() {
           <div className="dashboard-grid">
             <section className="panel">
               <div className="panel-heading">
-                <h2>Modèles présents sur le poste</h2>
+                <h2>Models on this device</h2>
                 <Bot size={18} />
               </div>
               <div className="model-list">
@@ -95,11 +179,11 @@ export function SantePage() {
                         <Bot size={18} />
                       </span>
                       <strong>{m.nom}</strong>
-                      <small>{(m.taille / 1e9).toFixed(1)} Go</small>
+                      <small>{(m.taille / 1e9).toFixed(1)} GB</small>
                     </div>
                   ))
                 ) : (
-                  <p className="muted">Inventaire indisponible.</p>
+                  <p className="muted">Model inventory unavailable.</p>
                 )}
               </div>
             </section>
@@ -107,17 +191,20 @@ export function SantePage() {
               <span className="tile-icon">
                 <Database size={23} />
               </span>
-              <h2>Mémoire des runbooks</h2>
+              <h2>Runbook memory</h2>
               <div className="big-number">
                 {q.data!.index.points ?? "—"}
-                <small>fragments</small>
+                <small>chunks</small>
               </div>
               <p>
-                Collection active : <code>runbooks-current</code>
+                Active collection: <code>runbooks-current</code>
               </p>
-              <p>État : {q.data!.index.statut || "indisponible"}</p>
+              <p>
+                Status:{" "}
+                {indexStatusLabels[q.data!.index.statut || ""] || "Unavailable"}
+              </p>
               <Link className="text-button" to="/operations">
-                Actualiser l’index <ArrowRight size={14} />
+                Refresh the index <ArrowRight size={14} />
               </Link>
             </section>
           </div>
@@ -144,9 +231,9 @@ export function Observabilite() {
   return (
     <>
       <Titre
-        surligne="OBSERVABILITÉ"
-        titre="Comprendre ce qui se passe."
-        texte="Métriques collectées et journal des opérations, sans contenu d’alerte dans les événements."
+        surligne="OBSERVABILITY"
+        titre="Observability"
+        texte="Monitor collected metrics and review activity without exposing alert content."
       >
         <a
           className="btn primary"
@@ -154,7 +241,7 @@ export function Observabilite() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          <Gauge size={17} /> Ouvrir Grafana <ExternalLink size={14} />
+          <Gauge size={17} /> Open Grafana <ExternalLink size={14} />
         </a>
       </Titre>
       {q.isPending ? (
@@ -165,8 +252,8 @@ export function Observabilite() {
         <>
           <section className="panel">
             <div className="panel-heading">
-              <h2>Collecte Prometheus</h2>
-              <span className="tag">{q.data!.cibles.length} CIBLES</span>
+              <h2>Prometheus collection</h2>
+              <span className="tag">{q.data!.cibles.length} TARGETS</span>
             </div>
             <div className="targets">
               {q.data!.cibles.length ? (
@@ -180,7 +267,7 @@ export function Observabilite() {
                     />
                     <strong>{c.nom}</strong>
                     <span>
-                      {c.sante === "up" ? "Collecte active" : "À vérifier"}
+                      {c.sante === "up" ? "Collecting" : "Needs attention"}
                     </span>
                     <small>{date(c.dernier_scrape)}</small>
                     <code>{Math.round(c.duree_s * 1000)} ms</code>
@@ -188,16 +275,16 @@ export function Observabilite() {
                 ))
               ) : (
                 <Vide
-                  titre="Aucune cible disponible."
-                  texte="Vérifiez le service Prometheus dans la page Santé."
+                  titre="No targets available"
+                  texte="Check Prometheus on the System health page."
                 />
               )}
             </div>
           </section>
           <section className="panel">
             <div className="panel-heading">
-              <h2>Journal d’activité</h2>
-              <span className="muted tiny">60 événements les plus récents</span>
+              <h2>Activity log</h2>
+              <span className="muted tiny">60 most recent events</span>
             </div>
             <div className="audit-list">
               {q.data!.journal.map((j) => (
@@ -207,10 +294,10 @@ export function Observabilite() {
                   </span>
                   <div>
                     <strong>
-                      {j.action.replaceAll(".", " · ").replaceAll("_", " ")}
+                      {auditActions[j.action] || "Activity recorded"}
                     </strong>
                     <small>
-                      {j.acteur}
+                      {actorLabels[j.acteur] || j.acteur}
                       {j.reference ? " · " + j.reference.slice(0, 24) : ""}
                     </small>
                   </div>
@@ -227,34 +314,32 @@ export function Observabilite() {
 const operations = [
   {
     id: "verifier",
-    titre: "Vérifier la plateforme",
-    texte: "Contrôler la configuration et les services nécessaires au moteur.",
+    titre: "Verify platform",
+    texte: "Check configuration and the services your agents depend on.",
     icone: Activity,
-    bouton: "Lancer la vérification",
+    bouton: "Run verification",
   },
   {
     id: "indexer",
-    titre: "Actualiser la mémoire",
+    titre: "Refresh runbook memory",
     texte:
-      "Recalculer les fragments et publier un nouvel index de recherche atomiquement.",
+      "Rebuild runbook chunks and publish the updated search index atomically.",
     icone: Database,
-    bouton: "Réindexer les runbooks",
+    bouton: "Reindex runbooks",
   },
   {
     id: "sauvegarder",
-    titre: "Créer une sauvegarde",
-    texte:
-      "Sauvegarder les données et la configuration dans le stockage privé local.",
+    titre: "Create a backup",
+    texte: "Save data and configuration to private storage on this device.",
     icone: ArrowDownToLine,
-    bouton: "Sauvegarder maintenant",
+    bouton: "Back up now",
   },
   {
     id: "tester-restauration",
-    titre: "Tester la restauration",
-    texte:
-      "Vérifier la dernière sauvegarde dans des conteneurs temporaires isolés.",
+    titre: "Test restoration",
+    texte: "Restore the latest backup in isolated, temporary containers.",
     icone: ShieldCheck,
-    bouton: "Tester la sauvegarde",
+    bouton: "Test backup",
   },
 ];
 export function Operations() {
@@ -267,9 +352,9 @@ export function Operations() {
   return (
     <>
       <Titre
-        surligne="EXPLOITATION"
-        titre="Une plateforme qui se maintient."
-        texte="Des opérations définies, supervisées et suivies dans votre historique."
+        surligne="PLATFORM OPERATIONS"
+        titre="Operations"
+        texte="Run maintenance tasks with explicit controls and a recorded outcome."
       />
       <div className="service-grid operations-grid">
         {operations.map((o) => (
@@ -289,9 +374,8 @@ export function Operations() {
       <div className="notice inline-notice">
         <ShieldCheck size={20} />
         <span>
-          Les opérations partagent une file bornée avec les analyses. Les
-          sauvegardes peuvent contenir des données confidentielles ; elles
-          restent sur ce poste.
+          Operations share a bounded queue with analyses. Backups may contain
+          confidential data and remain on this device.
         </span>
       </div>
       {operation && (
@@ -301,20 +385,20 @@ export function Operations() {
         >
           <p>{operations.find((o) => o.id === operation)!.texte}</p>
           <p className="muted">
-            L’opération sera ajoutée à la file et son résultat apparaîtra dans
-            les analyses.
+            This operation will join the queue. Track its progress and result in
+            Analyses.
           </p>
           {lancer.error && <Erreur erreur={lancer.error} />}
           <div className="form-actions">
             <button className="btn" onClick={() => setOperation(null)}>
-              Retour
+              Back
             </button>
             <button
               className="btn primary"
               disabled={lancer.isPending}
               onClick={() => lancer.mutate(operation)}
             >
-              Confirmer le lancement <ArrowRight size={16} />
+              Confirm operation <ArrowRight size={16} />
             </button>
           </div>
         </Modal>
@@ -333,35 +417,34 @@ export function Agents() {
   return (
     <>
       <Titre
-        surligne="AGENTS & OUTILS"
-        titre="Des rôles précis. Un objectif commun."
-        texte="Une chaîne de spécialistes locaux coordonnée par un graphe, avec validation humaine."
+        surligne="AGENTS & TOOLS"
+        titre="Specialists working toward one outcome."
+        texte="A coordinated team of local specialists, with you in control of approval."
       />
       <div className="agents-flow">
         {[
           {
             nom: "Extraction",
-            role: "Comprendre le signal",
-            texte:
-              "Structure les symptômes et signale les instructions suspectes.",
+            role: "Understand the signal",
+            texte: "Structures symptoms and flags suspicious instructions.",
             icon: Search,
           },
           {
             nom: "Triage",
-            role: "Qualifier la situation",
-            texte: "Propose une classification et une urgence à vérifier.",
+            role: "Assess the situation",
+            texte: "Suggests a classification and urgency for your review.",
             icon: Activity,
           },
           {
             nom: "Investigation",
-            role: "Confronter aux sources",
-            texte: "Consulte les runbooks via MCP dans un budget borné.",
+            role: "Follow the evidence",
+            texte: "Consults runbooks through MCP within a defined budget.",
             icon: BookOpen,
           },
           {
             nom: "Supervision",
-            role: "Vous laisser décider",
-            texte: "Contrôle les sources et attend votre approbation.",
+            role: "Keep you in control",
+            texte: "Checks the sources and waits for your approval.",
             icon: ShieldCheck,
           },
         ].map((a, i) => (
@@ -374,15 +457,15 @@ export function Agents() {
             <strong>{a.role}</strong>
             <p>{a.texte}</p>
             <span className="tag">
-              {i === 3 ? "CODE + HUMAIN" : "ALIAS LOCAL"}
+              {i === 3 ? "CODE + HUMAN" : "LOCAL MODEL"}
             </span>
           </section>
         ))}
       </div>
       <section className="panel">
         <div className="panel-heading">
-          <h2>Outils & connecteurs autorisés</h2>
-          <span className="tag">MCP LOCAL</span>
+          <h2>Approved tools & connectors</h2>
+          <span className="tag">LOCAL MCP</span>
         </div>
         {q.isPending ? (
           <Chargement />
@@ -396,12 +479,14 @@ export function Agents() {
                   <Wrench size={18} />
                 </span>
                 <div>
-                  <strong>{o.nom}</strong>
-                  <p>{o.description}</p>
+                  <strong>{toolLabels[o.nom]?.name || "Platform tool"}</strong>
+                  <p>
+                    {toolLabels[o.nom]?.description ||
+                      "A capability provided by the local platform."}
+                  </p>
+                  <code className="tiny muted">{o.nom}</code>
                   <span className="tiny muted">
-                    {o.lecture_seule
-                      ? "Lecture seule"
-                      : "Action explicite de l’opérateur"}
+                    {o.lecture_seule ? "Read-only" : "Operator action required"}
                   </span>
                 </div>
               </div>
@@ -412,8 +497,8 @@ export function Agents() {
       <div className="notice inline-notice">
         <LockKeyhole size={20} />
         <span>
-          Les rôles d’analyse partagent un moteur local séquentiel. Aucun agent
-          ne peut approuver son propre diagnostic ni exécuter une remédiation.
+          Analysis roles run sequentially on your local engine. Agents cannot
+          approve their own diagnosis or execute remediation.
         </span>
       </div>
     </>
@@ -447,14 +532,14 @@ export function Parametres() {
   return (
     <>
       <Titre
-        surligne="VOTRE ESPACE"
-        titre="Pensé pour vous. Maîtrisé par vous."
-        texte="Sécurité locale, préférences de session et accès depuis le terminal."
+        surligne="YOUR WORKSPACE"
+        titre="Settings & help"
+        texte="Manage local access, understand session limits and work from your terminal."
       />
       <div className="dashboard-grid">
         <section className="panel settings-panel">
           <h2>
-            <LockKeyhole size={19} /> Accès & confidentialité
+            <LockKeyhole size={19} /> Access & privacy
           </h2>
           {q.isPending ? (
             <Chargement />
@@ -464,30 +549,35 @@ export function Parametres() {
             <dl>
               <dt>Version</dt>
               <dd>{q.data!.version}</dd>
-              <dt>Mode d’accès</dt>
-              <dd>{q.data!.acces}</dd>
-              <dt>Alias d’analyse</dt>
+              <dt>Access mode</dt>
+              <dd>
+                {q.data!.acces === "Local privé"
+                  ? "Private local access"
+                  : "Unknown access mode"}
+              </dd>
+              <dt>Analysis alias</dt>
               <dd>{q.data!.alias}</dd>
-              <dt>Capacité de la file</dt>
-              <dd>{q.data!.file_max} tâches</dd>
-              <dt>Durée de session</dt>
-              <dd>{q.data!.duree_session_heures} heures</dd>
-              <dt>Rétention des analyses</dt>
-              <dd>{q.data!.retention_jours} jours</dd>
+              <dt>Queue capacity</dt>
+              <dd>{q.data!.file_max} tasks</dd>
+              <dt>Session duration</dt>
+              <dd>{q.data!.duree_session_heures} hours</dd>
+              <dt>Analysis retention</dt>
+              <dd>{q.data!.retention_jours} days</dd>
             </dl>
           )}
           <p className="hint">
-            Le thème se règle en haut de l’écran. Les animations respectent la
-            préférence « réduire les mouvements » du système.
+            Change the theme or pause animations from the top bar. Your choices
+            are saved on this browser. Animations also respect your system’s
+            reduced-motion preference.
           </p>
         </section>
         <section className="panel settings-panel">
           <h2>
-            <ShieldCheck size={19} /> Mot de passe de l’interface
+            <ShieldCheck size={19} /> Console password
           </h2>
           <p>
-            Vous pouvez aussi ouvrir une session depuis le CLI sans saisir de
-            mot de passe.
+            You can also start a secure session from the CLI without entering a
+            password.
           </p>
           <form
             onSubmit={(e) => {
@@ -495,7 +585,7 @@ export function Parametres() {
               changer.mutate();
             }}
           >
-            <label htmlFor="nouveau-mdp">Nouveau mot de passe</label>
+            <label htmlFor="nouveau-mdp">New password</label>
             <input
               id="nouveau-mdp"
               type="password"
@@ -506,7 +596,7 @@ export function Parametres() {
               value={mot}
               onChange={(e) => setMot(e.target.value)}
             />
-            <label htmlFor="confirmer-mdp">Confirmation</label>
+            <label htmlFor="confirmer-mdp">Confirm password</label>
             <input
               id="confirmer-mdp"
               type="password"
@@ -516,8 +606,8 @@ export function Parametres() {
               onChange={(e) => setConfirmation(e.target.value)}
             />
             <p className="hint">
-              14 caractères minimum. L’enregistrement révoque les sessions
-              existantes.
+              Use at least 14 characters. Saving signs out all existing
+              sessions.
             </p>
             {changer.error && <Erreur erreur={changer.error} />}
             <button
@@ -526,29 +616,28 @@ export function Parametres() {
                 changer.isPending || mot.length < 14 || mot !== confirmation
               }
             >
-              Enregistrer & reconnecter
+              Save and sign in again
             </button>
           </form>
         </section>
       </div>
       <section className="panel settings-panel">
         <h2>
-          <SquareTerminal size={20} /> La même plateforme, depuis votre
-          terminal.
+          <SquareTerminal size={20} /> The same platform, from your terminal.
         </h2>
         <p>
-          Depuis le dossier du projet. Les alertes sont lues sur l’entrée
-          standard et ne figurent pas dans la liste des processus.
+          Run these commands from the project directory. Alert text is read from
+          standard input and stays out of the process list.
         </p>
         <div className="cli-examples">
           <code>./plateforme ouvrir</code>
-          <span>Ouvrir une session dans l’interface</span>
+          <span>Start a console session</span>
           <code>./plateforme statut</code>
-          <span>Vérifier les services locaux</span>
+          <span>Check local services</span>
           <code>./plateforme analyses lister</code>
-          <span>Retrouver les analyses</span>
+          <span>List analyses</span>
           <code>./plateforme --help</code>
-          <span>Consulter toutes les commandes</span>
+          <span>Browse all commands</span>
         </div>
       </section>
     </>

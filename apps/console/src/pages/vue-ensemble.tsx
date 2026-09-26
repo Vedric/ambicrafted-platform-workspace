@@ -14,7 +14,7 @@ import {
   Workflow,
   Wrench,
 } from "lucide-react";
-import { api, type Liste, type Vue } from "../api";
+import { api, serviceName, type Liste, type Vue } from "../api";
 import { Erreur, Chargement, Vide, Titre, Orbit } from "../ui";
 import { ListeAnalyses } from "./analyses";
 
@@ -42,40 +42,40 @@ export function VueEnsemble() {
     <>
       <Titre
         surligne="MISSION CONTROL"
-        titre="Une vision claire. Une action juste."
-        texte="Votre espace pour comprendre, orchestrer et décider."
+        titre="A clearer view. A smarter move."
+        texte="Your signals, your agents, your next decision."
       >
         <Link className="btn primary" to="/analyses/nouvelle">
-          <Plus size={18} /> Nouvelle analyse
+          <Plus size={18} /> New analysis
         </Link>
       </Titre>
       <section className="hero-panel">
         <div className="hero-copy">
           <span className="tag">
-            <span className="live-dot" /> VOTRE INTELLIGENCE LOCALE
+            <span className="live-dot" /> YOUR PRIVATE INTELLIGENCE
           </span>
           <h2>
-            La complexité s’arrête ici.
+            Less noise.
             <br />
-            <span>Votre expertise prend le relais.</span>
+            <span>More perspective.</span>
           </h2>
           <p>
-            Vos agents explorent les signaux et les runbooks.
+            Your agents connect the signals and the knowledge.
             <br />
-            Vous validez les décisions, preuves à l’appui.
+            You decide what comes next, with the evidence in hand.
           </p>
           <div className="hero-actions">
             <Link to="/assistant" className="btn primary">
-              <AudioLines size={18} /> Parler à l’assistante{" "}
+              <AudioLines size={18} /> Meet your assistant{" "}
               <ArrowRight size={17} />
             </Link>
             <Link to="/agents" className="text-button">
-              Explorer les agents <ChevronRight size={16} />
+              Explore the agents <ChevronRight size={16} />
             </Link>
           </div>
           <div className="hero-foot">
-            <ShieldCheck size={15} /> Confidentiel par conception <span>·</span>
-            <GitBranch size={15} /> Validation humaine
+            <ShieldCheck size={15} /> Private by design <span>·</span>
+            <GitBranch size={15} /> Human decisions
           </div>
         </div>
         <Orbit petit />
@@ -83,31 +83,35 @@ export function VueEnsemble() {
       <div className="stats-grid">
         {[
           {
-            label: "Analyses enregistrées",
+            label: "Total analyses",
             valeur: d.total,
             icon: Workflow,
-            note: "Sur ce poste",
+            note: "Saved on this device",
           },
           {
-            label: "En cours & en file",
+            label: "Active & queued",
             valeur: enCours,
             icon: Radio,
-            note: "Exécution maîtrisée",
+            note: "Controlled execution",
           },
           {
-            label: "À votre attention",
+            label: "Awaiting your review",
             valeur: d.statuts.en_attente_humain || 0,
             icon: ShieldCheck,
-            note: "Décisions à valider",
+            note: "Decisions to approve",
           },
           {
-            label: "Runbooks disponibles",
+            label: "Available runbooks",
             valeur: d.runbooks,
             icon: BookOpen,
-            note: `${d.sante.index.points ?? "—"} fragments indexés`,
+            note: `${d.sante.index.points ?? "—"} indexed passages`,
           },
-        ].map((s) => (
-          <div className="stat-card" key={s.label}>
+        ].map((s, index) => (
+          <div
+            className="stat-card"
+            key={s.label}
+            style={{ animationDelay: `${index * 65}ms` }}
+          >
             <div>
               <span>{s.label}</span>
               <s.icon size={18} />
@@ -120,20 +124,20 @@ export function VueEnsemble() {
       <div className="dashboard-grid">
         <section className="panel">
           <div className="panel-heading">
-            <h2>Dernières analyses</h2>
+            <h2>Recent analyses</h2>
             <Link to="/analyses">
-              Tout voir <ArrowRight size={15} />
+              View all <ArrowRight size={15} />
             </Link>
           </div>
           {recent.error ? (
             <Erreur erreur={recent.error} />
           ) : !recent.data?.elements.length ? (
             <Vide
-              titre="Votre prochaine décision commence ici."
-              texte="Soumettez une alerte. Le moteur consulte vos procédures avant de proposer un diagnostic."
+              titre="A fresh perspective starts here."
+              texte="Bring an alert. Your agents consult the runbooks before proposing a diagnosis."
             >
               <Link className="btn" to="/analyses/nouvelle">
-                <Plus size={16} /> Lancer une analyse
+                <Plus size={16} /> Run analysis
               </Link>
             </Vide>
           ) : (
@@ -142,8 +146,8 @@ export function VueEnsemble() {
         </section>
         <section className="panel">
           <div className="panel-heading">
-            <h2>Santé de l’écosystème</h2>
-            <Link to="/sante" aria-label="Voir la santé détaillée">
+            <h2>System health</h2>
+            <Link to="/sante" aria-label="View system health">
               <ArrowRight size={17} />
             </Link>
           </div>
@@ -153,8 +157,8 @@ export function VueEnsemble() {
                 <span
                   className={"health-dot " + (s.ok ? "healthy" : "unhealthy")}
                 />
-                <span>{s.nom}</span>
-                <small>{s.ok ? "Disponible" : "À vérifier"}</small>
+                <span>{serviceName(s.id)}</span>
+                <small>{s.ok ? "Online" : "Needs attention"}</small>
               </div>
             ))}
           </div>
@@ -166,15 +170,15 @@ export function VueEnsemble() {
             >
               <i />
               {d.sante.ok
-                ? "Tous les services répondent"
-                : "Une vérification est nécessaire"}
+                ? "All services responding"
+                : "Some services need attention"}
             </span>
           </div>
         </section>
         <section className="panel">
           <div className="panel-heading">
-            <h2>Votre activité</h2>
-            <span className="muted tiny">14 derniers jours · UTC</span>
+            <h2>Your activity</h2>
+            <span className="muted tiny">Last 14 days · UTC</span>
           </div>
           <div
             className="activity-chart"
@@ -198,31 +202,31 @@ export function VueEnsemble() {
         </section>
         <section className="panel">
           <div className="panel-heading">
-            <h2>À portée de main</h2>
+            <h2>Ready for your next move</h2>
             <Sparkles size={17} />
           </div>
           <div className="quick-links">
             <Link to="/runbooks">
               <BookOpen />
               <div>
-                <strong>Votre mémoire opérationnelle</strong>
-                <span>Lire et enrichir les procédures</span>
+                <strong>Your knowledge base</strong>
+                <span>Explore and enrich your runbooks</span>
               </div>
               <ChevronRight />
             </Link>
             <Link to="/approbations">
               <CheckCheck />
               <div>
-                <strong>Garder la main</strong>
-                <span>Examiner les propositions des agents</span>
+                <strong>Stay in control</strong>
+                <span>Review your agents’ proposals</span>
               </div>
               <ChevronRight />
             </Link>
             <Link to="/operations">
               <Wrench />
               <div>
-                <strong>Prendre soin de la plateforme</strong>
-                <span>Vérifier, sauvegarder, réindexer</span>
+                <strong>Keep things running</strong>
+                <span>Verify, back up, reindex</span>
               </div>
               <ChevronRight />
             </Link>

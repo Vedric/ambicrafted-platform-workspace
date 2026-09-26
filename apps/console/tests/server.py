@@ -22,11 +22,11 @@ from plateforme.services import Services
 
 WEB = Path(__file__).resolve().parents[1] / "dist"
 DIAGNOSTIC = {
-    "cause_probable": "Saturation des connexions dans cet exercice synthétique.",
+    "cause_probable": "Connection pool exhausted in this synthetic exercise.",
     "confiance": "moyenne",
     "runbook_source": "postgres.md",
-    "actions_proposees": ["Vérifier le nombre de connexions avant toute intervention."],
-    "elements_manquants": ["Confirmer les métriques de l'incident réel."],
+    "actions_proposees": ["Check the connection count before intervening."],
+    "elements_manquants": ["Confirm the actual incident metrics."],
 }
 
 
@@ -45,7 +45,7 @@ class MoteurDeterministe(Moteur):
             )
             self.depot.progression(identifiant, "demarrage")
             alerte = self.alertes.pop(identifiant, "")
-            await asyncio.sleep(4 if alerte.startswith("LENT") else 0.12)
+            await asyncio.sleep(4 if alerte.startswith("SLOW") else 0.12)
             self.depot.progression(identifiant, "modele")
             self.depot.progression(identifiant, "outil")
             statut = (
@@ -61,13 +61,13 @@ class MoteurDeterministe(Moteur):
                 "classification": {
                     "connue": True,
                     "urgence": 3,
-                    "justification": "Données de test synthétiques.",
+                    "justification": "Synthetic test data.",
                 },
                 "message": json.dumps(DIAGNOSTIC, ensure_ascii=False)
                 if decision is None
-                else "Diagnostic refusé."
+                else "Diagnosis rejected."
                 if not decision
-                else "Diagnostic approuvé.",
+                else "Diagnosis approved.",
                 "outils_appeles": ["lire_runbook"],
                 "budget": {"appels_llm": 2, "cout_usd": 0},
             }
@@ -75,7 +75,7 @@ class MoteurDeterministe(Moteur):
                 statut = "complet"
                 rapport = {
                     "statut": statut,
-                    "message": "Opération simulée pour le test navigateur.",
+                    "message": "Operation simulated for the browser test.",
                 }
             self.depot.changer(
                 identifiant,
@@ -92,12 +92,12 @@ async def sante(_):
         "ok": True,
         "services": [
             {
-                "id": "passerelle",
-                "nom": "Passerelle locale",
+                "id": "litellm",
+                "nom": "AI gateway",
                 "ok": True,
                 "latence_ms": 5,
             },
-            {"id": "index", "nom": "Mémoire vectorielle", "ok": True, "latence_ms": 2},
+            {"id": "qdrant", "nom": "Vector memory", "ok": True, "latence_ms": 2},
         ],
         "modeles": [{"nom": "local", "taille": 1024**3}],
         "index": {"points": 3, "statut": "green"},
@@ -121,7 +121,7 @@ async def semantique(_, requete):
             "score": 0.71,
             "donnees": {
                 "fichier": "postgres.md",
-                "texte": "Vérifier le nombre de connexions avant toute intervention.",
+                "texte": "Check the connection count before intervening.",
             },
         }
     ]
@@ -130,7 +130,7 @@ async def semantique(_, requete):
 async def dialoguer_simule(_, messages):
     await asyncio.sleep(0.08)
     return {
-        "texte": "Réponse synthétique : ouvrez Analyses pour examiner un incident avec ses sources.",
+        "texte": "Synthetic reply: open Analyses to investigate an incident with its sources.",
         "local": True,
         "actions_executees": False,
     }
@@ -148,7 +148,7 @@ def main():
         corpus = racine / "runbooks"
         corpus.mkdir()
         (corpus / "postgres.md").write_text(
-            "# PostgreSQL : connexions\n\n## Diagnostic\n\nVérifier le nombre de connexions avant toute intervention.\n",
+            "# PostgreSQL: connections\n\n## Diagnosis\n\nCheck the connection count before intervening.\n",
             encoding="utf-8",
         )
         p = ParametresTest(

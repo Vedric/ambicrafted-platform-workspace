@@ -27,6 +27,7 @@ import {
   actifs,
   date,
   statuts,
+  systemMessage,
   type Analyse,
   type Liste,
 } from "../api";
@@ -40,6 +41,22 @@ import {
   Markdown,
   Modal,
 } from "../ui";
+
+const confidenceLabels: Record<string, string> = {
+  haute: "High",
+  moyenne: "Medium",
+  faible: "Low",
+};
+const operationTitles: Record<string, string> = {
+  verifier: "Platform verification",
+  indexer: "Runbook reindexing",
+  sauvegarder: "Platform backup",
+  "tester-restauration": "Backup restoration test",
+};
+const analysisTitle = (analysis: Analyse) =>
+  analysis.mode === "operation"
+    ? operationTitles[analysis.options.operation || ""] || "Platform operation"
+    : analysis.titre;
 
 export function ListeAnalyses({ elements }: { elements: Analyse[] }) {
   return (
@@ -58,10 +75,10 @@ export function ListeAnalyses({ elements }: { elements: Analyse[] }) {
             )}
           </span>
           <div className="analysis-name">
-            <strong>{a.titre}</strong>
+            <strong>{analysisTitle(a)}</strong>
             <small>
               {date(a.cree_le)} ·{" "}
-              {a.mode === "operation" ? "Opération" : "Analyse supervisée"}
+              {a.mode === "operation" ? "Operation" : "Supervised analysis"}
             </small>
           </div>
           <Badge statut={a.statut} />
@@ -87,20 +104,16 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
   return (
     <>
       <Titre
-        surligne={approbations ? "DÉCISION HUMAINE" : "ORCHESTRATION"}
-        titre={
-          approbations
-            ? "Vous avez le dernier mot."
-            : "Vos analyses, de bout en bout."
-        }
+        surligne={approbations ? "HUMAN OVERSIGHT" : "ORCHESTRATION"}
+        titre={approbations ? "Approvals" : "Analyses"}
         texte={
           approbations
-            ? "Vérifiez la pertinence des sources et les conditions avant toute approbation."
-            : "Suivez chaque exécution, consultez ses preuves et retrouvez son résultat."
+            ? "Review the evidence and prerequisites before approving a proposal."
+            : "Follow every run from the first signal to a reviewed result."
         }
       >
         <Link to="/analyses/nouvelle" className="btn primary">
-          <Plus size={18} /> Nouvelle analyse
+          <Plus size={18} /> New analysis
         </Link>
       </Titre>
       <section className="panel">
@@ -108,8 +121,8 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
           <div className="search-input">
             <Search size={17} />
             <input
-              aria-label="Rechercher une analyse"
-              placeholder="Rechercher une analyse…"
+              aria-label="Search analyses"
+              placeholder="Search analyses…"
               value={recherche}
               onChange={(e) => {
                 setRecherche(e.target.value);
@@ -119,14 +132,14 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
           </div>
           {!approbations && (
             <select
-              aria-label="Filtrer par état"
+              aria-label="Filter by status"
               value={filtre}
               onChange={(e) => {
                 setFiltre(e.target.value);
                 setPage(1);
               }}
             >
-              <option value="">Tous les états</option>
+              <option value="">All statuses</option>
               {Object.entries(statuts).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v}
@@ -134,7 +147,9 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
               ))}
             </select>
           )}
-          <span className="muted tiny">{q.data?.total ?? "—"} résultat(s)</span>
+          <span className="muted tiny">
+            {q.data?.total ?? "—"} {q.data?.total === 1 ? "result" : "results"}
+          </span>
         </div>
         {q.isPending ? (
           <Chargement />
@@ -144,15 +159,11 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
           <ListeAnalyses elements={q.data.elements} />
         ) : (
           <Vide
-            titre={
-              approbations
-                ? "Aucune décision en attente."
-                : "Aucune analyse ici pour le moment."
-            }
+            titre={approbations ? "No pending approvals" : "No analyses yet"}
             texte={
               approbations
-                ? "Les propositions du moteur apparaîtront ici lorsqu’elles seront prêtes à être examinées."
-                : "Lancez une analyse ou adaptez votre recherche."
+                ? "Proposals appear here when they are ready for your review."
+                : "Start an analysis or adjust your search."
             }
           />
         )}
@@ -162,7 +173,7 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
             disabled={page <= 1}
             onClick={() => setPage(page - 1)}
           >
-            Précédent
+            Previous
           </button>
           <span>Page {page}</span>
           <button
@@ -170,7 +181,7 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
             disabled={!q.data || page * 25 >= q.data.total}
             onClick={() => setPage(page + 1)}
           >
-            Suivant
+            Next
           </button>
         </div>
       </section>
@@ -191,9 +202,9 @@ export function NouvelleAnalyse() {
   return (
     <>
       <Titre
-        surligne="NOUVELLE MISSION"
-        titre="Donnez du sens à un signal."
-        texte="Décrivez les faits observés. Le moteur confronte l’alerte à vos runbooks."
+        surligne="NEW ANALYSIS"
+        titre="New analysis"
+        texte="Describe what you observed. Your agents will investigate against your runbooks."
       />
       <div className="form-grid">
         <form
@@ -204,19 +215,18 @@ export function NouvelleAnalyse() {
           }}
         >
           <label htmlFor="titre">
-            Intitulé de l’analyse <span>Un repère pour la retrouver</span>
+            Analysis title <span>A clear name for this investigation</span>
           </label>
           <input
             id="titre"
             required
             maxLength={100}
-            placeholder="Ex. Connexions PostgreSQL saturées"
+            placeholder="e.g. PostgreSQL connection pool exhausted"
             value={titre}
             onChange={(e) => setTitre(e.target.value)}
           />
           <label htmlFor="alerte">
-            Alerte & contexte{" "}
-            <span>Symptômes, métriques et message d’erreur</span>
+            Alert & context <span>Symptoms, metrics and error messages</span>
           </label>
           <textarea
             id="alerte"
@@ -224,20 +234,20 @@ export function NouvelleAnalyse() {
             minLength={1}
             maxLength={20000}
             rows={13}
-            placeholder="Décrivez ce qui se passe, depuis quand et les vérifications déjà effectuées…"
+            placeholder="Describe the issue, when it started and what you have already checked…"
             value={alerte}
             onChange={(e) => setAlerte(e.target.value)}
           />
           <div className="field-foot">
             <span>
-              <LockKeyhole size={13} /> Traitement local uniquement
+              <LockKeyhole size={13} /> Processed locally
             </span>
-            <span>{alerte.length.toLocaleString("fr-FR")} / 20 000</span>
+            <span>{alerte.length.toLocaleString("en-US")} / 20,000</span>
           </div>
           {mutation.error && <Erreur erreur={mutation.error} />}
           <div className="form-actions">
             <Link className="btn" to="/analyses">
-              Annuler
+              Cancel
             </Link>
             <button
               className="btn primary"
@@ -248,7 +258,7 @@ export function NouvelleAnalyse() {
               ) : (
                 <Zap size={17} />
               )}{" "}
-              Lancer l’analyse
+              Run analysis
             </button>
           </div>
         </form>
@@ -257,32 +267,30 @@ export function NouvelleAnalyse() {
             <span className="tile-icon">
               <GitBranch size={24} />
             </span>
-            <h2>Un parcours supervisé.</h2>
+            <h2>Evidence at every step.</h2>
             <ol className="numbered-steps">
               <li>
-                <strong>Comprendre</strong>
-                <p>
-                  Extraire les symptômes et repérer les instructions suspectes.
-                </p>
+                <strong>Understand</strong>
+                <p>Extract symptoms and flag suspicious instructions.</p>
               </li>
               <li>
-                <strong>Confronter</strong>
-                <p>Classer l’alerte et consulter les procédures disponibles.</p>
+                <strong>Investigate</strong>
+                <p>Classify the alert and consult relevant procedures.</p>
               </li>
               <li>
-                <strong>Vérifier</strong>
-                <p>Rattacher les actions à des passages réellement lus.</p>
+                <strong>Verify</strong>
+                <p>Trace every proposed action to a source passage.</p>
               </li>
               <li>
-                <strong>Décider</strong>
-                <p>Vous soumettre le diagnostic avant sa livraison.</p>
+                <strong>Decide</strong>
+                <p>Review the diagnosis before it is delivered.</p>
               </li>
             </ol>
           </div>
           <p className="hint">
-            <ShieldCheck size={16} /> L’agent propose. Il n’exécute aucune
-            remédiation. Les contenus dérivés restent confidentiels et sont
-            conservés localement.
+            <ShieldCheck size={16} /> Agents propose actions for your review.
+            Remediation stays under your control. Analysis data remains private
+            on this device.
           </p>
         </aside>
       </div>
@@ -334,12 +342,12 @@ export function DetailAnalyse() {
       client.invalidateQueries();
       notifier(
         choix === "oui"
-          ? "Approbation transmise."
+          ? "Approval submitted."
           : choix === "non"
-            ? "Refus transmis."
+            ? "Rejection submitted."
             : choix === "supprimer"
-              ? "Analyse supprimée."
-              : "Analyse annulée.",
+              ? "Analysis deleted."
+              : "Analysis cancelled.",
       );
       if (choix === "supprimer") navigate("/analyses");
     },
@@ -359,12 +367,12 @@ export function DetailAnalyse() {
   return (
     <>
       <Link to="/analyses" className="back-link">
-        <ArrowLeft size={15} /> Toutes les analyses
+        <ArrowLeft size={15} /> All analyses
       </Link>
       <Titre
-        surligne={a.mode === "operation" ? "OPÉRATION" : "ANALYSE SUPERVISÉE"}
-        titre={a.titre}
-        texte={`Créée le ${date(a.cree_le)} · ${a.duree_s ? Math.round(a.duree_s) + " s de calcul" : "En attente de résultat"}`}
+        surligne={a.mode === "operation" ? "OPERATION" : "SUPERVISED ANALYSIS"}
+        titre={analysisTitle(a)}
+        texte={`Created ${date(a.cree_le)} · ${a.duree_s ? Math.round(a.duree_s) + " s runtime" : "Awaiting results"}`}
       >
         <Badge statut={a.statut} />
         <button className="btn" onClick={() => exportFichier("json")}>
@@ -374,7 +382,7 @@ export function DetailAnalyse() {
           className="icon-button"
           onClick={() => setDecision("supprimer")}
           disabled={actifs.has(a.statut)}
-          aria-label="Supprimer l’analyse"
+          aria-label="Delete analysis"
         >
           <Trash2 size={17} />
         </button>
@@ -383,14 +391,14 @@ export function DetailAnalyse() {
         <div className="approval-banner">
           <ShieldCheck size={25} />
           <div>
-            <strong>Cette proposition attend votre regard.</strong>
+            <strong>Ready for your review</strong>
             <p>
-              Les actions sont un aperçu soumis à validation. Vérifiez leur
-              pertinence et leurs préconditions.
+              Review the proposed actions, supporting evidence and prerequisites
+              before making your decision.
             </p>
           </div>
           <button className="btn" onClick={() => setDecision("non")}>
-            Refuser
+            Reject proposal
           </button>
           <button
             className="btn primary"
@@ -399,7 +407,7 @@ export function DetailAnalyse() {
               setDecision("oui");
             }}
           >
-            <Check size={17} /> Examiner & approuver
+            <Check size={17} /> Approve proposal
           </button>
         </div>
       )}
@@ -409,19 +417,21 @@ export function DetailAnalyse() {
           <div>
             <strong>
               {a.statut === "en_file"
-                ? "Votre analyse est dans la file."
+                ? "Your run is queued."
                 : a.statut === "decision"
-                  ? "Votre décision est en cours de traitement."
-                  : "Le moteur travaille sur votre analyse."}
+                  ? "Applying your decision."
+                  : a.mode === "operation"
+                    ? "Your operation is running."
+                    : "Your agents are investigating."}
             </strong>
-            <p>Les étapes ci-dessous reflètent l’exécution réelle.</p>
+            <p>The timeline updates as each step runs.</p>
           </div>
           <button
             className="btn"
             disabled={action.isPending}
             onClick={() => action.mutate("annuler")}
           >
-            Annuler l’exécution
+            Cancel run
           </button>
         </div>
       )}
@@ -430,16 +440,19 @@ export function DetailAnalyse() {
           {d ? (
             <section className="panel diagnostic-panel">
               <div className="panel-heading">
-                <h2>{livre ? "Diagnostic livré" : "Proposition à examiner"}</h2>
-                <span className="tag">CONFIANCE DÉCLARÉE : {d.confiance}</span>
+                <h2>{livre ? "Completed diagnosis" : "Proposal for review"}</h2>
+                <span className="tag">
+                  REPORTED CONFIDENCE:{" "}
+                  {confidenceLabels[d.confiance] || "Unspecified"}
+                </span>
               </div>
               <div className="diagnostic-content">
-                <h3>Cause probable</h3>
+                <h3>Likely cause</h3>
                 <p className="diagnostic-cause">{d.cause_probable}</p>
                 <div className="source-card">
                   <BookOpen size={19} />
                   <div>
-                    <small>SOURCE DU DIAGNOSTIC</small>
+                    <small>SUPPORTING SOURCE</small>
                     {d.runbook_source ? (
                       <Link
                         to={"/runbooks/" + encodeURIComponent(d.runbook_source)}
@@ -447,14 +460,12 @@ export function DetailAnalyse() {
                         {d.runbook_source} <ExternalLink size={13} />
                       </Link>
                     ) : (
-                      <strong>Aucune source vérifiée</strong>
+                      <strong>No verified source</strong>
                     )}
                   </div>
                 </div>
                 <h3>
-                  {!livre
-                    ? "Actions soumises à validation"
-                    : "Actions proposées à l’opérateur"}
+                  {!livre ? "Actions awaiting review" : "Recommended actions"}
                 </h3>
                 {d.actions_proposees?.length ? (
                   <ol className="actions-list">
@@ -466,11 +477,11 @@ export function DetailAnalyse() {
                     ))}
                   </ol>
                 ) : (
-                  <p className="muted">Aucune action proposée.</p>
+                  <p className="muted">No actions proposed.</p>
                 )}
                 {!!d.elements_manquants?.length && (
                   <div className="notice">
-                    <strong>Réserves & éléments à confirmer</strong>
+                    <strong>Open questions & limitations</strong>
                     <ul>
                       {d.elements_manquants.map((t, i) => (
                         <li key={i}>{t}</li>
@@ -482,7 +493,7 @@ export function DetailAnalyse() {
                   className="btn small"
                   onClick={() => exportFichier("md")}
                 >
-                  <FileText size={15} /> Exporter en Markdown
+                  <FileText size={15} /> Export Markdown
                 </button>
               </div>
             </section>
@@ -492,25 +503,25 @@ export function DetailAnalyse() {
                 <Vide
                   titre={
                     a.statut === "rejete_par_humain"
-                      ? "Proposition refusée."
+                      ? "Proposal rejected"
                       : a.statut === "complet"
-                        ? "Opération terminée."
-                        : "Aucun diagnostic livré."
+                        ? "Operation completed"
+                        : "No diagnosis available"
                   }
-                  texte={
-                    r?.message ||
-                    "Cette exécution ne contient pas de diagnostic approuvé."
-                  }
+                  texte={systemMessage(
+                    r?.message || "",
+                    "This run has no approved diagnosis.",
+                  )}
                 />
               </section>
             )
           )}
           {r?.injections_signalees?.length ? (
             <section className="panel warning-panel">
-              <h2>Instructions suspectes signalées</h2>
+              <h2>Suspicious instructions detected</h2>
               <p>
-                Confirmez l’origine de l’alerte. Ces instructions ne sont pas
-                des commandes à suivre.
+                Verify the source of the alert. Treat these instructions as
+                untrusted content, not commands to execute.
               </p>
               <ul>
                 {r.injections_signalees.map((s, i) => (
@@ -522,7 +533,7 @@ export function DetailAnalyse() {
           {r?.actions_ecartees_sans_source?.length ? (
             <details className="panel disclosure">
               <summary>
-                Actions écartées faute de source{" "}
+                Actions excluded without supporting evidence{" "}
                 <span>{r.actions_ecartees_sans_source.length}</span>
               </summary>
               <ul>
@@ -536,13 +547,13 @@ export function DetailAnalyse() {
         <aside>
           <section className="panel">
             <div className="panel-heading">
-              <h2>Fil d’exécution</h2>
+              <h2>Execution timeline</h2>
               <Radio size={17} />
             </div>
             <div className="timeline">
               <div>
                 <span className="timeline-dot" />
-                <strong>Analyse créée</strong>
+                <strong>Analysis created</strong>
                 <small>{date(a.cree_le)}</small>
               </div>
               {a.evenements?.map((e, i) => (
@@ -550,16 +561,16 @@ export function DetailAnalyse() {
                   <span className="timeline-dot" />
                   <strong>
                     {{
-                      demarrage: "Moteur démarré",
-                      modele: "Appel au modèle local",
-                      outil: "Consultation d’un outil",
-                      termine: "Exécution terminée",
-                    }[e.stade] || e.stade}
+                      demarrage: "Engine started",
+                      modele: "Local model call",
+                      outil: "Tool call",
+                      termine: "Run finished",
+                    }[e.stade] || "Run updated"}
                   </strong>
                   <small>
-                    {new Date(e.date).toLocaleTimeString("fr-FR")}
+                    {new Date(e.date).toLocaleTimeString("en-US")}
                     {e.stade === "modele"
-                      ? ` · appel ${a.evenements!.slice(0, i + 1).filter((s) => s.stade === "modele").length}`
+                      ? ` · call ${a.evenements!.slice(0, i + 1).filter((s) => s.stade === "modele").length}`
                       : ""}
                   </small>
                 </div>
@@ -567,30 +578,32 @@ export function DetailAnalyse() {
             </div>
           </section>
           <section className="panel metadata">
-            <h2>Cadre d’exécution</h2>
+            <h2>Run details</h2>
             <dl>
-              <dt>Routage</dt>
+              <dt>Routing</dt>
               <dd>
-                <LockKeyhole size={13} /> Local confidentiel
+                <LockKeyhole size={13} /> Private & local
               </dd>
-              <dt>Remédiation automatique</dt>
-              <dd>Désactivée</dd>
-              <dt>Outils appelés</dt>
+              <dt>Automatic remediation</dt>
+              <dd>Disabled</dd>
+              <dt>Tool calls</dt>
               <dd>{r?.outils_appeles?.length ?? "—"}</dd>
-              <dt>Appels au modèle</dt>
+              <dt>Model calls</dt>
               <dd>{r?.budget?.appels_llm ?? "—"}</dd>
-              <dt>Coût API déclaré</dt>
+              <dt>Reported API cost</dt>
               <dd>
                 {r?.budget?.cout_usd !== undefined
-                  ? r.budget.cout_usd.toFixed(4) + " $"
+                  ? "$" + r.budget.cout_usd.toFixed(4)
                   : "—"}
               </dd>
             </dl>
             {r?.classification && (
               <div className="notice">
-                <strong>Urgence déclarée : {r.classification.urgence}/5</strong>
+                <strong>Reported urgency: {r.classification.urgence}/5</strong>
                 <p>{r.classification.justification}</p>
-                <small>Classification du modèle, à confronter aux faits.</small>
+                <small>
+                  Model assessment. Verify against the observed facts.
+                </small>
               </div>
             )}
             <span className="mono tiny muted break-all">{a.id}</span>
@@ -601,19 +614,19 @@ export function DetailAnalyse() {
         <Modal
           titre={
             decision === "oui"
-              ? "Approuver la proposition"
+              ? "Approve proposal"
               : decision === "non"
-                ? "Refuser la proposition"
-                : "Supprimer cette analyse"
+                ? "Reject proposal"
+                : "Delete analysis"
           }
           fermer={() => setDecision(null)}
         >
           <p>
             {decision === "oui"
-              ? "L’approbation autorise la livraison du diagnostic. Aucune commande de remédiation ne sera exécutée."
+              ? "Approve this diagnosis for delivery. Remediation remains a separate, operator-led action."
               : decision === "non"
-                ? "Le diagnostic sera refusé et aucune action ne sera livrée."
-                : "Le rapport et ses checkpoints seront supprimés du stockage actif. Les sauvegardes suivent leur propre rétention."}
+                ? "Reject this proposal. Its recommended actions will not be delivered."
+                : "Delete this report and its checkpoints from active storage. Existing backups follow their own retention policy."}
           </p>
           {decision === "oui" && (
             <label className="checkbox-label">
@@ -622,13 +635,13 @@ export function DetailAnalyse() {
                 checked={accord}
                 onChange={(e) => setAccord(e.target.checked)}
               />{" "}
-              J’ai vérifié la source, la pertinence des actions et leurs
-              préconditions.
+              I have reviewed the source, proposed actions and their
+              prerequisites.
             </label>
           )}
           <div className="form-actions">
             <button className="btn" onClick={() => setDecision(null)}>
-              Retour
+              Back
             </button>
             <button
               className={"btn " + (decision === "oui" ? "primary" : "danger")}
@@ -636,12 +649,12 @@ export function DetailAnalyse() {
               onClick={() => action.mutate(decision)}
             >
               {action.isPending
-                ? "Traitement…"
+                ? "Processing…"
                 : decision === "oui"
-                  ? "Confirmer l’approbation"
+                  ? "Approve proposal"
                   : decision === "non"
-                    ? "Confirmer le refus"
-                    : "Supprimer"}
+                    ? "Reject proposal"
+                    : "Delete analysis"}
             </button>
           </div>
         </Modal>
