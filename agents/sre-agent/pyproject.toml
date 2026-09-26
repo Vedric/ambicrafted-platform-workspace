@@ -34,7 +34,7 @@ sre-agent = "sre_agent.cli:main"
 sre-agent-graph = "sre_agent.cli_graphe:main"
 
 [build-system]
-requires = ["uv_build>=0.12.5,<0.13.0"]
+requires = ["uv_build==0.12.5"]
 build-backend = "uv_build"
 
 [tool.ruff]
@@ -43,7 +43,20 @@ line-length = 100
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.mypy]
+files = ["src/sre_agent"]
+follow_imports = "silent"
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["sre_agent"]
+
 [dependency-groups]
 dev = [
+    "coverage==7.16.1",
+    "mypy==2.3.1",
     "pytest>=9,<10",
+    "python-dotenv==1.2.3",
+    "ruff==0.15.10",
 ]

@@ -1,0 +1,50 @@
+[project]
+name = "ambicrafted-control"
+version = "0.2.0"
+description = "Plan de contrôle privé de la plateforme agentique Ambicrafted."
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi==0.141.1",
+    "httpx==0.28.1",
+    "mcp==2.2.0",
+    "python-dotenv==1.2.3",
+    "sre-agent[graphe]==0.1.0",
+    "uvicorn==0.54.0",
+]
+
+[project.scripts]
+plateforme = "plateforme.cli:main"
+
+[build-system]
+requires = ["uv_build==0.12.5"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "plateforme"
+
+[tool.uv.sources]
+sre-agent = { path = "../../agents/sre-agent", editable = true }
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["plateforme"]
+
+[tool.mypy]
+files = ["src/plateforme"]
+ignore_missing_imports = true
+follow_imports = "silent"
+
+[dependency-groups]
+dev = [
+    "coverage==7.16.1",
+    "mypy==2.3.1",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "ruff==0.16.9",
+]

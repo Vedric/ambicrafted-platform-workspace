@@ -18,6 +18,7 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 
 import pytest
+import hashlib
 
 from sre_agent import cli_graphe, config, graphe, llm, outils
 from sre_agent.budget import Budget
@@ -44,6 +45,15 @@ class FauxClient:
 
     def appeler(self, nom: str, arguments: dict) -> str:
         self.appels.append(nom)
+        if nom == "read_runbook":
+            return json.dumps(
+                {
+                    "fichier": arguments.get("nom"),
+                    "texte": self.reponse,
+                    "sha256": hashlib.sha256(self.reponse.encode()).hexdigest(),
+                    "tronque": False,
+                }
+            )
         return self.reponse
 
 
@@ -64,7 +74,8 @@ def reponse(contenu: str = "", appels_outils=None, cout: float = 0.01) -> Repons
 
 
 def appel_outil(nom: str, identifiant: str) -> dict:
-    return {"id": identifiant, "function": {"name": nom, "arguments": "{}"}}
+    arguments = {"nom": "incident-p1-database.md"} if nom == "read_runbook" else {}
+    return {"id": identifiant, "function": {"name": nom, "arguments": json.dumps(arguments)}}
 
 
 EXTRACTION = json.dumps(
@@ -85,7 +96,7 @@ DIAGNOSTIC = json.dumps(
         "cause_probable": "Saturation du pool de connexions.",
         "confiance": "haute",
         "elements_manquants": [],
-        "actions_proposees": ["Terminer les sessions idle"],
+        "actions_proposees": ["Terminer les sessions idle."],
         "runbook_source": "incident-p1-database.md",
     }
 )
@@ -127,7 +138,7 @@ def test_le_graphe_s_arrete_avant_de_livrer(monkeypatch, db):
         [
             reponse(EXTRACTION),
             reponse(TRI),
-            reponse(appels_outils=[appel_outil("semantic_search", "c1")]),
+            reponse(appels_outils=[appel_outil("read_runbook", "c1")]),
             reponse(DIAGNOSTIC),
         ],
     )
@@ -138,7 +149,7 @@ def test_le_graphe_s_arrete_avant_de_livrer(monkeypatch, db):
     # carries it, and the state holds no trace of a human decision.
     demande = json.loads(rapport.message)
     assert demande["runbook_source"] == "incident-p1-database.md"
-    assert demande["actions_proposees"] == ["Terminer les sessions idle"]
+    assert demande["actions_proposees"] == ["Terminer les sessions idle."]
 
     instantane = graphe.etat("t-porte", db)
     assert instantane["prochains_noeuds"] == ["porte_humaine"]
@@ -156,7 +167,12 @@ def test_la_reprise_repart_du_meme_point(monkeypatch, db):
     """
     scenariser(
         monkeypatch,
-        [reponse(EXTRACTION), reponse(TRI), reponse(DIAGNOSTIC)],
+        [
+            reponse(EXTRACTION),
+            reponse(TRI),
+            reponse(appels_outils=[appel_outil("read_runbook", "c1")]),
+            reponse(DIAGNOSTIC),
+        ],
     )
     graphe.demarrer("PostgreSQL: too many clients already", "t-reprise", db)
 
@@ -167,7 +183,7 @@ def test_la_reprise_repart_du_meme_point(monkeypatch, db):
     assert rapport.statut == "complet"
     assert rapport.diagnostic is not None
     assert rapport.diagnostic.runbook_source == "incident-p1-database.md"
-    assert rapport.diagnostic.actions_proposees == ["Terminer les sessions idle"]
+    assert rapport.diagnostic.actions_proposees == ["Terminer les sessions idle."]
 
 
 def test_un_refus_ne_livre_rien(monkeypatch, db):
@@ -279,8 +295,8 @@ def test_charge_confidentielle_refusee_dans_le_graphe(monkeypatch, db):
     rapport = graphe.demarrer("alerte client avec un nom d'hôte", "t-fuite", db)
 
     assert rapport.statut == "erreur"
-    assert rapport.message.startswith("FuiteConfidentielle")
-    assert "ne quitte pas la machine" in rapport.message
+    assert rapport.message.startswith("ConfigurationInvalide")
+    assert "alias local requis" in rapport.message
     assert rapport.diagnostic is None
 
 
@@ -291,15 +307,15 @@ def test_la_classification_du_noeud_extraction_est_confidentielle(monkeypatch, d
     def espion(*, classification, budget, **_k):
         vues.append(classification)
         budget.consommer_llm(0.0, 1, 1)
-        return reponse(EXTRACTION if len(vues) == 1 else TRI, cout=0.0)
+        return reponse([EXTRACTION, TRI, DIAGNOSTIC][len(vues) - 1], cout=0.0)
 
     monkeypatch.setattr(graphe, "appeler_llm", espion)
     monkeypatch.setattr(graphe, "_client", lambda: FauxClient())
-    monkeypatch.setattr(config, "MAX_TOURS", 0)  # cut short after triage
+    monkeypatch.setattr(config, "MAX_TOURS", 1)
     graphe.demarrer("alerte", "t-classif", db)
 
     assert vues[0] is Classification.CONFIDENTIEL
-    assert vues[1] is Classification.DERIVE
+    assert vues == [Classification.CONFIDENTIEL] * 3
 
 
 def test_la_liste_blanche_tient_dans_le_noeud_d_outils(monkeypatch, db):
@@ -323,11 +339,9 @@ def test_la_liste_blanche_tient_dans_le_noeud_d_outils(monkeypatch, db):
     )
     rapport = graphe.demarrer("alerte", "t-blanche", db)
 
-    assert rapport.statut == "en_attente_humain"
-    messages = graphe.etat("t-blanche", db)["valeurs"]["messages"]
-    resultat = next(m for m in messages if m.get("role") == "tool")
-    assert "Refusé" in resultat["content"]
-    assert "ecrire_runbook" in resultat["content"]
+    assert rapport.statut == "erreur"
+    assert "hors de la liste autorisée" in rapport.message
+    assert rapport.budget["appels_outils"] == 0
 
 
 # --- Reducers --------------------------------------------------------------

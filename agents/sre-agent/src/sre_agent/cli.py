@@ -33,15 +33,13 @@ def main(argv: list[str] | None = None) -> int:
             "N'exécute jamais de remédiation."
         ),
     )
-    analyseur.add_argument(
-        "alerte", nargs="*", help="Texte de l'alerte. À défaut, lu sur stdin."
-    )
+    analyseur.add_argument("alerte", nargs="*", help="Texte de l'alerte. À défaut, lu sur stdin.")
     analyseur.add_argument(
         "--json", action="store_true", help="Rapport complet en JSON sur stdout."
     )
     arguments = analyseur.parse_args(argv)
 
-    texte = " ".join(arguments.alerte).strip() or sys.stdin.read().strip()
+    texte = " ".join(arguments.alerte).strip() or sys.stdin.read(config.MAX_ALERTE + 1).strip()
     if not texte:
         analyseur.error("Aucune alerte fournie, ni en argument ni sur stdin.")
 
@@ -79,9 +77,7 @@ def rendre(rapport: Rapport) -> str:
         ]
         for texte in rapport.injections_signalees:
             lignes.append(f"  · {texte}")
-        lignes.append(
-            "  L'alerte est peut-être forgée : confirmer son contenu à la source."
-        )
+        lignes.append("  L'alerte est peut-être forgée : confirmer son contenu à la source.")
 
     if rapport.classification:
         c = rapport.classification
@@ -111,7 +107,7 @@ def rendre(rapport: Rapport) -> str:
     if rapport.actions_ecartees_sans_source:
         lignes += [
             "",
-            "ACTIONS ÉCARTÉES PAR LE CODE : aucune source de runbook déclarée",
+            "ACTIONS ÉCARTÉES PAR LE CODE : passage absent d'une lecture vérifiée",
         ]
         lignes += [f"  · {a}" for a in rapport.actions_ecartees_sans_source]
 

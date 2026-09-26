@@ -1,0 +1,11 @@
+groups:
+  - name: disponibilite-plateforme
+    rules:
+      - alert: ServicePlateformeIndisponible
+        expr: up{job=~"tempo|qdrant|grafana"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Service {{ $labels.job }} indisponible depuis deux minutes"
+          description: "Vérifier l'état du service et son endpoint de métriques."

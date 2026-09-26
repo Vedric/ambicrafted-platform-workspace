@@ -19,6 +19,18 @@ node_modules/
 .promptfoo/
 evals/output/
 *.bak
+.coverage*
+coverage*.json
+htmlcov/
+dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.sqlite*
+.artifacts/
+apps/console/test-results/
+apps/console/playwright-report/
+*.tsbuildinfo
 
 # Modèle de variables de la passerelle (valeurs factices), à versionner
 !.env.example

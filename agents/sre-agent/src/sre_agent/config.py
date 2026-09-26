@@ -13,7 +13,32 @@ Two of the CLAUDE.md rules are enforced here, in code, not in a prompt:
 from __future__ import annotations
 
 import os
+import math
 from enum import StrEnum
+from pathlib import Path
+
+
+class ConfigurationInvalide(RuntimeError):
+    """The configuration cannot start without breaking one of the rules."""
+
+
+_ERREURS: list[str] = []
+
+
+def _nombre(nom: str, defaut: int | float) -> int | float:
+    try:
+        valeur = type(defaut)(os.environ.get(nom, str(defaut)))
+        if not math.isfinite(valeur) or valeur < 0:
+            raise ValueError
+        return valeur
+    except ValueError:
+        _ERREURS.append(nom)
+        return defaut
+
+
+# Disable implicit third-party tracing before LangGraph/LangSmith is imported.
+os.environ["LANGSMITH_TRACING"] = "false"
+os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
 # --- Alias partition ------------------------------------------------------
 
@@ -28,9 +53,8 @@ class Classification(StrEnum):
     CONFIDENTIEL: the payload holds raw alert data, that is, customer
     data. It may only target a local alias.
 
-    DERIVE: the payload holds only material already extracted and
-    anonymised by a local step, plus runbook content, which is our own
-    documentation. The frontier is allowed.
+    DERIVE: reserved for explicitly public or synthetic payloads in separate
+    callers. The SRE pipeline never uses it: extraction is not declassification.
     """
 
     CONFIDENTIEL = "confidentiel"
@@ -43,25 +67,28 @@ class Classification(StrEnum):
 ALIAS_CLASSIFICATION = "local"
 # Alert extraction/anonymisation: same.
 ALIAS_EXTRACTION = "local"
-# Final reasoning over derived data: the frontier is allowed.
-ALIAS_RAISONNEMENT = os.environ.get("SRE_ALIAS_RAISONNEMENT", "smart")
+# An extraction remains confidential: a model cannot declassify data.
+ALIAS_RAISONNEMENT = os.environ.get("SRE_ALIAS_RAISONNEMENT", "local")
 
 # --- Budgets --------------------------------------------------------------
 
 # Tool-call ceiling per alert. Lower it for a demo.
-MAX_APPELS_OUTILS = int(os.environ.get("SRE_MAX_APPELS_OUTILS", "10"))
+MAX_APPELS_OUTILS = int(_nombre("SRE_MAX_APPELS_OUTILS", 10))
 # Monetary ceiling per alert, in USD, computed from the cost the gateway
 # reports. Local costs 0, so only the frontier draws on it.
-MAX_COUT_USD = float(os.environ.get("SRE_MAX_COUT_USD", "0.50"))
+MAX_COUT_USD = float(_nombre("SRE_MAX_COUT_USD", 0.50))
 
 # Loop-turn ceiling. Distinct from the tool budget: a turn may call no
 # tool at all. It guards against an endless loop.
-MAX_TOURS = int(os.environ.get("SRE_MAX_TOURS", "12"))
+MAX_TOURS = int(_nombre("SRE_MAX_TOURS", 12))
+MAX_ALERTE = 20_000
+MAX_CONTEXTE = 100_000
+MAX_DUREE_S = float(_nombre("SRE_MAX_DUREE_S", 1_800.0))
 
 # --- Gateway --------------------------------------------------------------
 
 LITELLM_BASE_URL = os.environ.get("LITELLM_BASE_URL", "http://localhost:4000/v1")
-TIMEOUT_LLM_S = float(os.environ.get("SRE_TIMEOUT_LLM_S", "300"))
+TIMEOUT_LLM_S = float(_nombre("SRE_TIMEOUT_LLM_S", 300.0))
 
 # --- Tracing --------------------------------------------------------------
 
@@ -76,16 +103,32 @@ TRACAGE_ACTIF = os.environ.get("SRE_TRACAGE", "1") not in {"0", "false", "no"}
 
 # --- Runbooks MCP server --------------------------------------------------
 
-RACINE_DEPOT = os.environ.get(
-    "SRE_RACINE_DEPOT", os.path.expanduser("~/platform/workspace")
-)
+_racine_source = Path(__file__).resolve().parents[4]
+RACINE_DEPOT = os.environ.get("SRE_RACINE_DEPOT", str(_racine_source))
 MCP_RUNBOOKS_DIR = os.path.join(RACINE_DEPOT, "mcp-servers", "runbooks")
 RUNBOOK_DIR = os.environ.get("RUNBOOK_DIR", os.path.join(RACINE_DEPOT, "runbooks"))
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://127.0.0.1:6333")
+QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "runbooks-current")
 
 
-class ConfigurationInvalide(RuntimeError):
-    """The configuration cannot start without breaking one of the rules."""
+def valider(alerte: str | None = None) -> None:
+    if _ERREURS:
+        raise ConfigurationInvalide("Paramètre numérique invalide : " + ", ".join(_ERREURS))
+    for valeur in (MAX_COUT_USD, TIMEOUT_LLM_S, MAX_DUREE_S):
+        if not math.isfinite(valeur) or valeur <= 0:
+            raise ConfigurationInvalide(
+                "Plafonds et délais : nombres finis strictement positifs requis."
+            )
+    if MAX_APPELS_OUTILS < 0 or not 1 <= MAX_TOURS <= 100:
+        raise ConfigurationInvalide(
+            "Budget d'outils positif ou nul ; tours compris entre 1 et 100."
+        )
+    if any(a != "local" for a in (ALIAS_EXTRACTION, ALIAS_CLASSIFICATION, ALIAS_RAISONNEMENT)):
+        raise ConfigurationInvalide(
+            "Le pipeline SRE traite des données confidentielles : alias local requis."
+        )
+    if alerte is not None and (not alerte.strip() or len(alerte) > MAX_ALERTE):
+        raise ConfigurationInvalide(f"L'alerte doit contenir entre 1 et {MAX_ALERTE} caractères.")
 
 
 def cle(classification: Classification) -> str:
@@ -95,7 +138,9 @@ def cle(classification: Classification) -> str:
     is the second barrier: even if the application-level guard in llm.py
     were bypassed, the gateway would refuse the call with a 403.
     """
-    nom = "CONFIDENTIAL_KEY" if classification is Classification.CONFIDENTIEL else "ORCHESTRATOR_KEY"
+    nom = (
+        "CONFIDENTIAL_KEY" if classification is Classification.CONFIDENTIEL else "ORCHESTRATOR_KEY"
+    )
     valeur = os.environ.get(nom)
     if not valeur:
         raise ConfigurationInvalide(

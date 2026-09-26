@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "aliases": {
+    "voix-feminine-fr": {
+      "repertoire": "synthese",
+      "entree": "voix.onnx",
+      "langue": "fr-FR",
+      "licence_donnees": "CC-BY-4.0",
+      "attribution": "Yamagishi, Honnet, Garner, Lazaridis (2017), The SIWIS French Speech Synthesis Database, University of Edinburgh. DOI:10.7488/ds/1705",
+      "source": "https://datashare.ed.ac.uk/handle/10283/2353",
+      "fichiers": [
+        {
+          "nom": "voix.onnx",
+          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx",
+          "octets": 63201294,
+          "sha256": "641d1ab097da2b81128c076810edb052b385decc8be3381814802a64a73baf99"
+        },
+        {
+          "nom": "voix.onnx.json",
+          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx.json",
+          "octets": 4875,
+          "sha256": "39479916c2db192b5ac9764daddd0c744d83e023ad890c6976c0633ae4df8959"
+        },
+        {
+          "nom": "MODEL_CARD",
+          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/fr/fr_FR/siwis/medium/MODEL_CARD",
+          "octets": 284,
+          "sha256": "bd8b8d079d4d3d2c4cc20345889bbcd586d72f021a132f93357a763eb5232cce"
+        }
+      ]
+    },
+    "transcription-fr": {
+      "repertoire": "transcription",
+      "langue": "fr",
+      "licence": "MIT",
+      "fichiers": [
+        {
+          "nom": "model.bin",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/model.bin",
+          "octets": 483546902,
+          "sha256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671"
+        },
+        {
+          "nom": "config.json",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/config.json",
+          "octets": 2370,
+          "sha256": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828"
+        },
+        {
+          "nom": "tokenizer.json",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/tokenizer.json",
+          "octets": 2203239,
+          "sha256": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab"
+        },
+        {
+          "nom": "vocabulary.txt",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/vocabulary.txt",
+          "octets": 459861,
+          "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913"
+        },
+        {
+          "nom": "README.md",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/README.md",
+          "octets": 1998,
+          "sha256": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8"
+        }
+      ]
+    }
+  }
+}

@@ -45,9 +45,7 @@ def test_les_deux_ensembles_d_alias_sont_disjoints():
 
 
 def test_alias_inconnu_refuse(monkeypatch):
-    monkeypatch.setattr(
-        llm.httpx, "post", lambda *a, **k: pytest.fail("réseau non attendu")
-    )
+    monkeypatch.setattr(llm.httpx, "post", lambda *a, **k: pytest.fail("réseau non attendu"))
     with pytest.raises(llm.ErreurPasserelle, match="Alias inconnu"):
         llm.appeler_llm(
             alias="claude-opus-5",
@@ -146,6 +144,7 @@ def test_outil_hors_liste_blanche_refuse_sans_session():
 
 # --- Guardrail 5: containment of untrusted data ---------------------------
 
+
 def test_le_bloc_porte_un_jeton_imprevisible():
     a, b = prompts.bloc("x", "contenu"), prompts.bloc("x", "contenu")
     assert prompts.JETON in a and len(prompts.JETON) >= 16
@@ -213,7 +212,9 @@ def test_action_sourcee_est_conservee():
         actions_proposees=["terminer les sessions idle"],
         runbook_source="incident-p1-database.md",
     )
-    retenu, ecartees = appliquer_garde_source(diagnostic)
+    retenu, ecartees = appliquer_garde_source(
+        diagnostic, {"incident-p1-database.md": "# Runbook\n\nterminer les sessions idle"}
+    )
     assert ecartees == []
     assert retenu.actions_proposees == ["terminer les sessions idle"]
 

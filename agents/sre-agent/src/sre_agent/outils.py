@@ -19,9 +19,12 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
+import json
 import os
 import sys
 import threading
+from pathlib import Path
 from concurrent.futures import Future
 from dataclasses import dataclass
 from typing import Any, Self
@@ -80,6 +83,8 @@ class ClientRunbooks:
         self._arret: asyncio.Event | None = None
         self.outils: list[Outil] = []
         self.outils_ecartes: list[str] = []
+        self.delai = 180.0
+        self._tache: asyncio.Task | None = None
 
     # --- Life cycle ------------------------------------------------------
 
@@ -87,8 +92,10 @@ class ClientRunbooks:
         self._fil = threading.Thread(target=self._demarrer_boucle, daemon=True)
         self._fil.start()
         if not self._pret.wait(timeout=120):
+            self.__exit__()
             raise ErreurOutil("Le serveur MCP runbooks n'a pas démarré en 120 s.")
         if self._erreur is not None:
+            self.__exit__()
             raise ErreurOutil(
                 f"Serveur MCP runbooks indisponible : {_cause(self._erreur)}\n"
                 f"Vérifier : cd {config.MCP_RUNBOOKS_DIR} && uv run server.py"
@@ -98,6 +105,8 @@ class ClientRunbooks:
     def __exit__(self, *_exc: object) -> None:
         if self._boucle and self._arret and not self._boucle.is_closed():
             self._boucle.call_soon_threadsafe(self._arret.set)
+            if self._tache:
+                self._boucle.call_soon_threadsafe(self._tache.cancel)
         if self._fil:
             self._fil.join(timeout=30)
 
@@ -126,14 +135,18 @@ class ClientRunbooks:
         back: hence this service loop.
         """
         self._boucle = asyncio.get_running_loop()
+        self._tache = asyncio.current_task()
         self._arret = asyncio.Event()
-        self._demandes: asyncio.Queue[tuple[str, dict[str, Any], Future[str]]] = (
-            asyncio.Queue()
-        )
+        self._demandes: asyncio.Queue[tuple[str, dict[str, Any], Future[str]]] = asyncio.Queue()
 
         parametres = StdioServerParameters(
-            command="uv",
-            args=["run", "--directory", config.MCP_RUNBOOKS_DIR, "server.py"],
+            command=os.environ.get(
+                "SRE_UV_BIN",
+                str(Path.home() / ".local/bin/uv")
+                if (Path.home() / ".local/bin/uv").is_file()
+                else "uv",
+            ),
+            args=["run", "--locked", "--directory", config.MCP_RUNBOOKS_DIR, "server.py"],
             # The server needs the runbooks path, the gateway and
             # CONFIDENTIAL_KEY: its semantic search embeds the query
             # through the local-embed alias. So the search query does not
@@ -146,6 +159,9 @@ class ClientRunbooks:
                     ("LITELLM_BASE_URL", config.LITELLM_BASE_URL),
                     ("CONFIDENTIAL_KEY", config.cle(config.Classification.CONFIDENTIEL)),
                     ("QDRANT_URL", config.QDRANT_URL),
+                    ("QDRANT_COLLECTION", config.QDRANT_COLLECTION),
+                    ("LANGSMITH_TRACING", "false"),
+                    ("LANGCHAIN_TRACING_V2", "false"),
                 )
                 if valeur
             },
@@ -155,7 +171,7 @@ class ClientRunbooks:
             stdio_client(parametres, errlog=journal) as (lecture, ecriture),
             ClientSession(lecture, ecriture) as session,
         ):
-            await session.initialize()
+            await asyncio.wait_for(session.initialize(), timeout=110)
             publies = (await session.list_tools()).tools
             for outil in publies:
                 if outil.name in OUTILS_AUTORISES:
@@ -183,10 +199,14 @@ class ClientRunbooks:
                 attente_arret.cancel()
                 nom, arguments, promesse = attente_demande.result()
                 try:
-                    resultat = await session.call_tool(nom, arguments)
-                    promesse.set_result(_texte(resultat))
+                    resultat = await asyncio.wait_for(session.call_tool(nom, arguments), self.delai)
+                    if not promesse.done():
+                        promesse.set_result(_texte(resultat))
                 except BaseException as e:  # noqa: BLE001 (returned to the caller)
-                    promesse.set_exception(e)
+                    if not promesse.done():
+                        promesse.set_exception(e)
+                    if isinstance(e, asyncio.CancelledError):
+                        raise
 
     # --- Synchronous facade -----------------------------------------------
 
@@ -205,10 +225,12 @@ class ClientRunbooks:
             raise ErreurOutil("Session MCP fermée.")
 
         promesse: Future[str] = Future()
-        self._boucle.call_soon_threadsafe(
-            self._demandes.put_nowait, (nom, arguments, promesse)
-        )
-        texte = promesse.result(timeout=180)
+        self._boucle.call_soon_threadsafe(self._demandes.put_nowait, (nom, arguments, promesse))
+        try:
+            texte = promesse.result(timeout=self.delai)
+        except Exception as e:
+            promesse.cancel()
+            raise ErreurOutil(f"Appel MCP interrompu : {type(e).__name__}.") from None
         if len(texte) > MAX_RESULTAT_OUTIL:
             texte = texte[:MAX_RESULTAT_OUTIL] + (
                 f"\n\n[TRONQUÉ par l'agent à {MAX_RESULTAT_OUTIL} caractères]"
@@ -224,7 +246,7 @@ def _cause(e: BaseException) -> str:
     """
     while isinstance(e, BaseExceptionGroup) and e.exceptions:
         e = e.exceptions[0]
-    return f"{type(e).__name__} : {e}"
+    return type(e).__name__
 
 
 def _texte(resultat: Any) -> str:
@@ -234,32 +256,62 @@ def _texte(resultat: Any) -> str:
         valeur = getattr(bloc, "text", None)
         if valeur:
             morceaux.append(valeur)
-    if getattr(resultat, "isError", False):
-        return "ERREUR OUTIL : " + ("\n".join(morceaux) or "erreur non détaillée")
+    if getattr(resultat, "is_error", False) or getattr(resultat, "isError", False):
+        raise ErreurOutil("Le serveur MCP a signalé une erreur ; détails masqués.")
     return "\n".join(morceaux)
 
 
-def executer_outil(
-    client: ClientRunbooks, nom: str, arguments: dict[str, Any], budget: Any
-) -> str:
+def executer_outil(client: ClientRunbooks, nom: str, arguments: dict[str, Any], budget: Any) -> str:
     """Run a tool under budget and under a span.
 
     The budget is charged BEFORE execution: a call refused for lack of
     budget never reaches the server.
     """
+    if nom not in OUTILS_AUTORISES:
+        raise ErreurOutil("Outil hors de la liste autorisée.")
     budget.consommer_outil(nom)
-    with tracage.tracer().start_as_current_span(f"tool.{nom}") as span:
+    from .progression import signaler
+
+    signaler("outil")
+    client.delai = min(180.0, budget.temps_restant())
+    with tracage.tracer().start_as_current_span(
+        f"tool.{nom}", record_exception=False, set_status_on_exception=False
+    ) as span:
         span.set_attribute(tracage.ATTR_OUTIL_SOURCE, "mcp:runbooks")
         span.set_attribute(tracage.ATTR_TYPE_TACHE, "tool_call")
-        # The runbooks are our documentation, not customer data.
-        span.set_attribute(tracage.ATTR_CLASSIFICATION, "derive")
+        # Search arguments and returned passages remain confidential.
+        span.set_attribute(tracage.ATTR_CLASSIFICATION, "confidentiel")
         span.set_attribute("mcp.tool.name", nom)
-        span.set_attribute("mcp.tool.arguments", str(arguments)[:500])
         span.set_attribute(tracage.ATTR_BUDGET_OUTILS, budget.appels_outils)
         try:
             resultat = client.appeler(nom, arguments)
         except Exception as e:
-            span.set_status(Status(StatusCode.ERROR, str(e)))
-            raise
+            span.set_status(Status(StatusCode.ERROR, type(e).__name__))
+            raise ErreurOutil(f"Échec de l'outil {nom} : {type(e).__name__}.") from None
+        budget.temps_restant()
+        if nom == "read_runbook":
+            _memoriser_source(resultat, arguments, budget.sources_lues)
         span.set_attribute("mcp.tool.result_chars", len(resultat))
         return resultat
+
+
+def _memoriser_source(resultat: str, arguments: dict, sources: dict[str, str]) -> None:
+    """Accept only a complete, versioned read envelope from our MCP server."""
+    try:
+        lecture = json.loads(resultat)
+        nom, texte = lecture["fichier"], lecture["texte"]
+        if (
+            nom != arguments.get("nom")
+            or not isinstance(nom, str)
+            or not nom.endswith(".md")
+            or "/" in nom
+            or "\\" in nom
+            or nom.startswith(".")
+            or not isinstance(texte, str)
+            or lecture.get("tronque") is not False
+            or lecture.get("sha256") != hashlib.sha256(texte.encode()).hexdigest()
+        ):
+            return
+        sources[nom] = texte
+    except ValueError, TypeError, KeyError, AttributeError:
+        return

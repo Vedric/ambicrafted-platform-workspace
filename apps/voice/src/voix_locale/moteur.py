@@ -1,0 +1,159 @@
+"""CPU speech engines with explicit offline paths and bounded media decoding."""
+
+import json
+import os
+import wave
+from pathlib import Path
+
+from .fichiers import ErreurVoix, dossier_prive, manifeste, ouvrir_prive, verifier_modele
+
+MAX_AUDIO_OCTETS = 8 * 1024 * 1024
+MAX_AUDIO_SECONDES = 90
+MAX_TEXTE = 2000
+FREQUENCE = 16000
+
+
+def hors_ligne() -> None:
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+    os.environ["DO_NOT_TRACK"] = "1"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+
+def decoder_audio(path: Path):
+    import av
+    import numpy as np
+
+    tableaux = []
+    total = 0
+    with ouvrir_prive(path, MAX_AUDIO_OCTETS) as stream:  # noqa: SIM117
+        # The input descriptor prevents URL opening; protocols are denied completely.
+        with av.open(stream, mode="r", options={"protocol_whitelist": "none"}) as container:
+            if not container.streams.audio:
+                raise ErreurVoix("Le fichier ne contient aucune piste audio.")
+            resampler = av.AudioResampler(format="s16", layout="mono", rate=FREQUENCE)
+            for frame in container.decode(audio=0):
+                if frame.sample_rate > 192000 or len(frame.layout.channels) > 8:
+                    raise ErreurVoix("Le format audio dépasse les limites autorisées.")
+                for mono in resampler.resample(frame):
+                    tableau = mono.to_ndarray().flatten()
+                    total += tableau.size
+                    if total > MAX_AUDIO_SECONDES * FREQUENCE:
+                        raise ErreurVoix("L’enregistrement doit durer au plus 90 secondes.")
+                    tableaux.append(tableau)
+            for mono in resampler.resample(None):
+                tableau = mono.to_ndarray().flatten()
+                total += tableau.size
+                if total > MAX_AUDIO_SECONDES * FREQUENCE:
+                    raise ErreurVoix("L’enregistrement doit durer au plus 90 secondes.")
+                tableaux.append(tableau)
+    if total < FREQUENCE // 5:
+        raise ErreurVoix("L’enregistrement doit durer au moins 0,2 seconde.")
+    resultat = np.concatenate(tableaux).astype(np.float32) / 32768.0
+    return resultat
+
+
+def transcrire(path: Path) -> dict:
+    hors_ligne()
+    from faster_whisper import WhisperModel
+
+    audio = decoder_audio(path)
+    dossier = verifier_modele("transcription-fr")
+    model = WhisperModel(
+        str(dossier),
+        device="cpu",
+        compute_type="int8",
+        cpu_threads=4,
+        num_workers=1,
+        local_files_only=True,
+    )
+    segments, _ = model.transcribe(
+        audio,
+        language="fr",
+        beam_size=5,
+        vad_filter=True,
+        condition_on_previous_text=False,
+        temperature=0.0,
+        hotwords="plateforme, alerte, analyse, données, PostgreSQL, Grafana, runbook",
+        vad_parameters={"min_silence_duration_ms": 500},
+    )
+    texte = ""
+    for segment in segments:
+        texte = (texte + " " + segment.text.strip()).strip()
+        if len(texte) > 8000:
+            raise ErreurVoix("La transcription dépasse la longueur autorisée.")
+    return {
+        "texte": texte,
+        "langue": "fr",
+        "duree_s": round(len(audio) / FREQUENCE, 3),
+        "local": True,
+        "alias": "transcription-fr",
+    }
+
+
+def valider_texte(texte: str) -> str:
+    texte = texte.strip()
+    if not 1 <= len(texte) <= MAX_TEXTE:
+        raise ErreurVoix("La synthèse requiert entre 1 et 2 000 caractères.")
+    if any(ord(caractere) < 32 and caractere not in "\n\t\r" for caractere in texte):
+        raise ErreurVoix("Le texte contient des caractères de contrôle interdits.")
+    return texte
+
+
+def parler(texte: str, sortie: Path) -> dict:
+    texte = valider_texte(texte)
+    dossier_prive(sortie.parent)
+    hors_ligne()
+    import onnxruntime
+    from piper import PiperVoice, SynthesisConfig
+    from piper.config import PiperConfig
+
+    definition = manifeste()["aliases"]["voix-feminine-fr"]
+    dossier = verifier_modele("voix-feminine-fr")
+    options = onnxruntime.SessionOptions()
+    options.intra_op_num_threads = 4
+    options.inter_op_num_threads = 1
+    with ouvrir_prive(dossier / (definition["entree"] + ".json"), 64000) as config:
+        voix = PiperVoice(
+            session=onnxruntime.InferenceSession(
+                str(dossier / definition["entree"]),
+                sess_options=options,
+                providers=["CPUExecutionProvider"],
+            ),
+            config=PiperConfig.from_dict(json.load(config)),
+            download_dir=dossier,
+        )
+    fd = os.open(sortie, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+    termine = False
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            with wave.open(stream, "wb") as wav:
+                wav.setnchannels(1)
+                wav.setsampwidth(2)
+                wav.setframerate(voix.config.sample_rate)
+                total = 0
+                for morceau in voix.synthesize(
+                    texte, syn_config=SynthesisConfig(length_scale=1.05, normalize_audio=True)
+                ):
+                    donnees = morceau.audio_int16_bytes
+                    total += len(donnees)
+                    if total > voix.config.sample_rate * 2 * 120:
+                        raise ErreurVoix("La synthèse dépasse deux minutes de parole.")
+                    wav.writeframes(donnees)
+            stream.flush()
+            os.fsync(stream.fileno())
+        with ouvrir_prive(sortie, 32 * 1024 * 1024) as lecture, wave.open(lecture, "rb") as wav:
+            duree = wav.getnframes() / wav.getframerate()
+            frequence = wav.getframerate()
+        termine = True
+    finally:
+        if not termine:
+            sortie.unlink(missing_ok=True)
+    return {
+        "format": "wav",
+        "frequence_hz": frequence,
+        "duree_s": round(duree, 3),
+        "octets": sortie.stat().st_size,
+        "local": True,
+        "alias": "voix-feminine-fr",
+    }

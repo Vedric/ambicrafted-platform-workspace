@@ -1,0 +1,74 @@
+name: Sécurité des images
+
+# This audit deliberately reports existing image debt without gating push/PR CI.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 5 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images-security-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  images:
+    name: Six images, rapports complets, seuil CRITICAL et HIGH
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+          enable-cache: false
+      - name: Tests du scanner sans réseau ni Docker
+        run: uv run --no-project --python 3.14 -m unittest discover -s scripts -p test_scanner_images.py -v
+      - name: Trivy officiel, archive vérifiée avant exécution
+        shell: bash
+        env:
+          TRIVY_DIRECTORY: ${{ runner.temp }}/trivy-0.74.0
+        run: |
+          set -euo pipefail
+          mkdir -p "$TRIVY_DIRECTORY"
+          curl --fail --silent --show-error --location --retry 3 \
+            --proto '=https' --tlsv1.2 \
+            'https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz' \
+            --output "$TRIVY_DIRECTORY/trivy.tar.gz"
+          printf '%s  %s\n' \
+            '2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a' \
+            "$TRIVY_DIRECTORY/trivy.tar.gz" | sha256sum --check --strict
+          tar -xzf "$TRIVY_DIRECTORY/trivy.tar.gz" -C "$TRIVY_DIRECTORY" trivy
+          "$TRIVY_DIRECTORY/trivy" --version
+      - name: Construire les dérivées déclarées et analyser les six images
+        env:
+          TRIVY_BINARY: ${{ runner.temp }}/trivy-0.74.0/trivy
+          IMAGE_REPORTS: ${{ runner.temp }}/image-security-reports
+          IMAGE_CACHE: ${{ runner.temp }}/image-security-cache
+        run: |
+          uv run --no-project --python 3.14 scripts/scanner_images.py \
+            --compose gateway/docker-compose.yml \
+            --trivy "$TRIVY_BINARY" --output "$IMAGE_REPORTS" --cache "$IMAGE_CACHE"
+      - name: Résumé même en cas de vulnérabilités ou d'erreur
+        if: always()
+        env:
+          IMAGE_REPORTS: ${{ runner.temp }}/image-security-reports
+        run: |
+          if test -f "$IMAGE_REPORTS/summary.md"; then
+            cat "$IMAGE_REPORTS/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '%s\n' 'Audit incomplet : vérifier les étapes précédentes. Aucune validation de sécurité.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Conserver tous les rapports disponibles
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: images-security-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/image-security-reports/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6

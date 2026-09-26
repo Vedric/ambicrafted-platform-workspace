@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directories:
+      - /apps/console
+      - /evals
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: uv
+    directories:
+      - /agents/sre-agent
+      - /mcp-servers/runbooks
+      - /apps/control-api
+      - /apps/voice
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker-compose
+    directory: /gateway
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "ambicrafted/*"
+  - package-ecosystem: docker
+    directories:
+      - /gateway/images/qdrant
+      - /gateway/images/postgres
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

@@ -21,3 +21,14 @@ dependencies = [
 # prix de le déplacer dans un paquet jamais distribué.
 [tool.uv]
 package = false
+
+[tool.coverage.run]
+branch = true
+source = ["server", "indexer", "fichiers"]
+
+[dependency-groups]
+dev = [
+    "coverage==7.16.1",
+    "pytest==9.0.2",
+    "ruff==0.15.10",
+]

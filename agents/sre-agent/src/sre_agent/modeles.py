@@ -14,6 +14,8 @@ instead of trusting the prose.
 from __future__ import annotations
 
 from enum import StrEnum
+import re
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,11 +27,10 @@ class Confiance(StrEnum):
 
 
 class Extraction(BaseModel):
-    """Output of the local step: the alert, stripped of its customer context.
+    """Local extraction with an attempted reduction of identifying details.
 
-    Produced by the `local` alias on the raw data. It is the only object
-    in this module later allowed across the frontier, and that is exactly
-    why it must carry no identifier.
+    This remains confidential. Neither its schema nor a model's claim of
+    anonymisation proves that all customer information has been removed.
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -62,8 +63,7 @@ class ClassificationAlerte(BaseModel):
     connue: bool = Field(description="Le symptôme relève-t-il d'un motif connu.")
     urgence: int = Field(ge=1, le=5)
     actionnable: bool = Field(
-        description="Existe-t-il une action d'exploitation possible, ou faut-il "
-        "seulement observer."
+        description="Existe-t-il une action d'exploitation possible, ou faut-il seulement observer."
     )
     justification: str = ""
 
@@ -94,7 +94,7 @@ class Rapport(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    statut: str = Field(description="complet | budget_epuise | erreur")
+    statut: Literal["complet", "budget_epuise", "erreur", "en_attente_humain", "rejete_par_humain"]
     extraction: Extraction | None = None
     classification: ClassificationAlerte | None = None
     diagnostic: Diagnostic | None = None
@@ -110,7 +110,9 @@ class Rapport(BaseModel):
     message: str = ""
 
 
-def appliquer_garde_source(diagnostic: Diagnostic) -> tuple[Diagnostic, list[str]]:
+def appliquer_garde_source(
+    diagnostic: Diagnostic, sources_lues: dict[str, str] | None = None
+) -> tuple[Diagnostic, list[str]]:
     """Refuse the actions no runbook backs.
 
     This is where the nullable field becomes a guardrail rather than a
@@ -119,26 +121,40 @@ def appliquer_garde_source(diagnostic: Diagnostic) -> tuple[Diagnostic, list[str
     are not deleted, they are moved to a field that says what they are:
     unsourced suggestions.
     """
-    if diagnostic.runbook_source:
-        return diagnostic, []
-
-    ecartees = list(diagnostic.actions_proposees)
+    source = (diagnostic.runbook_source or "").strip()
+    texte = (sources_lues or {}).get(source, "")
+    # Only passages actually read by the tool are deliverable. Semantic
+    # relevance still requires a human review; a filename is not evidence.
+    # A substring could discard a negation or prerequisite. Keep whole paragraphs.
+    paragraphes = {
+        " ".join(ligne for ligne in bloc.splitlines() if not re.match(r"^#{1,6}\s", ligne)).strip()
+        for bloc in re.split(r"\n\s*\n", texte)
+    }
+    paragraphes = {" ".join(p.split()) for p in paragraphes if p}
+    actions = [
+        a
+        for a in diagnostic.actions_proposees
+        if a.strip() and texte and " ".join(a.split()) in paragraphes
+    ]
+    ecartees = [a for a in diagnostic.actions_proposees if a not in actions]
     if not ecartees:
-        return diagnostic, []
+        return diagnostic.model_copy(update={"runbook_source": source if texte else None}), []
 
     retenu = diagnostic.model_copy(
         update={
-            "actions_proposees": [
+            "runbook_source": source if texte else None,
+            "actions_proposees": actions
+            or [
                 (
-                    "Escalade humaine : aucun runbook ne couvre ce symptôme. "
-                    "Rédiger le runbook manquant avant toute intervention."
+                    "Escalade humaine : aucune action vérifiable dans un runbook lu. "
+                    "Confirmer la procédure avant toute intervention."
                 )
             ],
             # An unsourced action becomes a documented gap, not an
             # instruction: that is what is useful to the on-call engineer.
             "elements_manquants": [
                 *diagnostic.elements_manquants,
-                "Runbook absent du corpus pour ce type d'incident.",
+                "Runbook absent des lectures vérifiées ou action absente du passage lu.",
             ],
         }
     )

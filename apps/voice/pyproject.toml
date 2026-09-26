@@ -1,0 +1,44 @@
+[project]
+name = "ambicrafted-voice"
+version = "0.1.0"
+description = "Private, offline French speech input and output for Ambicrafted"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "av==18.1.0",
+    "faster-whisper==1.2.1",
+    "numpy==2.5.3",
+    "onnxruntime==1.30.0",
+    "piper-tts==1.8.0",
+]
+
+[project.scripts]
+voix-locale = "voix_locale.cli:main"
+
+[build-system]
+requires = ["uv_build==0.12.5"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "voix_locale"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["voix_locale"]
+
+[tool.mypy]
+files = ["src/voix_locale"]
+ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "coverage==7.16.1",
+    "mypy==2.3.1",
+    "pytest==9.1.1",
+    "ruff==0.16.9",
+]
