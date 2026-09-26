@@ -15,7 +15,7 @@ license = "Apache-2.0"
 dependencies = [
     "httpx>=0.28,<0.29",
     "mcp>=2,<3",
-    "pydantic>=2.11,<3",
+    "pydantic>=2.13.5,<3",
     "opentelemetry-sdk>=1.30,<2",
     "opentelemetry-exporter-otlp-proto-http>=1.30,<2",
 ]
