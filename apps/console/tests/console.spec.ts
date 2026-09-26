@@ -23,7 +23,11 @@ async function connexion(page: Page) {
   const { ticket } = await reponse.json();
   await page.goto("/#session=" + ticket);
   await expect(
-    page.getByRole("heading", { name: "A clearer view. A smarter move." }),
+    page.getByRole("heading", {
+      name: "A clearer view. A smarter move.",
+      level: 1,
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(page).toHaveURL("http://127.0.0.1:8789/");
   const cookie = (await page.context().cookies()).find(
@@ -194,7 +198,11 @@ test("private landing, refused login, keyboard entry and accessible layout", asy
     .fill(process.env.PLATFORM_E2E_PASSWORD!);
   await page.getByLabel("Welcome back").press("Enter");
   await expect(
-    page.getByRole("heading", { name: "A clearer view. A smarter move." }),
+    page.getByRole("heading", {
+      name: "A clearer view. A smarter move.",
+      level: 1,
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Enable animations" }),
@@ -232,11 +240,13 @@ test("navigation, command palette, focus confinement and theme", async ({
   await page.getByLabel("Search pages").fill("Runbooks");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: "Runbooks" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Runbooks", level: 1, exact: true }),
+  ).toBeVisible();
   await expect(dialogue).not.toBeVisible();
   await aller(page, "System health");
   await expect(
-    page.getByRole("heading", { name: "System health" }),
+    page.getByRole("heading", { name: "System health", level: 1, exact: true }),
   ).toBeVisible();
   await expect(page.getByText("AI gateway", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Switch to light theme" }).click();
@@ -257,13 +267,17 @@ test("navigation, command palette, focus confinement and theme", async ({
   await expect(
     page.getByRole("heading", {
       name: "Specialists working toward one outcome.",
+      level: 1,
+      exact: true,
     }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Approved tools & connectors" }),
   ).toBeVisible();
   await aller(page, "Approvals");
-  await expect(page.getByRole("heading", { name: "Approvals" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Approvals", level: 1, exact: true }),
+  ).toBeVisible();
   const menu = page.getByRole("button", { name: "Open navigation" });
   if (await menu.isVisible()) await menu.click();
   await page
@@ -271,7 +285,11 @@ test("navigation, command palette, focus confinement and theme", async ({
     .filter({ visible: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Settings & help" }),
+    page.getByRole("heading", {
+      name: "Settings & help",
+      level: 1,
+      exact: true,
+    }),
   ).toBeVisible();
   await sansDefautsA11y(page);
   if (await menu.isVisible()) await menu.click();
@@ -464,7 +482,11 @@ test("reduced motion, keyboard skip link and session expiration", async ({
   // A reload resets focus so the skip link is the first keyboard destination.
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "A clearer view. A smarter move." }),
+    page.getByRole("heading", {
+      name: "A clearer view. A smarter move.",
+      level: 1,
+      exact: true,
+    }),
   ).toBeVisible();
   await page.keyboard.press("Tab");
   await expect(
@@ -541,7 +563,11 @@ test("assistant remains accessible in both themes when voice is unavailable", as
   await connexion(page);
   await aller(page, "Voice assistant VOICE");
   await expect(
-    page.getByRole("heading", { name: "Voice assistant" }),
+    page.getByRole("heading", {
+      name: "Voice assistant",
+      level: 1,
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Record" })).toBeDisabled();
   await expect(page.getByText("Unavailable", { exact: true })).toBeVisible();

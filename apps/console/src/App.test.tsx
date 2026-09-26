@@ -1,6 +1,7 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StrictMode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, { Markdown } from "./App";
@@ -29,18 +30,27 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function renderApp() {
+function renderApp(strict = false) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   clients.push(client);
-  return render(
+  const application = (
     <QueryClientProvider client={client}>
       <MemoryRouter>
         <App />
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  return render(strict ? <StrictMode>{application}</StrictMode> : application);
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
 }
 
 describe("private landing and failure states", () => {
@@ -126,6 +136,120 @@ describe("private landing and failure states", () => {
       await screen.findByRole("heading", { name: /Your next move/ }),
     ).toBeVisible();
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+  });
+
+  it("opens a ticket session when an older signed-out response arrives after the exchange", async () => {
+    const staleSession = deferred<Response>();
+    const exchangeRead = deferred<void>();
+    let authenticated = false;
+    const json = (payload: unknown) => new Response(JSON.stringify(payload));
+    const fetch = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/auth") {
+        return authenticated
+          ? Promise.resolve(
+              json({
+                connecte: true,
+                mot_de_passe: true,
+                csrf: "synthetic-csrf",
+              }),
+            )
+          : staleSession.promise;
+      }
+      if (url === "/api/auth/connexion") {
+        authenticated = true;
+        const response = json({ connecte: true });
+        const read = response.json.bind(response);
+        response.json = async () => {
+          const payload = await read();
+          exchangeRead.resolve();
+          return payload;
+        };
+        return Promise.resolve(response);
+      }
+      if (url === "/api/vue-ensemble") {
+        return Promise.resolve(
+          json({
+            total: 0,
+            statuts: {},
+            activite: [],
+            runbooks: 0,
+            journal: [],
+            version: "test",
+            sante: { ok: true, services: [], modeles: [], index: {} },
+          }),
+        );
+      }
+      if (url === "/api/analyses?taille=4") {
+        return Promise.resolve(json({ elements: [], total: 0, page: 1 }));
+      }
+      throw new Error("Unexpected API request in the ticket exchange test");
+    });
+    vi.stubGlobal("fetch", fetch);
+    window.history.replaceState(
+      null,
+      "",
+      "/#session=synthetic-single-use-ticket",
+    );
+    renderApp(true);
+    await act(async () => {
+      await exchangeRead.promise;
+    });
+    expect(window.location.hash).toBe("");
+    expect(
+      fetch.mock.calls.filter(([url]) => url === "/api/auth/connexion"),
+    ).toHaveLength(1);
+    await act(async () => {
+      staleSession.resolve(
+        json({ connecte: false, mot_de_passe: true, csrf: null }),
+      );
+    });
+    expect(
+      await screen.findByRole("heading", {
+        name: "A clearer view. A smarter move.",
+        level: 1,
+      }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: /Your next move/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows an expired ticket error and leaves password sign-in available in StrictMode", async () => {
+    const fetch = vi.fn().mockImplementation((url: string) =>
+      Promise.resolve(
+        url === "/api/auth/connexion"
+          ? new Response(
+              JSON.stringify({
+                detail: "Lien de connexion expiré ou déjà utilisé.",
+              }),
+              { status: 401 },
+            )
+          : new Response(
+              JSON.stringify({
+                connecte: false,
+                mot_de_passe: true,
+                csrf: null,
+              }),
+            ),
+      ),
+    );
+    vi.stubGlobal("fetch", fetch);
+    window.history.replaceState(null, "", "/#session=synthetic-expired-ticket");
+    renderApp(true);
+    expect(
+      await screen.findByRole("heading", { name: /Your next move/ }),
+    ).toBeVisible();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This sign-in link has expired or already been used. Open a new one from your terminal.",
+    );
+    expect(screen.getByLabelText("Welcome back")).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Enter workspace" }),
+    ).toBeEnabled();
+    expect(window.location.hash).toBe("");
+    expect(
+      fetch.mock.calls.filter(([url]) => url === "/api/auth/connexion"),
+    ).toHaveLength(1);
   });
 });
 

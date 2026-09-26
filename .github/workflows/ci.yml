@@ -112,3 +112,14 @@ jobs:
         env:
           CI: "true"
           SRE_TRACAGE: "0"
+      # The disposable browser server contains synthetic data and ephemeral credentials only.
+      - name: Browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: console-browser-${{ github.run_id }}
+          path: |
+            apps/console/playwright-report/
+            apps/console/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

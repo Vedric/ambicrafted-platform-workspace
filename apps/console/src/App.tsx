@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Link,
   NavLink,
@@ -123,9 +123,13 @@ function Logo({ compact = false }: { compact?: boolean }) {
     </div>
   );
 }
-let echange: Promise<unknown> | null = null;
 export default function App() {
   const client = useQueryClient();
+  const [ticket] = useState(() =>
+    new URLSearchParams(location.hash.slice(1)).get("session"),
+  );
+  const [ticketPending, setTicketPending] = useState(Boolean(ticket));
+  const exchange = useRef<Promise<unknown> | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     erreur: boolean;
@@ -157,6 +161,9 @@ export default function App() {
   const session = useQuery({
     queryKey: ["session"],
     queryFn: () => api<Session>("/auth"),
+    // A signed-out response started before the cookie exchange must never
+    // overwrite the newly authenticated session, even on a slow connection.
+    enabled: !ticketPending,
     retry: false,
   });
   useEffect(() => {
@@ -164,13 +171,26 @@ export default function App() {
     localStorage.setItem("ambicrafted-theme", theme);
   }, [theme]);
   useEffect(() => {
-    const ticket = new URLSearchParams(location.hash.slice(1)).get("session");
-    if (ticket && !echange) {
-      history.replaceState(null, "", location.pathname + location.search);
-      echange = api("/auth/connexion", "POST", { ticket })
-        .then(() => client.invalidateQueries({ queryKey: ["session"] }))
-        .catch((e) => setTicketErreur(e));
-    }
+    if (!ticket) return;
+    let active = true;
+    history.replaceState(null, "", location.pathname + location.search);
+    // Keep one exchange across StrictMode's extra effect setup/cleanup cycle.
+    exchange.current ??= api("/auth/connexion", "POST", { ticket });
+    void exchange.current
+      .then(() => {
+        if (active) return client.invalidateQueries({ queryKey: ["session"] });
+      })
+      .catch((error: Error) => {
+        if (active) setTicketErreur(error);
+      })
+      .finally(() => {
+        if (active) setTicketPending(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, ticket]);
+  useEffect(() => {
     const expirer = () => {
       definirCsrf(null);
       client.cancelQueries();
@@ -200,7 +220,7 @@ export default function App() {
     <MotionPreference.Provider value={animations}>
       <MotionConfig reducedMotion={motionEnabled ? "never" : "always"}>
         <ToastContext.Provider value={notifier}>
-          {session.isPending ? (
+          {ticketPending || session.isPending ? (
             <Chargement />
           ) : session.isError ? (
             <main className="fatal">
