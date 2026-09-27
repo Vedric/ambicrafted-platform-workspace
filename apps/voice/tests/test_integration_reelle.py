@@ -1,6 +1,7 @@
 """Opt-in real models. Run under an isolated network namespace after installation."""
 
 import hashlib
+import json
 import os
 import subprocess
 import sys
@@ -118,6 +119,35 @@ def test_contexte_preserve_confidentialite_et_negation(tmp_path):
     texte = transcrire(path, "en")["texte"].lower()
     assert "local workstation" in texte
     assert "do not send customer data to an external service" in texte
+
+
+@pytest.mark.parametrize(
+    "fixture,mots",
+    [
+        ("english-onset", ("hello", "local assistant", "platform", "data", "alert")),
+        (
+            "english-confidentiality",
+            ("local workstation", "do not send customer data to an external service"),
+        ),
+    ],
+)
+def test_cli_neuf_ne_depend_pas_du_backend_mkl_herite(tmp_path, fixture, mots):
+    path = tmp_path / "source.wav"
+    path.write_bytes((Path(__file__).parent / "fixtures" / (fixture + ".wav")).read_bytes())
+    path.chmod(0o600)
+    resultat = subprocess.run(
+        [sys.executable, "-m", "voix_locale.cli", "transcrire", "--langue", "en", str(path)],
+        env={**os.environ, "CT2_USE_MKL": "1"},
+        capture_output=True,
+        text=True,
+        timeout=40,
+        check=False,
+    )
+    assert resultat.returncode == 0
+    assert resultat.stderr == ""
+    reponse = json.loads(resultat.stdout)
+    assert reponse["local"] is True and reponse["langue"] == "en"
+    assert all(mot in reponse["texte"].lower() for mot in mots)
 
 
 @pytest.mark.parametrize("langue", ["en", "fr"])

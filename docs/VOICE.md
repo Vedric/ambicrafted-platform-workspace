@@ -7,6 +7,16 @@ uses CPU inference with four threads per process, leaving the GPU available to
 the SRE agent. The speech engine neither decides on actions nor executes tools.
 The control API owns authentication, concurrency, conversation and approval.
 
+Recognition uses INT8 computation with the oneDNN CPU backend on the supported
+x86-64 Linux runtime. The engine sets `CT2_USE_MKL=0` in `hors_ligne()` before
+importing faster-whisper/CTranslate2, including when an inherited environment
+requests MKL. This makes the selected backend independent of the CPU vendor.
+Use the supplied fresh CLI subprocess: importing and initializing CTranslate2
+before this bootstrap in an embedding application can cache a different backend.
+See [ADR 0020](adr/0020-backend-vocal-reproductible.md) for the controlled comparison
+and remaining limits; a fixed backend does not guarantee perfect transcription
+or bitwise reproducibility across every processor.
+
 No audio, transcription or synthesis text is sent to an external service at
 runtime. The browser records audio locally and submits it only to the private
 control API. Do not replace this path with the browser's `SpeechRecognition`
@@ -206,8 +216,8 @@ test assertion or merely rerunning synthesis would have hidden the issue.
 Adding context with the original five-candidate decoding beam introduced a
 separate regression in a synthetic confidentiality phrase: “customer data”
 became “custom and data.” This candidate was rejected after comparison on eight
-separately generated English/French signals. A bounded ten-candidate beam
-preserves the greeting and confidentiality phrase, both now guarded by frozen
+separately generated English/French signals. On the reference CPU backend,
+a bounded ten-candidate beam preserves the greeting and confidentiality phrase, both now guarded by frozen
 regression fixtures. On those same eight signals, seven retain all checked
 semantic anchors, matching the baseline; a preexisting French recognition error
 on “latence réseau” remains. These checks are review indicators, not an accuracy
@@ -292,6 +302,35 @@ operator's microphone, browser/device permission handling, accent, real alerts,
 background noise or overlapping speech. Those require a recorded acceptance
 corpus with consent. The UI/API integration suite separately verifies the
 authenticated conversation flow, cancellation and load admission.
+
+## CPU backend regression and qualification — 2026-09-27
+
+After the earlier qualifications, hosted push `157077e6` failed the frozen
+confidentiality fixture while its pull-request run passed. A controlled local
+comparison reproduced that exact error by selecting MKL instead of oneDNN with
+otherwise identical input, model and INT8 settings. Switching to float32 also
+failed that fixture and was rejected. The original hosted logs did not include
+CPU identity or native backend, so the local reproduction does not prove which
+backend those two runners used.
+
+With explicit oneDNN initialization, all sixteen preserved corpus transcripts
+matched the earlier qualified results exactly, and both frozen regression
+fixtures passed. The three previously documented anchor failures remained:
+French network latency and payroll homophones, and English punctuation in
+“test, environment.” The eighteen-signal replay took 37.352 seconds in total,
+with a 2.080-second median and 2.305-second maximum per transcription on the
+reference workstation. This includes artifact verification and model loading;
+it is not a latency guarantee.
+
+The corrected working tree passed **68 tests in 36.33 seconds**, comprising
+52 quick tests and 16 real model tests with networking removed. The two added
+real tests start fresh CLI processes with conflicting `CT2_USE_MKL=1` inherited
+and require correct onset and confidentiality recognition. A quick test checks
+the bootstrap before the native import. Overall coverage remains 87%, with
+92% for the engine module; Ruff, mypy and wheel/source builds pass. These are
+local measurements. New hosted runs must independently validate the correction
+before release; [ADR 0020](adr/0020-backend-vocal-reproductible.md) records the
+decision and early-import limitation.
 
 ## Final combined release replay — 2026-09-27
 

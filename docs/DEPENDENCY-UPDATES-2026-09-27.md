@@ -130,9 +130,9 @@ dependency. No server image, live volume or other project's lock changes.
 
 That updater also attempted to replace the local editable agent with a public
 PyPI homonym. [ADR 0018](adr/0018-provenance-des-dependances-locales.md) records
-the targeted exclusions and retained source/CI guarantees. Confirmation that
-the hosted updater no longer attempts these replacements requires its next
-run after integration; it is not inferred from local tests.
+the targeted exclusions and retained source/CI guarantees. The hosted updater's
+behavior requires its own run after integration; it is not inferred from local
+tests. That outcome is recorded separately in the operator delivery report.
 
 Fresh local environments passed all 48 runbooks tests with 74% configured
 branch coverage and all 113 agent tests, including real stdio transport and
@@ -145,6 +145,10 @@ through the running local embedding gateway and Qdrant service; reading the
 runbook verified its SHA-256 and full text. The transport closed normally, with
 no indexing, collection mutation, model analysis or remediation request.
 
-The integrated replacement still
-requires fresh-clone and hosted CI qualification before closing PRs #17/#18 as
-superseded. The dated container baseline remains unchanged.
+The integrated replacement is tracked in
+[PR #19](https://github.com/Vedric/ambicrafted-platform-workspace/pull/19), which
+also corrects console search provenance and the speech backend regression found
+during final CI. Fresh-clone and hosted CI qualification precede closing #17/#18
+as superseded; their final disposition, merged SHA and last PR inventory are
+recorded in the operator delivery report. The dated container baseline remains
+unchanged.

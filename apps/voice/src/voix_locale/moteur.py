@@ -26,6 +26,10 @@ def hors_ligne() -> None:
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
     os.environ["DO_NOT_TRACK"] = "1"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    # Keep the validated oneDNN CPU path across Intel/AMD hosts. Automatic MKL
+    # selection changes INT8 recognition on a fixed privacy regression signal.
+    # The CLI calls this before importing faster_whisper/CTranslate2.
+    os.environ["CT2_USE_MKL"] = "0"
 
 
 def decoder_audio(path: Path):

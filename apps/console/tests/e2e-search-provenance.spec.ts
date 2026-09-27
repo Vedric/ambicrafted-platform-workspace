@@ -18,6 +18,9 @@ for (const language of ["en", "fr"] as const) {
                   score: 0.83,
                   donnees: {
                     fichier: "synthetic-provenance.md",
+                    chemin_titres: "# Synthetic source",
+                    ligne_debut: 1,
+                    corpus_sha256: "a".repeat(64),
                     texte: "Synthetic fresh passage.",
                   },
                 },

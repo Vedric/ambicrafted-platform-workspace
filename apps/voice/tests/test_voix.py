@@ -66,6 +66,37 @@ def test_reconnaissance_partage_les_memes_poids_multilingues():
     assert aliases["transcription-en"]["fichiers"] == aliases["transcription-fr"]["fichiers"]
 
 
+def test_backend_fixe_avant_import_natif_meme_si_environnement_contradictoire():
+    code = """import importlib.abc, os, sys
+from pathlib import Path
+from voix_locale.moteur import transcrire
+class InspecterImport(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'faster_whisper':
+            assert os.environ['CT2_USE_MKL'] == '0'
+            assert os.environ['HF_HUB_OFFLINE'] == '1'
+            raise RuntimeError('bootstrap-verified')
+sys.meta_path.insert(0, InspecterImport())
+try:
+    transcrire(Path('/unused-synthetic-audio.wav'))
+except RuntimeError as error:
+    assert str(error) == 'bootstrap-verified'
+    print('verified')
+else:
+    raise AssertionError('The native import must pass through the guard.')
+"""
+    resultat = subprocess.run(
+        [sys.executable, "-c", code],
+        env={**os.environ, "CT2_USE_MKL": "1"},
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert resultat.returncode == 0
+    assert resultat.stdout == "verified\n" and resultat.stderr == ""
+
+
 @pytest.mark.parametrize("secondes", [0.2, 90])
 def test_contexte_acoustique_preserve_signal_bornes_et_duree(tmp_path, monkeypatch, secondes):
     from types import SimpleNamespace
@@ -83,8 +114,11 @@ def test_contexte_acoustique_preserve_signal_bornes_et_duree(tmp_path, monkeypat
     path.chmod(0o600)
 
     class Reconnaissance:
-        def __init__(self, *_args, **_kwargs):
-            pass
+        def __init__(self, *_args, **options):
+            assert options["device"] == "cpu"
+            assert options["compute_type"] == "int8"
+            assert options["cpu_threads"] == 4
+            assert options["local_files_only"] is True
 
         def transcribe(self, signal, **options):
             contexte = moteur.FREQUENCE * moteur.CONTEXTE_AUDIO_MS // 1000
@@ -94,6 +128,7 @@ def test_contexte_acoustique_preserve_signal_bornes_et_duree(tmp_path, monkeypat
             assert not np.any(signal[-contexte:])
             np.testing.assert_array_equal(signal[contexte:-contexte], source / 32768.0)
             assert options["vad_filter"] is True
+            assert options["beam_size"] == 10
             assert options["vad_parameters"]["speech_pad_ms"] == moteur.CONTEXTE_AUDIO_MS
             return iter([SimpleNamespace(text="A synthetic result.")]), None
 

@@ -180,3 +180,14 @@ English/French on desktop/mobile Chromium. After one successful search, a simula
 attempt without a JavaScript error. These targeted journeys passed locally; the
 full suite now contains 44 journeys. The exact integrated Git commit and its fresh
 clone/hosted results belong to the delivery report, separately from earlier counts.
+
+## Speech backend regression
+
+The fixed confidentiality WAV exposed differing INT8 transcriptions between MKL
+and oneDNN on the same CPU. The regression suite keeps its exact expected phrase.
+A new fast test intercepts the native import in a fresh process and checks the
+backend/offline setup; two real CLI subprocess tests inherit `CT2_USE_MKL=1` and
+must still recognize the unchanged onset/confidentiality fixtures. Speech now has
+52 fast tests and 16 opt-in real tests. Hosted CI also records CPU, runtime version
+and the configured backend without audio, user text or credentials. See
+[the backend decision](adr/0020-backend-vocal-reproductible.md).

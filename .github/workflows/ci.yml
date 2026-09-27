@@ -74,6 +74,25 @@ jobs:
         env:
           VOICE_STATE_DIR: ${{ runner.temp }}/ambicrafted-speech-models
         run: uv run --no-sync python -m voix_locale.cli installer
+      - name: Provenance du calcul vocal
+        run: |
+          uv run --no-sync python - <<'PY'
+          import json
+          import os
+          import platform
+          from pathlib import Path
+          from voix_locale.moteur import hors_ligne
+          hors_ligne()
+          import ctranslate2
+          cpu = next((line.split(":", 1)[1].strip()
+                      for line in Path("/proc/cpuinfo").read_text().splitlines()
+                      if line.startswith("model name")), "unknown")
+          print(json.dumps({"architecture": platform.machine(), "cpu": cpu,
+                            "ctranslate2": ctranslate2.__version__,
+                            "ct2_use_mkl": os.environ["CT2_USE_MKL"],
+                            "supported_cpu_compute_types": sorted(
+                                ctranslate2.get_supported_compute_types("cpu"))}))
+          PY
       - name: Reconnaissance, synthèse et codecs sans accès réseau
         env:
           VOICE_STATE_DIR: ${{ runner.temp }}/ambicrafted-speech-models
