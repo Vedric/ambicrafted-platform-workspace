@@ -59,7 +59,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      VOICE_STATE_DIR: ${{ runner.temp }}/ambicrafted-speech-models
       VOICE_TEST_REAL: "1"
     defaults:
       run:
@@ -72,8 +71,12 @@ jobs:
           enable-cache: false
       - run: uv sync --locked --all-extras
       - name: Modèles publics épinglés et vérifiés par SHA-256
+        env:
+          VOICE_STATE_DIR: ${{ runner.temp }}/ambicrafted-speech-models
         run: uv run --no-sync python -m voix_locale.cli installer
       - name: Reconnaissance, synthèse et codecs sans accès réseau
+        env:
+          VOICE_STATE_DIR: ${{ runner.temp }}/ambicrafted-speech-models
         # Only synthetic text/audio is used. Drop back to the runner's identity
         # after creating the network namespace; model files stay private to it.
         run: |
