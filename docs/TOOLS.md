@@ -110,3 +110,19 @@ synthetic state and no model inference. Unit tests separately verify health
 degradation, routing inventory, private permissions, failure deadlines, cache
 coalescing, language forwarding, invalid inputs and secret redaction. These tests
 do not replace a live workstation readiness run or production qualification.
+
+## Qualified workstation toolchain — 2026-09-27
+
+The coordinated update pins Node 22.23.3 in `.node-version` and uses npm 11.10.0.
+On this workstation the verified Node archive is installed privately under
+`~/.local/share/ambicrafted/toolchains/node-v22.23.3-linux-x64/`; `node`, `npm` and
+`npx` in `~/.local/bin` point to it. Select that directory through the existing
+direnv setup or `export PATH="$HOME/.local/bin:$PATH"` before frontend/evaluation
+commands. The system Node installation is unchanged. `node --version` should
+report the pinned version. [Dependency maintenance](DEPENDENCY-UPDATES-2026-09-27.md)
+records upstream checksums, action pins and the retained PostgreSQL major version.
+
+No additional external-account connector is required for the implemented private
+workflows. Configure only tools justified by the client mission and its approved
+data boundary; the existing two MCP transports and nineteen readiness checks are
+the supported starting point.

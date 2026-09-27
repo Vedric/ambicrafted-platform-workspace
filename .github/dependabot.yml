@@ -35,3 +35,7 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # PostgreSQL major upgrades require an explicit data migration (ADR 0016).
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]

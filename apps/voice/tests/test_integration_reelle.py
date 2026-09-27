@@ -1,5 +1,6 @@
 """Opt-in real models. Run under an isolated network namespace after installation."""
 
+import hashlib
 import os
 import subprocess
 import sys
@@ -79,6 +80,44 @@ def test_voix_bilingue_et_reponse_micro_navigateur(
     assert metadata["langue"] == resultat["langue"] == langue
     assert metadata["alias"] == "voix-feminine-" + langue
     assert resultat["alias"] == "transcription-" + langue
+
+
+@pytest.mark.parametrize(
+    "format,extension,codec",
+    [("wav", "wav", ""), ("webm", "webm", "libopus"), ("ogg", "ogg", "libopus")],
+)
+def test_debut_de_parole_preserve_sur_signal_de_regression(tmp_path, format, extension, codec):
+    source = Path(__file__).parent / "fixtures" / "english-onset.wav"
+    donnees = source.read_bytes()
+    assert hashlib.sha256(donnees).hexdigest() == (
+        "4617ec10d8aa913213673ee15f6fbca882b0c754a968d9610bec29252e2f8729"
+    )
+    wav = tmp_path / "onset.wav"
+    wav.write_bytes(donnees)
+    wav.chmod(0o600)
+    path = wav
+    if codec:
+        path = tmp_path / ("navigateur." + extension)
+        encoder(wav, path, format, codec)
+    resultat = transcrire(path, "en")
+    mots = resultat["texte"].lower()
+    for mot in ("hello", "local", "assistant", "platform", "data", "alert"):
+        assert mot in mots
+    assert "although" not in mots
+    assert 5.9 < resultat["duree_s"] < 6.1
+
+
+def test_contexte_preserve_confidentialite_et_negation(tmp_path):
+    donnees = (Path(__file__).parent / "fixtures" / "english-confidentiality.wav").read_bytes()
+    assert hashlib.sha256(donnees).hexdigest() == (
+        "ef59eaaa990183185e48cb95cfab730898a1c57943e1e6821f3acbe7f5002c85"
+    )
+    path = tmp_path / "confidentiality.wav"
+    path.write_bytes(donnees)
+    path.chmod(0o600)
+    texte = transcrire(path, "en")["texte"].lower()
+    assert "local workstation" in texte
+    assert "do not send customer data to an external service" in texte
 
 
 @pytest.mark.parametrize("langue", ["en", "fr"])

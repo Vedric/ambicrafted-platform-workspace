@@ -52,6 +52,7 @@ from qdrant_client.models import (
     PointStruct,
     VectorParams,
 )
+
 from fichiers import lire, noms
 
 # --- Configuration -------------------------------------------------------
@@ -323,7 +324,7 @@ def indexer(fragments: list[Fragment]) -> int:
         return total
     except ErreurPipeline:
         raise
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — redact arbitrary SDK failures at the CLI boundary.
         raise ErreurPipeline(
             f"Réindexation interrompue ({type(e).__name__}). "
             "L'index précédent n'est jamais supprimé. Vérifier l'alias avant de nettoyer les versions."

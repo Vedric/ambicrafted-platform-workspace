@@ -1,9 +1,16 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { frenchMessages } from "./messages.fr";
 import { assistantFr } from "./messages.assistant";
+import { insightsFr } from "./messages.insights";
+import { architectureFr } from "./messages.architecture";
 
 export type Language = "en" | "fr";
-const messages = { ...frenchMessages, ...assistantFr } as const;
+const messages = {
+  ...frenchMessages,
+  ...assistantFr,
+  ...insightsFr,
+  ...architectureFr,
+} as const;
 export type MessageKey = keyof typeof messages;
 const sourceMessages = new Map<string, MessageKey>(
   Object.entries(messages).map(([key, translation]) => [

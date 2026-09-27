@@ -2,9 +2,10 @@
 
 import hashlib
 import json
+import math
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -104,7 +105,7 @@ def test_invalid_embeddings_are_rejected(monkeypatch, data):
         lambda *a, **kw: (
             httpx.Response(200, json={"data": data})
             if data
-            and not any(isinstance(x, float) and x != x for x in data[0]["embedding"])
+            and not any(isinstance(x, float) and math.isnan(x) for x in data[0]["embedding"])
             else httpx.Response(200, text=json.dumps({"data": data}))
         ),
     )

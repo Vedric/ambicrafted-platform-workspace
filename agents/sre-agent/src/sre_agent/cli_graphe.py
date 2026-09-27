@@ -242,8 +242,10 @@ def rendre_purge(bilan: dict) -> str:
     """Human rendering of the purge summary."""
     titre = "À PURGER (simulation, rien n'est supprimé)" if bilan["simulation"] else "PURGÉ"
     lignes = [
-        f"{titre} : {len(bilan['purges'])} fil(s) sans activité depuis le "
-        f"{bilan['seuil'][:10]} ; {bilan['conserves']} conservé(s)"
+        (
+            f"{titre} : {len(bilan['purges'])} fil(s) sans activité depuis le "
+            f"{bilan['seuil'][:10]} ; {bilan['conserves']} conservé(s)"
+        )
     ]
     for p in bilan["purges"]:
         etat = "en pause sur la porte humaine" if p["en_pause"] else "terminé"

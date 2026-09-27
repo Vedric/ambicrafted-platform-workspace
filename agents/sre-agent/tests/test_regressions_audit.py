@@ -2,12 +2,14 @@
 
 import json
 import math
+
 import httpx
 import pytest
+from test_graphe import DIAGNOSTIC, EXTRACTION, TRI, FauxClient, appel_outil, reponse, scenariser
+
 from sre_agent import agent, cli_graphe, config, graphe, llm
 from sre_agent.budget import Budget, BudgetEpuise
 from sre_agent.modeles import Diagnostic, Extraction, appliquer_garde_source
-from test_graphe import EXTRACTION, TRI, DIAGNOSTIC, FauxClient, reponse, appel_outil, scenariser
 
 
 @pytest.fixture(autouse=True)
@@ -29,7 +31,7 @@ def test_source_must_be_verified(source):
         actions_proposees=["ACTION_WITHOUT_EVIDENCE"],
         runbook_source=source,
     )
-    result, rejected = appliquer_garde_source(d)
+    result, _rejected = appliquer_garde_source(d)
     assert "ACTION_WITHOUT_EVIDENCE" not in result.actions_proposees
 
 
@@ -215,7 +217,7 @@ def test_unknown_checkpoint_type_is_not_reconstructed():
     encoded = serializer.dumps_typed(Unknown("audit"))
     try:
         decoded = serializer.loads_typed(encoded)
-    except Exception:
+    except (TypeError, ValueError):
         return
     assert not isinstance(decoded, Unknown)
 

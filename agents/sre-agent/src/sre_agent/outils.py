@@ -24,9 +24,9 @@ import json
 import os
 import sys
 import threading
-from pathlib import Path
 from concurrent.futures import Future
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Self
 
 from mcp import ClientSession, StdioServerParameters, stdio_client
@@ -202,7 +202,7 @@ class ClientRunbooks:
                     resultat = await asyncio.wait_for(session.call_tool(nom, arguments), self.delai)
                     if not promesse.done():
                         promesse.set_result(_texte(resultat))
-                except BaseException as e:  # noqa: BLE001 (returned to the caller)
+                except BaseException as e:
                     if not promesse.done():
                         promesse.set_exception(e)
                     if isinstance(e, asyncio.CancelledError):
@@ -228,7 +228,7 @@ class ClientRunbooks:
         self._boucle.call_soon_threadsafe(self._demandes.put_nowait, (nom, arguments, promesse))
         try:
             texte = promesse.result(timeout=self.delai)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — redact arbitrary MCP transport exceptions.
             promesse.cancel()
             raise ErreurOutil(f"Appel MCP interrompu : {type(e).__name__}.") from None
         if len(texte) > MAX_RESULTAT_OUTIL:
@@ -285,7 +285,7 @@ def executer_outil(client: ClientRunbooks, nom: str, arguments: dict[str, Any], 
         span.set_attribute(tracage.ATTR_BUDGET_OUTILS, budget.appels_outils)
         try:
             resultat = client.appeler(nom, arguments)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — tool failures must not disclose their payload.
             span.set_status(Status(StatusCode.ERROR, type(e).__name__))
             raise ErreurOutil(f"Échec de l'outil {nom} : {type(e).__name__}.") from None
         budget.temps_restant()

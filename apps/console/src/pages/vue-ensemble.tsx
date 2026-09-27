@@ -1,4 +1,4 @@
-import { t, useI18n, number, countLabel, getLocale } from "../i18n";
+import { t, useI18n, number, countLabel } from "../i18n";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -19,6 +19,7 @@ import {
 import { api, serviceName, type Liste, type Vue } from "../api";
 import { Erreur, Chargement, Vide, Titre, Orbit } from "../ui";
 import { ListeAnalyses } from "./analyses";
+import { Insights } from "../Insights";
 
 export function VueEnsemble() {
   useI18n();
@@ -40,14 +41,6 @@ export function VueEnsemble() {
       (d.statuts.en_cours || 0) +
       (d.statuts.en_file || 0) +
       (d.statuts.decision || 0);
-  const max = Math.max(1, ...d.activite.map((a) => a.total));
-  const activityLabel = (item: { date: string; total: number }) =>
-    new Intl.DateTimeFormat(getLocale(), {
-      dateStyle: "medium",
-      timeZone: "UTC",
-    }).format(new Date(item.date + "T00:00:00Z")) +
-    " · " +
-    countLabel(item.total, "analysis");
   return (
     <>
       <Titre
@@ -116,7 +109,7 @@ export function VueEnsemble() {
       <div className="stats-grid">
         {[
           {
-            label: t("Total analyses"),
+            label: t("Saved runs"),
             valeur: d.total,
             icon: Workflow,
             note: t("Saved on this device"),
@@ -172,6 +165,7 @@ export function VueEnsemble() {
           {t("All missions")} <Compass size={15} />
         </Link>
       </div>
+      <Insights data={d} updatedAt={q.dataUpdatedAt} />
       <div className="dashboard-grid">
         <section className="panel">
           <div className="panel-heading">
@@ -226,29 +220,6 @@ export function VueEnsemble() {
                 ? t("All services responding")
                 : t("Some services need attention")}
             </span>
-          </div>
-        </section>
-        <section className="panel">
-          <div className="panel-heading">
-            <h2>{t("Your activity")}</h2>
-            <span className="muted tiny">{t("Last 14 days · UTC")}</span>
-          </div>
-          <div
-            className="activity-chart"
-            role="img"
-            aria-label={d.activite.map(activityLabel).join(", ")}
-          >
-            {d.activite.map((a) => (
-              <div key={a.date} title={activityLabel(a)}>
-                <span
-                  style={{
-                    height: `${Math.max(3, (a.total / max) * 100)}%`,
-                    opacity: a.total ? 1 : 0.2,
-                  }}
-                />
-                <small>{a.date.slice(8)}</small>
-              </div>
-            ))}
           </div>
         </section>
         <section className="panel">

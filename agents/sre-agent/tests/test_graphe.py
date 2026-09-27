@@ -12,13 +12,13 @@ code, run as is.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
 from datetime import UTC, datetime, timedelta
 
 import pytest
-import hashlib
 
 from sre_agent import cli_graphe, config, graphe, llm, outils
 from sre_agent.budget import Budget

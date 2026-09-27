@@ -55,7 +55,8 @@ voice output-file reads.
 
 ## Current control-plane qualification — 2026-09-27
 
-The release working tree passed **342 tests in 25.89 seconds**. Combined
+The combined release tree `84a6fef32218` passed **342 tests in 23.99 seconds**
+in a fresh clone without operator configuration. Combined
 statement/branch coverage was **90%**: control API 93%, authentication 96%,
 configuration 97%, runbooks 98%, state store 96%, local services 100%, voice bridge
 98%, assistant 100%, MCP adapter 92%, execution 87%, CLI 82% and readiness 76%.
@@ -93,6 +94,18 @@ measurements as JUnit test-suite properties.
 A release still requires checks on the final commit in a clean clone, browser
 end-to-end tests and a real local model/speech exercise with synthetic inputs.
 
+## Real speech in CI
+
+The separate speech-model job installs the public English/French speech artifacts
+using the manifest's pinned revisions, sizes and SHA-256 checks. It then runs the
+real synthesis, recognition, browser-codec, silence and CLI tests in an isolated
+network namespace as the unprivileged runner user. No operator configuration,
+client recording, model-service credential or cloud inference is used. The quick
+Python matrix still skips these model tests; the dedicated job is their gate.
+Initial artifact downloads require network availability, while inference does not.
+This narrow synthetic corpus detects regressions; it does not certify recognition
+accuracy for arbitrary accents, microphones or client terminology.
+
 ## Console regression checks
 
 The 2026-09-27 working tree has 119 frontend unit tests and 32 desktop/mobile
@@ -125,3 +138,17 @@ report. See [the current release review](RELEASE-2026-09-27.md).
 Failed console CI jobs retain Playwright reports, screenshots and traces for
 seven days. They originate only from the disposable synthetic test server,
 with ephemeral credentials. They do not capture the operator's live console.
+
+## Console and release regression scope
+
+The combined release includes 158 console unit tests and 40 Playwright journeys
+on desktop/mobile Chromium. The additional cases verify exact UTC chart counts,
+accessible tables/keyboard inspection, translated labels, all four architecture
+paths, unknown/failed health, navigation scroll reset, both scroll directions,
+pause and dynamic reduced motion. Lifecycle tests check observer cleanup, bounded
+collection, focus and hidden tabs. The suite remains synthetic on loopback 8789.
+
+The live-browser inspection and bounded load/motion measurements are described in
+[the release review](RELEASE-2026-09-27.md); they supplement deterministic tests.
+The raw exact-clone JUnit properties distinguish in-process load from actual
+Uvicorn loopback load. Neither measures concurrent model throughput.

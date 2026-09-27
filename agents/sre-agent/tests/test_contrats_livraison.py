@@ -8,11 +8,11 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import StatusCode
+from test_graphe import DIAGNOSTIC, EXTRACTION, TRI, reponse, scenariser
 
 from sre_agent import agent, cli, cli_graphe, config, graphe, outils, tracage
 from sre_agent.budget import Budget
 from sre_agent.modeles import Diagnostic, Rapport, appliquer_garde_source
-from test_graphe import DIAGNOSTIC, EXTRACTION, TRI, reponse, scenariser
 
 
 @pytest.mark.parametrize(

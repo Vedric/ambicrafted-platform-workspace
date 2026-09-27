@@ -7,6 +7,7 @@ muddies the reading of the result.
 
 import os
 import socket
+
 import pytest
 
 os.environ.setdefault("SRE_TRACAGE", "0")

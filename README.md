@@ -18,10 +18,14 @@ See the [2026-09-27 delivery review](docs/RELEASE-2026-09-27.md).
 
 The private console runs at [http://127.0.0.1:8787](http://127.0.0.1:8787). Its responsive workspace
 includes mission templates, supervised analyses, approvals, a runbook editor,
-local semantic search, measured readiness, observability and maintenance
-operations. AURA is its local AI voice/text assistant. The welcome page,
+local semantic search, measured readiness, operational charts, an interactive
+architecture guide, observability and maintenance operations. AURA is its local
+AI voice/text assistant. The welcome page,
 workspace, forms and navigation share the same visual design, keyboard controls,
 light/dark themes and pausable motion. Fonts and browser assets are hosted locally.
+Larger text and controls support reading across the workspace. Sections receive
+finite entry accents when scrolling down or back up; motion can be paused and
+respects the operating system's reduced-motion preference.
 Interface language is selectable between English and French, defaults to English,
 and persists in the browser independently of AURA's conversation language.
 The target remains one trusted operator on this workstation.
@@ -62,6 +66,18 @@ Choose incident, performance, capacity or change investigation; edit the brief
 with observed facts before submitting it. These presets use the same bounded SRE
 workflow. They do not deploy agents to client systems or create tenant isolation.
 
+**Overview** charts use saved runs and current local health checks: activity over
+7 or 14 UTC days, the states of retained runs, and service probe durations. Analyses
+and maintenance operations share these aggregates; deleting a run removes its
+contribution. Charts include keyboard inspection and a data table. Probe durations
+are snapshots, not model inference latency or an availability SLO.
+
+Open **Architecture** at `/architecture` to follow **Investigation**, **Voice**,
+**Knowledge** or **Telemetry**. Select a component to inspect its role, data and
+boundary, then open the relevant workspace. Animated connections explain the
+design; only the separately identified health probes report measured availability.
+See [the architecture guide](docs/ARCHITECTURE.md#operational-charts-and-interactive-map).
+
 ## Components
 
 | Component | Purpose |
@@ -99,7 +115,7 @@ preconditions and risks. The agent never executes a remediation.
 ## Install
 
 Reference workstation tools: Python 3.14.7 for the API/agent/MCP and 3.13.15
-for speech, uv 0.12.5, Node 22.22.0, npm 11.10.0, Docker Compose, and Ollama
+for speech, uv 0.12.5, Node 22.23.3, npm 11.10.0, Docker Compose, and Ollama
 0.32.15. Use the project Python selectors and committed locks; do not substitute
 the system Python or install packages globally. The local model needs the
 GPU/RAM described in `CLAUDE.md`. A second-machine installation remains a
