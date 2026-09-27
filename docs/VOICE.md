@@ -293,6 +293,30 @@ background noise or overlapping speech. Those require a recorded acceptance
 corpus with consent. The UI/API integration suite separately verifies the
 authenticated conversation flow, cancellation and load admission.
 
+## Final combined release replay — 2026-09-27
+
+The exact combined application tree `84a6fef32218` passed all 65 speech tests in
+31.82 seconds from a fresh clone, with networking removed by `unshare -rn`.
+Combined coverage was 87%. The separate hosted speech job downloads only the
+pinned public model artifacts before removing networking for its 14 integration tests.
+
+The real browser manual flow on the updated local service used unchanged synthetic
+microphone WAVs, actual MediaRecorder, local transcription/dialogue/synthesis and
+native playback. English/French STT took 2.541/2.498 seconds; dialogue 0.685/0.757;
+synthesis through playback start 2.556/2.387. The reply WAVs had valid RIFF/WAVE
+headers, HTTP 200, `audio/wav` and `no-store`; measured audio and Stop worked.
+The transcript was explicitly reviewed and edited before Send. English still
+misrecognized the opening assistant name as “Or” on this browser sample; French
+recovered its sentence. This is a functional integration result, not an accuracy
+certificate, physical-device test or hands-free-loop acceptance test.
+
+Two preliminary CDP body captures returned empty bytes despite successful response
+metadata. The final probe validated bytes delivered to browser fetch, then matched
+the network capture and actual playback. No product change separated those attempts;
+their exact capture failure cause remains unproven. All evidence, including those
+failures, is in `immersive-2026-09-27/voice-browser-final/` outside Git. No operator
+recording, authentication value or client data was included in the report.
+
 ## Sources and attribution
 
 - TTS runtime: [Piper maintained by OHF Voice](https://github.com/OHF-Voice/piper1-gpl),

@@ -14,10 +14,10 @@ export function Insights({
   updatedAt: number;
 }) {
   useI18n();
-  const [window, setWindow] = useState<7 | 14>(14);
+  const [activityDays, setActivityDays] = useState<7 | 14>(14);
   const [cursor, setCursor] = useState<number | null>(null);
   const id = useId().replaceAll(":", "");
-  const days = activityWindow(data.activite, window);
+  const days = activityWindow(data.activite, activityDays);
   const max = Math.max(
     2,
     Math.ceil(Math.max(0, ...days.map((day) => day.total)) / 2) * 2,
@@ -90,9 +90,9 @@ export function Insights({
               {([7, 14] as const).map((value) => (
                 <button
                   key={value}
-                  aria-pressed={window === value}
+                  aria-pressed={activityDays === value}
                   onClick={() => {
-                    setWindow(value);
+                    setActivityDays(value);
                     setCursor(null);
                   }}
                 >

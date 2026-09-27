@@ -395,6 +395,8 @@
   }
 }
 @media (max-width: 600px) {
+  /* SVG viewBox units scale with a 640-unit canvas: 24 units render at
+     roughly 10–20 screen pixels here, not 24 CSS pixels on the page. */
   .chart-gridline text,
   .chart-axis-label {
     font-size: 24px;

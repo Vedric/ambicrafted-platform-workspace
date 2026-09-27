@@ -55,7 +55,8 @@ voice output-file reads.
 
 ## Current control-plane qualification — 2026-09-27
 
-The release working tree passed **342 tests in 25.89 seconds**. Combined
+The combined release tree `84a6fef32218` passed **342 tests in 23.99 seconds**
+in a fresh clone without operator configuration. Combined
 statement/branch coverage was **90%**: control API 93%, authentication 96%,
 configuration 97%, runbooks 98%, state store 96%, local services 100%, voice bridge
 98%, assistant 100%, MCP adapter 92%, execution 87%, CLI 82% and readiness 76%.
@@ -137,3 +138,17 @@ report. See [the current release review](RELEASE-2026-09-27.md).
 Failed console CI jobs retain Playwright reports, screenshots and traces for
 seven days. They originate only from the disposable synthetic test server,
 with ephemeral credentials. They do not capture the operator's live console.
+
+## Console and release regression scope
+
+The combined release includes 158 console unit tests and 40 Playwright journeys
+on desktop/mobile Chromium. The additional cases verify exact UTC chart counts,
+accessible tables/keyboard inspection, translated labels, all four architecture
+paths, unknown/failed health, navigation scroll reset, both scroll directions,
+pause and dynamic reduced motion. Lifecycle tests check observer cleanup, bounded
+collection, focus and hidden tabs. The suite remains synthetic on loopback 8789.
+
+The live-browser inspection and bounded load/motion measurements are described in
+[the release review](RELEASE-2026-09-27.md); they supplement deterministic tests.
+The raw exact-clone JUnit properties distinguish in-process load from actual
+Uvicorn loopback load. Neither measures concurrent model throughput.

@@ -2,8 +2,7 @@
 
 The application/tooling changes proposed by Dependabot PRs #3–13 are coordinated
 in one batch so the independently installed projects remain reproducible. This
-document records the implementation decision; PR closure and hosted CI status
-must be verified after the final integration commit.
+document records the implementation decision and the verified dispositions below.
 
 | Scope | Retained version | Original PRs |
 | --- | --- | --- |
@@ -46,9 +45,9 @@ API and are pinned in the workflows:
 PR #2 changes PostgreSQL to 18.6 without adapting the data mount, migrating the
 16 cluster, or validating LiteLLM. It is deliberately excluded. Dependabot still
 tracks PostgreSQL minor/patch and digest changes, but major updates require an
-explicit migration. Final PR processing should close #2 with this reason and
-link [ADR 0016](adr/0016-maintenance-dependances-et-postgresql.md). It must not be
-described as already merged or replaced by an equivalent PostgreSQL 18 change.
+explicit migration. PR #2 was closed with this decision documented in
+[ADR 0016](adr/0016-maintenance-dependances-et-postgresql.md). It was not merged
+or replaced by an equivalent PostgreSQL 18 change.
 
 The 2026-09-26 image assessment remains unchanged: 0 critical / 166 high package
 occurrences, with the qualification limits in
@@ -71,9 +70,8 @@ E2E type checking and Playwright without retries. Browser fixtures use synthetic
 data and port 8789; coordinate that port when multiple checkouts are active.
 
 The initial read-only inventory and subsequent local evidence are outside Git
-under `/home/vedric/platform/immersive-2026-09-27/`. A final fresh-clone check and
-the hosted workflow must identify the integrated commit. Only then should the
-replaced Dependabot PRs be closed with a link to that commit and the evidence.
+under `/home/vedric/platform/immersive-2026-09-27/`. Fresh-clone and hosted checks identify the integrated candidate commit below.
+They preceded closure of the replaced Dependabot PRs.
 
 ## Observed local qualification
 
@@ -99,3 +97,22 @@ standalone script locks, secret-hook tests and Compose syntax validation against
 the example environment also passed. The skipped speech tests require local
 model assets; this batch does not claim to have qualified the speech acoustics.
 No Docker image build, PostgreSQL migration or live volume operation occurred.
+
+## Final disposition — 2026-09-27
+
+PRs **#3–13 are closed as superseded** by the coordinated batch in
+[PR #16](https://github.com/Vedric/ambicrafted-platform-workspace/pull/16).
+PR **#2 is closed as a declined, unqualified major database migration**; PostgreSQL
+16 and its existing volume are preserved. The original proposals and review
+history remain available. Closing a proposal is not evidence that its exact diff
+was merged; the retained versions in the table describe the actual implementation.
+
+Candidate `893bfb02dbb0dcd4788ef1005440bca1fe3645dc` passed all seven groups in a
+fresh clone, with fresh environments and no operator secrets. Both hosted
+[push CI](https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/36295392649)
+and [PR CI](https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/36295394648)
+passed all eight jobs, including actual offline speech models. The combined UI
+suite contains 158 unit tests and 40 desktop/mobile browser journeys; speech has 51
+quick tests plus 14 real integrations. The local service was synchronized from the
+locks and restarted; nineteen readiness checks passed. The final merged commit
+and zero-open-PR inventory are recorded in the operator delivery report.
