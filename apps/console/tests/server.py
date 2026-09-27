@@ -127,7 +127,7 @@ async def semantique(_, requete):
     ]
 
 
-async def dialoguer_simule(_, messages):
+async def dialoguer_simule(_, messages, langue="en"):
     await asyncio.sleep(0.08)
     return {
         "texte": "Synthetic reply: open Analyses to investigate an incident with its sources.",

@@ -13,12 +13,13 @@ from pathlib import Path
 from dotenv import dotenv_values, set_key
 
 
-def dossier_prive(chemin: Path) -> Path:
+def dossier_prive(chemin: Path, *, creer: bool = True) -> Path:
     if chemin.is_symlink():
         raise ValueError("Un dossier privé ne peut pas être un lien symbolique.")
-    chemin.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if creer:
+        chemin.mkdir(mode=0o700, parents=True, exist_ok=True)
     info = chemin.stat()
-    if info.st_uid != os.getuid() or info.st_mode & 0o077:
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
         raise ValueError("Le dossier d'état doit appartenir à l'utilisateur et être en mode 0700.")
     return chemin
 
@@ -90,16 +91,20 @@ class Parametres:
         return self.racine / "apps/console/dist"
 
     @classmethod
-    def charger(cls) -> Parametres:
+    def charger(cls, *, lecture_seule: bool = False) -> Parametres:
         racine = Path(
             os.environ.get("PLATFORM_ROOT", Path(__file__).resolve().parents[4])
         ).resolve()
-        with verrou_configuration(racine):
+        if lecture_seule:
             valeurs = lire_environnement(racine)
             cle = valeurs.get("PLATFORM_UI_KEY", "")
-            if not cle:
-                cle = secrets.token_urlsafe(48)
-                _ecrire_secret_verrouille(racine, "PLATFORM_UI_KEY", cle)
+        else:
+            with verrou_configuration(racine):
+                valeurs = lire_environnement(racine)
+                cle = valeurs.get("PLATFORM_UI_KEY", "")
+                if not cle:
+                    cle = secrets.token_urlsafe(48)
+                    _ecrire_secret_verrouille(racine, "PLATFORM_UI_KEY", cle)
         if not 32 <= len(cle) <= 256 or not cle.isascii() or any(c.isspace() for c in cle):
             raise ValueError(
                 "La clé de contrôle locale doit contenir 32 à 256 caractères ASCII sans espace."
@@ -109,7 +114,7 @@ class Parametres:
             or valeurs.get("PLATFORM_STATE_DIR")
             or Path.home() / ".local/state/ambicrafted"
         ).expanduser()
-        dossier_prive(etat)
+        dossier_prive(etat, creer=not lecture_seule)
         port = int(os.environ.get("PLATFORM_PORT") or valeurs.get("PLATFORM_PORT") or 8787)
         if not 1024 <= port <= 65535:
             raise ValueError("Port local invalide.")

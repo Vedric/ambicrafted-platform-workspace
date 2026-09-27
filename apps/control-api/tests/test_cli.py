@@ -388,6 +388,36 @@ def test_voice_status_uses_same_api(parametres, monkeypatch):
     args = cli.analyseur().parse_args(["voix", "statut"])
     assert cli.executer(args, parametres)["local"]
     assert appels[0].url.path == "/api/voix/statut"
+    assert appels[0].url.params["langue"] == "en"
+
+
+@pytest.mark.parametrize("commande", ["preparation", "doctor"])
+def test_preparation_cli_authentifiee(parametres, monkeypatch, commande):
+    appels = client_simule(
+        monkeypatch, parametres, lambda _: httpx.Response(200, json={"ready": False})
+    )
+    args = cli.analyseur().parse_args([commande])
+    assert cli.executer(args, parametres) == {"ready": False}
+    assert appels[0].url.path == "/api/preparation" and appels[0].method == "GET"
+
+
+def test_voix_langue_explicite_et_non_supportee(parametres, monkeypatch):
+    appels = client_simule(
+        monkeypatch, parametres, lambda _: httpx.Response(200, json={"local": True})
+    )
+    args = cli.analyseur().parse_args(["voix", "statut", "--langue", "fr"])
+    cli.executer(args, parametres)
+    assert appels[0].url.params["langue"] == "fr"
+    with pytest.raises(SystemExit):
+        cli.analyseur().parse_args(["voix", "statut", "--langue", "de"])
+
+
+@pytest.mark.parametrize("pret,code", [(True, 0), (False, 2)])
+def test_doctor_code_sortie_exploitable(parametres, monkeypatch, capsys, pret, code):
+    monkeypatch.setattr(cli.Parametres, "charger", lambda: parametres)
+    client_simule(monkeypatch, parametres, lambda _: httpx.Response(200, json={"ready": pret}))
+    assert cli.main(["doctor"]) == code
+    assert json.loads(capsys.readouterr().out)["ready"] is pret
 
 
 def test_voice_synthesis_writes_private_file_and_never_stdout_audio(
@@ -405,7 +435,7 @@ def test_voice_synthesis_writes_private_file_and_never_stdout_audio(
     assert cli.main(["voix", "parler", "--sortie", str(sortie)]) == 0
     assert sortie.read_bytes() == audio
     assert sortie.stat().st_mode & 0o777 == 0o600
-    assert json.loads(appels[0].content) == {"texte": "Bonjour, ceci est un essai."}
+    assert json.loads(appels[0].content) == {"texte": "Bonjour, ceci est un essai.", "langue": "en"}
     assert "synthetic-binary" not in capsys.readouterr().out
 
 
@@ -421,6 +451,7 @@ def test_voice_transcription_sends_binary_as_base64(parametres, monkeypatch, tmp
     assert cli.executer(args, parametres)["texte"] == "Bonjour"
     assert appels[0].url.path == "/api/voix/transcrire"
     assert base64.b64decode(json.loads(appels[0].content)["audio"]) == audio
+    assert json.loads(appels[0].content)["langue"] == "en"
 
 
 def test_audio_input_private_bounded_regular_and_without_symlink(tmp_path, monkeypatch):

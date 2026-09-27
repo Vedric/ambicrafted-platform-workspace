@@ -38,13 +38,32 @@ def encoder(source: Path, cible: Path, format: str, codec: str) -> None:
     "format,extension,codec",
     [("wav", "wav", ""), ("webm", "webm", "libopus"), ("ogg", "ogg", "libopus")],
 )
-def test_voix_francaise_et_reponse_micro_navigateur(tmp_path, format, extension, codec):
+@pytest.mark.parametrize(
+    "langue,phrase,mots",
+    [
+        (
+            "en",
+            (
+                "Hello, I am your local assistant. The platform protects your data. "
+                "Would you like to analyze an alert?"
+            ),
+            ("hello", "local", "assistant", "platform", "data", "alert"),
+        ),
+        (
+            "fr",
+            (
+                "Bonjour, je suis votre assistante locale. La plateforme protège vos données. "
+                "Voulez-vous analyser une alerte ?"
+            ),
+            ("bonjour", "assistante", "locale", "plateforme", "données", "alerte"),
+        ),
+    ],
+)
+def test_voix_bilingue_et_reponse_micro_navigateur(
+    tmp_path, format, extension, codec, langue, phrase, mots
+):
     wav = tmp_path / "salutation.wav"
-    metadata = parler(
-        "Bonjour, je suis votre assistante locale. La plateforme protège vos données. "
-        "Voulez-vous analyser une alerte ?",
-        wav,
-    )
+    metadata = parler(phrase, wav, langue)
     assert metadata["format"] == "wav"
     assert metadata["frequence_hz"] == 22050
     assert 3 < metadata["duree_s"] < 15
@@ -53,13 +72,17 @@ def test_voix_francaise_et_reponse_micro_navigateur(tmp_path, format, extension,
     if codec:
         path = tmp_path / ("navigateur." + extension)
         encoder(wav, path, format, codec)
-    resultat = transcrire(path)
-    for mot in ("bonjour", "assistante", "locale", "plateforme", "données", "alerte"):
+    resultat = transcrire(path, langue)
+    for mot in mots:
         assert mot in resultat["texte"].lower()
     assert resultat["local"]
+    assert metadata["langue"] == resultat["langue"] == langue
+    assert metadata["alias"] == "voix-feminine-" + langue
+    assert resultat["alias"] == "transcription-" + langue
 
 
-def test_silence_ne_devient_pas_une_instruction(tmp_path):
+@pytest.mark.parametrize("langue", ["en", "fr"])
+def test_silence_ne_devient_pas_une_instruction(tmp_path, langue):
     path = tmp_path / "silence.wav"
     with wave.open(str(path), "wb") as wav:
         wav.setnchannels(1)
@@ -67,7 +90,7 @@ def test_silence_ne_devient_pas_une_instruction(tmp_path):
         wav.setframerate(16000)
         wav.writeframes(bytes(3 * 16000 * 2))
     path.chmod(0o600)
-    assert transcrire(path)["texte"] == ""
+    assert transcrire(path, langue)["texte"] == ""
 
 
 def test_synthese_necrase_jamais_un_fichier(tmp_path):
@@ -75,19 +98,19 @@ def test_synthese_necrase_jamais_un_fichier(tmp_path):
     path.write_bytes(b"contenu original")
     path.chmod(0o600)
     with pytest.raises(FileExistsError):
-        parler("Bonjour.", path)
+        parler("Hello.", path)
     assert path.read_bytes() == b"contenu original"
 
 
 def test_processus_cli_reel_sans_journal_client(tmp_path):
     resultat = subprocess.run(
         [sys.executable, "-m", "voix_locale.cli", "parler", "--sortie", str(tmp_path / "cli.wav")],
-        input="Bonjour, bienvenue dans votre plateforme privée.",
+        input="Hello, welcome to your private platform.",
         text=True,
         capture_output=True,
         timeout=20,
         check=False,
     )
     assert resultat.returncode == 0
-    assert "Bienvenue" not in resultat.stdout
+    assert "welcome" not in resultat.stdout
     assert resultat.stderr == ""

@@ -43,8 +43,9 @@ operational backup, or accesses the production SQLite state.
 | Retention | Expired terminal and pending-human analyses/checkpoints, active/recent preservation, 30-day journal/revision policy and refusal to follow external paths |
 | Local services | Cached health probes, malformed upstream schemas, bounded streaming JSON, strict local embeddings, asymmetric query prefix, absent confidential key and invalid vectors |
 | Voice API | Authentication/CSRF, separate audio body limit, strict base64, decoded size, private temporary files, cleanup on failure/cancellation, concurrency refusal, fragmented subprocess JSON, output bounds and invalid/symbolic/FIFO audio output |
-| Conversation | Allowed roles only, bounded history, final user turn, local alias and confidential credential, no tools or action authority, no persistent transcript and masked provider errors |
-| MCP | Actual subprocess initialization and stdio calls through the authenticated HTTP API; exactly three read-only tools; an approval tool does not exist; multiple runbooks preserve separate MCP text content blocks |
+| Conversation | English/French routing, AURA identity, allowed roles only, bounded history, final user turn, local alias and confidential credential, no tools or action authority, no persistent transcript and masked provider errors |
+| Readiness | Nineteen evidence checks, required/optional capabilities, actual IPv4/IPv6 loopback listeners, bounded probes, cache coalescing, dependency failures, secret-free output and authenticated CLI/API parity |
+| MCP | Actual subprocess initialization and stdio calls through the authenticated HTTP API; exactly nine read-only control tools; readiness initializes both real MCP transports; absent configuration is never created by the read-only adapter; an approval tool does not exist; multiple runbooks preserve separate MCP text content blocks |
 | CLI | API parity, bounded private stdin/files, fixed loopback serving, secret-free browser opening, private exports, explicit deletion, systemd command construction and voice commands |
 
 Regression tests exposed and accompanied fixes for non-ASCII authentication headers,
@@ -52,7 +53,20 @@ concurrent first-start key generation, malformed service responses, reflected
 validation input, cancellation/deletion races, fragmented voice output and unsafe
 voice output-file reads.
 
-## Controlled load evidence
+## Current control-plane qualification — 2026-09-27
+
+The release working tree passed **342 tests in 25.89 seconds**. Combined
+statement/branch coverage was **90%**: control API 93%, authentication 96%,
+configuration 97%, runbooks 98%, state store 96%, local services 100%, voice bridge
+98%, assistant 100%, MCP adapter 92%, execution 87%, CLI 82% and readiness 76%.
+Actual transport subprocesses are tested behaviorally and are not automatically
+included in parent-process coverage. No claim of 100% coverage is made.
+
+The concurrent HTTP and queue tests remain in that suite and record each run's
+measurements in its JUnit properties. Exact-commit CI and the fresh clone remain
+separate delivery gates.
+
+## Historical controlled load evidence — 2026-09-26
 
 On the development workstation, a full run on 2026-09-26 passed 289 tests in 21.57
 seconds, without warnings. Combined statement/branch coverage was 91% in that run: API 93%, authentication 96%, runbook editing 98%, state store 96%,
@@ -81,13 +95,32 @@ end-to-end tests and a real local model/speech exercise with synthetic inputs.
 
 ## Console regression checks
 
-The console has 40 unit tests and 20 desktop/mobile Chromium journeys. These
-cover English presentation, delayed and expired ticket exchanges under React
-StrictMode, semantic page headings, keyboard focus restoration, WCAG checks in
-both themes, responsive widths, persistent animation preferences, and changes to
-the operating system's reduced-motion setting during a session. A delayed
-signed-out response exposed a sign-in race: session discovery now waits for the
-single-use ticket exchange before requesting authenticated state.
+The 2026-09-27 working tree has 117 frontend unit tests and 32 desktop/mobile
+Chromium journeys. These cover both interface languages, preserved operator
+content, independent conversation language, delayed/expired ticket exchange under
+React StrictMode, mission drafts, readiness failures, welcome-page entry, keyboard
+focus, responsive widths, WCAG checks in both themes and persistent motion controls.
+The lazy Markdown renderer retains the HTML/image/protocol safety tests.
+
+The AURA suites exercise live preference changes while awaiting a reply or speech,
+manual transcript review, two successive hands-free turns, the 20-turn bound,
+90-second recording cap, initial silence, denied/late microphone permissions,
+recording/transcription/playback failures, stale results, hidden tabs, Escape,
+unmount and StrictMode cleanup. Native Chromium tests inject a synthetic WAV into
+a real MediaRecorder/AudioContext. PCM parser tests cover malformed RIFF chunks,
+size/rate/alignment bounds, stereo phase cancellation, silence and currentTime.
+Visualizer tests cover real measured amplitude, a maximum 30 Hz update rate, no
+idle polling, offscreen/hidden suspension and live reduced-motion changes.
+
+The local real-API inspection covers 34 route/language/theme/viewport combinations,
+with no detected axe violations, horizontal overflow or browser JavaScript errors
+after correcting the scrollable activity log's keyboard access. This is bounded
+automated coverage, not complete WCAG conformance or a test on every browser/device.
+Physical microphone, speakers and subjective voice quality need operator acceptance.
+
+Working-tree counts are not statements about hosted CI. The exact delivered Git
+commit must pass the clean-clone commands and CI, with provenance in the delivery
+report. See [the current release review](RELEASE-2026-09-27.md).
 
 Failed console CI jobs retain Playwright reports, screenshots and traces for
 seven days. They originate only from the disposable synthetic test server,

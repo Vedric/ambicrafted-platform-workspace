@@ -34,11 +34,26 @@ def test_erreur_operateur_et_resultat_json(monkeypatch, capsys):
     assert json.loads(capsys.readouterr().out) == {"local": True}
 
 
-def test_statut_verifie_les_deux_alias(monkeypatch):
+@pytest.mark.parametrize("langue", ["en", "fr"])
+def test_statut_verifie_les_deux_alias(monkeypatch, langue):
     verifications = []
     monkeypatch.setattr(cli, "verifier_modele", verifications.append)
-    assert cli.executer(["statut"])["pret"]
-    assert verifications == ["voix-feminine-fr", "transcription-fr"]
+    resultat = cli.executer(["statut", "--langue", langue])
+    assert resultat["pret"]
+    assert resultat["langues"] == ["en", "fr"]
+    assert verifications == ["voix-feminine-" + langue, "transcription-" + langue]
+
+
+def test_statut_anglais_par_defaut(monkeypatch):
+    monkeypatch.setattr(cli, "verifier_modele", lambda _: None)
+    assert cli.executer(["statut"])["langue"] == "en-US"
+
+
+@pytest.mark.parametrize("langue", ["EN", "de", "../fr", "", "en-US"])
+def test_cli_langue_hors_contrat_refusee(langue):
+    with pytest.raises(SystemExit) as sortie:
+        cli.executer(["statut", "--langue", langue])
+    assert sortie.value.code == 2
 
 
 def test_installation_explicite(monkeypatch):

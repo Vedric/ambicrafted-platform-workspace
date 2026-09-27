@@ -9,12 +9,16 @@ multiple tenants and high availability require a separate design.
 
 ## Interface and motion
 
-The interface, status labels, accessibility labels and error messages are in
-English. Runbooks, alert titles, generated diagnoses and voice transcripts retain
-their original content and language. CLI commands and API identifiers remain
-stable. The installed offline voice is labelled **French female voice**.
+The welcome page and authenticated workspace offer English and French through
+the interface language selector. English is the default; the browser remembers
+the choice. Navigation, forms, status/error messages and accessibility labels
+follow that selection. Runbooks, alert titles, generated diagnoses and transcripts
+retain their content and language. CLI commands and API identifiers remain stable.
+AURA's English/French conversation selector is independent: changing the interface
+does not change the voice or silently translate client evidence. Page names below
+use the English labels.
 
-The welcome screen and overview use a native SVG/CSS orbital scene. Ambient
+The welcome screen, overview and AURA use a consistent visual identity. Ambient
 motion uses transforms and opacity; pointer parallax applies only to a mouse.
 Offscreen orbital scenes and background tabs pause their CSS animations.
 **Pause animations** is available on the welcome screen and in the workspace
@@ -51,6 +55,7 @@ From a second terminal:
 ```sh
 ./plateforme ouvrir
 ./plateforme statut
+./plateforme preparation
 ./plateforme parametres
 ```
 
@@ -76,6 +81,51 @@ server stores a scrypt hash and revokes existing sessions after a change. For
 automation, `mot-de-passe --stdin` accepts the password from a protected input
 stream. Never put a password or an API key directly in command arguments.
 Then open `http://127.0.0.1:8787` and use the login form. Sessions last 12 hours.
+
+## First operator session
+
+1. Set your interface language and theme. Use the top-bar command menu to move
+   between pages, or the navigation drawer on a small screen.
+2. Open **Readiness**. Review required failures or unavailable checks, then
+   inspect **System health** for the underlying services. Suggested commands
+   are guidance to review, not automatic fixes.
+3. Review **Runbooks** and use **Search** with synthetic queries. Edit only
+   reviewed sources, then reindex explicitly from **Operations**.
+4. Open **Missions** and choose an incident, performance, capacity or regression
+   brief. It opens an editable **New analysis** form; replace prompts with
+   observations before selecting **Run analysis**. A preset never submits itself.
+5. Follow the analysis stages, inspect complete sources and prerequisites, then
+   decide from **Approvals**. Export the result only after reviewing its status.
+   AURA can help frame a question, but cannot approve or execute a proposal.
+
+All mission presets enter the same local SRE pipeline. They are not autonomous
+specialist deployments, client connections or tenant boundaries. For real client
+work, use the [mission walkthrough](CLIENT-WORKFLOW.md), including a separately
+qualified environment and private handover/retention arrangements.
+
+## Measured readiness
+
+```sh
+./plateforme preparation
+./plateforme doctor
+```
+
+Both aliases call authenticated `GET /api/preparation`; the UI reads the same
+result. Nineteen checks cover installed runtimes, private file permissions,
+actual loopback API listeners, configured local destinations, live restricted
+model aliases, six services, source/index availability, English/French voice
+artifacts and real handshakes with both MCP servers. No diagnostic sends client
+text to a model, downloads a package or runs a repair command.
+
+Results include timestamps, evidence, required/optional status and per-feature
+prerequisites. Independent probes have a 20-second deadline; the combined result
+is cached for 30 seconds, with underlying health/voice caches described in
+[TOOLS.md](TOOLS.md). Exit code 2 indicates an incomplete readiness result. The
+API must already be running; use the service-manager commands below if it is not.
+
+An all-green checklist means measured local operational prerequisites are met.
+It does not establish model accuracy, index freshness, microphone behavior,
+restorability, vulnerability resolution or production security approval.
 
 ## User service
 
@@ -151,7 +201,7 @@ file. Deleting an inactive analysis also removes its own checkpoint directory;
 copies, exports and backups have their own retention. Structured results go to
 stdout, operational errors to stderr. Exit code 0 means the CLI operation
 succeeded; 1 indicates an access/input/transport failure; 2 indicates a returned
-failed, interrupted or budget-exhausted analysis (or invalid CLI arguments);
+failed, interrupted or budget-exhausted analysis, incomplete readiness, or invalid CLI arguments;
 130 indicates an interrupted CLI. Inspect the returned `statut` before taking
 an automation decision.
 
@@ -192,14 +242,42 @@ uses the most recent eligible local backup in disposable resources, not the
 running database. See [operations](OPERATIONS.md) for backup content, retention,
 rollback and the limits of restore validation.
 
-## Local voice through the CLI
+## AURA conversation and local voice
+
+Install the separate speech runtime and pinned English/French artifacts following
+[VOICE.md](VOICE.md). AURA identifies itself as an AI assistant. Audio processing
+is local, speech uses CPU, and dialogue uses the confidential `local` model path.
+Conversation is ephemeral; it does not become a persistent client memory service.
+
+The default manual flow is **Record**, stop recording, review/edit the transcript,
+then **Send**. **Listen** plays a reply through the selected female synthetic
+voice. The conversation-language selector defaults to English and also offers
+French independently of the interface language.
+
+Explicitly start hands-free conversation and grant microphone permission to use
+successive spoken turns. Browser voice activity detection ends a spoken turn
+after approximately 1.6 seconds of silence once speech was detected. AURA
+transcribes, sends that turn, generates a reply, speaks it and resumes listening.
+Without detected speech it stops after 12 seconds; it also pauses after 20 turns.
+These are bounded sequential steps, not simultaneous streaming or listening
+during playback. Device load and model initialization can introduce delays.
+
+Use **End conversation** or Escape to end the session. **Speak now** interrupts
+reply playback before reopening the microphone for another turn; it is not
+simultaneous listening. Hiding the tab or leaving
+the page cancels pending browser work, stops recording/playback and releases the
+microphone. The conversation-language selector is disabled during active work.
+Automatic submission is limited to an explicitly started conversation; manual
+recording lets you review before sending. A spoken “yes” never approves an
+analysis or authorizes an operation.
 
 The voice commands use the same authenticated API as the console:
 
 ```sh
-./plateforme voix statut
-printf '%s' 'Bonjour, la plateforme est disponible.' | ./plateforme voix parler --sortie /private/path/bonjour.wav
-./plateforme voix transcrire /private/path/question.webm
+./plateforme voix statut --langue en
+./plateforme voix statut --langue fr
+printf '%s' 'Bonjour, la plateforme est disponible.' | ./plateforme voix parler --langue fr --sortie /private/path/bonjour.wav
+./plateforme voix transcrire --langue fr /private/path/question.webm
 ```
 
 `parler` accepts at most 2,000 characters from stdin or `--fichier` and writes
@@ -224,12 +302,17 @@ server. Start the authenticated local API before connecting this adapter:
 uv run --locked --project apps/control-api python -m plateforme.mcp
 ```
 
-The stdio tools are `plateforme_sante`, `plateforme_analyses` and
-`plateforme_runbooks`. They read health, analysis metadata and the runbook
-inventory through the same API. The private key is read internally; never put
-it into an MCP configuration or command line. There is no approval, shell or
-editing tool. Relative paths in `.mcp.json` require the repository root as the
-client working directory.
+The adapter exposes nine tools: health, readiness, catalogue, analysis list and
+detail, runbook list and read, search, and bounded audit. The runbook server
+separately exposes four source/search tools. [TOOLS.md](TOOLS.md) lists exact
+names, parameters and limits. No additional server is needed for these capabilities.
+
+The private key is read internally; never put it into an MCP configuration or
+command line. Missing credentials/state return an unavailable result rather than
+being initialized by MCP. There is no approval, shell, editing or remediation
+tool. Relative paths in `.mcp.json` require the checkout root as the client working
+directory. Connect confidential tools only to a trusted local consumer; a remote
+consumer can transmit the content it receives.
 
 ## Maintenance and qualification
 
@@ -245,3 +328,8 @@ representative incident evaluations before expanding production scope. Access
 to Docker operations grants substantial authority on the host and belongs only
 to the trusted local operator. The current deployment deliberately has no
 public ingress, multi-user authorization or unattended remediation.
+
+The [26 September 2026 security assessment](SECURITY-RELEASE-2026-09-26.md)
+retains 166 HIGH package occurrences in the promoted images. Its conditional GO
+covers existing supervised private-workstation use only. Unqualified production
+security approval and remote/mutually untrusted use remain NO-GO at that snapshot.

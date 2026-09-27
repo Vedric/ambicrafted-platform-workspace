@@ -1,10 +1,97 @@
 # Architecture
 
 The workstation hosts a six-service gateway/observability stack, local Ollama,
-a runbook corpus, an MCP server, and two implementations of one read-only
+a runbook corpus, two stdio MCP servers, and two implementations of one read-only
 incident-analysis workflow. The shared UI/CLI control API and local speech runtime
-are described in ADR 0010–0011; incident guarantees are in ADR 0009. Older ADRs
+are described in ADR 0010–0015; incident guarantees are in ADR 0009. Older ADRs
 remain historical records.
+
+## Operator workspace and control boundary
+
+The React console and unified CLI use one authenticated FastAPI control service
+on `127.0.0.1:8787`. The workspace includes overview, missions, AURA, analyses and
+approvals, source editing/search, tool inventory, readiness, health,
+observability, maintenance and settings. English/French interface selection
+defaults to English and persists in browser storage; it changes UI text and
+formatting without translating stored client content or changing voice language.
+Locally served fonts/assets, responsive navigation, a keyboard command menu and
+pausable/reduced motion apply throughout the interface.
+
+Mission templates are editable intake drafts for the same SRE analysis path.
+Selecting one does not submit work, discover client infrastructure, deploy an
+agent fleet or create a tenant. Source and hypothesis review remain human tasks.
+The control service queues bounded work for one serial analysis/maintenance
+worker, persists status and exposes authenticated progress/decision routes.
+Explicit human approval is still required before a diagnostic is delivered.
+
+Opaque browser sessions, a one-use CLI login ticket, CSRF/origin checks, bounded
+requests and private state protect the local operator workflow. They are not a
+remote identity system or authorization between mutually untrusted clients.
+The browser and CLI can perform explicitly supported operator mutations; the
+control MCP has a separate read-only surface, with no approval or execution tool.
+
+```mermaid
+flowchart LR
+  UI[Private EN / FR console] --> API[Loopback authenticated control API]
+  CLI[Unified CLI] --> API
+  CMCP[Control MCP: 9 read-only tools] --> API
+  API --> State[Private console state]
+  API --> Jobs[Serial analysis / maintenance worker]
+  Jobs --> Graph[Supervised SRE graph]
+  Graph --> RMCP[Runbooks MCP: 4 read-only tools]
+  RMCP --> Corpus[Reviewed local corpus / Qdrant]
+  API --> Ready[Bounded local readiness probes]
+  API --> Aura[AURA local dialogue]
+  API --> Voice[English / French CPU speech]
+  Graph --> Gateway[Confidential local gateway aliases]
+  Aura --> Gateway
+```
+
+## Readiness and local tools
+
+`GET /api/preparation`, the Readiness page and `./plateforme preparation` /
+`doctor` share one versioned response. Nineteen checks measure installed runtime
+metadata, entrypoints, private storage permissions, Linux API socket bindings,
+configured local destinations, live permitted aliases, six health endpoints,
+source/index availability, voice artifacts and actual MCP handshakes. They run
+independently under deadlines, share a short cache and return bounded evidence
+without client content, credentials or raw exceptions. Suggested commands are
+inert guidance, not automatic remediation.
+
+The control MCP offers health, preparation, catalogue, analysis list/detail,
+runbook list/read, search and bounded audit. It can only call fixed authenticated
+GET routes on loopback, rejects redirects, bounds response bodies and never
+initializes missing configuration. Its read-only annotations describe the
+restricted implementation; they do not enforce a consumer's subsequent use of
+returned confidential data. Connect only trusted local consumers.
+
+Passing readiness means measured operational prerequisites, not certified
+provider routing behind an alias, fresh semantic content, inference correctness,
+microphone quality or production security approval. See [TOOLS.md](TOOLS.md) and
+[ADR 0014](adr/0014-readiness-et-outils-locaux.md).
+
+## AURA and speech lifecycle
+
+AURA is a local AI conversation interface using the confidential gateway path.
+It has no tools, approval authority or remediation path. Its ephemeral dialogue
+is separate from persisted incident state. English is the default conversation
+language; French is explicitly selectable independently of the UI language.
+
+Piper synthesis and faster-whisper recognition run on CPU in a separate pinned
+Python 3.13 environment; the API/agent/MCP runtime uses Python 3.14. Each selected
+voice's artifacts are verified locally. No browser cloud recognition service is
+used, and the application does not download models during voice requests.
+
+Manual recording produces an editable transcript before submission. Explicit
+hands-free mode sequences capture, local transcription, local dialogue, complete
+WAV synthesis and playback, then reopens listening. Browser VAD ends a detected
+spoken turn after roughly 1.6 seconds of silence; 12 seconds without speech or
+20 turns ends the session. This is turn-taking, not simultaneous streaming.
+Escape, tab hiding and route cleanup stop browser capture/playback and invalidate
+pending continuations. Spoken input never grants an approval. Audio has bounded
+size/duration and private temporary-file cleanup; model weights are reinstallable
+and excluded from platform backups. See [VOICE.md](VOICE.md) and
+[ADR 0013](adr/0013-voix-anglaise-reactive.md).
 
 ## Incident path
 
@@ -94,3 +181,11 @@ explicit graph query/use case, data partitioning and deletion design.
 
 This is a workstation architecture. Host availability, disk capacity and
 model latency remain operational constraints; it has no multi-host failover.
+
+Use separately qualified deployments/VMs for separate clients; a title, mission
+preset or alternative state directory does not isolate the shared gateway,
+corpus, index and backups. [CLIENT-WORKFLOW.md](CLIENT-WORKFLOW.md) makes that
+boundary explicit. The [26 September 2026 security assessment](SECURITY-RELEASE-2026-09-26.md)
+retains 166 HIGH package occurrences and grants only conditional continued use
+in the existing supervised local scope. Unqualified production security approval
+and remote/mutually untrusted use remain NO-GO at that snapshot.

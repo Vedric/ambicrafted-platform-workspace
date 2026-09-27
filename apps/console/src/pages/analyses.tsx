@@ -1,5 +1,11 @@
+import { t, useI18n, getLocale, number, countLabel } from "../i18n";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownToLine,
@@ -42,23 +48,41 @@ import {
   Modal,
 } from "../ui";
 
+import { findMission } from "../missions";
+
 const confidenceLabels: Record<string, string> = {
-  haute: "High",
-  moyenne: "Medium",
-  faible: "Low",
+  get haute() {
+    return t("High");
+  },
+  get moyenne() {
+    return t("Medium");
+  },
+  get faible() {
+    return t("Low");
+  },
 };
 const operationTitles: Record<string, string> = {
-  verifier: "Platform verification",
-  indexer: "Runbook reindexing",
-  sauvegarder: "Platform backup",
-  "tester-restauration": "Backup restoration test",
+  get verifier() {
+    return t("Platform verification");
+  },
+  get indexer() {
+    return t("Runbook reindexing");
+  },
+  get sauvegarder() {
+    return t("Platform backup");
+  },
+  get "tester-restauration"() {
+    return t("Backup restoration test");
+  },
 };
 const analysisTitle = (analysis: Analyse) =>
   analysis.mode === "operation"
-    ? operationTitles[analysis.options.operation || ""] || "Platform operation"
+    ? operationTitles[analysis.options.operation || ""] ||
+      t("Platform operation")
     : analysis.titre;
 
 export function ListeAnalyses({ elements }: { elements: Analyse[] }) {
+  useI18n();
   return (
     <div className="analysis-list">
       {elements.map((a) => (
@@ -78,7 +102,9 @@ export function ListeAnalyses({ elements }: { elements: Analyse[] }) {
             <strong>{analysisTitle(a)}</strong>
             <small>
               {date(a.cree_le)} ·{" "}
-              {a.mode === "operation" ? "Operation" : "Supervised analysis"}
+              {a.mode === "operation"
+                ? t("Operation")
+                : t("Supervised analysis")}
             </small>
           </div>
           <Badge statut={a.statut} />
@@ -89,6 +115,7 @@ export function ListeAnalyses({ elements }: { elements: Analyse[] }) {
   );
 }
 export function Analyses({ approbations = false }: { approbations?: boolean }) {
+  useI18n();
   const [filtre, setFiltre] = useState(""),
     [recherche, setRecherche] = useState(""),
     [page, setPage] = useState(1);
@@ -104,16 +131,18 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
   return (
     <>
       <Titre
-        surligne={approbations ? "HUMAN OVERSIGHT" : "ORCHESTRATION"}
-        titre={approbations ? "Approvals" : "Analyses"}
+        surligne={approbations ? t("HUMAN OVERSIGHT") : "ORCHESTRATION"}
+        titre={approbations ? t("Approvals") : t("Analyses")}
         texte={
           approbations
-            ? "Review the evidence and prerequisites before approving a proposal."
-            : "Follow every run from the first signal to a reviewed result."
+            ? t(
+                "Review the evidence and prerequisites before approving a proposal.",
+              )
+            : t("Follow every run from the first signal to a reviewed result.")
         }
       >
         <Link to="/analyses/nouvelle" className="btn primary">
-          <Plus size={18} /> New analysis
+          <Plus size={18} /> {t("New analysis")}
         </Link>
       </Titre>
       <section className="panel">
@@ -121,8 +150,8 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
           <div className="search-input">
             <Search size={17} />
             <input
-              aria-label="Search analyses"
-              placeholder="Search analyses…"
+              aria-label={t("Search analyses")}
+              placeholder={t("Search analyses…")}
               value={recherche}
               onChange={(e) => {
                 setRecherche(e.target.value);
@@ -132,14 +161,14 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
           </div>
           {!approbations && (
             <select
-              aria-label="Filter by status"
+              aria-label={t("Filter by status")}
               value={filtre}
               onChange={(e) => {
                 setFiltre(e.target.value);
                 setPage(1);
               }}
             >
-              <option value="">All statuses</option>
+              <option value="">{t("All statuses")}</option>
               {Object.entries(statuts).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v}
@@ -148,7 +177,7 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
             </select>
           )}
           <span className="muted tiny">
-            {q.data?.total ?? "—"} {q.data?.total === 1 ? "result" : "results"}
+            {q.data ? countLabel(q.data.total, "result") : "—"}
           </span>
         </div>
         {q.isPending ? (
@@ -159,11 +188,15 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
           <ListeAnalyses elements={q.data.elements} />
         ) : (
           <Vide
-            titre={approbations ? "No pending approvals" : "No analyses yet"}
+            titre={
+              approbations ? t("No pending approvals") : t("No analyses yet")
+            }
             texte={
               approbations
-                ? "Proposals appear here when they are ready for your review."
-                : "Start an analysis or adjust your search."
+                ? t(
+                    "Proposals appear here when they are ready for your review.",
+                  )
+                : t("Start an analysis or adjust your search.")
             }
           />
         )}
@@ -173,15 +206,15 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
             disabled={page <= 1}
             onClick={() => setPage(page - 1)}
           >
-            Previous
+            {t("Previous")}
           </button>
-          <span>Page {page}</span>
+          <span>{t("Page {page}", { page: number(page) })}</span>
           <button
             className="btn small"
             disabled={!q.data || page * 25 >= q.data.total}
             onClick={() => setPage(page + 1)}
           >
-            Next
+            {t("Next")}
           </button>
         </div>
       </section>
@@ -189,8 +222,11 @@ export function Analyses({ approbations = false }: { approbations?: boolean }) {
   );
 }
 export function NouvelleAnalyse() {
-  const [titre, setTitre] = useState(""),
-    [alerte, setAlerte] = useState("");
+  useI18n();
+  const [searchParams] = useSearchParams();
+  const mission = findMission(searchParams.get("mission"));
+  const [titre, setTitre] = useState<string>(() => mission?.draftTitle || ""),
+    [alerte, setAlerte] = useState<string>(() => mission?.draft || "");
   const navigate = useNavigate();
   const mutation = useMutation({
     mutationFn: () => api<Analyse>("/analyses", "POST", { titre, alerte }),
@@ -202,10 +238,23 @@ export function NouvelleAnalyse() {
   return (
     <>
       <Titre
-        surligne="NEW ANALYSIS"
-        titre="New analysis"
-        texte="Describe what you observed. Your agents will investigate against your runbooks."
+        surligne={t("NEW ANALYSIS")}
+        titre={t("New analysis")}
+        texte={t(
+          "Describe what you observed. Your agents will investigate against your runbooks.",
+        )}
       />
+      {mission && (
+        <div className="mission-brief">
+          <span>{mission.category}</span>
+          <strong>{mission.title}</strong>
+          <p>
+            {t(
+              "Replace the prompts with observed facts before launching. This draft has not been submitted.",
+            )}
+          </p>
+        </div>
+      )}
       <div className="form-grid">
         <form
           className="panel form-panel"
@@ -215,18 +264,20 @@ export function NouvelleAnalyse() {
           }}
         >
           <label htmlFor="titre">
-            Analysis title <span>A clear name for this investigation</span>
+            {t("Analysis title")}{" "}
+            <span>{t("A clear name for this investigation")}</span>
           </label>
           <input
             id="titre"
             required
             maxLength={100}
-            placeholder="e.g. PostgreSQL connection pool exhausted"
+            placeholder={t("e.g. PostgreSQL connection pool exhausted")}
             value={titre}
             onChange={(e) => setTitre(e.target.value)}
           />
           <label htmlFor="alerte">
-            Alert & context <span>Symptoms, metrics and error messages</span>
+            {t("Alert & context")}{" "}
+            <span>{t("Symptoms, metrics and error messages")}</span>
           </label>
           <textarea
             id="alerte"
@@ -234,20 +285,24 @@ export function NouvelleAnalyse() {
             minLength={1}
             maxLength={20000}
             rows={13}
-            placeholder="Describe the issue, when it started and what you have already checked…"
+            placeholder={t(
+              "Describe the issue, when it started and what you have already checked…",
+            )}
             value={alerte}
             onChange={(e) => setAlerte(e.target.value)}
           />
           <div className="field-foot">
             <span>
-              <LockKeyhole size={13} /> Processed locally
+              <LockKeyhole size={13} /> {t("Processed locally")}
             </span>
-            <span>{alerte.length.toLocaleString("en-US")} / 20,000</span>
+            <span>
+              {t("{count} / 20,000", { count: number(alerte.length) })}
+            </span>
           </div>
           {mutation.error && <Erreur erreur={mutation.error} />}
           <div className="form-actions">
             <Link className="btn" to="/analyses">
-              Cancel
+              {t("Cancel")}
             </Link>
             <button
               className="btn primary"
@@ -258,7 +313,7 @@ export function NouvelleAnalyse() {
               ) : (
                 <Zap size={17} />
               )}{" "}
-              Run analysis
+              {t("Run analysis")}
             </button>
           </div>
         </form>
@@ -267,30 +322,33 @@ export function NouvelleAnalyse() {
             <span className="tile-icon">
               <GitBranch size={24} />
             </span>
-            <h2>Evidence at every step.</h2>
+            <h2>{t("Evidence at every step.")}</h2>
             <ol className="numbered-steps">
               <li>
-                <strong>Understand</strong>
-                <p>Extract symptoms and flag suspicious instructions.</p>
+                <strong>{t("Understand")}</strong>
+                <p>{t("Extract symptoms and flag suspicious instructions.")}</p>
               </li>
               <li>
-                <strong>Investigate</strong>
-                <p>Classify the alert and consult relevant procedures.</p>
+                <strong>{t("Investigate")}</strong>
+                <p>
+                  {t("Classify the alert and consult relevant procedures.")}
+                </p>
               </li>
               <li>
-                <strong>Verify</strong>
-                <p>Trace every proposed action to a source passage.</p>
+                <strong>{t("Verify")}</strong>
+                <p>{t("Trace every proposed action to a source passage.")}</p>
               </li>
               <li>
-                <strong>Decide</strong>
-                <p>Review the diagnosis before it is delivered.</p>
+                <strong>{t("Decide")}</strong>
+                <p>{t("Review the diagnosis before it is delivered.")}</p>
               </li>
             </ol>
           </div>
           <p className="hint">
-            <ShieldCheck size={16} /> Agents propose actions for your review.
-            Remediation stays under your control. Analysis data remains private
-            on this device.
+            <ShieldCheck size={16} />{" "}
+            {t(
+              "Agents propose actions for your review. Remediation stays under your control. Analysis data remains private on this device.",
+            )}
           </p>
         </aside>
       </div>
@@ -298,6 +356,7 @@ export function NouvelleAnalyse() {
   );
 }
 export function DetailAnalyse() {
+  useI18n();
   const { id } = useParams();
   const client = useQueryClient(),
     notifier = useToast(),
@@ -342,12 +401,12 @@ export function DetailAnalyse() {
       client.invalidateQueries();
       notifier(
         choix === "oui"
-          ? "Approval submitted."
+          ? t("Approval submitted.")
           : choix === "non"
-            ? "Rejection submitted."
+            ? t("Rejection submitted.")
             : choix === "supprimer"
-              ? "Analysis deleted."
-              : "Analysis cancelled.",
+              ? t("Analysis deleted.")
+              : t("Analysis cancelled."),
       );
       if (choix === "supprimer") navigate("/analyses");
     },
@@ -367,12 +426,21 @@ export function DetailAnalyse() {
   return (
     <>
       <Link to="/analyses" className="back-link">
-        <ArrowLeft size={15} /> All analyses
+        <ArrowLeft size={15} /> {t("All analyses")}
       </Link>
       <Titre
-        surligne={a.mode === "operation" ? "OPERATION" : "SUPERVISED ANALYSIS"}
+        surligne={
+          a.mode === "operation" ? t("OPERATION") : t("SUPERVISED ANALYSIS")
+        }
         titre={analysisTitle(a)}
-        texte={`Created ${date(a.cree_le)} · ${a.duree_s ? Math.round(a.duree_s) + " s runtime" : "Awaiting results"}`}
+        texte={t("Created {date} · {duration}", {
+          date: date(a.cree_le),
+          duration: a.duree_s
+            ? t("{seconds} s runtime", {
+                seconds: number(Math.round(a.duree_s)),
+              })
+            : t("Awaiting results"),
+        })}
       >
         <Badge statut={a.statut} />
         <button className="btn" onClick={() => exportFichier("json")}>
@@ -382,7 +450,7 @@ export function DetailAnalyse() {
           className="icon-button"
           onClick={() => setDecision("supprimer")}
           disabled={actifs.has(a.statut)}
-          aria-label="Delete analysis"
+          aria-label={t("Delete analysis")}
         >
           <Trash2 size={17} />
         </button>
@@ -391,14 +459,15 @@ export function DetailAnalyse() {
         <div className="approval-banner">
           <ShieldCheck size={25} />
           <div>
-            <strong>Ready for your review</strong>
+            <strong>{t("Ready for your review")}</strong>
             <p>
-              Review the proposed actions, supporting evidence and prerequisites
-              before making your decision.
+              {t(
+                "Review the proposed actions, supporting evidence and prerequisites before making your decision.",
+              )}
             </p>
           </div>
           <button className="btn" onClick={() => setDecision("non")}>
-            Reject proposal
+            {t("Reject proposal")}
           </button>
           <button
             className="btn primary"
@@ -407,7 +476,7 @@ export function DetailAnalyse() {
               setDecision("oui");
             }}
           >
-            <Check size={17} /> Approve proposal
+            <Check size={17} /> {t("Approve proposal")}
           </button>
         </div>
       )}
@@ -417,21 +486,21 @@ export function DetailAnalyse() {
           <div>
             <strong>
               {a.statut === "en_file"
-                ? "Your run is queued."
+                ? t("Your run is queued.")
                 : a.statut === "decision"
-                  ? "Applying your decision."
+                  ? t("Applying your decision.")
                   : a.mode === "operation"
-                    ? "Your operation is running."
-                    : "Your agents are investigating."}
+                    ? t("Your operation is running.")
+                    : t("Your agents are investigating.")}
             </strong>
-            <p>The timeline updates as each step runs.</p>
+            <p>{t("The timeline updates as each step runs.")}</p>
           </div>
           <button
             className="btn"
             disabled={action.isPending}
             onClick={() => action.mutate("annuler")}
           >
-            Cancel run
+            {t("Cancel run")}
           </button>
         </div>
       )}
@@ -440,19 +509,21 @@ export function DetailAnalyse() {
           {d ? (
             <section className="panel diagnostic-panel">
               <div className="panel-heading">
-                <h2>{livre ? "Completed diagnosis" : "Proposal for review"}</h2>
+                <h2>
+                  {livre ? t("Completed diagnosis") : t("Proposal for review")}
+                </h2>
                 <span className="tag">
-                  REPORTED CONFIDENCE:{" "}
-                  {confidenceLabels[d.confiance] || "Unspecified"}
+                  {t("REPORTED CONFIDENCE:")}{" "}
+                  {confidenceLabels[d.confiance] || t("Unspecified")}
                 </span>
               </div>
               <div className="diagnostic-content">
-                <h3>Likely cause</h3>
+                <h3>{t("Likely cause")}</h3>
                 <p className="diagnostic-cause">{d.cause_probable}</p>
                 <div className="source-card">
                   <BookOpen size={19} />
                   <div>
-                    <small>SUPPORTING SOURCE</small>
+                    <small>{t("SUPPORTING SOURCE")}</small>
                     {d.runbook_source ? (
                       <Link
                         to={"/runbooks/" + encodeURIComponent(d.runbook_source)}
@@ -460,12 +531,14 @@ export function DetailAnalyse() {
                         {d.runbook_source} <ExternalLink size={13} />
                       </Link>
                     ) : (
-                      <strong>No verified source</strong>
+                      <strong>{t("No verified source")}</strong>
                     )}
                   </div>
                 </div>
                 <h3>
-                  {!livre ? "Actions awaiting review" : "Recommended actions"}
+                  {!livre
+                    ? t("Actions awaiting review")
+                    : t("Recommended actions")}
                 </h3>
                 {d.actions_proposees?.length ? (
                   <ol className="actions-list">
@@ -477,11 +550,11 @@ export function DetailAnalyse() {
                     ))}
                   </ol>
                 ) : (
-                  <p className="muted">No actions proposed.</p>
+                  <p className="muted">{t("No actions proposed.")}</p>
                 )}
                 {!!d.elements_manquants?.length && (
                   <div className="notice">
-                    <strong>Open questions & limitations</strong>
+                    <strong>{t("Open questions & limitations")}</strong>
                     <ul>
                       {d.elements_manquants.map((t, i) => (
                         <li key={i}>{t}</li>
@@ -493,7 +566,7 @@ export function DetailAnalyse() {
                   className="btn small"
                   onClick={() => exportFichier("md")}
                 >
-                  <FileText size={15} /> Export Markdown
+                  <FileText size={15} /> {t("Export Markdown")}
                 </button>
               </div>
             </section>
@@ -503,14 +576,14 @@ export function DetailAnalyse() {
                 <Vide
                   titre={
                     a.statut === "rejete_par_humain"
-                      ? "Proposal rejected"
+                      ? t("Proposal rejected")
                       : a.statut === "complet"
-                        ? "Operation completed"
-                        : "No diagnosis available"
+                        ? t("Operation completed")
+                        : t("No diagnosis available")
                   }
                   texte={systemMessage(
                     r?.message || "",
-                    "This run has no approved diagnosis.",
+                    t("This run has no approved diagnosis."),
                   )}
                 />
               </section>
@@ -518,10 +591,11 @@ export function DetailAnalyse() {
           )}
           {r?.injections_signalees?.length ? (
             <section className="panel warning-panel">
-              <h2>Suspicious instructions detected</h2>
+              <h2>{t("Suspicious instructions detected")}</h2>
               <p>
-                Verify the source of the alert. Treat these instructions as
-                untrusted content, not commands to execute.
+                {t(
+                  "Verify the source of the alert. Treat these instructions as untrusted content, not commands to execute.",
+                )}
               </p>
               <ul>
                 {r.injections_signalees.map((s, i) => (
@@ -533,7 +607,7 @@ export function DetailAnalyse() {
           {r?.actions_ecartees_sans_source?.length ? (
             <details className="panel disclosure">
               <summary>
-                Actions excluded without supporting evidence{" "}
+                {t("Actions excluded without supporting evidence")}{" "}
                 <span>{r.actions_ecartees_sans_source.length}</span>
               </summary>
               <ul>
@@ -547,13 +621,13 @@ export function DetailAnalyse() {
         <aside>
           <section className="panel">
             <div className="panel-heading">
-              <h2>Execution timeline</h2>
+              <h2>{t("Execution timeline")}</h2>
               <Radio size={17} />
             </div>
             <div className="timeline">
               <div>
                 <span className="timeline-dot" />
-                <strong>Analysis created</strong>
+                <strong>{t("Analysis created")}</strong>
                 <small>{date(a.cree_le)}</small>
               </div>
               {a.evenements?.map((e, i) => (
@@ -561,16 +635,22 @@ export function DetailAnalyse() {
                   <span className="timeline-dot" />
                   <strong>
                     {{
-                      demarrage: "Engine started",
-                      modele: "Local model call",
-                      outil: "Tool call",
-                      termine: "Run finished",
-                    }[e.stade] || "Run updated"}
+                      demarrage: t("Engine started"),
+                      modele: t("Local model call"),
+                      outil: t("Tool call"),
+                      termine: t("Run finished"),
+                    }[e.stade] || t("Run updated")}
                   </strong>
                   <small>
-                    {new Date(e.date).toLocaleTimeString("en-US")}
+                    {new Date(e.date).toLocaleTimeString(getLocale())}
                     {e.stade === "modele"
-                      ? ` · call ${a.evenements!.slice(0, i + 1).filter((s) => s.stade === "modele").length}`
+                      ? t(" · call {count}", {
+                          count: number(
+                            a
+                              .evenements!.slice(0, i + 1)
+                              .filter((s) => s.stade === "modele").length,
+                          ),
+                        })
                       : ""}
                   </small>
                 </div>
@@ -578,31 +658,37 @@ export function DetailAnalyse() {
             </div>
           </section>
           <section className="panel metadata">
-            <h2>Run details</h2>
+            <h2>{t("Run details")}</h2>
             <dl>
-              <dt>Routing</dt>
+              <dt>{t("Routing")}</dt>
               <dd>
-                <LockKeyhole size={13} /> Private & local
+                <LockKeyhole size={13} /> {t("Private & local")}
               </dd>
-              <dt>Automatic remediation</dt>
-              <dd>Disabled</dd>
-              <dt>Tool calls</dt>
+              <dt>{t("Automatic remediation")}</dt>
+              <dd>{t("Disabled")}</dd>
+              <dt>{t("Tool calls")}</dt>
               <dd>{r?.outils_appeles?.length ?? "—"}</dd>
-              <dt>Model calls</dt>
+              <dt>{t("Model calls")}</dt>
               <dd>{r?.budget?.appels_llm ?? "—"}</dd>
-              <dt>Reported API cost</dt>
+              <dt>{t("Reported API cost")}</dt>
               <dd>
                 {r?.budget?.cout_usd !== undefined
-                  ? "$" + r.budget.cout_usd.toFixed(4)
+                  ? number(r.budget.cout_usd, {
+                      style: "currency",
+                      currency: "USD",
+                      minimumFractionDigits: 4,
+                    })
                   : "—"}
               </dd>
             </dl>
             {r?.classification && (
               <div className="notice">
-                <strong>Reported urgency: {r.classification.urgence}/5</strong>
+                <strong>
+                  {t("Reported urgency:")} {r.classification.urgence}/5
+                </strong>
                 <p>{r.classification.justification}</p>
                 <small>
-                  Model assessment. Verify against the observed facts.
+                  {t("Model assessment. Verify against the observed facts.")}
                 </small>
               </div>
             )}
@@ -614,19 +700,25 @@ export function DetailAnalyse() {
         <Modal
           titre={
             decision === "oui"
-              ? "Approve proposal"
+              ? t("Approve proposal")
               : decision === "non"
-                ? "Reject proposal"
-                : "Delete analysis"
+                ? t("Reject proposal")
+                : t("Delete analysis")
           }
           fermer={() => setDecision(null)}
         >
           <p>
             {decision === "oui"
-              ? "Approve this diagnosis for delivery. Remediation remains a separate, operator-led action."
+              ? t(
+                  "Approve this diagnosis for delivery. Remediation remains a separate, operator-led action.",
+                )
               : decision === "non"
-                ? "Reject this proposal. Its recommended actions will not be delivered."
-                : "Delete this report and its checkpoints from active storage. Existing backups follow their own retention policy."}
+                ? t(
+                    "Reject this proposal. Its recommended actions will not be delivered.",
+                  )
+                : t(
+                    "Delete this report and its checkpoints from active storage. Existing backups follow their own retention policy.",
+                  )}
           </p>
           {decision === "oui" && (
             <label className="checkbox-label">
@@ -635,13 +727,14 @@ export function DetailAnalyse() {
                 checked={accord}
                 onChange={(e) => setAccord(e.target.checked)}
               />{" "}
-              I have reviewed the source, proposed actions and their
-              prerequisites.
+              {t(
+                "I have reviewed the source, proposed actions and their prerequisites.",
+              )}
             </label>
           )}
           <div className="form-actions">
             <button className="btn" onClick={() => setDecision(null)}>
-              Back
+              {t("Back")}
             </button>
             <button
               className={"btn " + (decision === "oui" ? "primary" : "danger")}
@@ -649,12 +742,12 @@ export function DetailAnalyse() {
               onClick={() => action.mutate(decision)}
             >
               {action.isPending
-                ? "Processing…"
+                ? t("Processing…")
                 : decision === "oui"
-                  ? "Approve proposal"
+                  ? t("Approve proposal")
                   : decision === "non"
-                    ? "Reject proposal"
-                    : "Delete analysis"}
+                    ? t("Reject proposal")
+                    : t("Delete analysis")}
             </button>
           </div>
         </Modal>

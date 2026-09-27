@@ -1,3 +1,4 @@
+import { t, useI18n, number, countLabel, getLocale } from "../i18n";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -5,6 +6,7 @@ import {
   AudioLines,
   BookOpen,
   CheckCheck,
+  Compass,
   ChevronRight,
   GitBranch,
   Plus,
@@ -19,6 +21,7 @@ import { Erreur, Chargement, Vide, Titre, Orbit } from "../ui";
 import { ListeAnalyses } from "./analyses";
 
 export function VueEnsemble() {
+  useI18n();
   const q = useQuery({
     queryKey: ["vue"],
     queryFn: () => api<Vue>("/vue-ensemble"),
@@ -38,73 +41,106 @@ export function VueEnsemble() {
       (d.statuts.en_file || 0) +
       (d.statuts.decision || 0);
   const max = Math.max(1, ...d.activite.map((a) => a.total));
+  const activityLabel = (item: { date: string; total: number }) =>
+    new Intl.DateTimeFormat(getLocale(), {
+      dateStyle: "medium",
+      timeZone: "UTC",
+    }).format(new Date(item.date + "T00:00:00Z")) +
+    " · " +
+    countLabel(item.total, "analysis");
   return (
     <>
       <Titre
-        surligne="MISSION CONTROL"
-        titre="A clearer view. A smarter move."
-        texte="Your signals, your agents, your next decision."
+        surligne={t("MISSION CONTROL")}
+        titre={t("Your intelligence, in motion.")}
+        texte={t(
+          "One command center. Your knowledge, your agents, your decisions.",
+        )}
       >
-        <Link className="btn primary" to="/analyses/nouvelle">
-          <Plus size={18} /> New analysis
+        <Link className="btn primary" to="/missions">
+          <Compass size={18} /> {t("Launch a mission")}
         </Link>
       </Titre>
       <section className="hero-panel">
         <div className="hero-copy">
           <span className="tag">
-            <span className="live-dot" /> YOUR PRIVATE INTELLIGENCE
+            <span className="live-dot" />{" "}
+            {t("MISSION CONTROL / LOCAL INTELLIGENCE")}
           </span>
           <h2>
-            Less noise.
+            {t("Signals become clarity.")}
             <br />
-            <span>More perspective.</span>
+            <span>{t("You stay in command.")}</span>
           </h2>
           <p>
-            Your agents connect the signals and the knowledge.
+            {t("Your agents connect the signals and the knowledge.")}
             <br />
-            You decide what comes next, with the evidence in hand.
+            {t("You decide what comes next, with the evidence in hand.")}
           </p>
           <div className="hero-actions">
             <Link to="/assistant" className="btn primary">
-              <AudioLines size={18} /> Meet your assistant{" "}
+              <AudioLines size={18} /> {t("Talk to AURA")}{" "}
               <ArrowRight size={17} />
             </Link>
             <Link to="/agents" className="text-button">
-              Explore the agents <ChevronRight size={16} />
+              {t("Explore the agents")} <ChevronRight size={16} />
             </Link>
           </div>
           <div className="hero-foot">
-            <ShieldCheck size={15} /> Private by design <span>·</span>
-            <GitBranch size={15} /> Human decisions
+            <ShieldCheck size={15} /> {t("Private by design")} <span>·</span>
+            <GitBranch size={15} /> {t("Human decisions")}
           </div>
         </div>
         <Orbit petit />
       </section>
+      <div className="workspace-telemetry" aria-label={t("Workspace status")}>
+        <span>
+          <i
+            className={"health-dot " + (d.sante.ok ? "healthy" : "unhealthy")}
+          />
+          {d.sante.ok
+            ? t("Services responding")
+            : t("Service attention needed")}
+        </span>
+        <span>
+          <Radio size={13} />{" "}
+          {t("{count} active / queued", { count: number(enCours) })}
+        </span>
+        <span>
+          <BookOpen size={13} /> {countLabel(d.runbooks, "source")}
+        </span>
+        <Link to="/preparation">
+          {t("Workspace readiness")} <ArrowRight size={13} />
+        </Link>
+      </div>
       <div className="stats-grid">
         {[
           {
-            label: "Total analyses",
+            label: t("Total analyses"),
             valeur: d.total,
             icon: Workflow,
-            note: "Saved on this device",
+            note: t("Saved on this device"),
           },
           {
-            label: "Active & queued",
+            label: t("Active & queued"),
             valeur: enCours,
             icon: Radio,
-            note: "Controlled execution",
+            note: t("Controlled execution"),
           },
           {
-            label: "Awaiting your review",
+            label: t("Awaiting your review"),
             valeur: d.statuts.en_attente_humain || 0,
             icon: ShieldCheck,
-            note: "Decisions to approve",
+            note: t("Decisions to approve"),
           },
           {
-            label: "Available runbooks",
+            label: t("Available runbooks"),
             valeur: d.runbooks,
             icon: BookOpen,
-            note: `${d.sante.index.points ?? "—"} indexed passages`,
+            note:
+              d.sante.index.points === undefined
+                ? "—"
+                : countLabel(d.sante.index.points, "passage"),
           },
         ].map((s, index) => (
           <div
@@ -116,28 +152,45 @@ export function VueEnsemble() {
               <span>{s.label}</span>
               <s.icon size={18} />
             </div>
-            <strong>{s.valeur.toString().padStart(2, "0")}</strong>
+            <strong>{number(s.valeur, { minimumIntegerDigits: 2 })}</strong>
             <small>{s.note}</small>
           </div>
         ))}
       </div>
+      <div className="mission-ribbon">
+        <div>
+          <span className="eyebrow">{t("WHAT WILL YOU INVESTIGATE?")}</span>
+          <strong>{t("Start with a purpose. Follow the evidence.")}</strong>
+        </div>
+        <Link to="/analyses/nouvelle?mission=incident">
+          {t("Incident triage")} <ArrowRight size={15} />
+        </Link>
+        <Link to="/analyses/nouvelle?mission=latency">
+          {t("Performance")} <ArrowRight size={15} />
+        </Link>
+        <Link to="/missions">
+          {t("All missions")} <Compass size={15} />
+        </Link>
+      </div>
       <div className="dashboard-grid">
         <section className="panel">
           <div className="panel-heading">
-            <h2>Recent analyses</h2>
+            <h2>{t("Recent analyses")}</h2>
             <Link to="/analyses">
-              View all <ArrowRight size={15} />
+              {t("View all")} <ArrowRight size={15} />
             </Link>
           </div>
           {recent.error ? (
             <Erreur erreur={recent.error} />
           ) : !recent.data?.elements.length ? (
             <Vide
-              titre="A fresh perspective starts here."
-              texte="Bring an alert. Your agents consult the runbooks before proposing a diagnosis."
+              titre={t("A fresh perspective starts here.")}
+              texte={t(
+                "Bring an alert. Your agents consult the runbooks before proposing a diagnosis.",
+              )}
             >
               <Link className="btn" to="/analyses/nouvelle">
-                <Plus size={16} /> Run analysis
+                <Plus size={16} /> {t("Run analysis")}
               </Link>
             </Vide>
           ) : (
@@ -146,8 +199,8 @@ export function VueEnsemble() {
         </section>
         <section className="panel">
           <div className="panel-heading">
-            <h2>System health</h2>
-            <Link to="/sante" aria-label="View system health">
+            <h2>{t("System health")}</h2>
+            <Link to="/sante" aria-label={t("View system health")}>
               <ArrowRight size={17} />
             </Link>
           </div>
@@ -158,7 +211,7 @@ export function VueEnsemble() {
                   className={"health-dot " + (s.ok ? "healthy" : "unhealthy")}
                 />
                 <span>{serviceName(s.id)}</span>
-                <small>{s.ok ? "Online" : "Needs attention"}</small>
+                <small>{s.ok ? t("Online") : t("Needs attention")}</small>
               </div>
             ))}
           </div>
@@ -170,25 +223,23 @@ export function VueEnsemble() {
             >
               <i />
               {d.sante.ok
-                ? "All services responding"
-                : "Some services need attention"}
+                ? t("All services responding")
+                : t("Some services need attention")}
             </span>
           </div>
         </section>
         <section className="panel">
           <div className="panel-heading">
-            <h2>Your activity</h2>
-            <span className="muted tiny">Last 14 days · UTC</span>
+            <h2>{t("Your activity")}</h2>
+            <span className="muted tiny">{t("Last 14 days · UTC")}</span>
           </div>
           <div
             className="activity-chart"
             role="img"
-            aria-label={d.activite
-              .map((a) => `${a.date} : ${a.total} analyses`)
-              .join(", ")}
+            aria-label={d.activite.map(activityLabel).join(", ")}
           >
             {d.activite.map((a) => (
-              <div key={a.date} title={`${a.date} · ${a.total} analyses`}>
+              <div key={a.date} title={activityLabel(a)}>
                 <span
                   style={{
                     height: `${Math.max(3, (a.total / max) * 100)}%`,
@@ -202,31 +253,31 @@ export function VueEnsemble() {
         </section>
         <section className="panel">
           <div className="panel-heading">
-            <h2>Ready for your next move</h2>
+            <h2>{t("Ready for your next move")}</h2>
             <Sparkles size={17} />
           </div>
           <div className="quick-links">
             <Link to="/runbooks">
               <BookOpen />
               <div>
-                <strong>Your knowledge base</strong>
-                <span>Explore and enrich your runbooks</span>
+                <strong>{t("Your knowledge base")}</strong>
+                <span>{t("Explore and enrich your runbooks")}</span>
               </div>
               <ChevronRight />
             </Link>
             <Link to="/approbations">
               <CheckCheck />
               <div>
-                <strong>Stay in control</strong>
-                <span>Review your agents’ proposals</span>
+                <strong>{t("Stay in control")}</strong>
+                <span>{t("Review your agents’ proposals")}</span>
               </div>
               <ChevronRight />
             </Link>
             <Link to="/operations">
               <Wrench />
               <div>
-                <strong>Keep things running</strong>
-                <span>Verify, back up, reindex</span>
+                <strong>{t("Keep things running")}</strong>
+                <span>{t("Verify, back up, reindex")}</span>
               </div>
               <ChevronRight />
             </Link>

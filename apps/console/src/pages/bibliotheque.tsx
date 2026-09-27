@@ -1,3 +1,4 @@
+import { t, useI18n, number, countLabel } from "../i18n";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ import { api, type Runbook } from "../api";
 import { useToast, Erreur, Chargement, Vide, Titre, Markdown } from "../ui";
 
 export function Bibliotheque() {
+  useI18n();
   const [recherche, setRecherche] = useState("");
   const q = useQuery({
     queryKey: ["runbooks", recherche],
@@ -26,34 +28,37 @@ export function Bibliotheque() {
   return (
     <>
       <Titre
-        surligne="OPERATIONAL KNOWLEDGE"
+        surligne={t("OPERATIONAL KNOWLEDGE")}
         titre="Runbooks"
-        texte="Give your agents clear procedures and evidence they can trace."
+        texte={t(
+          "Give your agents clear procedures and evidence they can trace.",
+        )}
       >
         <Link className="btn primary" to="/runbooks/nouveau">
-          <Plus size={17} /> New runbook
+          <Plus size={17} /> {t("New runbook")}
         </Link>
       </Titre>
       <div className="notice inline-notice">
         <Database size={19} />
-        <span>Reindex after editing a runbook to refresh semantic search.</span>
+        <span>
+          {t("Reindex after editing a runbook to refresh semantic search.")}
+        </span>
         <Link to="/operations">
-          Reindex runbooks <ArrowRight size={14} />
+          {t("Reindex runbooks")} <ArrowRight size={14} />
         </Link>
       </div>
       <div className="toolbar standalone">
         <div className="search-input">
           <Search size={17} />
           <input
-            aria-label="Search runbooks"
-            placeholder="Search procedures…"
+            aria-label={t("Search runbooks")}
+            placeholder={t("Search procedures…")}
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
           />
         </div>
         <span className="muted tiny">
-          {q.data?.length ?? "—"}{" "}
-          {q.data?.length === 1 ? "document" : "documents"}
+          {q.data ? countLabel(q.data.length, "document") : "—"}
         </span>
       </div>
       {q.isPending ? (
@@ -62,8 +67,8 @@ export function Bibliotheque() {
         <Erreur erreur={q.error} />
       ) : !q.data?.length ? (
         <Vide
-          titre="No runbooks found"
-          texte="Add a procedure or try a different search."
+          titre={t("No runbooks found")}
+          texte={t("Add a procedure or try a different search.")}
         />
       ) : (
         <div className="runbook-grid">
@@ -83,7 +88,14 @@ export function Bibliotheque() {
               <p>{r.extrait?.replace(/^#+\s*/gm, "").slice(0, 180)}…</p>
               <div className="runbook-card-foot">
                 <span className="mono">{r.nom}</span>
-                <span>{(r.octets / 1000).toFixed(1)} kB</span>
+                <span>
+                  {t("{count} kB", {
+                    count: number(r.octets / 1000, {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    }),
+                  })}
+                </span>
               </div>
             </Link>
           ))}
@@ -93,6 +105,7 @@ export function Bibliotheque() {
   );
 }
 export function Editeur() {
+  useI18n();
   const { nom } = useParams();
   const nouveau = nom === "nouveau";
   const [nomFichier, setNom] = useState(""),
@@ -144,7 +157,7 @@ export function Editeur() {
       setEmpreinte(d.empreinte);
       client.setQueryData(["runbook", d.nom], d);
       client.invalidateQueries({ queryKey: ["runbooks"] });
-      notifier("Runbook saved. Reindex to refresh semantic search.");
+      notifier(t("Runbook saved. Reindex to refresh semantic search."));
       setEdition(false);
       if (nouveau) navigate("/runbooks/" + d.nom, { replace: true });
     },
@@ -158,13 +171,15 @@ export function Editeur() {
         <ArrowLeft size={15} /> Runbooks
       </Link>
       <Titre
-        surligne={nouveau ? "NEW RUNBOOK" : "RUNBOOK"}
-        titre={nouveau ? "Create a runbook" : q.data?.titre || nom!}
-        texte="Write a clear, actionable procedure. You decide when it applies."
+        surligne={nouveau ? t("NEW RUNBOOK") : "RUNBOOK"}
+        titre={nouveau ? t("Create a runbook") : q.data?.titre || nom!}
+        texte={t(
+          "Write a clear, actionable procedure. You decide when it applies.",
+        )}
       >
         <button className="btn" onClick={() => setEdition(!edition)}>
           {edition ? <BookOpen size={16} /> : <FileText size={16} />}{" "}
-          {edition ? "Preview" : "Edit"}
+          {edition ? t("Preview") : t("Edit")}
         </button>
         <button
           className="btn primary"
@@ -173,14 +188,14 @@ export function Editeur() {
             sauver.isPending || !contenu.trim() || (nouveau && !nomFichier)
           }
         >
-          <Check size={17} /> Save runbook
+          <Check size={17} /> {t("Save runbook")}
         </button>
       </Titre>
       {sauver.error && <Erreur erreur={sauver.error} />}
       <section className="panel editor-panel">
         {nouveau && (
           <div className="field">
-            <label htmlFor="nom-runbook">File name</label>
+            <label htmlFor="nom-runbook">{t("File name")}</label>
             <input
               id="nom-runbook"
               placeholder="my-procedure.md"
@@ -192,36 +207,41 @@ export function Editeur() {
         )}
         {edition ? (
           <>
-            <label htmlFor="contenu-runbook">Markdown content</label>
+            <label htmlFor="contenu-runbook">{t("Markdown content")}</label>
             <textarea
               id="contenu-runbook"
               className="code-editor"
               rows={24}
               maxLength={8000}
               value={contenu}
-              placeholder={
-                "# Procedure title\n\n## Symptoms\n\n## Prerequisites\n\n## Diagnosis\n\n## Actions and conditions\n\n## Validation and rollback"
-              }
+              placeholder={t(
+                "# Procedure title\n\n## Symptoms\n\n## Prerequisites\n\n## Diagnosis\n\n## Actions and conditions\n\n## Validation and rollback",
+              )}
               onChange={(e) => setContenu(e.target.value)}
             />
             <div className="field-foot">
-              <span>Only the operator can edit runbooks.</span>
-              <span>{contenu.length.toLocaleString("en-US")} / 8,000</span>
+              <span>{t("Only the operator can edit runbooks.")}</span>
+              <span>
+                {t("{count} / 8,000", { count: number(contenu.length) })}
+              </span>
             </div>
           </>
         ) : (
           <Markdown
-            texte={contenu || "Start writing a procedure in the editor."}
+            texte={contenu || t("Start writing a procedure in the editor.")}
           />
         )}
       </section>
       {empreinte && (
-        <p className="mono tiny muted break-all">SHA-256 · {empreinte}</p>
+        <p className="mono tiny muted break-all">
+          {t("SHA-256 ·")} {empreinte}
+        </p>
       )}
     </>
   );
 }
 export function Recherche() {
+  useI18n();
   const [q, setQ] = useState(""),
     [mode, setMode] = useState("texte");
   type Resultats = {
@@ -239,8 +259,10 @@ export function Recherche() {
     <>
       <Titre
         surligne="EXPLORATION"
-        titre="Find the right guidance."
-        texte="Find an exact passage or explore procedures related to your situation."
+        titre={t("Find the right guidance.")}
+        texte={t(
+          "Find an exact passage or explore procedures related to your situation.",
+        )}
       />
       <section className="panel search-panel">
         <form
@@ -255,19 +277,19 @@ export function Recherche() {
               className={mode === "texte" ? "selected" : ""}
               onClick={() => setMode("texte")}
             >
-              <Search size={16} /> Exact text
+              <Search size={16} /> {t("Exact text")}
             </button>
             <button
               type="button"
               className={mode === "semantique" ? "selected" : ""}
               onClick={() => setMode("semantique")}
             >
-              <Sparkles size={16} /> Local semantic search
+              <Sparkles size={16} /> {t("Local semantic search")}
             </button>
           </div>
           <div className="search-row">
             <input
-              aria-label="Search query"
+              aria-label={t("Search query")}
               required
               minLength={2}
               maxLength={500}
@@ -275,8 +297,8 @@ export function Recherche() {
               onChange={(e) => setQ(e.target.value)}
               placeholder={
                 mode === "texte"
-                  ? "e.g. PostgreSQL, certificate, disk space…"
-                  : "e.g. Requests are waiting for a database connection…"
+                  ? t("e.g. PostgreSQL, certificate, disk space…")
+                  : t("e.g. Requests are waiting for a database connection…")
               }
             />
             <button className="btn primary" disabled={recherche.isPending}>
@@ -285,13 +307,14 @@ export function Recherche() {
               ) : (
                 <Search size={18} />
               )}{" "}
-              Search
+              {t("Search")}
             </button>
           </div>
         </form>
         <p className="hint">
-          Similarity measures related text. Review each procedure before
-          applying it to your incident.
+          {t(
+            "Similarity measures related text. Review each procedure before applying it to your incident.",
+          )}
         </p>
       </section>
       {recherche.error && <Erreur erreur={recherche.error} />}
@@ -309,7 +332,13 @@ export function Recherche() {
                 {r.titre || r.donnees?.fichier}
               </Link>
               {r.score !== undefined && (
-                <span className="tag">SIMILARITY {r.score.toFixed(3)}</span>
+                <span className="tag">
+                  {t("SIMILARITY")}{" "}
+                  {number(r.score, {
+                    minimumFractionDigits: 3,
+                    maximumFractionDigits: 3,
+                  })}
+                </span>
               )}
             </div>
             <Markdown texte={r.extrait || r.donnees?.texte || ""} />
@@ -317,8 +346,8 @@ export function Recherche() {
         ))}
         {recherche.isSuccess && !recherche.data.elements.length && (
           <Vide
-            titre="No matching passages"
-            texte="Try a broader term or switch search modes."
+            titre={t("No matching passages")}
+            texte={t("Try a broader term or switch search modes.")}
           />
         )}
       </div>

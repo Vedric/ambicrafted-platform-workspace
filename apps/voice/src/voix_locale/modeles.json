@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "aliases": {
     "voix-feminine-fr": {
       "repertoire": "synthese",
@@ -32,6 +32,74 @@
     "transcription-fr": {
       "repertoire": "transcription",
       "langue": "fr",
+      "licence": "MIT",
+      "fichiers": [
+        {
+          "nom": "model.bin",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/model.bin",
+          "octets": 483546902,
+          "sha256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671"
+        },
+        {
+          "nom": "config.json",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/config.json",
+          "octets": 2370,
+          "sha256": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828"
+        },
+        {
+          "nom": "tokenizer.json",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/tokenizer.json",
+          "octets": 2203239,
+          "sha256": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab"
+        },
+        {
+          "nom": "vocabulary.txt",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/vocabulary.txt",
+          "octets": 459861,
+          "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913"
+        },
+        {
+          "nom": "README.md",
+          "url": "https://huggingface.co/Systran/faster-whisper-small/resolve/536b0662742c02347bc0e980a01041f333bce120/README.md",
+          "octets": 1998,
+          "sha256": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8"
+        }
+      ]
+    },
+    "voix-feminine-en": {
+      "repertoire": "synthese-en",
+      "entree": "voix.onnx",
+      "langue": "en-US",
+      "qualite": "high",
+      "licence": "public-domain",
+      "licence_donnees": "public-domain",
+      "attribution": "Piper voice by Bryce Beattie. LJ Speech Dataset (2017), Keith Ito and Linda Johnson; LibriVox recordings.",
+      "source": "https://brycebeattie.com/files/tts/",
+      "source_donnees": "https://keithito.com/LJ-Speech-Dataset/",
+      "fichiers": [
+        {
+          "nom": "voix.onnx",
+          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx",
+          "octets": 114199011,
+          "sha256": "5d4f08ba6a2a48c44592eed3ce56bf85e9de3dd4e20df90541ae68a8310c029a"
+        },
+        {
+          "nom": "voix.onnx.json",
+          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx.json",
+          "octets": 4970,
+          "sha256": "7e1f4634af596d83cca997fb7a931ba80b70f8a316a2655ee69c55365e0ace14"
+        },
+        {
+          "nom": "MODEL_CARD",
+          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/en/en_US/ljspeech/high/MODEL_CARD",
+          "octets": 513,
+          "sha256": "289f7421072d689a3d91f6c632f486af46f9b8b04417536104a4ea667b8a394b"
+        }
+      ]
+    },
+    "transcription-en": {
+      "repertoire": "transcription",
+      "langue": "en",
       "licence": "MIT",
       "fichiers": [
         {

@@ -228,6 +228,9 @@ def analyseur() -> argparse.ArgumentParser:
     commandes.add_parser("servir", help="Démarrer la console et l'API sur 127.0.0.1.")
     commandes.add_parser("ouvrir", help="Ouvrir une session privée dans le navigateur local.")
     commandes.add_parser("statut", aliases=["sante"], help="Afficher la santé réelle des services.")
+    commandes.add_parser(
+        "preparation", aliases=["doctor"], help="Diagnostiquer les capacités locales mesurées."
+    )
     commandes.add_parser("vue-ensemble", help="Afficher les indicateurs de la plateforme.")
     commandes.add_parser("observabilite", help="Afficher les cibles et le journal d'exploitation.")
     commandes.add_parser("parametres", help="Afficher les paramètres publics, sans secrets.")
@@ -299,7 +302,9 @@ def analyseur() -> argparse.ArgumentParser:
     recherche.add_argument("--mode", choices=("texte", "semantique"), default="texte")
     voix = commandes.add_parser("voix", help="Synthèse et transcription vocales locales.")
     v = voix.add_subparsers(dest="action", required=True)
-    v.add_parser("statut", help="Vérifier la disponibilité des services vocaux locaux.")
+    statut_voix = v.add_parser(
+        "statut", help="Vérifier la disponibilité des services vocaux locaux."
+    )
     parler = v.add_parser("parler", help="Synthétiser du texte en fichier WAV privé.")
     parler.add_argument(
         "--fichier", type=Path, help="Texte privé UTF-8, sinon stdin (2 000 caractères)."
@@ -309,6 +314,8 @@ def analyseur() -> argparse.ArgumentParser:
         "transcrire", help="Transcrire un audio privé de 8 Mio et 90 s maximum."
     )
     transcrire.add_argument("fichier", type=Path, help="Fichier audio privé (0600).")
+    for commande_voix in (statut_voix, parler, transcrire):
+        commande_voix.add_argument("--langue", choices=("en", "fr"), default="en")
     return p
 
 
@@ -456,6 +463,8 @@ def executer(args: argparse.Namespace, p: Parametres) -> Any:
                     "puis ouvrir l'adresse locale affichée par parametres."
                 )
             return {"message": "Console ouverte dans le navigateur local.", "url": p.url}
+        if args.commande in {"preparation", "doctor"}:
+            return client.appeler("GET", "/api/preparation")
         if args.commande in {"statut", "sante", "vue-ensemble", "observabilite", "parametres"}:
             route = "sante" if args.commande in {"statut", "sante"} else args.commande
             resultat = client.appeler("GET", "/api/" + route)
@@ -546,14 +555,14 @@ def executer(args: argparse.Namespace, p: Parametres) -> Any:
             )
         if args.commande == "voix":
             if args.action == "statut":
-                return client.appeler("GET", "/api/voix/statut")
+                return client.appeler("GET", "/api/voix/statut", params={"langue": args.langue})
             if args.action == "parler":
                 audio = client.appeler(
                     "POST",
                     "/api/voix/parler",
                     binaire=True,
                     timeout=180,
-                    json={"texte": lire_entree(args.fichier, 2000)},
+                    json={"texte": lire_entree(args.fichier, 2000), "langue": args.langue},
                 )
                 return ecrire_export(args.sortie, audio)
             return client.appeler(
@@ -562,6 +571,7 @@ def executer(args: argparse.Namespace, p: Parametres) -> Any:
                 timeout=180,
                 json={
                     "audio": base64.b64encode(lire_audio(args.fichier)).decode("ascii"),
+                    "langue": args.langue,
                 },
             )
     raise ErreurCLI("Commande inconnue.")
@@ -573,6 +583,10 @@ def main(argv: list[str] | None = None) -> int:
         resultat = executer(args, Parametres.charger())
         if resultat is not None:
             print(json.dumps(resultat, ensure_ascii=False, indent=2))
+        if args.commande in {"preparation", "doctor"} and (
+            not isinstance(resultat, dict) or resultat.get("ready") is not True
+        ):
+            return 2
         return 2 if isinstance(resultat, dict) and resultat.get("statut") in ECHECS else 0
     except ErreurCLI as erreur:
         print(str(erreur), file=sys.stderr)

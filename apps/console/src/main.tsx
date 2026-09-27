@@ -1,3 +1,4 @@
+import { t, useI18n, LanguageSelector } from "./i18n";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
@@ -14,6 +15,17 @@ const client = new QueryClient({
     queries: { retry: 1, staleTime: 5000, refetchOnWindowFocus: true },
   },
 });
+function FatalError() {
+  useI18n();
+  return (
+    <main className="fatal">
+      <LanguageSelector />
+      <h1>{t("Something interrupted your workspace.")}</h1>
+      <p>{t("Your analyses are still safely stored on this device.")}</p>
+      <button onClick={() => location.reload()}>{t("Reload workspace")}</button>
+    </main>
+  );
+}
 class FrontiereErreur extends React.Component<
   React.PropsWithChildren,
   { erreur: boolean }
@@ -23,15 +35,7 @@ class FrontiereErreur extends React.Component<
     return { erreur: true };
   }
   render() {
-    return this.state.erreur ? (
-      <main className="fatal">
-        <h1>Something interrupted your workspace.</h1>
-        <p>Your analyses are still safely stored on this device.</p>
-        <button onClick={() => location.reload()}>Reload workspace</button>
-      </main>
-    ) : (
-      this.props.children
-    );
+    return this.state.erreur ? <FatalError /> : this.props.children;
   }
 }
 createRoot(document.getElementById("root")!).render(

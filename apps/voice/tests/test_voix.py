@@ -51,6 +51,21 @@ def test_texte_unicode_et_borne():
     assert len(moteur.valider_texte("é" * 2000)) == 2000
 
 
+@pytest.mark.parametrize("langue", ["de", "en-US", "../fr", ""])
+def test_langue_invalide_refusee_avant_fichier_ou_modele(tmp_path, langue):
+    with pytest.raises(ErreurVoix, match="Langue"):
+        moteur.parler("Hello", tmp_path / "sortie.wav", langue)
+    with pytest.raises(ErreurVoix, match="Langue"):
+        moteur.transcrire(tmp_path / "inexistant.wav", langue)
+    assert not (tmp_path / "sortie.wav").exists()
+
+
+def test_reconnaissance_partage_les_memes_poids_multilingues():
+    aliases = fichiers.manifeste()["aliases"]
+    assert aliases["transcription-en"]["repertoire"] == aliases["transcription-fr"]["repertoire"]
+    assert aliases["transcription-en"]["fichiers"] == aliases["transcription-fr"]["fichiers"]
+
+
 def test_dossiers_crees_prives(tmp_path):
     cible = tmp_path / "a" / "b"
     fichiers.dossier_prive(cible, creer=True)
