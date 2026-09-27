@@ -203,12 +203,16 @@ describe("private landing and failure states", () => {
         json({ connecte: false, mot_de_passe: true, csrf: null }),
       );
     });
-    expect(
-      await screen.findByRole("heading", {
-        name: "Your intelligence, in motion.",
-        level: 1,
-      }),
-    ).toBeVisible();
+    // The route exists before its entrance transition becomes visible.
+    // Keep the visibility assertion, but wait for the animation to advance.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", {
+          name: "Your intelligence, in motion.",
+          level: 1,
+        }),
+      ).toBeVisible(),
+    );
     expect(
       screen.queryByRole("heading", { name: /Intelligence/ }),
     ).not.toBeInTheDocument();
