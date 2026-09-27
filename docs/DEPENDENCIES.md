@@ -72,3 +72,9 @@ multilingual transcription model.
 The image set above has not changed in this application release; its dated findings
 remain open. Application dependency audit results and final-commit verification
 are recorded separately in [the current release review](RELEASE-2026-09-27.md).
+
+The subsequent [coordinated dependency maintenance](DEPENDENCY-UPDATES-2026-09-27.md)
+updates the application toolchain to Node 22.23.3, jsdom 30.1.1, coherent
+MCP/Pydantic/LangGraph locks and pinned build/lint tools. The earlier snapshot
+above remains historical. PostgreSQL major upgrades require a separately
+qualified data migration under [ADR 0016](adr/0016-maintenance-dependances-et-postgresql.md).

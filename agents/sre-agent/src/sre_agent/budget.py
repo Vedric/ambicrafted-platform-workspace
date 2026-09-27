@@ -11,9 +11,9 @@ answer passed off as complete.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import math
 import time
+from dataclasses import dataclass, field
 
 from . import config
 

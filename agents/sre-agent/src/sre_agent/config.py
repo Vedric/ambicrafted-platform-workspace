@@ -12,8 +12,8 @@ Two of the CLAUDE.md rules are enforced here, in code, not in a prompt:
 
 from __future__ import annotations
 
-import os
 import math
+import os
 from enum import StrEnum
 from pathlib import Path
 
@@ -25,7 +25,7 @@ class ConfigurationInvalide(RuntimeError):
 _ERREURS: list[str] = []
 
 
-def _nombre(nom: str, defaut: int | float) -> int | float:
+def _nombre(nom: str, defaut: float) -> int | float:
     try:
         valeur = type(defaut)(os.environ.get(nom, str(defaut)))
         if not math.isfinite(valeur) or valeur < 0:

@@ -1,9 +1,9 @@
 """Couverture complémentaire du serveur et de l'indexeur, hors réseau."""
 
-import os
 import json
-from pathlib import Path
+import os
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx

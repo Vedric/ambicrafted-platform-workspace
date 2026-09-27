@@ -26,11 +26,12 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0013](0013-voix-anglaise-reactive.md) | English default voice with explicit French selection | Accepted | 2026-09-27 | Offline English/French female speech, selected-language recognition and local AURA dialogue. |
 | [0014](0014-readiness-et-outils-locaux.md) | Measured local readiness and read-only operator MCP | Accepted | 2026-09-27 | Evidence-based local checks shared by UI/CLI/MCP and a bounded nine-tool control surface. |
 | [0015](0015-experience-immersive-bilingue.md) | Immersive bilingual workspace and supervised voice interaction | Accepted | 2026-09-27 | Shared EN/FR interface, mission intake and opt-in AURA conversation within the existing local boundary. |
+| [0016](0016-maintenance-dependances-et-postgresql.md) | Coordinated dependency updates and explicit PostgreSQL migration | Accepted; major database migration deferred | 2026-09-27 | Coherent Python locks, pinned Node 22 and tools; PostgreSQL 16 retained until a qualified data migration. |
 | [0017](0017-indicateurs-flux-et-defilement.md) | Operational charts, architecture paths and scroll accents | Accepted | 2026-09-27 | Real run/probe data, conceptual component flows and bounded, accessible motion. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0015, then the current README and security document;
+- **Current behavior**: 0009–0017, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [voice](../VOICE.md) and

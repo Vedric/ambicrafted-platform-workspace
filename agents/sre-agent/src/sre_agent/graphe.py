@@ -35,15 +35,15 @@ stricter, and documented in ADR 0004:
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import functools
 import json
 import operator
 import os
 import sqlite3
 import stat
-import time
-import fcntl
 import threading
+import time
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, TypedDict, cast
 

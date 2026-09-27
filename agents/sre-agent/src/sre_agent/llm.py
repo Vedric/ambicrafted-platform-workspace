@@ -194,10 +194,10 @@ def appeler_llm(
             choix = donnees["choices"][0]
             message = choix["message"]
             if not isinstance(message, dict) or not isinstance(message.get("content") or "", str):
-                raise ValueError
+                raise TypeError
             appels = message.get("tool_calls") or []
             if not isinstance(appels, list) or any(not isinstance(a, dict) for a in appels):
-                raise ValueError
+                raise TypeError
             for appel in appels:
                 fonction = appel.get("function")
                 if (
@@ -206,7 +206,7 @@ def appeler_llm(
                     or not isinstance(fonction.get("arguments", "{}"), (str, dict))
                     or not isinstance(appel.get("id", ""), str)
                 ):
-                    raise ValueError
+                    raise TypeError
             if entree < 0 or sortie < 0:
                 raise ValueError
         except ValueError, KeyError, IndexError, TypeError, AttributeError, OverflowError:

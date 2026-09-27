@@ -1,6 +1,6 @@
 # Evaluations
 
-Node 22.22.0 and npm 11.10.0 are the validated toolchain. Install from the lock:
+Node 22.23.3 and npm 11.10.0 are the validated toolchain. Install from the lock:
 
 ```sh
 npm ci --ignore-scripts --no-fund

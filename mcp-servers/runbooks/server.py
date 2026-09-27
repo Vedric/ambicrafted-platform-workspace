@@ -14,14 +14,15 @@ CONTRIBUTING.md.
 
 from __future__ import annotations
 
-import os
+import contextlib
 import hashlib
 import json
-import contextlib
+import os
 import sys
 from pathlib import Path
 
 from mcp.server import MCPServer
+
 from fichiers import lire, noms, verifier_nom
 
 mcp = MCPServer("runbooks")
@@ -55,8 +56,8 @@ try:
         PREFIXE_REQUETE,
         QDRANT_URL,
         ErreurPipeline,
-        embarquer,
         collecter,
+        embarquer,
         empreinte,
     )
 
