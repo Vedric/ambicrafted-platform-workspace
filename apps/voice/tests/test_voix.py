@@ -60,10 +60,93 @@ def test_langue_invalide_refusee_avant_fichier_ou_modele(tmp_path, langue):
     assert not (tmp_path / "sortie.wav").exists()
 
 
-def test_reconnaissance_partage_les_memes_poids_multilingues():
+def test_reconnaissance_longue_et_fr_partagent_les_poids_courte_en_isolee():
     aliases = fichiers.manifeste()["aliases"]
     assert aliases["transcription-en"]["repertoire"] == aliases["transcription-fr"]["repertoire"]
     assert aliases["transcription-en"]["fichiers"] == aliases["transcription-fr"]["fichiers"]
+    courte = aliases["transcription-en-courte"]
+    assert courte["repertoire"] != aliases["transcription-en"]["repertoire"]
+    assert courte["fichiers"] != aliases["transcription-en"]["fichiers"]
+    assert courte["langue"] == "en" and courte["licence"] == "MIT"
+
+
+@pytest.mark.parametrize(
+    ("langue", "echantillons", "alias_modele"),
+    [
+        ("en", 467200, "transcription-en-courte"),
+        ("en", 467201, "transcription-en"),
+        ("fr", 467200, "transcription-fr"),
+    ],
+)
+def test_routage_sur_echantillons_decodes_et_alias_public_stable(
+    tmp_path, monkeypatch, langue, echantillons, alias_modele
+):
+    from types import SimpleNamespace
+
+    import faster_whisper
+
+    path = tmp_path / "frontiere.wav"
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(16000)
+        wav.writeframes(bytes(echantillons * 2))
+    path.chmod(0o600)
+    verifications = []
+
+    def verifier(alias):
+        verifications.append(alias)
+        return tmp_path / alias
+
+    class Reconnaissance:
+        def __init__(self, dossier, **_options):
+            assert dossier == str(tmp_path / alias_modele)
+
+        def transcribe(self, signal, **options):
+            assert len(signal) == echantillons + 12800
+            assert options["language"] == langue
+            assert options.get("without_timestamps", False) is False
+            assert options["beam_size"] == 10 and options["temperature"] == 0
+            return iter([SimpleNamespace(text="Synthetic boundary.")]), None
+
+    monkeypatch.setattr(moteur, "verifier_modele", verifier)
+    monkeypatch.setattr(faster_whisper, "WhisperModel", Reconnaissance)
+    resultat = moteur.transcrire(path, langue)
+    assert verifications == [alias_modele]
+    assert resultat["alias"] == "transcription-" + langue
+    # Both English boundary inputs round to the same public duration.
+    assert resultat["duree_s"] == 29.2
+
+
+def test_backend_fixe_avant_import_natif_meme_si_environnement_contradictoire():
+    code = """import importlib.abc, os, sys
+from pathlib import Path
+from voix_locale.moteur import transcrire
+class InspecterImport(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'faster_whisper':
+            assert os.environ['CT2_USE_MKL'] == '0'
+            assert os.environ['HF_HUB_OFFLINE'] == '1'
+            raise RuntimeError('bootstrap-verified')
+sys.meta_path.insert(0, InspecterImport())
+try:
+    transcrire(Path('/unused-synthetic-audio.wav'))
+except RuntimeError as error:
+    assert str(error) == 'bootstrap-verified'
+    print('verified')
+else:
+    raise AssertionError('The native import must pass through the guard.')
+"""
+    resultat = subprocess.run(
+        [sys.executable, "-c", code],
+        env={**os.environ, "CT2_USE_MKL": "1"},
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert resultat.returncode == 0
+    assert resultat.stdout == "verified\n" and resultat.stderr == ""
 
 
 @pytest.mark.parametrize("secondes", [0.2, 90])
@@ -83,8 +166,11 @@ def test_contexte_acoustique_preserve_signal_bornes_et_duree(tmp_path, monkeypat
     path.chmod(0o600)
 
     class Reconnaissance:
-        def __init__(self, *_args, **_kwargs):
-            pass
+        def __init__(self, *_args, **options):
+            assert options["device"] == "cpu"
+            assert options["compute_type"] == "int8"
+            assert options["cpu_threads"] == 4
+            assert options["local_files_only"] is True
 
         def transcribe(self, signal, **options):
             contexte = moteur.FREQUENCE * moteur.CONTEXTE_AUDIO_MS // 1000
@@ -94,6 +180,7 @@ def test_contexte_acoustique_preserve_signal_bornes_et_duree(tmp_path, monkeypat
             assert not np.any(signal[-contexte:])
             np.testing.assert_array_equal(signal[contexte:-contexte], source / 32768.0)
             assert options["vad_filter"] is True
+            assert options["beam_size"] == 10
             assert options["vad_parameters"]["speech_pad_ms"] == moteur.CONTEXTE_AUDIO_MS
             return iter([SimpleNamespace(text="A synthetic result.")]), None
 

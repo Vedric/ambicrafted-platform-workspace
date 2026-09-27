@@ -116,3 +116,39 @@ suite contains 158 unit tests and 40 desktop/mobile browser journeys; speech has
 quick tests plus 14 real integrations. The local service was synchronized from the
 locks and restarted; nineteen readiness checks passed. The final merged commit
 and zero-open-PR inventory are recorded in the operator delivery report.
+
+## Follow-up proposals #17 and #18
+
+The next Dependabot run opened two additional valid runbooks updates after the
+initial batch. This follow-up, based on merged commit `0b82346d`, incorporates
+[qdrant-client 1.19.1](https://github.com/qdrant/qdrant-client/releases/tag/v1.19.1)
+from [PR #17](https://github.com/Vedric/ambicrafted-platform-workspace/pull/17)
+and [pytest 9.1.1](https://github.com/pytest-dev/pytest/releases/tag/9.1.1)
+from [PR #18](https://github.com/Vedric/ambicrafted-platform-workspace/pull/18).
+Only those two versions change in the runbooks lock; pytest is a development
+dependency. No server image, live volume or other project's lock changes.
+
+That updater also attempted to replace the local editable agent with a public
+PyPI homonym. [ADR 0018](adr/0018-provenance-des-dependances-locales.md) records
+the targeted exclusions and retained source/CI guarantees. The hosted updater's
+behavior requires its own run after integration; it is not inferred from local
+tests. That outcome is recorded separately in the operator delivery report.
+
+Fresh local environments passed all 48 runbooks tests with 74% configured
+branch coverage and all 113 agent tests, including real stdio transport and
+provenance rejection. Runbooks Ruff checks, locked resolution and its runtime
+dependency audit also passed; the audit found no known advisories. These are
+local results for this isolated follow-up. A real MCP stdio handshake using
+the new runbooks environment exposed the four expected read-only tools. A
+synthetic PostgreSQL query returned the expected literal and semantic source
+through the running local embedding gateway and Qdrant service; reading the
+runbook verified its SHA-256 and full text. The transport closed normally, with
+no indexing, collection mutation, model analysis or remediation request.
+
+The integrated replacement is tracked in
+[PR #19](https://github.com/Vedric/ambicrafted-platform-workspace/pull/19), which
+also corrects console search provenance and the speech backend regression found
+during final CI. Fresh-clone and hosted CI qualification precede closing #17/#18
+as superseded; their final disposition, merged SHA and last PR inventory are
+recorded in the operator delivery report. The dated container baseline remains
+unchanged.

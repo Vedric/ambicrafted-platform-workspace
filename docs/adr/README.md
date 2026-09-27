@@ -28,10 +28,14 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0015](0015-experience-immersive-bilingue.md) | Immersive bilingual workspace and supervised voice interaction | Accepted | 2026-09-27 | Shared EN/FR interface, mission intake and opt-in AURA conversation within the existing local boundary. |
 | [0016](0016-maintenance-dependances-et-postgresql.md) | Coordinated dependency updates and explicit PostgreSQL migration | Accepted; major database migration deferred | 2026-09-27 | Coherent Python locks, pinned Node 22 and tools; PostgreSQL 16 retained until a qualified data migration. |
 | [0017](0017-indicateurs-flux-et-defilement.md) | Operational charts, architecture paths and scroll accents | Accepted | 2026-09-27 | Real run/probe data, conceptual component flows and bounded, accessible motion. |
+| [0018](0018-provenance-des-dependances-locales.md) | Preserve local dependency provenance in automated updates | Accepted; release qualification recorded separately | 2026-09-27 | Ignore only the local agent's public homonym while qualifying the runbooks dependency updates. |
+| [0019](0019-provenance-recherche-console.md) | Reject stale semantic results at the console boundary | Accepted | 2026-09-27 | Verify current source snapshots and exact indexed passages before returning console search results. |
+| [0020](0020-backend-vocal-reproductible.md) | Pin the qualified speech compute backend | Accepted | 2026-09-27 | Select oneDNN before native import and retain fixed-signal regression assertions across fresh CLI processes. |
+| [0021](0021-reconnaissance-anglaise-dediee.md) | Bound dedicated English recognition to short turns | Accepted; exact release qualification recorded separately | 2026-09-27 | Use dedicated English weights within one acoustic window and preserve the existing long-recording and French paths. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0017, then the current README and security document;
+- **Current behavior**: 0009–0021, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [voice](../VOICE.md) and

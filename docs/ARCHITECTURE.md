@@ -205,8 +205,14 @@ network failure during publication. Operators explicitly clean unused versions.
 `runbooks` is preserved during migration. A requested alias that conflicts with
 a physical collection is refused rather than deleting that collection.
 
-Each point carries a corpus hash. Semantic search compares it with the current
-files and refuses stale results. The 0.60 similarity threshold is not a relevance guarantee. Qualification found
+Each point carries a corpus hash. Both the runbook MCP and console semantic search
+compare it with the current files and refuse stale results. The console additionally
+compares confined snapshots before/after the query and verifies exact passage text,
+heading path and source line. Its bounded filesystem work runs outside the event
+loop; cancellation cannot launch a second concurrent snapshot on the same service.
+Resource budgets and the shared indexer contract are recorded in
+[ADR 0019](adr/0019-provenance-recherche-console.md). Reindexing remains explicit.
+The 0.60 similarity threshold is not a relevance guarantee. Qualification found
 both a false positive and a false negative; see
 [measured evaluation limits](../evals/RESULTS-2026-09-26.md).
 Literal search remains available if embeddings or Qdrant fail.

@@ -337,6 +337,21 @@ tool. Relative paths in `.mcp.json` require the checkout root as the client work
 directory. Connect confidential tools only to a trusted local consumer; a remote
 consumer can transmit the content it receives.
 
+## Semantic search freshness
+
+Semantic results are checked against the current source corpus and exact indexed
+passages, with a minimum relevance score of 0.60. Editing, adding or removing a
+runbook can make the published index stale. Search then reports unavailable until
+you explicitly reindex the reviewed corpus under Operations. Literal search remains
+available and a search request never rebuilds the index automatically. Provenance
+checks do not establish the factual accuracy of a runbook or model diagnosis.
+
+The console validation accepts at most 1,000 directory entries, 200,000 bytes per
+Markdown file, 8,000,000 source bytes in total, 10,000 fragments and 8,000,000
+expanded fragment characters. Oversized or unstable snapshots are unavailable;
+splitting repeated or excessively long sections is preferable to weakening these
+bounds. See [ADR 0019](adr/0019-provenance-recherche-console.md).
+
 ## Maintenance and qualification
 
 Run the API unit and integration suites, the frontend build and browser tests

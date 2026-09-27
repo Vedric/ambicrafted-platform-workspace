@@ -53,7 +53,7 @@ concurrent first-start key generation, malformed service responses, reflected
 validation input, cancellation/deletion races, fragmented voice output and unsafe
 voice output-file reads.
 
-## Current control-plane qualification — 2026-09-27
+## Initial integrated control-plane qualification — 2026-09-27
 
 The combined release tree `84a6fef32218` passed **342 tests in 23.99 seconds**
 in a fresh clone without operator configuration. Combined
@@ -106,9 +106,9 @@ Initial artifact downloads require network availability, while inference does no
 This narrow synthetic corpus detects regressions; it does not certify recognition
 accuracy for arbitrary accents, microphones or client terminology.
 
-## Console regression checks
+## Initial immersive console regression checks
 
-The 2026-09-27 working tree has 119 frontend unit tests and 32 desktop/mobile
+The initial 2026-09-27 immersive working tree had 119 frontend unit tests and 32 desktop/mobile
 Chromium journeys. These cover both interface languages, preserved operator
 content, independent conversation language, delayed/expired ticket exchange under
 React StrictMode, mission drafts, readiness failures, welcome-page entry, keyboard
@@ -139,9 +139,9 @@ Failed console CI jobs retain Playwright reports, screenshots and traces for
 seven days. They originate only from the disposable synthetic test server,
 with ephemeral credentials. They do not capture the operator's live console.
 
-## Console and release regression scope
+## Charts and architecture regression scope
 
-The combined release includes 158 console unit tests and 40 Playwright journeys
+The subsequent charts release included 158 console unit tests and 40 Playwright journeys
 on desktop/mobile Chromium. The additional cases verify exact UTC chart counts,
 accessible tables/keyboard inspection, translated labels, all four architecture
 paths, unknown/failed health, navigation scroll reset, both scroll directions,
@@ -152,3 +152,61 @@ The live-browser inspection and bounded load/motion measurements are described i
 [the release review](RELEASE-2026-09-27.md); they supplement deterministic tests.
 The raw exact-clone JUnit properties distinguish in-process load from actual
 Uvicorn loopback load. Neither measures concurrent model throughput.
+
+## Post-update live SRE acceptance boundary
+
+One synthetic incident exercised the actual local model and runbook tools after
+the coordinated dependency update. The workflow reached human review and an
+explicit refusal withheld the diagnostic. The model's two candidate actions
+combined source paragraphs and were excluded by the exact-paragraph provenance
+check; only a human escalation remained. No remediation ran and no second model
+attempt was made. This is successful protocol/guard behavior with an observed
+model-quality limitation, not proof that this incident produced an actionable
+verified diagnosis. See [the release review](RELEASE-2026-09-27.md) and the private
+`agent-final/` evidence for the distinction. CI uses deterministic cases separately.
+
+## Semantic-search provenance regression scope
+
+The follow-up checks the control API's snapshot against the actual runbook indexer,
+including Markdown section boundaries and the canonical corpus fingerprint. It
+rejects missing/stale provenance, altered passages, results below 0.60 and source
+mutations during the asynchronous request. Filesystem reads run outside the event
+loop and retain explicit corpus/file bounds. Tests use synthetic files and local
+HTTP mocks; they do not modify the operator's published index.
+
+Four additional Playwright journeys exercise the existing unavailable-state UI in
+English/French on desktop/mobile Chromium. After one successful search, a simulated
+503 must remove the previous results, display a translated error and allow another
+attempt without a JavaScript error. Candidate `157077e6a30e` passed all seven
+fresh-clone groups, including 384 control API tests (90% combined coverage),
+158 console unit tests and the full 44-journey browser suite without a retry.
+Its separate hosted speech failure remained a release blocker. The final integrated
+Git commit and hosted results belong to the delivery report, separately from
+these earlier counts.
+
+## Speech backend regression
+
+The fixed confidentiality WAV exposed differing INT8 transcriptions between MKL
+and oneDNN on the same CPU. The regression suite keeps its exact expected phrase.
+A new fast test intercepts the native import in a fresh process and checks the
+backend/offline setup; two real CLI subprocess tests inherit `CT2_USE_MKL=1` and
+must still recognize the unchanged onset/confidentiality fixtures. This intermediate
+candidate had 52 fast tests and 16 opt-in real tests. Hosted CI also records CPU, runtime version
+and the configured backend without audio, user text or credentials. See
+[the backend decision](adr/0020-backend-vocal-reproductible.md).
+
+The hosted Intel result for `d7030397` subsequently failed two of those real tests,
+while its AMD run passed. Pinning oneDNN alone was therefore insufficient. The
+follow-up uses dedicated English weights only when the decoded source plus its
+800 ms of context fits a 30-second window. French and longer English sources retain
+their prior model and decoding options. Sample-count boundary tests include the
+last accepted short sample and the immediately following long sample; the public
+language alias remains stable. The resulting suite contains 56 quick tests and
+16 opt-in model tests. See [ADR 0021](adr/0021-reconnaissance-anglaise-dediee.md).
+
+The hosted speech job also repeats six existing fixed-signal English regression
+executions with AVX2 requested for CTranslate2 and oneDNN. These are additional
+executions, not six new unique tests, and do not configure the production CPU ISA.
+The synthetic long-recording and independent short-corpus comparisons retain
+observed omissions and vocabulary errors from rejected candidates. Manual transcript
+review remains the default; an anchor score is not a general accuracy certification.

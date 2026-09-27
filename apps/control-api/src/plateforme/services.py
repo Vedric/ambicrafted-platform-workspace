@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import threading
 import time
 from typing import Any, Literal
 
@@ -9,6 +10,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .config import Parametres, lire_environnement
+from .corpus import InstantaneIndex, instantane_index
 
 SERVICES = [
     (
@@ -96,14 +98,14 @@ class ReponseVecteur(DonneesLocales):
 
 class PassageLocal(DonneesLocales):
     fichier: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,115}\.md$")
-    chemin_titres: str = Field(default="", max_length=8000)
-    texte: str = Field(default="", max_length=8000)
-    ligne_debut: int | None = Field(default=None, ge=1)
-    corpus_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    chemin_titres: str = Field(min_length=1, max_length=8000)
+    texte: str = Field(min_length=1, max_length=8000)
+    ligne_debut: int = Field(ge=1)
+    corpus_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
 class PointLocal(DonneesLocales):
-    score: float
+    score: float = Field(ge=0.60)
     payload: PassageLocal
 
 
@@ -135,6 +137,18 @@ class Services:
         self.cache: dict = {}
         self.date = 0.0
         self.verrou = asyncio.Lock()
+        self.verrou_recherche = asyncio.Lock()
+        self.verrou_corpus = threading.Lock()
+
+    def _instantane(self) -> InstantaneIndex:
+        # Cancelling to_thread does not stop its worker. Fail fast instead of
+        # launching another read (or queueing blocking threads) until it exits.
+        if not self.verrou_corpus.acquire(blocking=False):
+            raise ValueError("Une vérification du corpus est déjà en cours.")
+        try:
+            return instantane_index(self.p.racine / "runbooks")
+        finally:
+            self.verrou_corpus.release()
 
     async def sante(self) -> dict:
         async with self.verrou:
@@ -216,8 +230,10 @@ class Services:
             raise ValueError("La clé confidentielle locale est nécessaire.")
         async with (
             asyncio.timeout(35),
+            self.verrou_recherche,
             httpx.AsyncClient(timeout=30, trust_env=False, follow_redirects=False) as client,
         ):
+            avant = await asyncio.to_thread(self._instantane)
             reponse = ReponseVecteur.model_validate(
                 await json_borne(
                     client,
@@ -233,9 +249,27 @@ class Services:
                     client,
                     "POST",
                     "http://127.0.0.1:6333/collections/runbooks-current/points/query",
-                    json={"query": vecteur, "limit": 5, "with_payload": True},
+                    json={
+                        "query": vecteur,
+                        "limit": 5,
+                        "with_payload": True,
+                        "score_threshold": 0.60,
+                    },
                 )
             )
+            apres = await asyncio.to_thread(self._instantane)
+            if avant.revision != apres.revision or avant.empreinte != apres.empreinte:
+                raise ValueError("Le corpus a changé pendant la recherche.")
+            for point in resultat.result.points:
+                passage = point.payload
+                source = apres.fragments.get((passage.fichier, passage.ligne_debut))
+                if (
+                    passage.corpus_sha256 != apres.empreinte
+                    or source is None
+                    or passage.chemin_titres != source.chemin_titres
+                    or passage.texte != source.texte
+                ):
+                    raise ValueError("La provenance de l'index ne correspond plus au corpus.")
             return [
                 {"score": p.score, "donnees": p.payload.model_dump(exclude_none=True)}
                 for p in resultat.result.points

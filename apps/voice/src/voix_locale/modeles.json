@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "aliases": {
     "voix-feminine-fr": {
       "repertoire": "synthese",
@@ -133,6 +133,45 @@
           "sha256": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8"
         }
       ]
+    },
+    "transcription-en-courte": {
+      "repertoire": "transcription-en-courte",
+      "langue": "en",
+      "licence": "MIT",
+      "source": "https://huggingface.co/Systran/faster-whisper-medium.en/tree/a29b04bd15381511a9af671baec01072039215e3",
+      "fichiers": [
+        {
+          "nom": "config.json",
+          "url": "https://huggingface.co/Systran/faster-whisper-medium.en/resolve/a29b04bd15381511a9af671baec01072039215e3/config.json",
+          "octets": 2643,
+          "sha256": "4a1848ebabe7938d9797c15a2e8e4ce1d36e6fd4a43d096ae5955257c67c7962"
+        },
+        {
+          "nom": "tokenizer.json",
+          "url": "https://huggingface.co/Systran/faster-whisper-medium.en/resolve/a29b04bd15381511a9af671baec01072039215e3/tokenizer.json",
+          "octets": 2128466,
+          "sha256": "929c5252409436dce1b38a75d1abbcb5e132d170d8e324e4e04ed915fa2d22df"
+        },
+        {
+          "nom": "vocabulary.txt",
+          "url": "https://huggingface.co/Systran/faster-whisper-medium.en/resolve/a29b04bd15381511a9af671baec01072039215e3/vocabulary.txt",
+          "octets": 422309,
+          "sha256": "ff77588746d3a2595d32ab5b69ffd7b95ce2441ac57533cb66fc3eb575a115cf"
+        },
+        {
+          "nom": "README.md",
+          "url": "https://huggingface.co/Systran/faster-whisper-medium.en/resolve/a29b04bd15381511a9af671baec01072039215e3/README.md",
+          "octets": 1337,
+          "sha256": "ab3ddd3b6af4ea0ef353cb80004f26613ba33217f81652fc13738d3b098c7675"
+        },
+        {
+          "nom": "model.bin",
+          "url": "https://huggingface.co/Systran/faster-whisper-medium.en/resolve/a29b04bd15381511a9af671baec01072039215e3/model.bin",
+          "octets": 1527904330,
+          "sha256": "11b220779aea4c6f3ce9d2549c8a95ea869ed84066864b999531ef53e594fe5b"
+        }
+      ],
+      "revision": "a29b04bd15381511a9af671baec01072039215e3"
     }
   }
 }
