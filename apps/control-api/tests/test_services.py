@@ -5,6 +5,7 @@ import asyncio
 import httpx
 import pytest
 
+from plateforme.corpus import instantane_index
 from plateforme.services import SERVICES, Services
 
 
@@ -110,6 +111,15 @@ async def test_recherche_uniquement_alias_et_cle_confidentiels(parametres, monke
     from plateforme.config import enregistrer_secret
 
     enregistrer_secret(parametres.racine, "CONFIDENTIAL_KEY", parametres.cle)
+    instantane = instantane_index(parametres.racine / "runbooks")
+    source = instantane.fragments[("postgres.md", 1)]
+    payload = {
+        "fichier": source.fichier,
+        "texte": source.texte,
+        "chemin_titres": source.chemin_titres,
+        "ligne_debut": source.ligne_debut,
+        "corpus_sha256": instantane.empreinte,
+    }
 
     def repondre(requete):
         import json
@@ -120,7 +130,12 @@ async def test_recherche_uniquement_alias_et_cle_confidentiels(parametres, monke
             assert requete.headers["authorization"] == "Bearer " + parametres.cle
             return httpx.Response(200, json={"data": [{"embedding": [0.1] * 768}]})
         assert "authorization" not in requete.headers
-        assert charge == {"query": [0.1] * 768, "limit": 5, "with_payload": True}
+        assert charge == {
+            "query": [0.1] * 768,
+            "limit": 5,
+            "with_payload": True,
+            "score_threshold": 0.60,
+        }
         return httpx.Response(
             200,
             json={
@@ -128,11 +143,7 @@ async def test_recherche_uniquement_alias_et_cle_confidentiels(parametres, monke
                     "points": [
                         {
                             "score": 0.7,
-                            "payload": {
-                                "fichier": "postgres.md",
-                                "texte": "Procédure",
-                                "chemin_titres": "# Procédure",
-                            },
+                            "payload": payload,
                         }
                     ]
                 }
@@ -144,11 +155,7 @@ async def test_recherche_uniquement_alias_et_cle_confidentiels(parametres, monke
     assert resultat == [
         {
             "score": 0.7,
-            "donnees": {
-                "fichier": "postgres.md",
-                "texte": "Procédure",
-                "chemin_titres": "# Procédure",
-            },
+            "donnees": payload,
         }
     ]
     assert len(appels) == 2 and all(r.url.host == "127.0.0.1" for r in appels)

@@ -152,3 +152,31 @@ The live-browser inspection and bounded load/motion measurements are described i
 [the release review](RELEASE-2026-09-27.md); they supplement deterministic tests.
 The raw exact-clone JUnit properties distinguish in-process load from actual
 Uvicorn loopback load. Neither measures concurrent model throughput.
+
+## Post-update live SRE acceptance boundary
+
+One synthetic incident exercised the actual local model and runbook tools after
+the coordinated dependency update. The workflow reached human review and an
+explicit refusal withheld the diagnostic. The model's two candidate actions
+combined source paragraphs and were excluded by the exact-paragraph provenance
+check; only a human escalation remained. No remediation ran and no second model
+attempt was made. This is successful protocol/guard behavior with an observed
+model-quality limitation, not proof that this incident produced an actionable
+verified diagnosis. See [the release review](RELEASE-2026-09-27.md) and the private
+`agent-final/` evidence for the distinction. CI uses deterministic cases separately.
+
+## Semantic-search provenance regression scope
+
+The follow-up checks the control API's snapshot against the actual runbook indexer,
+including Markdown section boundaries and the canonical corpus fingerprint. It
+rejects missing/stale provenance, altered passages, results below 0.60 and source
+mutations during the asynchronous request. Filesystem reads run outside the event
+loop and retain explicit corpus/file bounds. Tests use synthetic files and local
+HTTP mocks; they do not modify the operator's published index.
+
+Four additional Playwright journeys exercise the existing unavailable-state UI in
+English/French on desktop/mobile Chromium. After one successful search, a simulated
+503 must remove the previous results, display a translated error and allow another
+attempt without a JavaScript error. These targeted journeys passed locally; the
+full suite now contains 44 journeys. The exact integrated Git commit and its fresh
+clone/hosted results belong to the delivery report, separately from earlier counts.
