@@ -21,6 +21,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Local editable source, not the unrelated public package (ADR 0018).
+    ignore:
+      - dependency-name: "sre-agent"
+      - dependency-name: "sre-agent[graphe]"
   - package-ecosystem: docker-compose
     directory: /gateway
     schedule:
