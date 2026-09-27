@@ -19,6 +19,31 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+@pytest.mark.parametrize(
+    "langue,phrase",
+    [
+        (
+            "fr",
+            "Bonjour Védric, on regarde votre pipeline GitHub Enterprise sur Kubernetes ensemble ? On peut commencer par les logs, puis vérifier le rollback.",
+        ),
+        (
+            "en",
+            "Hi Védric, let's check your GitHub Enterprise pipeline on Kubernetes together. We can start with the logs, then check the rollback.",
+        ),
+    ],
+)
+def test_termes_techniques_dans_une_phrase_continue(tmp_path, langue, phrase):
+    wav = tmp_path / "technical.wav"
+    metadata = parler(phrase, wav, langue)
+    assert metadata["frequence_hz"] == 24000
+    assert 4 < metadata["duree_s"] < 20
+    transcript = transcrire(wav, langue)["texte"].casefold()
+    for term in ("github", "enterprise", "kubernetes", "rollback"):
+        assert term in transcript
+    if langue == "fr":
+        assert "bonjour védric" in transcript
+
+
 def encoder(source: Path, cible: Path, format: str, codec: str) -> None:
     with av.open(str(source)) as entree, av.open(str(cible), "w", format=format) as sortie:
         flux = sortie.add_stream(codec, rate=48000)
@@ -67,7 +92,7 @@ def test_voix_bilingue_et_reponse_micro_navigateur(
     wav = tmp_path / "salutation.wav"
     metadata = parler(phrase, wav, langue)
     assert metadata["format"] == "wav"
-    assert metadata["frequence_hz"] == 22050
+    assert metadata["frequence_hz"] == 24000
     assert 3 < metadata["duree_s"] < 15
     assert wav.stat().st_mode & 0o777 == 0o600
     path = wav

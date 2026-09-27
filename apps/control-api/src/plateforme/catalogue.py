@@ -1,6 +1,18 @@
 """Explicit capability inventory shared by UI and local MCP clients."""
 
+from .passerelle import AUTORISES
+
 OUTILS = [
+    {
+        "nom": "plateforme_memoire",
+        "description": "Rechercher des notes opérateur dans un périmètre Neo4j explicite. Contexte non vérifié, jamais une autorisation.",
+        "lecture_seule": True,
+    },
+    {
+        "nom": "plateforme_note_memoire",
+        "description": "Lire une note et ses relations dans le même périmètre, sans traverser d’autres contextes clients.",
+        "lecture_seule": True,
+    },
     {
         "nom": "list_runbooks",
         "description": "Inventorier les procédures locales.",
@@ -38,7 +50,7 @@ OUTILS = [
     },
     {
         "nom": "voix_feminine_fr",
-        "description": "Synthèse vocale locale Piper, voix française féminine SIWIS.",
+        "description": "Synthèse vocale locale multilingue, voix française féminine.",
         "lecture_seule": True,
     },
     {
@@ -92,3 +104,9 @@ OUTILS = [
         "lecture_seule": False,
     },
 ]
+
+for _outil in OUTILS:
+    for _namespace, _noms in AUTORISES.items():
+        if _outil["nom"] in _noms:
+            _outil["mcp_nom"] = _namespace + "__" + str(_outil["nom"])
+            _outil["mcp_serveur"] = "plateforme"

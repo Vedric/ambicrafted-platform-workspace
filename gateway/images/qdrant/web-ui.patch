@@ -1,0 +1,69 @@
+--- a/src/components/Common/InfoCard/InfoCard.jsx
++++ b/src/components/Common/InfoCard/InfoCard.jsx
+@@ -132,7 +132,7 @@
+ 
+   return (
+     <StyledCard
+-      component={Link}
++      component={href ? Link : 'div'}
+       to={href}
+       target={isExternalLink ? '_blank' : undefined}
+       sx={{ ...sx }}
+--- a/src/context/cloud-info-context.jsx
++++ b/src/context/cloud-info-context.jsx
+@@ -23,6 +23,12 @@
+   const fetchCloudInfo = useCallback(async () => {
+     setIsLoading(true);
+     setError(null);
++
++    // Private deployments do not fetch cloud metadata or release announcements.
++    if (import.meta.env.VITE_OFFLINE === 'true') {
++      setIsLoading(false);
++      return;
++    }
+ 
+     try {
+       const response = await axios.get(cloudInfoPath);
+--- a/src/context/external-info-context.jsx
++++ b/src/context/external-info-context.jsx
+@@ -22,6 +22,12 @@
+   const fetchExternalInfo = useCallback(async () => {
+     setIsLoading(true);
+     setError(null);
++
++    // Private deployments do not fetch cloud metadata or release announcements.
++    if (import.meta.env.VITE_OFFLINE === 'true') {
++      setIsLoading(false);
++      return;
++    }
+ 
+     try {
+       const response = await fetch(externalInfoPath);
+--- /dev/null
++++ b/src/context/offline-info.test.jsx
+@@ -0,0 +1,25 @@
++import React from 'react';
++import { render, screen, waitFor } from '@testing-library/react';
++import { afterEach, expect, it, vi } from 'vitest';
++import { CloudInfoProvider, useCloudInfo } from './cloud-info-context';
++import { ExternalInfoProvider, useExternalInfo } from './external-info-context';
++import { axiosInstance } from '../common/axios';
++
++function State() {
++  const cloud = useCloudInfo();
++  const external = useExternalInfo();
++  return <output>{JSON.stringify({ cloud: cloud.cloudInfo, external: external.externalInfo, loading: cloud.isLoading || external.isLoading })}</output>;
++}
++
++afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
++
++it('keeps unavailable cloud data explicit and makes no automatic remote request in private mode', async () => {
++  vi.stubEnv('VITE_OFFLINE', 'true');
++  const request = vi.fn();
++  vi.stubGlobal('fetch', request);
++  const axiosGet = vi.spyOn(axiosInstance, 'get');
++  render(<CloudInfoProvider><ExternalInfoProvider><State /></ExternalInfoProvider></CloudInfoProvider>);
++  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('{"cloud":null,"external":null,"loading":false}'));
++  expect(request).not.toHaveBeenCalled();
++  expect(axiosGet).not.toHaveBeenCalled();
++});

@@ -1,0 +1,20 @@
+[
+  {
+    "language": "en",
+    "file": "aura-welcome-en.wav",
+    "voice_alias": "voix-feminine-en",
+    "transcript": "Hi Védric, good to have you back. What are we working on today? We can look into an incident, talk through an architecture, or pick up where we left off. Take your time, I'm here.",
+    "duration_s": 11.725,
+    "bytes": 562844,
+    "sha256": "fc3d502b5a34ef64679db21df54825b6454798212735c040a475c511ddb5a987"
+  },
+  {
+    "language": "fr",
+    "file": "aura-welcome-fr.wav",
+    "voice_alias": "voix-feminine-fr",
+    "transcript": "Bonjour Védric, contente de vous retrouver. On regarde quoi ensemble aujourd’hui ? Un incident à creuser, une architecture à préparer, ou simplement une idée dont vous voulez parler ? Prenez votre temps, je vous écoute.",
+    "duration_s": 14.2,
+    "bytes": 681644,
+    "sha256": "7c04c53b023d567bca45ab5177ebf1c203252065b124356dca3b8bdec64d535d"
+  }
+]

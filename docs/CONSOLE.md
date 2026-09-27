@@ -270,7 +270,9 @@ This prevents an automatic transcript from overwriting a draft you were editing.
 Install the separate speech runtime and pinned English/French artifacts following
 [VOICE.md](VOICE.md). AURA identifies itself as an AI assistant. Audio processing
 is local, speech uses CPU, and dialogue uses the confidential `local` model path.
-Conversation is ephemeral; it does not become a persistent client memory service.
+Conversations are saved in private local SQLite with bounded history and retention.
+See [AURA conversations](CONVERSATIONS.md) for source documents, CLI commands,
+retry behavior and explicit memory boundaries.
 
 The default manual flow is **Record**, stop recording, review/edit the transcript,
 then **Send**. **Listen** plays a reply through the selected female synthetic
@@ -318,17 +320,18 @@ is editable input, not authorization to execute a command or approve a diagnosis
 
 ## Read-only control MCP
 
-The repository's `.mcp.json` declares `plateforme-controle` alongside the runbook
-server. Start the authenticated local API before connecting this adapter:
+The repository's `.mcp.json` declares NEXUS as its single MCP entrypoint. Start the
+authenticated local API before connecting its complete operator profile:
 
 ```sh
-uv run --locked --project apps/control-api python -m plateforme.mcp
+uv run --locked --project apps/control-api python -m plateforme.passerelle
 ```
 
-The adapter exposes nine tools: health, readiness, catalogue, analysis list and
-detail, runbook list and read, search, and bounded audit. The runbook server
-separately exposes four source/search tools. [TOOLS.md](TOOLS.md) lists exact
-names, parameters and limits. No additional server is needed for these capabilities.
+The gateway exposes eleven control tools: health, readiness, catalogue, analysis list
+and detail, runbook list and read, search, bounded audit and two scoped memory reads.
+Its runbook profile exposes four source/search tools. [MCP-GATEWAY.md](MCP-GATEWAY.md)
+lists namespaces, authority and transport bounds. Dedicated memory requires its
+separate Neo4j installation.
 
 The private key is read internally; never put it into an MCP configuration or
 command line. Missing credentials/state return an unavailable result rather than
@@ -371,3 +374,15 @@ The [26 September 2026 security assessment](SECURITY-RELEASE-2026-09-26.md)
 retains 166 HIGH package occurrences in the promoted images. Its conditional GO
 covers existing supervised private-workstation use only. Unqualified production
 security approval and remote/mutually untrusted use remain NO-GO at that snapshot.
+
+
+### Background sound and natural speech
+
+AURA uses a local multilingual voice and a technical pronunciation lexicon, retaining
+English pronunciations inside French replies. The operator name is Védric; French
+replies use vous. The header's music control enables the original **Orbital Drift**
+instrumental. Settings → Voice preferences adjusts its deliberately low level.
+AURA speech takes priority; microphone recording mutes the music. Escape stops it.
+An explicit browser gesture may be needed after reload. See [Voice](VOICE.md) for
+qualification limits and [the audio notice](../apps/console/public/audio/NOTICE.md)
+for the CC0 composition and separate voice licenses.

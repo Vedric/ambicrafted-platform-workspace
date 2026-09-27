@@ -1,12 +1,15 @@
 [project]
 name = "ambicrafted-control"
-version = "0.3.0"
+version = "0.4.0"
 description = "Plan de contrôle privé de la plateforme agentique Ambicrafted."
 requires-python = ">=3.14"
 dependencies = [
+    "defusedxml==0.7.1",
     "fastapi==0.141.1",
     "httpx==0.28.1",
     "mcp==2.2.0",
+    "pillow==12.3.0",
+    "pypdf==6.19.0",
     "python-dotenv==1.2.3",
     "sre-agent[graphe]==0.1.0",
     "uvicorn==0.54.0",
@@ -47,4 +50,5 @@ dev = [
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "ruff==0.16.9",
+    "types-defusedxml==0.7.0.20260504",
 ]

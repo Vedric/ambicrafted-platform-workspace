@@ -22,10 +22,14 @@ import sys
 from pathlib import Path
 
 from mcp.server import MCPServer
+from mcp.types import ToolAnnotations
 
 from fichiers import lire, noms, verifier_nom
 
 mcp = MCPServer("runbooks")
+LECTURE = ToolAnnotations(
+    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
+)
 
 # Default: <repository root>/runbooks, derived from this file's location
 # (same mechanism as indexer.py); RUNBOOK_DIR still takes precedence.
@@ -80,7 +84,7 @@ def _resoudre(nom: str) -> Path:
     return chemin
 
 
-@mcp.tool()
+@mcp.tool(annotations=LECTURE)
 def list_runbooks() -> str:
     # French on purpose: MCP publishes this as the tool description.
     """Liste les runbooks disponibles avec leur titre et leur taille."""
@@ -103,7 +107,7 @@ def list_runbooks() -> str:
     return "\n".join(lignes) if lignes else "Aucun runbook."
 
 
-@mcp.tool()
+@mcp.tool(annotations=LECTURE)
 def read_runbook(nom: str) -> str:
     # French on purpose: MCP publishes this as the tool description.
     """Lit un runbook et renvoie fichier, texte, empreinte SHA-256 et troncature.
@@ -130,7 +134,7 @@ def read_runbook(nom: str) -> str:
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=LECTURE)
 def search_runbooks(terme: str, contexte: int = 2) -> str:
     # French on purpose: MCP publishes this as the tool description.
     """Cherche un terme dans tous les runbooks.
@@ -171,7 +175,7 @@ def search_runbooks(terme: str, contexte: int = 2) -> str:
     return "\n\n".join(resultats) if resultats else f"Aucun résultat pour '{terme}'."
 
 
-@mcp.tool()
+@mcp.tool(annotations=LECTURE)
 def semantic_search(requete: str, k: int = 5) -> str:
     # French on purpose: MCP publishes this as the tool description.
     """Cherche dans les runbooks par le sens, pas par les mots.

@@ -12,6 +12,7 @@ import tempfile
 from pathlib import Path
 
 import plateforme.app as application_module
+import plateforme.conversation_routes as conversation_module
 import uvicorn
 from plateforme.app import creer_app
 from plateforme.config import Parametres
@@ -20,7 +21,7 @@ from plateforme.moteur import Moteur
 from plateforme.securite import hacher_mot_de_passe
 from plateforme.services import Services
 
-WEB = Path(__file__).resolve().parents[1] / "dist"
+WEB = Path(os.environ.get("PLATFORM_E2E_WEB", Path(__file__).resolve().parents[1] / "dist"))
 DIAGNOSTIC = {
     "cause_probable": "Connection pool exhausted in this synthetic exercise.",
     "confiance": "moyenne",
@@ -134,6 +135,17 @@ async def dialoguer_simule(_, messages, langue="en"):
         "local": True,
         "actions_executees": False,
     }
+
+
+async def flux_simule(p, messages, langue="en"):
+    result = await dialoguer_simule(p, messages, langue)
+    for word in result["texte"].split(" "):
+        yield {"type": "token", "text": word + " "}
+    result["texte"] += " "
+    yield {"type": "done", **result}
+
+
+conversation_module.flux_dialogue = flux_simule
 
 
 def main():

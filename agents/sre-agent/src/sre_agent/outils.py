@@ -83,6 +83,7 @@ class ClientRunbooks:
         self._arret: asyncio.Event | None = None
         self.outils: list[Outil] = []
         self.outils_ecartes: list[str] = []
+        self._noms_distants: dict[str, str] = {}
         self.delai = 180.0
         self._tache: asyncio.Task | None = None
 
@@ -98,7 +99,7 @@ class ClientRunbooks:
             self.__exit__()
             raise ErreurOutil(
                 f"Serveur MCP runbooks indisponible : {_cause(self._erreur)}\n"
-                f"Vérifier : cd {config.MCP_RUNBOOKS_DIR} && uv run server.py"
+                "Vérifier la préparation locale et l'installation de la passerelle MCP."
             ) from self._erreur
         return self
 
@@ -146,7 +147,17 @@ class ClientRunbooks:
                 if (Path.home() / ".local/bin/uv").is_file()
                 else "uv",
             ),
-            args=["run", "--locked", "--directory", config.MCP_RUNBOOKS_DIR, "server.py"],
+            args=[
+                "run",
+                "--locked",
+                "--project",
+                config.MCP_PASSERELLE_PROJET,
+                "python",
+                "-m",
+                "plateforme.passerelle",
+                "--profil",
+                "runbooks",
+            ],
             # The server needs the runbooks path, the gateway and
             # CONFIDENTIAL_KEY: its semantic search embeds the query
             # through the local-embed alias. So the search query does not
@@ -155,6 +166,7 @@ class ClientRunbooks:
             | {
                 nom: valeur
                 for nom, valeur in (
+                    ("PLATFORM_ROOT", config.RACINE_DEPOT),
                     ("RUNBOOK_DIR", config.RUNBOOK_DIR),
                     ("LITELLM_BASE_URL", config.LITELLM_BASE_URL),
                     ("CONFIDENTIAL_KEY", config.cle(config.Classification.CONFIDENTIEL)),
@@ -174,10 +186,12 @@ class ClientRunbooks:
             await asyncio.wait_for(session.initialize(), timeout=110)
             publies = (await session.list_tools()).tools
             for outil in publies:
-                if outil.name in OUTILS_AUTORISES:
+                nom = outil.name.removeprefix("runbooks__")
+                if outil.name.startswith("runbooks__") and nom in OUTILS_AUTORISES:
+                    self._noms_distants[nom] = outil.name
                     self.outils.append(
                         Outil(
-                            nom=outil.name,
+                            nom=nom,
                             description=(outil.description or "").strip(),
                             schema=outil.input_schema or {"type": "object"},
                         )
@@ -199,7 +213,9 @@ class ClientRunbooks:
                 attente_arret.cancel()
                 nom, arguments, promesse = attente_demande.result()
                 try:
-                    resultat = await asyncio.wait_for(session.call_tool(nom, arguments), self.delai)
+                    resultat = await asyncio.wait_for(
+                        session.call_tool(self._noms_distants[nom], arguments), self.delai
+                    )
                     if not promesse.done():
                         promesse.set_result(_texte(resultat))
                 except BaseException as e:

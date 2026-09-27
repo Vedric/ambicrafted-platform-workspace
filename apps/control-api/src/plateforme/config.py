@@ -74,6 +74,7 @@ class Parametres:
     taille_file: int = 12
     retention_jours: int = 14
     origine_dev: str = ""
+    veille_active: bool = False
 
     @property
     def url(self) -> str:
@@ -89,6 +90,15 @@ class Parametres:
     @property
     def web(self) -> Path:
         return self.racine / "apps/console/dist"
+
+    @property
+    def budget_tokens_total(self) -> int | None:
+        """The next job's observed-token ceiling; None means invalid configuration."""
+        try:
+            plafond = int(lire_environnement(self.racine).get("SRE_MAX_TOKENS_TOTAL", "60000"))
+        except ValueError:
+            return None
+        return plafond if 1 <= plafond <= 1_000_000 else None
 
     @classmethod
     def charger(cls, *, lecture_seule: bool = False) -> Parametres:
@@ -125,6 +135,7 @@ class Parametres:
             mot_de_passe=valeurs.get("PLATFORM_PASSWORD_HASH", ""),
             port=port,
             origine_dev=os.environ.get("PLATFORM_DEV_ORIGIN", ""),
+            veille_active=valeurs.get("PLATFORM_TECH_WATCH", "1") == "1",
         )
 
     def environnement_agent(self) -> dict[str, str]:
@@ -137,6 +148,7 @@ class Parametres:
             "QDRANT_COLLECTION",
             "SRE_TIMEOUT_LLM_S",
             "SRE_MAX_DUREE_S",
+            "SRE_MAX_TOKENS_TOTAL",
         }
         resultat = {k: v for k, v in os.environ.items() if k in {"PATH", "HOME", "LANG", "TMPDIR"}}
         resultat.update({k: v for k, v in valeurs.items() if k in autorises})

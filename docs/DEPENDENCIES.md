@@ -1,11 +1,16 @@
-# Dependency review — 2026-09-26
+# Dependency review
 
-Six production image versions are pinned. PostgreSQL and Qdrant are narrow
+The current seven-image inventory and promoted derivatives are documented in
+[the 27 September refinement](SECURITY-REFINEMENT-2026-09-27.md): 0 CRITICAL,
+53 HIGH. Console/control are version 0.4.0, speech runtime 0.3.0.
+The HIGH/CRITICAL gate remains failed; the older figures below are historical.
+
+Six production image versions were pinned in the initial review. PostgreSQL and Qdrant are narrow
 local derivatives with immutable upstream bases and exact corrective versions;
 other services use upstream registry digests. Their dedicated build contexts
 exclude environment files and data. See [ADR 0012](adr/0012-images-correctives-verifiees.md).
 
-## Final image inventory
+## Historical image inventory — 2026-09-26
 
 Trivy 0.74.0 with the vulnerability database updated on 2026-09-26 12:58 UTC
 reports the following package occurrences. The same advisory can occur in

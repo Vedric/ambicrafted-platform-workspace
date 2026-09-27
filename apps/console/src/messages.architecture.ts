@@ -1,4 +1,36 @@
 export const architectureFr = {
+  "Derived analysis messages, conversations, extracted documents, checkpoints, audit events and session metadata.":
+    "Messages d’analyse, conversations, documents extraits, checkpoints, événements d’audit et métadonnées de session.",
+  "Microphone audio, reviewed text and locally saved conversation messages.":
+    "Audio du microphone, texte relu et messages de conversation enregistrés localement.",
+  "Saved context · no tools": "Contexte enregistré · sans outils",
+  "Graph memory": "Mémoire graphe",
+  "Neo4j · explicit scopes": "Neo4j · périmètres explicites",
+  "Stores sourced operator notes and same-scope relationships in a dedicated local database.":
+    "Conserve les notes sourcées de l’opérateur et leurs relations au sein d’un même périmètre dans une base locale dédiée.",
+  "Observations, decisions, questions, preferences and their source references.":
+    "Observations, décisions, questions, préférences et références des sources.",
+  "Scope filters are not tenant permissions. Notes are unverified context; only selected copies enter a conversation.":
+    "Les filtres de périmètre ne sont pas des permissions par tenant. Les notes constituent un contexte non vérifié ; seules les copies sélectionnées entrent dans une conversation.",
+  Memory: "Mémoire",
+  "From explicit notes to conversational context":
+    "Des notes explicites au contexte de conversation",
+  "Choose a sourced note within its scope. The API copies it into a conversation; related notes and other threads are never silently included.":
+    "Choisissez une note sourcée dans son périmètre. L’API la copie dans une conversation ; les notes liées et les autres fils ne sont jamais inclus à votre insu.",
+  "Select a scope and a sourced note":
+    "Sélectionner un périmètre et une note sourcée",
+  "Read or write explicit operator notes":
+    "Lire ou écrire les notes explicites de l’opérateur",
+  "Two read-only scoped memory tools":
+    "Deux outils mémoire en lecture seule, au périmètre explicite",
+  "Copy selected context with provenance":
+    "Copier le contexte sélectionné avec sa provenance",
+  "Include only selected bounded context":
+    "Inclure uniquement le contexte sélectionné et borné",
+  "NEXUS · MCP gateway": "NEXUS · Passerelle MCP",
+  "Fixed profiles · scoped tools": "Profils fixes · outils délimités",
+  "Routes allowlisted, namespaced tools over local stdio. ATLAS receives four runbook tools; the operator profile also exposes eleven read-only control tools.":
+    "Route les outils autorisés, préfixés par namespace, via stdio local. ATLAS reçoit quatre outils de runbooks ; le profil opérateur expose aussi onze outils de contrôle en lecture seule.",
   Architecture: "Architecture",
   "THE SYSTEM, EXPLAINED": "LE SYSTÈME, EXPLIQUÉ",
   "See how your intelligence connects.":
@@ -142,7 +174,7 @@ export const architectureFr = {
   "Hands-free mode is opt-in. Transcription can change words or numbers; review consequential facts.":
     "Le mode mains libres est facultatif. La transcription peut altérer des mots ou des nombres ; relisez les faits importants.",
   "Local speech": "Voix locale",
-  "Whisper · Piper · CPU": "Whisper · Piper · CPU",
+  "Whisper · ONNX speech · CPU": "Whisper · ONNX speech · CPU",
   "Transcribes English or French audio and synthesizes the selected female voice locally.":
     "Transcrit l’audio anglais ou français et synthétise la voix féminine sélectionnée en local.",
   "Bounded audio uploads, transient private audio files and generated WAV output.":

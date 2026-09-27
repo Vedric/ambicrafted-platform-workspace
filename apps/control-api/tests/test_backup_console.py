@@ -20,13 +20,91 @@ AUTH_TICKET = "fixture-ticket-must-never-reach-a-backup-file"
 def scripts(monkeypatch):
     racine = Path(__file__).resolve().parents[3] / "scripts"
     resultats = {}
-    for nom in ("sauvegarder", "tester_restauration"):
+    for nom in ("memoire_sauvegarde", "sauvegarder", "tester_restauration"):
         spec = importlib.util.spec_from_file_location(nom, racine / (nom + ".py"))
         module = importlib.util.module_from_spec(spec)
         monkeypatch.setitem(sys.modules, nom, module)
         spec.loader.exec_module(module)
         resultats[nom] = module
     return SimpleNamespace(**resultats)
+
+
+def memory_snapshot():
+    first = "00000000-0000-4000-8000-000000000001"
+    second = "00000000-0000-4000-8000-000000000002"
+    return {
+        "notes": [
+            {
+                "id": identifier,
+                "scope": "synthetic",
+                "titre": "Observation",
+                "contenu": "Synthetic private evidence",
+                "source": "Test fixture",
+                "type": "fact",
+                "cree_le": "2026-09-27T00:00:00+00:00",
+                "maj_le": "2026-09-27T00:00:00+00:00",
+            }
+            for identifier in (first, second)
+        ],
+        "links": [{"from": second, "to": first}],
+    }
+
+
+def test_graph_backup_private_file_integrity_and_fixed_destination(scripts, tmp_path, monkeypatch):
+    module = scripts.memoire_sauvegarde
+    data = memory_snapshot()
+
+    def query(client, statement):
+        assert str(client.base_url) == "http://127.0.0.1:47474"
+        assert "AmbicraftedNote" in statement
+        return [{"row": [data]}]
+
+    monkeypatch.setattr(module, "query", query)
+    info = module.export(tmp_path, "synthetic-password")
+    path = tmp_path / "memoire.json"
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert info["notes"] == 2 and info["liens"] == 1
+    assert b"synthetic-password" not in path.read_bytes()
+    with pytest.raises(FileExistsError):
+        module.export(tmp_path, "synthetic-password")
+    path.write_text("{}")
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *args, **kwargs: pytest.fail("Invalid backup must not start Docker"),
+    )
+    with pytest.raises(ValueError, match="checksum"):
+        module.restore_check(tmp_path, info, "unused")
+
+
+@pytest.mark.parametrize(
+    "mutation", ["scope", "duplicate", "missing", "oversize", "identity", "self"]
+)
+def test_graph_backup_rejects_corrupt_or_cross_scope_context(scripts, mutation):
+    data = memory_snapshot()
+    if mutation == "scope":
+        data["notes"][1]["scope"] = "another-client"
+    elif mutation == "duplicate":
+        data["notes"].append(data["notes"][0])
+    elif mutation == "missing":
+        data["notes"].pop()
+    elif mutation == "oversize":
+        data["notes"][0]["contenu"] = "x" * 4001
+    elif mutation == "identity":
+        data["notes"][0]["id"] = "invalid"
+    else:
+        data["links"][0]["from"] = data["links"][0]["to"]
+    with pytest.raises(ValueError):
+        scripts.memoire_sauvegarde.validate(data)
+
+
+def test_memory_absence_requires_no_unlisted_file(scripts, tmp_path):
+    module = scripts.memoire_sauvegarde
+    assert module.export(tmp_path, None) == {"presente": False}
+    assert module.restore_check(tmp_path, None, "unused") == {"memoire_presente": False}
+    (tmp_path / "memoire.json").write_text("{}")
+    with pytest.raises(ValueError, match="absent from manifest"):
+        module.restore_check(tmp_path, None, "unused")
 
 
 def base_privee(chemin: Path, schema: str) -> sqlite3.Connection:

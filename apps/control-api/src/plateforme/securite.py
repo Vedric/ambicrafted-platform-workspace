@@ -146,7 +146,10 @@ class FrontiereHTTP:
                         (b"referrer-policy", b"no-referrer"),
                         (b"cross-origin-opener-policy", b"same-origin"),
                         (b"cross-origin-resource-policy", b"same-origin"),
-                        (b"permissions-policy", b"camera=(), microphone=(self), geolocation=()"),
+                        (
+                            b"permissions-policy",
+                            b"camera=(), microphone=(self), speaker-selection=(self), geolocation=()",
+                        ),
                         (
                             b"content-security-policy",
                             b"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
@@ -171,7 +174,8 @@ class FrontiereHTTP:
             longueur = int(entetes.get(b"content-length", b"0"))
         except ValueError:
             return await refuser(400, "Longueur invalide.")
-        maximum = 11_300_000 if scope["path"] == "/api/voix/transcrire" else 96_000
+        document = scope["path"].startswith("/api/conversations/") and scope["path"].endswith("/pieces")
+        maximum = 11_300_000 if scope["path"] == "/api/voix/transcrire" or document else 96_000
         if longueur > maximum or longueur < 0:
             return await refuser(413, "Requête trop volumineuse.")
         if scope["method"] in {"POST", "PUT", "PATCH", "DELETE"}:

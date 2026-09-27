@@ -15,10 +15,10 @@ def serveur_stdio(tmp_path, monkeypatch):
         """import asyncio, hashlib, json
 from mcp.server import MCPServer
 mcp = MCPServer("fixture")
-@mcp.tool()
+@mcp.tool(name="runbooks__list_runbooks")
 def list_runbooks() -> str:
     return "fixture.md"
-@mcp.tool()
+@mcp.tool(name="runbooks__read_runbook")
 async def read_runbook(nom: str) -> str:
     if nom == "slow.md":
         await asyncio.sleep(30)

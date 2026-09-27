@@ -45,18 +45,19 @@ class ReponseLLM:
     contenu: str
     appels_outils: list[dict[str, Any]] = field(default_factory=list)
     message: dict[str, Any] = field(default_factory=dict)
-    cout_usd: float = 0.0
-    tokens_entree: int = 0
-    tokens_sortie: int = 0
+    cout_usd: float | None = None
+    tokens_entree: int | None = None
+    tokens_sortie: int | None = None
     motif_arret: str = ""
 
 
-def _cout_depuis_entetes(entetes: httpx.Headers, *, local: bool = False) -> float:
+def _cout_depuis_entetes(entetes: httpx.Headers, *, local: bool = False) -> float | None:
     """Read the cost the gateway reports.
 
     The gateway is the authority on price: the agent keeps no rate table,
     which would in any case require it to know a model name. A missing
-    header is accepted only for local aliases; external costs must be explicit.
+    header is accepted as unknown only for local aliases; external costs must
+    be explicit. No hardware or electricity price is estimated here.
     """
     for nom in ("x-litellm-response-cost", "x-litellm-response-cost-original"):
         brut = entetes.get(nom)
@@ -69,7 +70,7 @@ def _cout_depuis_entetes(entetes: httpx.Headers, *, local: bool = False) -> floa
                 raise ErreurPasserelle("Coût de la réponse non fini ou négatif.")
             return valeur
     if local:
-        return 0.0
+        return None
     raise ErreurPasserelle("Coût externe absent : comptabilité indisponible, arrêt requis.")
 
 
@@ -118,6 +119,8 @@ def appeler_llm(
         )
 
     budget.verifier_avant_llm()
+    if type(max_tokens) is not int or not 1 <= max_tokens <= config.MAX_TOKENS_REPONSE:
+        raise ErreurPasserelle("Plafond de réponse invalide.")
     from .progression import signaler
 
     signaler("modele")
@@ -166,6 +169,7 @@ def appeler_llm(
         # span (tracing off), the propagator writes nothing.
         propagate.inject(entetes)
 
+        budget.appels_llm_tentes += 1
         try:
             reponse = httpx.post(
                 f"{config.LITELLM_BASE_URL.rstrip('/')}/chat/completions",
@@ -185,12 +189,20 @@ def appeler_llm(
 
         cout = _cout_depuis_entetes(reponse.headers, local=alias in ALIAS_LOCAUX)
         span.set_attribute("gen_ai.system", _systeme_depuis_entetes(reponse.headers))
-        span.set_attribute(tracage.ATTR_COUT, cout)
+        if cout is not None:
+            span.set_attribute(tracage.ATTR_COUT, cout)
         try:
             donnees = reponse.json()
-            usage = donnees.get("usage") or {}
-            entree = int(usage.get("prompt_tokens") or 0)
-            sortie = int(usage.get("completion_tokens") or 0)
+            usage = donnees.get("usage")
+            if usage is None:
+                usage = {}
+            if not isinstance(usage, dict):
+                raise TypeError
+            entree = usage.get("prompt_tokens")
+            sortie = usage.get("completion_tokens")
+            for valeur in (entree, sortie):
+                if valeur is not None and (type(valeur) is not int or valeur < 0):
+                    raise ValueError
             choix = donnees["choices"][0]
             message = choix["message"]
             if not isinstance(message, dict) or not isinstance(message.get("content") or "", str):
@@ -207,16 +219,20 @@ def appeler_llm(
                     or not isinstance(appel.get("id", ""), str)
                 ):
                     raise TypeError
-            if entree < 0 or sortie < 0:
-                raise ValueError
         except ValueError, KeyError, IndexError, TypeError, AttributeError, OverflowError:
+            # A malformed successful response still consumed one request. Its
+            # untrusted counters cannot be reported as measured zero usage.
+            budget.consommer_llm(cout, None, None)
             raise ErreurPasserelle(
                 "Réponse de la passerelle mal formée ; contenu masqué."
             ) from None
 
         span.set_attribute("gen_ai.response.model", str(donnees.get("model", alias)))
-        span.set_attribute("gen_ai.usage.input_tokens", entree)
-        span.set_attribute("gen_ai.usage.output_tokens", sortie)
+        if entree is not None:
+            span.set_attribute("gen_ai.usage.input_tokens", entree)
+        if sortie is not None:
+            span.set_attribute("gen_ai.usage.output_tokens", sortie)
+        span.set_attribute("ambicrafted.usage.complete", entree is not None and sortie is not None)
         span.set_attribute("gen_ai.response.finish_reasons", [str(choix.get("finish_reason", ""))])
 
         resultat = ReponseLLM(
@@ -232,7 +248,8 @@ def appeler_llm(
 
         # Charged inside the span: an overrun stays visible in the trace.
         budget.consommer_llm(cout, entree, sortie)
-        span.set_attribute("ambicrafted.budget.spent_usd", round(budget.cout_usd, 6))
+        if budget.appels_mesures_cout:
+            span.set_attribute("ambicrafted.budget.spent_usd", round(budget.cout_usd, 6))
 
     return resultat
 

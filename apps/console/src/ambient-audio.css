@@ -1,0 +1,38 @@
+.ambient-control {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.ambient-control [aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.ambient-settings {
+  display: grid;
+  gap: 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.ambient-settings > .btn {
+  justify-self: start;
+}
+.ambient-settings > p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+.ambient-volume {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+.ambient-volume input {
+  flex: 1 1 100px;
+  min-width: 80px;
+  max-width: 220px;
+  accent-color: var(--accent);
+}
+.ambient-volume output {
+  font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+}

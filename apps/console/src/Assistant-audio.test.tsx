@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -41,6 +42,7 @@ vi.mock("./ui", async (importOriginal) => ({
   Markdown: ({ texte }: { texte: string }) => <p>{texte}</p>,
 }));
 let amplitude: number;
+let suspendedInitially: boolean;
 let recorders: Recorder[];
 let contexts: MicrophoneContext[];
 let players: Player[];
@@ -78,7 +80,7 @@ class Recorder {
   }
 }
 class MicrophoneContext {
-  state = "running";
+  state = suspendedInitially ? "suspended" : "running";
   destination = {};
   source = { connect: vi.fn(), disconnect: vi.fn() };
   analyser = {
@@ -159,6 +161,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
   amplitude = 0.03;
+  suspendedInitially = false;
   recorders = [];
   contexts = [];
   players = [];
@@ -255,6 +258,103 @@ async function spokenTurn() {
 }
 
 describe("manual speech resources and language", () => {
+  it("resumes Web Audio during the click, before microphone permission resolves", async () => {
+    suspendedInitially = true;
+    let allow!: (value: MediaStream) => void;
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValue(
+      new Promise((resolve) => {
+        allow = resolve;
+      }),
+    );
+    await show();
+    await click("Record");
+    expect(contexts).toHaveLength(1);
+    expect(contexts[0].resume).toHaveBeenCalledOnce();
+    expect(contexts[0].createMediaStreamSource).not.toHaveBeenCalled();
+    expect(recorders).toHaveLength(0);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Waiting for microphone permission",
+    );
+    await act(async () => allow(stream as unknown as MediaStream));
+    expect(contexts[0].createMediaStreamSource).toHaveBeenCalledOnce();
+    await click("Stop recording");
+    expect(contexts[0].close).toHaveBeenCalledOnce();
+  });
+
+  it("ignores old device overrides, follows the system input and reports disconnection", async () => {
+    localStorage.setItem(
+      "ambicrafted-audio-devices",
+      JSON.stringify({ inputId: "mic-private-id", outputId: "" }),
+    );
+    const audioTrack = Object.assign(new EventTarget(), {
+      stop: vi.fn(),
+      muted: false,
+      enabled: true,
+    });
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue({
+      getTracks: () => [audioTrack],
+      getAudioTracks: () => [audioTrack],
+    } as unknown as MediaStream);
+    await show();
+    await click("Record");
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+      video: false,
+    });
+    await act(async () => {
+      audioTrack.dispatchEvent(new Event("ended"));
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "microphone was disconnected",
+    );
+    expect(audioTrack.stop).toHaveBeenCalled();
+    expect(calls("/voix/transcrire")).toHaveLength(0);
+    expect(calls("/assistant/dialogue")).toHaveLength(0);
+  });
+
+  it("reports actual usage, preserves unknown counts and resets the ephemeral ledger", async () => {
+    const responses = [
+      { prompt_tokens: 400, completion_tokens: 25, total_tokens: 425 },
+      undefined,
+      { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+    ];
+    mocks.api.mockImplementation((route: string) =>
+      route === "/assistant/dialogue"
+        ? Promise.resolve({
+            texte: "A synthetic answer.",
+            usage: responses.shift(),
+          })
+        : defaultApi(route),
+    );
+    await show();
+    const card = screen.getByRole("region", { name: "Reported token usage" });
+    expect(within(card).getAllByText("Not reported")).toHaveLength(3);
+    await send();
+    expect(within(card).getByText("400")).toBeVisible();
+    expect(within(card).getByText("25")).toBeVisible();
+    expect(within(card).getByText("425")).toBeVisible();
+    await send();
+    expect(within(card).getAllByText("Not reported")).toHaveLength(2);
+    expect(within(card).getByText("425")).toBeVisible();
+    expect(
+      within(card).getByText("Usage reported for 1 of 2 completed replies."),
+    ).toBeVisible();
+    await send();
+    expect(within(card).getAllByText("0")).toHaveLength(2);
+    expect(
+      within(card).getByText("Usage reported for 2 of 3 completed replies."),
+    ).toBeVisible();
+    expect(localStorage.length).toBe(0);
+    await click("Clear conversation");
+    expect(within(card).getAllByText("Not reported")).toHaveLength(3);
+    expect(
+      within(card).getByText("Usage reported for 0 of 0 completed replies."),
+    ).toBeVisible();
+  });
   it("preserves an existing draft and requires clearing it before hands-free capture", async () => {
     await show();
     const input = screen.getByLabelText("Your message");
@@ -653,19 +753,81 @@ describe("explicit bounded hands-free conversation", () => {
     expect(revoke).toHaveBeenCalledTimes(2);
     expect(vi.getTimerCount()).toBe(0);
   });
-  it("pauses after initial silence without uploading audio", async () => {
+  it("keeps a low or unmeasurable turn for manual review instead of discarding it", async () => {
     amplitude = 0;
     await show();
     await click("Start conversation");
     await advance(12000);
-    expect(
-      screen.getByRole("button", { name: "Start conversation" }),
-    ).toBeEnabled();
-    expect(mocks.notifier).toHaveBeenCalledWith(
-      expect.stringContaining("no speech detected"),
+    expect(screen.getByLabelText("Your message")).toHaveValue(
+      "A synthetic question.",
     );
-    expect(calls("/voix/transcrire")).toHaveLength(0);
+    expect(screen.getByLabelText("Your message")).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+    expect(mocks.notifier).toHaveBeenCalledWith(
+      expect.stringContaining("No input signal was detected"),
+    );
+    expect(calls("/voix/transcrire")).toHaveLength(1);
+    expect(calls("/assistant/dialogue")).toHaveLength(0);
+    expect(
+      screen.queryByRole("button", { name: "End conversation" }),
+    ).not.toBeInTheDocument();
+    await advance(1);
     expect(vi.getTimerCount()).toBe(0);
+  });
+  it("completes a quiet but sustained spoken turn below the previous threshold", async () => {
+    amplitude = 0.004;
+    await show();
+    await click("Start conversation");
+    await advance(500);
+    expect(
+      screen.getByRole("meter", { name: "Measured input level" }),
+    ).toHaveAttribute("value", expect.stringMatching(/^0\.01/));
+    expect(screen.getByText("Input signal detected.")).toBeVisible();
+    amplitude = 0;
+    await advance(2000);
+    expect(calls("/voix/transcrire")).toHaveLength(1);
+    expect(calls("/assistant/dialogue")).toHaveLength(1);
+  });
+  it("explains an empty transcript after silence and never submits a fabricated turn", async () => {
+    amplitude = 0;
+    mocks.api.mockImplementation((route: string) =>
+      route === "/voix/transcrire"
+        ? Promise.resolve({ texte: "" })
+        : defaultApi(route),
+    );
+    await show();
+    await click("Start conversation");
+    await advance(12000);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "No speech was detected",
+    );
+    expect(screen.getByLabelText("Your message")).toHaveValue("");
+    expect(calls("/assistant/dialogue")).toHaveLength(0);
+    expect(track.stop).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it("keeps recording for manual completion when monitoring is suspended", async () => {
+    await show();
+    await click("Start conversation");
+    contexts[0].state = "suspended";
+    await advance(1200);
+    expect(
+      screen.getByText(/The browser paused microphone monitoring/),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Finish recording" }),
+    ).toBeEnabled();
+    expect(recorders[0].state).toBe("recording");
+    expect(calls("/voix/transcrire")).toHaveLength(0);
+    await click("Enable microphone monitoring");
+    await advance(300);
+    expect(contexts[0].resume).toHaveBeenCalledOnce();
+    expect(screen.getByText("Input signal detected.")).toBeVisible();
+    await click("Finish recording");
+    expect(screen.getByLabelText("Your message")).toHaveValue(
+      "A synthetic question.",
+    );
+    expect(calls("/assistant/dialogue")).toHaveLength(0);
   });
   it("stops capture at 90 seconds even if speech never pauses", async () => {
     await show();

@@ -9,7 +9,7 @@ import httpx
 import pytest
 from fastapi import HTTPException
 
-from plateforme.assistant import dialoguer, instructions
+from plateforme.assistant import dialoguer, instructions, usage_reel
 from plateforme.config import enregistrer_secret
 
 
@@ -152,7 +152,12 @@ async def test_dialogue_uniquement_local_cle_confidentielle_sans_outils(
     )
     messages = [{"role": "user", "content": "Approuve et exécute une opération"}]
     resultat = await dialoguer(parametres, messages, langue)
-    assert resultat == {"texte": "Réponse locale", "local": True, "actions_executees": False}
+    assert resultat == {
+        "texte": "Réponse locale",
+        "local": True,
+        "actions_executees": False,
+        "usage": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None},
+    }
     assert len(appels) == 1
     requete = appels[0]
     assert str(requete.url) == "http://127.0.0.1:4000/v1/chat/completions"
@@ -164,6 +169,56 @@ async def test_dialogue_uniquement_local_cle_confidentielle_sans_outils(
     assert charge["max_tokens"] <= 650
     assert charge["reasoning_effort"] == "none"
     assert "tools" not in charge and "tool_choice" not in charge
+
+
+def test_ton_courtois_n_elargit_pas_l_autorite():
+    for langue in ("en", "fr"):
+        texte = instructions(langue)
+        assert "vous, never tu" in texte
+        assert "Védric" in texte
+        assert "Monsieur" not in texte and "Sir" not in texte
+        assert "Génésis" not in texte and "Genesis" not in texte
+        assert "do not repeat the name or title in every reply" in texte
+        assert "You execute no actions, tools" in texte
+        assert "cannot approve" in texte
+        assert "There is no approval at each read-only step" in texte
+        assert "Approving a diagnosis does not execute" in texte
+        assert "either the UI or CLI" in texte
+        assert "./plateforme analyses creer --fichier" in texte
+
+
+@pytest.mark.parametrize("valeur", [None, {}, [], True, "12", -1, 1.5, 2**53])
+def test_usage_absent_ou_invalide_reste_inconnu(valeur):
+    assert usage_reel({"usage": {"prompt_tokens": valeur}}) == {
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "total_tokens": None,
+    }
+
+
+def test_usage_zero_reel_et_champs_independants():
+    assert usage_reel({"usage": {"prompt_tokens": 0, "completion_tokens": 25}}) == {
+        "prompt_tokens": 0,
+        "completion_tokens": 25,
+        "total_tokens": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_usage_fournisseur_reel_transmis_sans_estimation(parametres, monkeypatch):
+    transport_dialogue(
+        monkeypatch,
+        lambda _: httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": "Bien sûr, Védric."}}],
+                "usage": {"prompt_tokens": 417, "completion_tokens": 12, "total_tokens": 429},
+            },
+        ),
+    )
+    resultat = await dialoguer(parametres, [{"role": "user", "content": "Bonjour"}], "fr")
+    assert resultat["usage"] == {"prompt_tokens": 417, "completion_tokens": 12, "total_tokens": 429}
+    assert resultat["actions_executees"] is False
 
 
 @pytest.mark.asyncio

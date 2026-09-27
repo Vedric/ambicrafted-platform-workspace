@@ -32,13 +32,18 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0019](0019-provenance-recherche-console.md) | Reject stale semantic results at the console boundary | Accepted | 2026-09-27 | Verify current source snapshots and exact indexed passages before returning console search results. |
 | [0020](0020-backend-vocal-reproductible.md) | Pin the qualified speech compute backend | Accepted | 2026-09-27 | Select oneDNN before native import and retain fixed-signal regression assertions across fresh CLI processes. |
 | [0021](0021-reconnaissance-anglaise-dediee.md) | Bound dedicated English recognition to short turns | Accepted; exact release qualification recorded separately | 2026-09-27 | Use dedicated English weights within one acoustic window and preserve the existing long-recording and French paths. |
+| [0022](0022-passerelle-mcp-locale.md) | One local MCP gateway and measured usage budgets | Accepted; private local scope | 2026-09-27 | NEXUS routes bounded read-only profiles; ATLAS keeps four tools and reports usage coverage honestly. |
+| [0023](0023-conversations-voix-et-memoire.md) | Local conversations, speech and explicit graph context | Accepted for local private scope | 2026-09-27 | Bounded saved dialogue, document extraction, default audio and scoped operator memory. |
+| [0024](0024-veille-technologique-publique.md) | Cached public technology watch | Accepted for local private scope | 2026-09-27 | Fixed public feeds, local bilingual summaries, dated sources and a 72-hour refresh cycle. |
+
+| [0025](0025-voix-conversationnelle-et-ambiance.md) | Conversational voice and subordinate ambient audio | Accepted | 2026-09-27 | Multilingual local synthesis, technical phonemes, an original score and explicit audio priority. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0021, then the current README and security document;
+- **Current behavior**: 0009–0025, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
-  [local tools](../TOOLS.md), [voice](../VOICE.md) and
+  [local tools](../TOOLS.md), [MCP gateway](../MCP-GATEWAY.md), [voice](../VOICE.md) and
   [client mission walkthrough](../CLIENT-WORKFLOW.md).
 - **Historical context**: 0001 (the gateway), then 0003 (the agent), then
   0002 (the RAG pipeline).

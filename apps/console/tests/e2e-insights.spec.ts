@@ -211,7 +211,7 @@ test("scroll entrances run in both directions and respect pause and reduced moti
     HTMLElement.prototype.animate = function (frames, options) {
       if (
         typeof options === "object" &&
-        options.duration === 620 &&
+        options.duration === 720 &&
         Array.isArray(frames)
       )
         entries.push(String(frames[0]?.transform));
@@ -224,7 +224,7 @@ test("scroll entrances run in both directions and respect pause and reduced moti
       () =>
         (window as unknown as { __scrollEntries: string[] }).__scrollEntries,
     );
-  await expect.poll(entries).toContain("translateY(18px)");
+  await expect.poll(entries).toContain("translateY(28px)");
   await page.evaluate(() =>
     scrollTo({
       top: document.documentElement.scrollHeight,
@@ -234,7 +234,7 @@ test("scroll entrances run in both directions and respect pause and reduced moti
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(500);
   await page.waitForTimeout(100); // allow the native intersection observer to record exit
   await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
-  await expect.poll(entries).toContain("translateY(-18px)");
+  await expect.poll(entries).toContain("translateY(-28px)");
   await page.getByRole("button", { name: "Pause animations" }).click();
   await expect(page.locator(".scroll-progress")).toHaveCount(0);
   const pausedCount = (await entries()).length;

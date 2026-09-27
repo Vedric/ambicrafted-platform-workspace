@@ -91,7 +91,7 @@ const components = {
     title: "Private state",
     caption: "SQLite · checkpoints",
     role: "Persists console history and supervised workflow checkpoints in protected local databases.",
-    data: "Derived analysis messages, checkpoints, audit events and session metadata.",
+    data: "Derived analysis messages, conversations, extracted documents, checkpoints, audit events and session metadata.",
     boundary:
       "Derived content can remain confidential. Separate client deployments and backup policies are still required.",
     href: "/operations",
@@ -123,9 +123,9 @@ const components = {
     service: "ollama",
   },
   runbooks: {
-    title: "Runbook tools",
-    caption: "MCP · four read-only tools",
-    role: "Lists, reads and searches reviewed runbooks for the supervised investigation.",
+    title: "NEXUS · MCP gateway",
+    caption: "Fixed profiles · scoped tools",
+    role: "Routes allowlisted, namespaced tools over local stdio. ATLAS receives four runbook tools; the operator profile also exposes eleven read-only control tools.",
     data: "Search queries, file names, document hashes and retrieved passages.",
     boundary:
       "These tools read procedures; they do not execute the commands described inside them.",
@@ -148,7 +148,7 @@ const components = {
     title: "Voice workspace",
     caption: "AURA · browser audio",
     role: "Records with permission, presents editable transcripts and plays the generated WAV through native browser audio.",
-    data: "Microphone audio, reviewed text and temporary conversation messages.",
+    data: "Microphone audio, reviewed text and locally saved conversation messages.",
     boundary:
       "Hands-free mode is opt-in. Transcription can change words or numbers; review consequential facts.",
     href: "/assistant",
@@ -157,7 +157,7 @@ const components = {
   },
   speech: {
     title: "Local speech",
-    caption: "Whisper · Piper · CPU",
+    caption: "Whisper · ONNX speech · CPU",
     role: "Transcribes English or French audio and synthesizes the selected female voice locally.",
     data: "Bounded audio uploads, transient private audio files and generated WAV output.",
     boundary:
@@ -168,7 +168,7 @@ const components = {
   },
   dialogue: {
     title: "AURA dialogue",
-    caption: "Ephemeral · no tools",
+    caption: "Saved context · no tools",
     role: "Builds a bounded conversational reply through the restricted local model route.",
     data: "The current message and a limited recent conversation context.",
     boundary:
@@ -176,6 +176,17 @@ const components = {
     href: "/assistant",
     kind: "request",
     icon: Sparkles,
+  },
+  memory: {
+    title: "Graph memory",
+    caption: "Neo4j · explicit scopes",
+    role: "Stores sourced operator notes and same-scope relationships in a dedicated local database.",
+    data: "Observations, decisions, questions, preferences and their source references.",
+    boundary:
+      "Scope filters are not tenant permissions. Notes are unverified context; only selected copies enter a conversation.",
+    href: "/memoire",
+    kind: "knowledge",
+    icon: GitBranch,
   },
   indexer: {
     title: "Runbook indexer",
@@ -437,6 +448,60 @@ const journeys: Record<string, Journey> = {
         to: "corpus",
         label: "Read exact source passages",
         kind: "knowledge",
+      },
+    ],
+  },
+  memory: {
+    label: "Memory",
+    title: "From explicit notes to conversational context",
+    description:
+      "Choose a sourced note within its scope. The API copies it into a conversation; related notes and other threads are never silently included.",
+    icon: GitBranch,
+    nodes: [
+      { id: "operator", x: 150, y: 110 },
+      { id: "control", x: 500, y: 110 },
+      { id: "memory", x: 850, y: 110 },
+      { id: "runbooks", x: 150, y: 350 },
+      { id: "state", x: 500, y: 350 },
+      { id: "dialogue", x: 850, y: 350 },
+      { id: "gateway", x: 850, y: 560 },
+    ],
+    connections: [
+      {
+        from: "operator",
+        to: "control",
+        label: "Select a scope and a sourced note",
+        kind: "human",
+      },
+      {
+        from: "control",
+        to: "memory",
+        label: "Read or write explicit operator notes",
+        kind: "knowledge",
+      },
+      {
+        from: "runbooks",
+        to: "control",
+        label: "Two read-only scoped memory tools",
+        kind: "knowledge",
+      },
+      {
+        from: "control",
+        to: "state",
+        label: "Copy selected context with provenance",
+        kind: "knowledge",
+      },
+      {
+        from: "state",
+        to: "dialogue",
+        label: "Include only selected bounded context",
+        kind: "knowledge",
+      },
+      {
+        from: "dialogue",
+        to: "gateway",
+        label: "Route the conversation locally",
+        kind: "request",
       },
     ],
   },

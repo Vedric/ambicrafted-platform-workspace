@@ -46,7 +46,7 @@ installation is rejected. Repeating installation reuses valid files and repairs
 corrupt ones.
 
 Models are stored outside Git in
-`~/.local/state/ambicrafted/voice/{synthese-en,synthese,transcription,transcription-en-courte}`. Set `VOICE_STATE_DIR`
+`~/.local/state/ambicrafted/voice/{synthese-conversation,transcription,transcription-en-courte}`. Set `VOICE_STATE_DIR`
 to an absolute private directory to override the location. Directories must be
 owned by the current user, mode `700`, without symbolic links. Model files use
 mode `600`. New intermediate state directories also use `700`. Every inference
@@ -89,11 +89,11 @@ logs. Invalid CLI syntax uses argparse's normal help and exit code `2`.
 | `transcrire [--langue en\|fr] /absolute/private/audio.webm` | A private audio file | `texte`, `langue`, `duree_s`, `local`, `alias` |
 | `parler [--langue en\|fr] --sortie /absolute/private/new.wav` | Raw UTF-8 text through stdin | `format`, `frequence_hz`, `duree_s`, `octets`, `local`, `alias` |
 
-Language defaults to `en` on all commands; `fr` preserves the original French
-voice. Values other than these two exact codes are rejected before inference.
+Language defaults to `en` on all commands; `fr` selects the French female style. Values other than these two exact codes are rejected before inference.
 Speech recognition uses the selected language explicitly, rather than a remote
-or automatic translation service. English speech is synthesized with the pinned
-high-quality model; French preserves its existing timing and voice settings.
+or automatic translation service. Both languages use the pinned multilingual ONNX model, a fixed female style per
+language, CPU inference and 24 kHz PCM output. The speech lexicon gives embedded
+English technical terms their English phonemes without changing speaker mid-sentence.
 
 The HTTP API accepts optional `langue: "en" | "fr"` on `/api/voix/parler`,
 `/api/voix/transcrire` and `/api/assistant/dialogue`, and the same optional query
@@ -114,7 +114,7 @@ the selected synthesis voice: select the matching voice for the best pronunciati
 Example English synthesis metadata (duration and byte count omitted):
 
 ```json
-{"format":"wav","frequence_hz":22050,"local":true,"alias":"voix-feminine-en","langue":"en"}
+{"format":"wav","frequence_hz":24000,"local":true,"alias":"voix-feminine-en","langue":"en"}
 ```
 
 The output path must not exist. Existing files and symbolic links are never
@@ -171,8 +171,14 @@ on timeout or cancellation: a native library can delay Python signal handling.
 Use a private temporary directory for each request and remove both uploaded and
 generated audio in `finally`, including failures. Generated WAV responses must
 be `no-store`. Never place speech text in process arguments, URLs or audit logs.
-The speech engine deliberately creates no background service, history or
-autostart recording.
+The speech engine deliberately creates no background service or autostart recording.
+The console stores conversation text and extracted source documents in private SQLite;
+raw transient microphone audio is not retained. See [conversations](CONVERSATIONS.md).
+
+AURA uses Védric in both languages and French vous. Spoken text preserves sentence
+and paragraph boundaries. The engine adds only the missing portion of a 180 ms
+sentence pause, preserving existing silence and phonemes. This does not train new
+voice weights. Input/output follow the operating system defaults.
 
 The platform backup includes the console database and per-analysis checkpoints,
 but excludes transient audio and downloadable voice model binaries. Model
@@ -424,30 +430,24 @@ recording, authentication value or client data was included in the report.
 
 ## Sources and attribution
 
-- TTS runtime: [Piper maintained by OHF Voice](https://github.com/OHF-Voice/piper1-gpl),
+- Phonemization runtime: [Piper maintained by OHF Voice](https://github.com/OHF-Voice/piper1-gpl),
   package version `1.8.0`, GPL-3.0. The
   [upstream license](https://github.com/OHF-Voice/piper1-gpl/blob/main/COPYING)
   applies to redistribution of that component; preserve the relevant notices
   and corresponding source obligations when distributing a runtime bundle.
-- English voice: the pinned Piper LJSpeech high model. The
-  [model publisher](https://brycebeattie.com/files/tts/) identifies the English
-  female model as high quality, trained from scratch for 2,000 epochs, and
-  releases it into the public domain. The
-  [LJ Speech dataset](https://keithito.com/LJ-Speech-Dataset/), Keith Ito and
-  Linda Johnson (2017), provides public-domain LibriVox recordings. The
-  [pinned upstream model card](https://huggingface.co/rhasspy/piper-voices/blob/c10ece1aade47bb51c153c893d14e5bf8e5b7117/en/en_US/ljspeech/high/MODEL_CARD)
-  identifies the high tier and 22,050 Hz output; its training paragraph repeats
-  the medium model description, so the publisher's separate high-model entry
-  is the supporting source for the training tier. Model, config and card are
-  all independently pinned by byte size and SHA-256. Voice attribution is
-  retained even where the publisher does not require it.
-- French voice: the pinned Piper SIWIS medium model, trained with the
-  [SIWIS French Speech Synthesis Database](https://datashare.ed.ac.uk/handle/10283/2353),
-  by Junichi Yamagishi, Pierre-Edouard Honnet, Philip Garner and Alexandros
-  Lazaridis, University of Edinburgh, 2017, DOI `10.7488/ds/1705`. Its
-  [model card](https://huggingface.co/rhasspy/piper-voices/blob/c10ece1aade47bb51c153c893d14e5bf8e5b7117/fr/fr_FR/siwis/medium/MODEL_CARD)
-  identifies the dataset license as CC-BY 4.0. The model card is installed with
-  the voice, alongside this attribution.
+- Current synthesis: [Kokoro-82M v1.0](https://huggingface.co/hexgrad/Kokoro-82M),
+  hexgrad and contributors, Apache-2.0. The manifest pins the
+  [ONNX conversion](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX)
+  by full immutable revision, byte size and SHA-256 in `modeles.json`. English uses the
+  female `af_heart` style; French uses `ff_siwis`. One shared 326 MB model and
+  two small style tensors replace the previous two synthesis models. No torch
+  pickle, remote code or online inference is loaded.
+- French training attribution remains [SIWIS](https://datashare.ed.ac.uk/handle/10283/2353),
+  Yamagishi, Honnet, Garner and Lazaridis (2017), University of Edinburgh,
+  DOI `10.7488/ds/1705`, CC-BY-4.0. Retain this attribution alongside the model
+  notices. Generated speech is not a recording or endorsement by the speaker.
+- The earlier Piper LJSpeech/SIWIS synthesis results in this document are historical
+  qualification evidence, not measurements of the current multilingual engine.
 - Speech recognition: [faster-whisper](https://github.com/SYSTRAN/faster-whisper),
   package version `1.2.1`, and its
   [small multilingual converted model](https://huggingface.co/Systran/faster-whisper-small/blob/536b0662742c02347bc0e980a01041f333bce120/README.md),
@@ -461,3 +461,41 @@ recording, authentication value or client data was included in the report.
 
 The dependency lock includes the exact runtime versions and artifact hashes;
 the model manifest pins immutable revisions and file hashes independently.
+
+
+## Conversational speech and background music — 2026-09-27
+
+AURA addresses the operator as **Védric**, uses **vous** in French and keeps the
+reply conversational: short phrases, direct answers and no repeated introductions.
+This is prompt/prosody engineering, not model-weight fine-tuning. The fixed welcome
+starts “Bonjour Védric, contente de vous retrouver”, with no artificial pause
+between the greeting and the name. Written answers retain correct technical spelling.
+
+The trusted lexicon covers GitHub, Enterprise, Kubernetes, Terraform, DevOps,
+SRE, MCP, CI/CD and other common engineering terms. Raw phonetic markup from user
+text is neutralized. Words remain inside a continuous sentence with the same voice;
+long phoneme sequences split at word boundaries within the model's context limit.
+Unsupported phonemes fail visibly instead of silently losing part of a sentence.
+
+The multilingual qualification passed 72 unit tests and 18 real model tests,
+including both browser recording codecs, frozen onset/confidentiality regressions,
+French greetings and mixed French/English technical terms. In one synthetic
+comparison, French synthesis took 1.486 seconds for 10.4 seconds of speech; English
+1.185 seconds for 9.05 seconds. These are individual CPU observations, not latency
+SLOs. Recognition of generated speech is an intelligibility check, not an independent
+human listening score. Rare names, accents, noisy microphones and other machines
+still need listening/recognition acceptance tests. AURA does not claim human identity.
+
+Enable **Play ambient music** from the header, or **Settings → Voice preferences**.
+The local original track **Orbital Drift** lasts 96 seconds and loops. Its score and
+asset are CC0-1.0; see the [audio notice](../apps/console/public/audio/NOTICE.md).
+Default level is 12%, capped at 22%. AURA and guide videos reduce that level to 8%
+of the selected background level; microphone acquisition/recording mutes the music.
+The return fades over 1.4 seconds. Hiding the tab pauses playback; Escape disables
+music. The preference persists in this browser. Browsers can require an explicit
+click after reload; the visible play control resumes it. No third-party music service,
+subscription, tracker or network stream is involved.
+
+Playwright verifies real MP3/WAV playback, welcome attenuation, recording silence
+and stop persistence in desktop and mobile Chromium. Physical speaker levels and
+Safari/Firefox playback are not certified by Chromium emulation.

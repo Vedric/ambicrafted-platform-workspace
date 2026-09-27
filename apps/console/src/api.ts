@@ -221,6 +221,101 @@ export type Session = {
   mot_de_passe: boolean;
   csrf: string | null;
 };
+
+/** NDJSON boundary: reject incomplete responses and never treat a partial reply as saved. */
+export async function savedDialogue(
+  id: string,
+  body: unknown,
+  signal: AbortSignal,
+  onText: (value: string) => void,
+): Promise<{ texte: string; usage?: unknown }> {
+  const response = await fetch(
+    `/api/conversations/${encodeURIComponent(id)}/messages`,
+    {
+      method: "POST",
+      credentials: "same-origin",
+      signal,
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!response.ok) {
+    if (response.status === 401)
+      window.dispatchEvent(new Event("session-expiree"));
+    const data = await response.json().catch(() => ({}));
+    throw new ErreurAPI(
+      response.status,
+      errorMessage(data.detail, response.status),
+    );
+  }
+  if (
+    !response.body ||
+    !response.headers.get("content-type")?.includes("application/x-ndjson")
+  )
+    throw new Error(
+      t("The reply stream was interrupted. Your draft is preserved."),
+    );
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  let pending = "",
+    text = "",
+    bytes = 0;
+  let final: { texte: string; usage?: unknown } | null = null;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      bytes += chunk.value.byteLength;
+      if (bytes > 1_000_000) throw new Error("Reply limit exceeded");
+      pending += decoder.decode(chunk.value, { stream: true });
+      while (pending.includes("\n")) {
+        const index = pending.indexOf("\n"),
+          line = pending.slice(0, index);
+        pending = pending.slice(index + 1);
+        if (line.length > 65_536)
+          throw new Error(
+            t("The reply stream was interrupted. Your draft is preserved."),
+          );
+        if (!line.trim()) continue;
+        const event = JSON.parse(line);
+        if (final || event.type === "error")
+          throw new Error(
+            t("The reply stream was interrupted. Your draft is preserved."),
+          );
+        if (event.type === "token" && typeof event.text === "string") {
+          text += event.text;
+          if (text.length > 6000) throw new Error("Reply limit exceeded");
+          onText(text);
+        } else if (
+          event.type === "done" &&
+          typeof event.texte === "string" &&
+          event.texte.trim() &&
+          event.texte.length <= 6000 &&
+          (!text || text === event.texte)
+        )
+          final = { texte: event.texte, usage: event.usage };
+        else throw new Error("Invalid reply frame");
+      }
+      if (pending.length > 65_536)
+        throw new Error(
+          t("The reply stream was interrupted. Your draft is preserved."),
+        );
+    }
+    if (pending.trim() || decoder.decode() || !final)
+      throw new Error(
+        t("The reply stream was interrupted. Your draft is preserved."),
+      );
+    return final;
+  } catch (error) {
+    if (signal.aborted) throw error;
+    throw new Error(
+      t("The reply stream was interrupted. Your draft is preserved."),
+    );
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
 export type Diagnostic = {
   cause_probable: string;
   confiance: string;
@@ -228,13 +323,26 @@ export type Diagnostic = {
   actions_proposees: string[];
   elements_manquants: string[];
 };
+export type RunBudget = {
+  appels_llm?: number;
+  appels_llm_tentes?: number;
+  tokens_entree?: number | null;
+  tokens_sortie?: number | null;
+  tokens_total?: number | null;
+  max_tokens_total?: number;
+  usage_complet?: boolean;
+  appels_mesures_tokens?: number;
+  cout_usd?: number | null;
+  usage_cout_complet?: boolean;
+  appels_mesures_cout?: number;
+};
 export type Rapport = {
   statut: string;
   diagnostic?: Diagnostic;
   classification?: { connue: boolean; urgence: number; justification: string };
   message?: string;
   outils_appeles?: string[];
-  budget?: Record<string, number>;
+  budget?: RunBudget;
   actions_ecartees_sans_source?: string[];
   injections_signalees?: string[];
   trace_id?: string;

@@ -1,0 +1,92 @@
+{
+  "generated_at": "2026-09-27T12:46:22.838309+00:00",
+  "scanner": "Trivy 0.74.0",
+  "policy": "Échec sur toute occurrence CRITICAL/HIGH, y compris sans correctif disponible.",
+  "exit_code": 1,
+  "images": [
+    {
+      "service": "litellm",
+      "image": "ghcr.io/berriai/litellm:v1.102.1@sha256:87f34979b9f8cb274fac90ca8a4fdda07d8480de22755562a26adeb95ce20d02",
+      "status": "conforme",
+      "counts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 9,
+        "LOW": 0,
+        "UNKNOWN": 0
+      }
+    },
+    {
+      "service": "postgres",
+      "image": "ambicrafted/postgres:16.15-alpine-security.20260926",
+      "status": "conforme",
+      "counts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "UNKNOWN": 1
+      }
+    },
+    {
+      "service": "tempo",
+      "image": "ambicrafted/tempo:3.0.3-security.20260927",
+      "status": "conforme",
+      "counts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 3,
+        "UNKNOWN": 2
+      }
+    },
+    {
+      "service": "prometheus",
+      "image": "prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e",
+      "status": "conforme",
+      "counts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "UNKNOWN": 2
+      }
+    },
+    {
+      "service": "grafana",
+      "image": "ambicrafted/grafana:13.2.2-security.20260927",
+      "status": "vulnérabilités",
+      "counts": {
+        "CRITICAL": 0,
+        "HIGH": 9,
+        "MEDIUM": 4,
+        "LOW": 4,
+        "UNKNOWN": 5
+      }
+    },
+    {
+      "service": "qdrant",
+      "image": "ambicrafted/qdrant:1.19.1-security.20260927",
+      "status": "conforme",
+      "counts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 15,
+        "LOW": 9,
+        "UNKNOWN": 1
+      }
+    },
+    {
+      "service": "neo4j",
+      "image": "ambicrafted/neo4j:5.26.31-security.20260927",
+      "status": "vulnérabilités",
+      "counts": {
+        "CRITICAL": 0,
+        "HIGH": 44,
+        "MEDIUM": 54,
+        "LOW": 60,
+        "UNKNOWN": 2
+      }
+    }
+  ]
+}

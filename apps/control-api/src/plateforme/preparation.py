@@ -16,6 +16,7 @@ from mcp import ClientSession, StdioServerParameters, stdio_client
 
 from .config import Parametres, lire_environnement
 from .corpus import Corpus
+from .passerelle import AUTORISES
 from .services import Services, json_borne
 from .voix import Voix
 
@@ -423,23 +424,10 @@ class Preparation:
             PLATFORM_PORT=str(self.p.port),
             RUNBOOK_DIR=str(self.p.racine / "runbooks"),
         )
-        if cible == "control":
-            executable, arguments = sys.executable, ["-m", "plateforme.mcp"]
-            attendus = {
-                "plateforme_preparation",
-                "plateforme_outils",
-                "plateforme_lire_runbook",
-                "plateforme_journal",
-                "plateforme_sante",
-                "plateforme_analyses",
-                "plateforme_analyse",
-                "plateforme_runbooks",
-                "plateforme_recherche",
-            }
-        else:
-            executable = str(self.p.racine / "mcp-servers/runbooks/.venv/bin/python")
-            arguments = [str(self.p.racine / "mcp-servers/runbooks/server.py")]
-            attendus = {"list_runbooks", "read_runbook", "search_runbooks", "semantic_search"}
+        namespace = "controle" if cible == "control" else "runbooks"
+        executable = sys.executable
+        arguments = ["-m", "plateforme.passerelle", "--profil", namespace]
+        attendus = {namespace + "__" + nom for nom in AUTORISES[namespace]}
         outils = await inventorier_mcp(executable, arguments, env)
         ok = attendus == outils
         return [
@@ -448,9 +436,15 @@ class Preparation:
                 "mcp",
                 "pass" if ok else "fail",
                 "Control MCP" if cible == "control" else "Runbooks MCP",
-                "An actual stdio handshake returned the expected tool inventory."
+                "An actual handshake through NEXUS returned the expected backend inventory."
                 if ok
                 else "The live tool inventory is incomplete.",
-                preuve={"handshake": True, "expected_tools_present": ok, "tool_count": len(outils)},
+                preuve={
+                    "handshake": True,
+                    "expected_tools_present": ok,
+                    "tool_count": len(outils),
+                    "gateway": "stdio",
+                    "namespace": namespace,
+                },
             )
         ]

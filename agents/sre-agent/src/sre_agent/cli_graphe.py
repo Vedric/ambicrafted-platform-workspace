@@ -36,7 +36,7 @@ import sys
 import uuid
 
 from . import config, graphe
-from .cli import rendre
+from .cli import rendre, rendre_budget
 from .modeles import Rapport
 
 CODES = {
@@ -208,14 +208,7 @@ def rendre_graphe(rapport: Rapport, thread_id: str, chemin_db: str) -> str:
             lignes += ["", "OUTILS APPELÉS : " + ", ".join(outils)]
         b = demande.get("budget") or {}
         if b:
-            lignes += [
-                "",
-                (
-                    f"BUDGET : {b['appels_outils']}/{b['max_appels_outils']} outils, "
-                    f"{b['cout_usd']:.4f}/{b['max_cout_usd']:.2f} USD, "
-                    f"{b['appels_llm']} appels LLM"
-                ),
-            ]
+            lignes += ["", rendre_budget(b)]
         if rapport.trace_id and config.TRACAGE_ACTIF:
             lignes.append(f"TRACE  : {rapport.trace_id}")
         lignes += [

@@ -43,9 +43,9 @@ operational backup, or accesses the production SQLite state.
 | Retention | Expired terminal and pending-human analyses/checkpoints, active/recent preservation, 30-day journal/revision policy and refusal to follow external paths |
 | Local services | Cached health probes, malformed upstream schemas, bounded streaming JSON, strict local embeddings, asymmetric query prefix, absent confidential key and invalid vectors |
 | Voice API | Authentication/CSRF, separate audio body limit, strict base64, decoded size, private temporary files, cleanup on failure/cancellation, concurrency refusal, fragmented subprocess JSON, output bounds and invalid/symbolic/FIFO audio output |
-| Conversation | English/French routing, AURA identity, allowed roles only, bounded history, final user turn, local alias and confidential credential, no tools or action authority, no persistent transcript and masked provider errors |
+| Conversation | English/French routing, AURA identity, allowed roles only, bounded history, final user turn, local alias and confidential credential, no tools or action authority, atomic saved conversation pairs, bounded retained context and masked provider errors |
 | Readiness | Nineteen evidence checks, required/optional capabilities, actual IPv4/IPv6 loopback listeners, bounded probes, cache coalescing, dependency failures, secret-free output and authenticated CLI/API parity |
-| MCP | Actual subprocess initialization and stdio calls through the authenticated HTTP API; exactly nine read-only control tools; readiness initializes both real MCP transports; absent configuration is never created by the read-only adapter; an approval tool does not exist; multiple runbooks preserve separate MCP text content blocks |
+| MCP | Actual subprocess initialization and stdio calls through the authenticated HTTP API; exactly eleven read-only control tools; NEXUS allowlist/profile tests; readiness initializes both real MCP transports; absent configuration is never created by the read-only adapter; an approval tool does not exist; multiple runbooks preserve separate MCP text content blocks |
 | CLI | API parity, bounded private stdin/files, fixed loopback serving, secret-free browser opening, private exports, explicit deletion, systemd command construction and voice commands |
 
 Regression tests exposed and accompanied fixes for non-ASCII authentication headers,
@@ -133,7 +133,7 @@ Physical microphone, speakers and subjective voice quality need operator accepta
 
 Working-tree counts are not statements about hosted CI. The exact delivered Git
 commit must pass the clean-clone commands and CI, with provenance in the delivery
-report. See [the current release review](RELEASE-2026-09-27.md).
+report. See [the current release review](RELEASE-0.4.0.md).
 
 Failed console CI jobs retain Playwright reports, screenshots and traces for
 seven days. They originate only from the disposable synthetic test server,
@@ -210,3 +210,33 @@ executions, not six new unique tests, and do not configure the production CPU IS
 The synthetic long-recording and independent short-corpus comparisons retain
 observed omissions and vocabulary errors from rejected candidates. Manual transcript
 review remains the default; an anchor score is not a general accuracy certification.
+
+
+## Current 0.4 qualification — 2026-09-27
+
+The final local application run passed 492 control tests, 149 SRE tests, 48 MCP
+runbook tests and 218 console unit tests across 19 files. The speech runtime has
+72 fast tests and 18 opt-in real model tests. Fifty desktop/mobile Chromium
+journeys passed, including native background music playback and audio priority,
+manual/synthetic-microphone conversation, both themes/languages and responsive
+widths. Existing scroll lifecycle coverage is retained alongside the pointer/focus
+regression tests; pointer focus must not move a button before its click lands.
+
+A real authenticated browser session created two sourced Neo4j notes, linked them,
+selected a note as fresh conversation context and then removed only its synthetic
+data. Separate real model exercises covered document/history/image conversation
+and an ambiguous SRE incident with a malicious instruction embedded in evidence.
+The human approval boundary remained closed; these examples do not establish
+universal prompt-injection resistance or answer correctness.
+
+The full post-migration backup restored successfully into disposable services:
+7 analysis records, 7 checkpoints, no restored sessions/tickets, 86 PostgreSQL
+tables, 31 Qdrant points, valid SQLite stores and an equal graph memory export.
+Qdrant restore storage explicitly belongs to its non-root runtime UID; readiness
+failure now stops the drill instead of attempting uploads to an unavailable service.
+
+The bounded local load probe sent 240 authenticated reads with concurrency 8,
+all successful. It is not a soak test or a capacity/SLO certification. Physical
+microphone quality, subjective voice naturalness and browsers beyond Chromium
+remain outside this automated acceptance scope. The image security gate still
+fails on 53 HIGH findings; see the current release and security reports.

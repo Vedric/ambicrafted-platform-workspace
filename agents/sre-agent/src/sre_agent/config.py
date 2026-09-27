@@ -84,6 +84,8 @@ MAX_TOURS = int(_nombre("SRE_MAX_TOURS", 12))
 MAX_ALERTE = 20_000
 MAX_CONTEXTE = 100_000
 MAX_DUREE_S = float(_nombre("SRE_MAX_DUREE_S", 1_800.0))
+MAX_TOKENS_TOTAL = int(_nombre("SRE_MAX_TOKENS_TOTAL", 60_000))
+MAX_TOKENS_REPONSE = 6_000
 
 # --- Gateway --------------------------------------------------------------
 
@@ -106,6 +108,7 @@ TRACAGE_ACTIF = os.environ.get("SRE_TRACAGE", "1") not in {"0", "false", "no"}
 _racine_source = Path(__file__).resolve().parents[4]
 RACINE_DEPOT = os.environ.get("SRE_RACINE_DEPOT", str(_racine_source))
 MCP_RUNBOOKS_DIR = os.path.join(RACINE_DEPOT, "mcp-servers", "runbooks")
+MCP_PASSERELLE_PROJET = os.path.join(RACINE_DEPOT, "apps", "control-api")
 RUNBOOK_DIR = os.environ.get("RUNBOOK_DIR", os.path.join(RACINE_DEPOT, "runbooks"))
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://127.0.0.1:6333")
 QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "runbooks-current")
@@ -123,6 +126,8 @@ def valider(alerte: str | None = None) -> None:
         raise ConfigurationInvalide(
             "Budget d'outils positif ou nul ; tours compris entre 1 et 100."
         )
+    if not 1 <= MAX_TOKENS_TOTAL <= 1_000_000:
+        raise ConfigurationInvalide("Le plafond de jetons observés doit être entre 1 et 1000000.")
     if any(a != "local" for a in (ALIAS_EXTRACTION, ALIAS_CLASSIFICATION, ALIAS_RAISONNEMENT)):
         raise ConfigurationInvalide(
             "Le pipeline SRE traite des données confidentielles : alias local requis."

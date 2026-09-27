@@ -1,5 +1,12 @@
 .insights {
   margin: 34px 0;
+  --chart-cyan: var(--mint);
+  --chart-amber: #f0ba78;
+  --chart-green: #83cdae;
+  --chart-violet: #b2a3ed;
+  --chart-blue: #8eb9ff;
+  --chart-slate: #9cabbd;
+  --chart-red: #ed9baa;
 }
 .insight-heading {
   display: flex;
@@ -240,23 +247,26 @@
   font-size: 0.875rem;
   color: var(--muted);
 }
-.color-cyan {
-  --chart-color: #83dcea;
+.insights .color-cyan {
+  --chart-color: var(--chart-cyan);
 }
-.color-amber {
-  --chart-color: #f0ba78;
+.insights .color-amber {
+  --chart-color: var(--chart-amber);
 }
-.color-green {
-  --chart-color: #83cdae;
+.insights .color-green {
+  --chart-color: var(--chart-green);
 }
-.color-violet {
-  --chart-color: #b2a3ed;
+.insights .color-violet {
+  --chart-color: var(--chart-violet);
 }
-.color-slate {
-  --chart-color: #8f9ead;
+.insights .color-slate {
+  --chart-color: var(--chart-slate);
 }
-.color-red {
-  --chart-color: #e899a3;
+.insights .color-red {
+  --chart-color: var(--chart-red);
+}
+.insights .color-blue {
+  --chart-color: var(--chart-blue);
 }
 .state-legend {
   list-style: none;
@@ -349,6 +359,176 @@
 .insight-foot > span:last-child {
   white-space: nowrap;
 }
+.insight-sample-note {
+  margin: 38px 0 20px;
+  max-width: 900px;
+}
+.insight-sample-note h3 {
+  margin: 10px 0;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  letter-spacing: -0.03em;
+}
+.insight-sample-note p {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.insight-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.insight-detail-grid > .panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 24px;
+  border-radius: 16px;
+}
+.insight-metric-body {
+  flex: 1;
+  min-width: 0;
+}
+.insight-metric-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+  padding-top: 12px;
+}
+.insight-metric-footer .chart-note {
+  margin-top: 0;
+}
+.insight-metric-footer .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+.metric-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 32px;
+  margin: 24px 0;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.metric-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.metric-summary strong {
+  color: var(--text);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 550;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.metric-summary span,
+.metric-bars small {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.metric-bars {
+  list-style: none;
+  margin: 20px 0;
+  padding: 0;
+  display: grid;
+  gap: 20px;
+}
+.metric-bars li {
+  min-width: 0;
+}
+.metric-row-label {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.metric-row-label > a,
+.metric-row-label > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+.metric-row-label > a {
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 4px;
+}
+.metric-row-label > a:hover {
+  text-decoration-color: var(--mint);
+}
+.metric-row-label strong {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.metric-bars svg {
+  display: block;
+  width: 100%;
+  height: 12px;
+}
+.metric-track {
+  fill: var(--border);
+  opacity: 0.5;
+}
+.metric-fill {
+  fill: var(--chart-color);
+  transform-origin: left;
+}
+.metric-bars small {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+}
+.metric-unavailable {
+  padding: 24px 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+.insight-detail-grid .chart-data th,
+.insight-detail-grid .chart-data td {
+  overflow-wrap: anywhere;
+}
+.insight-detail-grid .chart-data td {
+  white-space: nowrap;
+}
+.insight-metric-panel[data-chart-motion="on"] .metric-fill {
+  animation: metric-reveal 0.7s var(--ease-out) both;
+}
+.insights[data-chart-motion="off"] .chart-line {
+  animation: none;
+}
+.insights[data-chart-motion="off"] .ring-arc,
+.insights[data-chart-motion="off"] .probe-track i,
+.insights[data-chart-motion="off"] .chart-dot {
+  transition: none;
+}
+[data-theme="light"] .insights {
+  --chart-cyan: #067a83;
+  --chart-amber: #995615;
+  --chart-green: #087647;
+  --chart-violet: #7050bd;
+  --chart-blue: #175bd4;
+  --chart-slate: #596b80;
+  --chart-red: #bd3555;
+}
+@keyframes metric-reveal {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
 .scroll-progress {
   position: fixed;
   top: 0;
@@ -371,6 +551,9 @@
   }
 }
 @media (max-width: 1150px) {
+  .insight-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .insight-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -395,6 +578,15 @@
   }
 }
 @media (max-width: 600px) {
+  .insight-detail-grid > .panel {
+    padding: 20px;
+  }
+  .metric-row-label {
+    grid-template-columns: 8px minmax(0, 1fr);
+  }
+  .metric-row-label strong {
+    grid-column: 2;
+  }
   /* SVG viewBox units scale with a 640-unit canvas: 24 units render at
      roughly 10–20 screen pixels here, not 24 CSS pixels on the page. */
   .chart-gridline text,
@@ -451,7 +643,13 @@
 [data-motion="paused"] .chart-line {
   animation: none;
 }
+[data-motion="paused"] .metric-fill {
+  animation: none !important;
+}
 @media (prefers-reduced-motion: reduce) {
+  .insight-metric-panel .metric-fill {
+    animation: none !important;
+  }
   .chart-line {
     animation: none;
   }

@@ -216,8 +216,8 @@ export const frenchMessages = {
     "Guide opérateur complet dans le dépôt :",
   GB: "Go",
   "Gather the evidence": "Rassembler les preuves",
-  "Generate speech locally with Piper’s female French SIWIS voice.":
-    "Générer localement la parole avec la voix féminine française SIWIS de Piper.",
+  "Generate French speech locally with the multilingual female voice.":
+    "Générer la parole en français localement avec la voix féminine multilingue.",
   "Give your agents clear procedures and evidence they can trace.":
     "Donnez à vos agents des procédures claires et des preuves traçables.",
   "Give your next move a direction.": "Donnez un cap à votre prochaine action.",

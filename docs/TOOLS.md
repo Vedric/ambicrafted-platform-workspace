@@ -36,7 +36,7 @@ Checks measure:
 | Routing | A live gateway model inventory using the confidential credential contains exactly `local` and `local-embed`. This does not inspect or certify the provider mapping behind an alias. |
 | Knowledge | Count of readable validated local sources; existing vector collection is populated and green. Index freshness and relevance require separate qualification. |
 | Voice | English and French offline runtime status with model-file validation. No microphone capture or audio playback occurs. |
-| MCP | Actual stdio initialize and tool-list exchanges against the installed control and runbooks servers; exact expected inventories. No MCP tool is invoked by readiness. |
+| MCP | Actual stdio initialize and tool-list exchanges through NEXUS restricted profiles to the control and runbooks backends; exact expected inventories. No MCP tool is invoked by readiness. |
 
 Independent probe groups run concurrently with a 20-second deadline per group.
 Failures are isolated and reported as `unknown` without exception text. Concurrent
@@ -53,8 +53,11 @@ capacity and recovery objectives remain independent release gates.
 
 ## Read-only MCP
 
-The existing `.mcp.json` entry `plateforme-controle` starts the locked control
-runtime over stdio. Its tools are:
+The `.mcp.json` entry `plateforme` starts [NEXUS](MCP-GATEWAY.md), one locked
+stdio gateway to the control and runbooks backends. The control tools below use
+the public prefix `controle__` (for example `controle__plateforme_sante`); the
+four runbook tools use `runbooks__`. ATLAS selects only the four runbook tools.
+The table retains legacy catalogue identifiers:
 
 | Tool | Parameters | Effect |
 | --- | --- | --- |
@@ -75,7 +78,7 @@ loopback, rejects redirects, bounds JSON responses to 1 MB, applies an overall
 accounting; it does not modify the corpus or execute a remediation. There is no
 arbitrary URL, shell command, file path, mutation, approval or operation tool.
 
-The MCP process is a **trusted local client** and reads its credential from the
+The control backend is a **trusted local client** and reads its credential from the
 private environment file internally. A missing key or state directory is reported
 as unavailable; MCP never initializes either one. Connect it only to a local confidential
 model/client context: a remote consumer could upload the runbook or analysis
@@ -102,7 +105,7 @@ is forwarded to speech synthesis, transcription and assistant dialogue. HTTP
 ## Verification
 
 ```sh
-uv run --locked --project apps/control-api pytest apps/control-api/tests/test_preparation.py apps/control-api/tests/test_mcp_controle.py apps/control-api/tests/test_cli.py
+uv run --locked --project apps/control-api pytest apps/control-api/tests/test_preparation.py apps/control-api/tests/test_mcp_controle.py apps/control-api/tests/test_passerelle.py apps/control-api/tests/test_cli.py
 ```
 
 The protocol tests run a real stdio MCP client and a real isolated HTTP API, with
@@ -124,5 +127,5 @@ records upstream checksums, action pins and the retained PostgreSQL major versio
 
 No additional external-account connector is required for the implemented private
 workflows. Configure only tools justified by the client mission and its approved
-data boundary; the existing two MCP transports and nineteen readiness checks are
+data boundary; NEXUS with its two backend profiles and nineteen readiness checks is
 the supported starting point.

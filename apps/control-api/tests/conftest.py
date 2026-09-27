@@ -121,6 +121,7 @@ def serveur_http(parametres, monkeypatch):
 
     monkeypatch.setattr(socket.socket, "connect", connecter)
     enregistrer_secret(parametres.racine, "PLATFORM_UI_KEY", parametres.cle)
+    enregistrer_secret(parametres.racine, "PLATFORM_TECH_WATCH", "0")
     code = """import os, uvicorn
 from plateforme.app import creer_app
 from plateforme.config import Parametres

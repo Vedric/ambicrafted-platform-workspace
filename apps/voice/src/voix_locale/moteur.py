@@ -1,6 +1,5 @@
 """CPU speech engines with explicit offline paths and bounded media decoding."""
 
-import json
 import os
 import wave
 from pathlib import Path
@@ -139,26 +138,12 @@ def parler(texte: str, sortie: Path, langue: str = "en") -> dict:
     texte = valider_texte(texte)
     dossier_prive(sortie.parent)
     hors_ligne()
-    import onnxruntime
-    from piper import PiperVoice, SynthesisConfig
-    from piper.config import PiperConfig
+    from .prosodie import pause_entre
+    from .synthese import FREQUENCE_SYNTHESE, generer
 
     alias = "voix-feminine-" + langue
     definition = manifeste()["aliases"][alias]
     dossier = verifier_modele(alias)
-    options = onnxruntime.SessionOptions()
-    options.intra_op_num_threads = 4
-    options.inter_op_num_threads = 1
-    with ouvrir_prive(dossier / (definition["entree"] + ".json"), 64000) as config:
-        voix = PiperVoice(
-            session=onnxruntime.InferenceSession(
-                str(dossier / definition["entree"]),
-                sess_options=options,
-                providers=["CPUExecutionProvider"],
-            ),
-            config=PiperConfig.from_dict(json.load(config)),
-            download_dir=dossier,
-        )
     fd = os.open(sortie, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
     termine = False
     try:
@@ -166,19 +151,18 @@ def parler(texte: str, sortie: Path, langue: str = "en") -> dict:
             with wave.open(stream, "wb") as wav:
                 wav.setnchannels(1)
                 wav.setsampwidth(2)
-                wav.setframerate(voix.config.sample_rate)
+                wav.setframerate(FREQUENCE_SYNTHESE)
                 total = 0
-                for morceau in voix.synthesize(
-                    texte,
-                    syn_config=SynthesisConfig(
-                        length_scale=1.0 if langue == "en" else 1.05, normalize_audio=True
-                    ),
-                ):
-                    donnees = morceau.audio_int16_bytes
-                    total += len(donnees)
-                    if total > voix.config.sample_rate * 2 * 120:
+                precedent = b""
+                for donnees in generer(texte, langue, dossier, definition):
+                    pause = (
+                        pause_entre(precedent, donnees, FREQUENCE_SYNTHESE) if precedent else b""
+                    )
+                    total += len(pause) + len(donnees)
+                    if total > FREQUENCE_SYNTHESE * 2 * 120:
                         raise ErreurVoix("La synthèse dépasse deux minutes de parole.")
-                    wav.writeframes(donnees)
+                    wav.writeframes(pause + donnees)
+                    precedent = donnees[-int(FREQUENCE_SYNTHESE * 0.180) * 2 :]
             stream.flush()
             os.fsync(stream.fileno())
         with ouvrir_prive(sortie, 32 * 1024 * 1024) as lecture, wave.open(lecture, "rb") as wav:

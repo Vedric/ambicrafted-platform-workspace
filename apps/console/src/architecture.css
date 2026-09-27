@@ -188,19 +188,30 @@
   opacity: 0.42;
 }
 .architecture-flow {
-  stroke-width: 1.7;
-  stroke-dasharray: 4 16;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 8 32;
   opacity: 0;
 }
 .architecture-connection.is-related .architecture-wire {
   stroke-width: 1.8;
   opacity: 0.9;
 }
+.architecture-canvas[data-motion="on"] .architecture-flow {
+  opacity: 0.5;
+  animation: architecture-flow 2.8s linear infinite;
+}
 .architecture-canvas[data-motion="on"]
   .architecture-connection.is-related
   .architecture-flow {
-  opacity: 0.8;
-  animation: architecture-flow 2.8s linear infinite;
+  opacity: 1;
+  stroke-width: 3;
+}
+.architecture-connection:nth-child(3n) .architecture-flow {
+  animation-delay: -0.9s;
+}
+.architecture-connection:nth-child(3n + 1) .architecture-flow {
+  animation-delay: -1.8s;
 }
 @keyframes architecture-flow {
   to {
