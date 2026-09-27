@@ -51,7 +51,10 @@ def executer(argv: list[str] | None = None) -> dict:
     if args.commande == "installer":
         return installer()
     if args.commande == "statut":
-        for alias in ("voix-feminine-" + args.langue, "transcription-" + args.langue):
+        aliases = ["voix-feminine-" + args.langue, "transcription-" + args.langue]
+        if args.langue == "en":
+            aliases.append("transcription-en-courte")
+        for alias in aliases:
             verifier_modele(alias)
         return {
             "pret": True,

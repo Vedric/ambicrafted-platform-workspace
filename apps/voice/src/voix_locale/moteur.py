@@ -12,6 +12,7 @@ MAX_AUDIO_SECONDES = 90
 MAX_TEXTE = 2000
 FREQUENCE = 16000
 CONTEXTE_AUDIO_MS = 400
+FENETRE_RECONNAISSANCE_SECONDES = 30
 LANGUES = ("en", "fr")
 
 
@@ -26,8 +27,8 @@ def hors_ligne() -> None:
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
     os.environ["DO_NOT_TRACK"] = "1"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    # Keep the validated oneDNN CPU path across Intel/AMD hosts. Automatic MKL
-    # selection changes INT8 recognition on a fixed privacy regression signal.
+    # Select oneDNN explicitly: automatic MKL selection changes recognition on a
+    # fixed regression signal. This alone does not ensure cross-CPU accuracy.
     # The CLI calls this before importing faster_whisper/CTranslate2.
     os.environ["CT2_USE_MKL"] = "0"
 
@@ -79,7 +80,15 @@ def transcrire(path: Path, langue: str = "en") -> dict:
     contexte = FREQUENCE * CONTEXTE_AUDIO_MS // 1000
     audio_inference = np.pad(audio, (contexte, contexte))
     alias = "transcription-" + langue
-    dossier = verifier_modele(alias)
+    # The dedicated English model is qualified for a single native window only.
+    # Longer English recordings and all French input retain the baseline path.
+    # Count decoded samples including context, never rounded public duration.
+    alias_modele = (
+        "transcription-en-courte"
+        if langue == "en" and len(audio_inference) <= FENETRE_RECONNAISSANCE_SECONDES * FREQUENCE
+        else alias
+    )
+    dossier = verifier_modele(alias_modele)
     model = WhisperModel(
         str(dossier),
         device="cpu",

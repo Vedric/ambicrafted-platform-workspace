@@ -66,8 +66,12 @@ The console and control plane are version 0.3.0; the speech runtime is version
 0.2.0. The immersive bilingual interface adds no application dependency. Translation
 is explicit and local; Markdown is loaded in a separate chunk. The additional
 English speech weights have a pinned revision, size, checksum and license in
-[the voice manifest and guide](VOICE.md). French and English reuse the same
-multilingual transcription model.
+[the voice manifest and guide](VOICE.md). French and long English recordings
+retain the multilingual transcription model. Short English turns additionally
+use a dedicated pinned model, adding approximately 1.53 GB of model files and
+increasing CPU/memory cost without a new package or cloud service. The exact
+sample-count boundary and observed recognition tradeoffs are recorded in
+[ADR 0021](adr/0021-reconnaissance-anglaise-dediee.md).
 
 The image set above has not changed in this application release; its dated findings
 remain open. Application dependency audit results and final-commit verification

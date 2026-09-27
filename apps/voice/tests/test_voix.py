@@ -60,10 +60,62 @@ def test_langue_invalide_refusee_avant_fichier_ou_modele(tmp_path, langue):
     assert not (tmp_path / "sortie.wav").exists()
 
 
-def test_reconnaissance_partage_les_memes_poids_multilingues():
+def test_reconnaissance_longue_et_fr_partagent_les_poids_courte_en_isolee():
     aliases = fichiers.manifeste()["aliases"]
     assert aliases["transcription-en"]["repertoire"] == aliases["transcription-fr"]["repertoire"]
     assert aliases["transcription-en"]["fichiers"] == aliases["transcription-fr"]["fichiers"]
+    courte = aliases["transcription-en-courte"]
+    assert courte["repertoire"] != aliases["transcription-en"]["repertoire"]
+    assert courte["fichiers"] != aliases["transcription-en"]["fichiers"]
+    assert courte["langue"] == "en" and courte["licence"] == "MIT"
+
+
+@pytest.mark.parametrize(
+    ("langue", "echantillons", "alias_modele"),
+    [
+        ("en", 467200, "transcription-en-courte"),
+        ("en", 467201, "transcription-en"),
+        ("fr", 467200, "transcription-fr"),
+    ],
+)
+def test_routage_sur_echantillons_decodes_et_alias_public_stable(
+    tmp_path, monkeypatch, langue, echantillons, alias_modele
+):
+    from types import SimpleNamespace
+
+    import faster_whisper
+
+    path = tmp_path / "frontiere.wav"
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(16000)
+        wav.writeframes(bytes(echantillons * 2))
+    path.chmod(0o600)
+    verifications = []
+
+    def verifier(alias):
+        verifications.append(alias)
+        return tmp_path / alias
+
+    class Reconnaissance:
+        def __init__(self, dossier, **_options):
+            assert dossier == str(tmp_path / alias_modele)
+
+        def transcribe(self, signal, **options):
+            assert len(signal) == echantillons + 12800
+            assert options["language"] == langue
+            assert options.get("without_timestamps", False) is False
+            assert options["beam_size"] == 10 and options["temperature"] == 0
+            return iter([SimpleNamespace(text="Synthetic boundary.")]), None
+
+    monkeypatch.setattr(moteur, "verifier_modele", verifier)
+    monkeypatch.setattr(faster_whisper, "WhisperModel", Reconnaissance)
+    resultat = moteur.transcrire(path, langue)
+    assert verifications == [alias_modele]
+    assert resultat["alias"] == "transcription-" + langue
+    # Both English boundary inputs round to the same public duration.
+    assert resultat["duree_s"] == 29.2
 
 
 def test_backend_fixe_avant_import_natif_meme_si_environnement_contradictoire():

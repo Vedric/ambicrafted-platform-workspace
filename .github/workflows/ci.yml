@@ -102,6 +102,19 @@ jobs:
           sudo --preserve-env=VOICE_STATE_DIR,VOICE_TEST_REAL unshare --net -- \
             setpriv --reuid="$(id -u)" --regid="$(id -g)" --init-groups \
             "$PWD/.venv/bin/python" -m pytest -q tests/test_integration_reelle.py
+      - name: Régressions anglaises figées sous AVX2 sans réseau
+        env:
+          VOICE_STATE_DIR: ${{ runner.temp }}/ambicrafted-speech-models
+          CT2_FORCE_CPU_ISA: AVX2
+          ONEDNN_MAX_CPU_ISA: AVX2
+          DNNL_MAX_CPU_ISA: AVX2
+        # Exercise the numeric path that exposed the regression even when the
+        # runner's native path passes. This is a test-only setting, not production.
+        run: |
+          sudo --preserve-env=VOICE_STATE_DIR,VOICE_TEST_REAL,CT2_FORCE_CPU_ISA,ONEDNN_MAX_CPU_ISA,DNNL_MAX_CPU_ISA unshare --net -- \
+            setpriv --reuid="$(id -u)" --regid="$(id -g)" --init-groups \
+            "$PWD/.venv/bin/python" -m pytest -q tests/test_integration_reelle.py \
+              -k 'debut_de_parole_preserve or contexte_preserve_confidentialite or cli_neuf_ne_depend'
   hooks-compose:
     name: Hook et configuration Compose
     runs-on: ubuntu-24.04

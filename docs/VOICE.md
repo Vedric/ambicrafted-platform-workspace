@@ -2,7 +2,9 @@
 
 The console's local AI assistant, AURA, uses two speech engines in a separate
 Python 3.13 process: a US English female synthetic voice by default, an optional French female voice,
-and multilingual speech recognition explicitly configured for the selected language. Speech processing
+and speech recognition explicitly configured for the selected language. Short English
+turns use dedicated English weights; longer English input and all French speech
+retain the multilingual weights. Speech processing
 uses CPU inference with four threads per process, leaving the GPU available to
 the SRE agent. The speech engine neither decides on actions nor executes tools.
 The control API owns authentication, concurrency, conversation and approval.
@@ -34,7 +36,8 @@ uv run --project apps/voice --locked voix-locale statut
 uv run --project apps/voice --locked voix-locale statut --langue fr
 ```
 
-Installation downloads approximately 664 MB (114 MB additional for an existing French installation) of public model files. It requires
+Installation downloads approximately 2.194 GB of public model files
+(1.530 GB additional for the previous bilingual installation). It requires
 network access only for this explicit step. The package's
 `src/voix_locale/modeles.json` records immutable upstream revisions, exact byte
 counts, SHA-256 checksums, aliases and attribution. Downloads are written to
@@ -43,15 +46,18 @@ installation is rejected. Repeating installation reuses valid files and repairs
 corrupt ones.
 
 Models are stored outside Git in
-`~/.local/state/ambicrafted/voice/{synthese-en,synthese,transcription}`. Set `VOICE_STATE_DIR`
+`~/.local/state/ambicrafted/voice/{synthese-en,synthese,transcription,transcription-en-courte}`. Set `VOICE_STATE_DIR`
 to an absolute private directory to override the location. Directories must be
 owned by the current user, mode `700`, without symbolic links. Model files use
 mode `600`. New intermediate state directories also use `700`. Every inference
 verifies model file sizes and hashes before loading them. Runtime model names in
 code are only the aliases `voix-feminine-en`, `voix-feminine-fr`,
-`transcription-en` and `transcription-fr`; the model manifest is the source
-configuration. Both transcription aliases share exactly the same multilingual
-weights on disk. Selecting French requires no additional recognition download.
+`transcription-en`, `transcription-en-courte` and `transcription-fr`; the model
+manifest is the source configuration. The English long-input and French aliases
+share exactly the same multilingual weights on disk. The internal short-English
+alias has a separate directory and pinned model. Selecting French requires no
+additional recognition download. Re-run installation after a manifest update;
+English readiness requires both recognition paths to be present and verified.
 
 `VOICE_STATE_DIR` applies to the standalone speech CLI. The control API always
 uses `<PLATFORM_STATE_DIR>/voice` (the default platform state is
@@ -94,7 +100,8 @@ The HTTP API accepts optional `langue: "en" | "fr"` on `/api/voix/parler`,
 parameter on `/api/voix/statut`. Requests without it remain valid and now use
 English. The bridge forwards the language explicitly to the subprocess and
 caches readiness separately for each language for up to 60 seconds. `pret`
-means both selected synthesis and recognition models passed hash verification;
+means the selected synthesis and all recognition paths for that language passed
+hash verification (three model aliases for English, two for French);
 `langues` lists supported languages, not independently verified installations.
 The selected voice locale remains `en-US` or `fr-FR` in status, while inference
 results use `en` or `fr`.
@@ -146,6 +153,16 @@ every decoded source sample unchanged and
 prevents a reproduced onset error on a short synthetic English greeting. It
 does not change the public recording duration, relax the 90-second input limit,
 alter model artifacts, or insert expected words into recognition prompts.
+
+English recognition selects the dedicated `transcription-en-courte` weights only
+when the decoded audio plus the two fixed context margins fits within 30 seconds:
+`source_samples + 12,800 <= 480,000` at 16 kHz. The inclusive source boundary is
+29.2 seconds. One additional sample selects the existing `transcription-en`
+multilingual weights, even though the public duration rounds to the same 29.200.
+All French recordings retain their original model and options. The returned
+public alias remains `transcription-en` for both English paths. This is model
+selection, with no audio splitting, changed timestamps, new lexical hint or
+silently downloaded fallback. See [ADR 0021](adr/0021-reconnaissance-anglaise-dediee.md).
 
 The API must additionally enforce authentication, CSRF protections, a bounded
 upload, a bounded request queue and a single active voice operation. Use an
@@ -332,7 +349,56 @@ local measurements. New hosted runs must independently validate the correction
 before release; [ADR 0020](adr/0020-backend-vocal-reproductible.md) records the
 decision and early-import limitation.
 
-## Final combined release replay — 2026-09-27
+## Short English recognition route — 2026-09-27
+
+The later hosted runs of `d7030397` showed that explicit oneDNN alone was
+insufficient: AMD EPYC 9V45 passed 16/16 real tests, while Intel Xeon Platinum
+8573C passed 14/16 and corrupted the same frozen confidentiality phrase. The
+failed attempts remain part of the evidence. No waveform, expected word or
+lexical assertion was changed to make the tests pass.
+
+Dedicated English recognition passed the two frozen onset/confidentiality
+fixtures in native and AVX2 experiments. It is deliberately restricted to one
+native window. Replacing the long-input path caused omissions in a fixed 89.5 s
+varied recording; disabling timestamps made them worse and was rejected. The
+production long-input path therefore remains the original multilingual one,
+including its existing recognition limitations. No CPU ISA ceiling is imposed
+in production; AVX2 is an additional regression-test configuration.
+
+A single fixed 29.044444 s composite, made from complete network, privacy,
+job-queue and date utterances with three 200 ms gaps, retained all four statements
+with both models. Baseline automatic anchors were 16/16; the candidate was 14/16
+because `1430`/`1515` lacked the separators required by the frozen checks. The
+time values remained correct; the raw failed checks were preserved. Workstation
+CLI latency was 5.196 s baseline and 10.804 s candidate; process peak RSS was
+710.8 MiB and 1,595.3 MiB respectively. These measurements include verification
+and model loading and are not latency guarantees.
+
+An independent six-phrase synthetic holdout scored 4/6 with the baseline and 5/6
+with the candidate, in both native and AVX2 configurations. This is not an
+absence-of-regression claim: one already faulty sentence additionally changed
+`runbook` into `rumble` with the candidate. Read/quote instructions were also
+misrecognized. Manual transcript review remains the default; conversation mode
+may forward an inaccurate transcript. Neither route grants tool approval from
+speech. Real microphones, accents, noise and all possible utterances remain
+outside the synthetic qualification.
+
+The new English files add 1,530,459,085 bytes. The short-fixture experiments took
+roughly 5–7 seconds per fresh call; an independent six-call process peaked near
+2.5 GiB, while individual CLI probes were around 1.6 GiB. The API still permits
+only one active speech operation, with the same 120 s internal/130 s external
+deadlines. Earlier English browser/load figures in this guide describe the previous
+recognition model and must not be presented as current route performance.
+
+The routed working tree passed 56 quick tests in 0.93 s and all 16 real offline
+tests in 66.69 s. A separate offline AVX2 replay passed all six preserved English
+regressions in 37.95 s. Ruff, formatting, mypy and wheel/source builds passed;
+the installer and both language statuses also verified the installed artifacts
+with networking removed. These are local results, pending independent hosted
+validation of the final commit and a browser replay; they do not supersede the
+documented recognition failures or establish physical-microphone accuracy.
+
+## Earlier combined release replay — 2026-09-27
 
 The exact combined application tree `84a6fef32218` passed all 65 speech tests in
 31.82 seconds from a fresh clone, with networking removed by `unshare -rn`.
@@ -385,7 +451,11 @@ recording, authentication value or client data was included in the report.
 - Speech recognition: [faster-whisper](https://github.com/SYSTRAN/faster-whisper),
   package version `1.2.1`, and its
   [small multilingual converted model](https://huggingface.co/Systran/faster-whisper-small/blob/536b0662742c02347bc0e980a01041f333bce120/README.md),
-  MIT license. The pinned model card is installed with its weights.
+  MIT license. Short English recognition additionally uses the
+  [pinned English-only converted model](https://huggingface.co/Systran/faster-whisper-medium.en/blob/a29b04bd15381511a9af671baec01072039215e3/README.md),
+  also MIT. Its five artifacts total 1,530,459,085 bytes; each immutable revision,
+  size and SHA-256 is in the manifest. Both model cards are installed with their
+  weights.
 - [Piper Python API](https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/API_PYTHON.md)
   and the faster-whisper source document the local inference interfaces used.
 

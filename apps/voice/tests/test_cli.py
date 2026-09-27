@@ -35,13 +35,27 @@ def test_erreur_operateur_et_resultat_json(monkeypatch, capsys):
 
 
 @pytest.mark.parametrize("langue", ["en", "fr"])
-def test_statut_verifie_les_deux_alias(monkeypatch, langue):
+def test_statut_verifie_tous_les_chemins_de_la_langue(monkeypatch, langue):
     verifications = []
     monkeypatch.setattr(cli, "verifier_modele", verifications.append)
     resultat = cli.executer(["statut", "--langue", langue])
     assert resultat["pret"]
     assert resultat["langues"] == ["en", "fr"]
-    assert verifications == ["voix-feminine-" + langue, "transcription-" + langue]
+    attendus = ["voix-feminine-" + langue, "transcription-" + langue]
+    if langue == "en":
+        attendus.append("transcription-en-courte")
+    assert verifications == attendus
+
+
+def test_statut_anglais_refuse_un_modele_court_non_verifie(monkeypatch):
+    def verifier(alias):
+        if alias == "transcription-en-courte":
+            raise ErreurVoix("Modèle court absent ou corrompu.")
+
+    monkeypatch.setattr(cli, "verifier_modele", verifier)
+    with pytest.raises(ErreurVoix, match="court"):
+        cli.executer(["statut", "--langue", "en"])
+    assert cli.executer(["statut", "--langue", "fr"])["pret"] is True
 
 
 def test_statut_anglais_par_defaut(monkeypatch):
