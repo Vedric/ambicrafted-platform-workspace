@@ -1,4 +1,6 @@
 export const assistantFr = {
+  "Send or clear your draft before starting hands-free mode.":
+    "Envoyez ou effacez votre brouillon avant de démarrer le mode mains libres.",
   "A conversation that stays with you. Think, speak and explore with your private AI assistant.":
     "Une conversation qui reste privée. Réfléchissez, échangez et explorez avec votre assistante IA locale.",
   "A private conversation.": "Une conversation privée.",

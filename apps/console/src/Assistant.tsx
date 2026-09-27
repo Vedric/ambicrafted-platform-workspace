@@ -689,7 +689,12 @@ export default function Assistant() {
             ) : (
               <button
                 className="btn primary"
-                disabled={!voix?.pret || !microDisponible || occupe}
+                disabled={
+                  !voix?.pret ||
+                  !microDisponible ||
+                  occupe ||
+                  !!brouillon.trim()
+                }
                 onClick={() => {
                   arreter();
                   turns.current = 0;
@@ -711,6 +716,11 @@ export default function Assistant() {
                   )}
             </p>
           </div>
+          {!handsFree && brouillon.trim() && (
+            <p className="aura-draft-hint">
+              {t("Send or clear your draft before starting hands-free mode.")}
+            </p>
+          )}
           <div className="aura-controls">
             <label htmlFor="voice-language">{t("Conversation language")}</label>
             <select
@@ -773,7 +783,7 @@ export default function Assistant() {
                     ].map((suggestion) => (
                       <button
                         key={suggestion}
-                        disabled={occupe}
+                        disabled={occupe || handsFree}
                         onClick={() => {
                           setBrouillon(suggestion);
                           champ.current?.focus();
@@ -853,7 +863,7 @@ export default function Assistant() {
                 id="message-assistante"
                 value={brouillon}
                 maxLength={4000}
-                disabled={occupe}
+                disabled={occupe || handsFree}
                 rows={3}
                 placeholder={t("Type a message or record your thoughts…")}
                 onChange={(event) => setBrouillon(event.target.value)}
@@ -905,7 +915,7 @@ export default function Assistant() {
                 <button
                   type="submit"
                   className="btn primary"
-                  disabled={occupe || !brouillon.trim()}
+                  disabled={occupe || handsFree || !brouillon.trim()}
                 >
                   <Send size={16} /> {t("Send")}
                 </button>

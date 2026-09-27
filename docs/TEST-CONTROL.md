@@ -95,7 +95,7 @@ end-to-end tests and a real local model/speech exercise with synthetic inputs.
 
 ## Console regression checks
 
-The 2026-09-27 working tree has 117 frontend unit tests and 32 desktop/mobile
+The 2026-09-27 working tree has 119 frontend unit tests and 32 desktop/mobile
 Chromium journeys. These cover both interface languages, preserved operator
 content, independent conversation language, delayed/expired ticket exchange under
 React StrictMode, mission drafts, readiness failures, welcome-page entry, keyboard

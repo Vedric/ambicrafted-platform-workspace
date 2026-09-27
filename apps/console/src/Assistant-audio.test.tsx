@@ -255,6 +255,28 @@ async function spokenTurn() {
 }
 
 describe("manual speech resources and language", () => {
+  it("preserves an existing draft and requires clearing it before hands-free capture", async () => {
+    await show();
+    const input = screen.getByLabelText("Your message");
+    const start = screen.getByRole("button", { name: "Start conversation" });
+    const draft = "Customer evidence that must not be overwritten.";
+    fireEvent.change(input, { target: { value: draft } });
+    expect(start).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+    fireEvent.click(start);
+    await flush();
+    expect(input).toHaveValue(draft);
+    expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+    expect(calls("/assistant/dialogue")).toHaveLength(0);
+    fireEvent.change(input, { target: { value: "" } });
+    expect(start).toBeEnabled();
+    await click("Start conversation");
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledOnce();
+    expect(input).toBeDisabled();
+    await click("End conversation");
+    expect(input).toBeEnabled();
+  });
+
   it("connects only the microphone analyser and releases it after editable transcription", async () => {
     await show();
     expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
@@ -554,6 +576,57 @@ describe("native PCM playback", () => {
 
 describe("explicit bounded hands-free conversation", () => {
   beforeEach(() => vi.useFakeTimers());
+  it("prevents concurrent typing through reply preparation, playback and the next-turn delay", async () => {
+    let reply!: (value: { texte: string }) => void;
+    let speech!: (value: Blob) => void;
+    mocks.api.mockImplementation((route: string) =>
+      route === "/assistant/dialogue"
+        ? new Promise((resolve) => {
+            reply = resolve;
+          })
+        : defaultApi(route),
+    );
+    mocks.audio.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          speech = resolve;
+        }),
+    );
+    await show();
+    await click("Start conversation");
+    expect(
+      screen.getByRole("button", { name: "How do I start an analysis?" }),
+    ).toBeDisabled();
+    await advance(500);
+    amplitude = 0;
+    await advance(2000);
+    const input = screen.getByLabelText("Your message");
+    expect(input).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    await act(async () => {
+      reply({ texte: "A synthetic spoken response." });
+    });
+    expect(mocks.audio).toHaveBeenCalledOnce();
+    expect(input).toBeDisabled();
+    await act(async () => {
+      speech(pcmBlob());
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Speaking");
+    expect(input).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    await finishPlayback();
+    expect(screen.getByRole("status")).toHaveTextContent("Ready when you are");
+    expect(input).toBeDisabled();
+    await click("End conversation");
+    expect(input).toBeEnabled();
+    fireEvent.change(input, { target: { value: "New manual evidence." } });
+    expect(input).toHaveValue("New manual evidence.");
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+    await advance(1000);
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("completes two speech/silence/reply turns with history and full cleanup", async () => {
     await show();
     await click("Start conversation");
@@ -663,9 +736,14 @@ describe("explicit bounded hands-free conversation", () => {
       amplitude = 0;
       await advance(2000);
       expect(screen.getByRole("alert")).toBeVisible();
-      expect(
-        screen.getByRole("button", { name: "Start conversation" }),
-      ).toBeEnabled();
+      const start = screen.getByRole("button", { name: "Start conversation" });
+      if (step === "dialogue") {
+        expect(start).toBeDisabled();
+        expect(screen.getByLabelText("Your message")).toHaveValue(
+          "A synthetic question.",
+        );
+        expect(screen.getByLabelText("Your message")).toBeEnabled();
+      } else expect(start).toBeEnabled();
       await advance(5000);
       expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
       expect(vi.getTimerCount()).toBe(0);

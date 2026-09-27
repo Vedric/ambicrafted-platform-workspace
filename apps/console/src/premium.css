@@ -2637,3 +2637,10 @@ dialog::backdrop {
   display: block;
   margin-bottom: 22px;
 }
+
+.aura-draft-hint {
+  text-align: center;
+  font-size: 10px;
+  color: #b9d0de;
+  margin: 0 10px 18px;
+}

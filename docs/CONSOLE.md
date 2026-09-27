@@ -244,6 +244,11 @@ rollback and the limits of restore validation.
 
 ## AURA conversation and local voice
 
+Send or clear an existing draft before starting hands-free mode. The text composer
+is disabled while the spoken loop is active; ending the conversation restores it.
+This prevents an automatic transcript from overwriting a draft you were editing.
+
+
 Install the separate speech runtime and pinned English/French artifacts following
 [VOICE.md](VOICE.md). AURA identifies itself as an AI assistant. Audio processing
 is local, speech uses CPU, and dialogue uses the confidential `local` model path.
