@@ -54,6 +54,32 @@ jobs:
         run: |
           uv export --locked --all-extras --no-dev --no-emit-project --no-emit-package sre-agent --format requirements-txt -o /tmp/requirements.txt > /dev/null
           uvx pip-audit@2.10.1 -r /tmp/requirements.txt --disable-pip --no-deps
+  speech-models:
+    name: Voix FR/EN, modèles réels hors réseau
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VOICE_STATE_DIR: ${{ runner.temp }}/ambicrafted-speech-models
+      VOICE_TEST_REAL: "1"
+    defaults:
+      run:
+        working-directory: apps/voice
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+          enable-cache: false
+      - run: uv sync --locked --all-extras
+      - name: Modèles publics épinglés et vérifiés par SHA-256
+        run: uv run --no-sync python -m voix_locale.cli installer
+      - name: Reconnaissance, synthèse et codecs sans accès réseau
+        # Only synthetic text/audio is used. Drop back to the runner's identity
+        # after creating the network namespace; model files stay private to it.
+        run: |
+          sudo --preserve-env=VOICE_STATE_DIR,VOICE_TEST_REAL unshare --net -- \
+            setpriv --reuid="$(id -u)" --regid="$(id -g)" --init-groups \
+            "$PWD/.venv/bin/python" -m pytest -q tests/test_integration_reelle.py
   hooks-compose:
     name: Hook et configuration Compose
     runs-on: ubuntu-24.04

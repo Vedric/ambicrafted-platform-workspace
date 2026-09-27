@@ -1,0 +1,594 @@
+.architecture-page {
+  --architecture-cyan: #65daee;
+  --architecture-violet: #c0a9fa;
+  --architecture-amber: #efbf85;
+  --architecture-card: #101e2c;
+  display: grid;
+  gap: 1.5rem;
+}
+.architecture-page .kind-request {
+  --architecture-accent: var(--architecture-cyan);
+  color: var(--architecture-accent);
+}
+.architecture-page .kind-knowledge {
+  --architecture-accent: var(--architecture-violet);
+  color: var(--architecture-accent);
+}
+.architecture-page .kind-human {
+  --architecture-accent: var(--architecture-amber);
+  color: var(--architecture-accent);
+}
+.architecture-page h2,
+.architecture-page h3,
+.architecture-page p {
+  margin-top: 0;
+}
+.architecture-page h2 {
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+}
+.architecture-page h3 {
+  font-size: 1.08rem;
+  line-height: 1.45;
+}
+.architecture-page p {
+  line-height: 1.65;
+}
+.architecture-journeys {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.architecture-journeys button {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 3.7rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  color: var(--muted);
+  background: var(--architecture-card);
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.architecture-journeys button > svg:last-child {
+  margin-left: auto;
+}
+.architecture-journeys button[aria-pressed="true"] {
+  color: var(--architecture-cyan);
+  border-color: var(--architecture-cyan);
+  background: color-mix(
+    in srgb,
+    var(--architecture-cyan) 8%,
+    var(--architecture-card)
+  );
+  box-shadow: inset 0 -2px 0 var(--architecture-cyan);
+}
+.architecture-journey,
+.architecture-health {
+  overflow: hidden;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 1.35rem;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--architecture-card) 80%, transparent),
+    var(--bg)
+  );
+}
+.architecture-journey-header,
+.architecture-health > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.7rem 1.7rem 0;
+}
+.architecture-journey-header .eyebrow,
+.architecture-health .eyebrow {
+  margin-bottom: 0.65rem;
+}
+.architecture-journey-header p,
+.architecture-health header p {
+  max-width: 72ch;
+  margin-bottom: 0.9rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.architecture-guide-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 3.8rem;
+  height: 3.8rem;
+  border: 1px solid
+    color-mix(in srgb, var(--architecture-cyan) 30%, transparent);
+  border-radius: 1rem;
+  color: var(--architecture-cyan);
+  background: color-mix(in srgb, var(--architecture-cyan) 5%, transparent);
+}
+.architecture-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin: 0.4rem 1.7rem 1.4rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.architecture-disclaimer > svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+.architecture-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.architecture-canvas-wrap {
+  min-width: 0;
+  padding: 1.3rem 0.8rem 0.5rem;
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--muted) 16%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+.architecture-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.2rem;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+}
+.architecture-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.architecture-legend i {
+  width: 1.2rem;
+  height: 3px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.architecture-instruction {
+  margin: 0.9rem 0 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.875rem;
+}
+.architecture-canvas {
+  position: relative;
+  aspect-ratio: 1000 / 660;
+  isolation: isolate;
+}
+.architecture-connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.architecture-wire,
+.architecture-flow {
+  fill: none;
+  stroke: currentColor;
+  vector-effect: non-scaling-stroke;
+}
+.architecture-wire {
+  stroke-width: 1.25;
+  opacity: 0.42;
+}
+.architecture-flow {
+  stroke-width: 1.7;
+  stroke-dasharray: 4 16;
+  opacity: 0;
+}
+.architecture-connection.is-related .architecture-wire {
+  stroke-width: 1.8;
+  opacity: 0.9;
+}
+.architecture-canvas[data-motion="on"]
+  .architecture-connection.is-related
+  .architecture-flow {
+  opacity: 0.8;
+  animation: architecture-flow 2.8s linear infinite;
+}
+@keyframes architecture-flow {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+.architecture-node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 26%;
+  min-height: 6.4rem;
+  padding: 0.85rem;
+  transform: translate(-50%, -50%);
+  border: 1px solid
+    color-mix(in srgb, var(--architecture-accent) 28%, var(--border));
+  border-radius: 1rem;
+  background: var(--architecture-card);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 25px #00000016;
+}
+.architecture-node-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.25rem;
+  height: 2.25rem;
+  border: 1px solid
+    color-mix(in srgb, var(--architecture-accent) 25%, transparent);
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--architecture-accent) 8%, transparent);
+}
+.architecture-node > span:last-child {
+  min-width: 0;
+}
+.architecture-node strong,
+.architecture-node small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.architecture-node strong {
+  color: var(--text);
+  font-size: 0.94rem;
+  line-height: 1.4;
+  font-weight: 650;
+}
+.architecture-node small {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.architecture-node.is-selected {
+  border-color: var(--architecture-accent);
+  box-shadow:
+    0 0 0 1px var(--architecture-accent),
+    0 0 30px color-mix(in srgb, var(--architecture-accent) 11%, transparent);
+}
+.architecture-node:hover {
+  border-color: var(--architecture-accent);
+}
+.architecture-page button:focus-visible,
+.architecture-page a:focus-visible {
+  outline: 3px solid var(--architecture-cyan);
+  outline-offset: 5px;
+}
+.architecture-details {
+  padding: 1.5rem;
+  border-left: 1px solid var(--border);
+  background: var(--architecture-card);
+}
+.architecture-detail-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+.architecture-detail-title h3 {
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+.architecture-detail-title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.architecture-details dl {
+  margin: 1.4rem 0;
+  font-size: 0.94rem;
+}
+.architecture-details dt {
+  margin: 1.25rem 0 0.45rem;
+  color: var(--text);
+  font-weight: 650;
+}
+.architecture-details dd {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.architecture-details .btn {
+  width: 100%;
+  min-height: 2.8rem;
+  justify-content: space-between;
+  white-space: normal;
+  text-align: left;
+  font-size: 0.875rem;
+}
+.architecture-details .btn svg {
+  flex: 0 0 auto;
+}
+.architecture-mobile-list {
+  display: none;
+}
+.architecture-connections-guide {
+  padding: 1.5rem 1.7rem;
+}
+.architecture-connections-guide > h3 {
+  margin-bottom: 1rem;
+}
+.architecture-connections-guide ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.architecture-connections-guide li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+.architecture-connection-number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 1.75rem;
+  height: 1.75rem;
+  border: 1px solid
+    color-mix(in srgb, var(--architecture-accent) 30%, var(--border));
+  border-radius: 50%;
+  font-size: 0.875rem;
+}
+.architecture-connections-guide strong {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  color: var(--text);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+.architecture-connections-guide p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.architecture-health > header > .btn {
+  flex-shrink: 0;
+}
+.architecture-health-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.65rem 1.7rem 1.4rem;
+  padding: 0;
+  list-style: none;
+}
+.architecture-health-grid li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 1.05rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--architecture-card);
+}
+.architecture-health-grid strong {
+  flex: 0 0 100%;
+  font-size: 0.94rem;
+}
+.architecture-probe {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.architecture-probe i {
+  flex: 0 0 0.45rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+.architecture-probe.probe-up {
+  color: #8ee1ba;
+}
+.architecture-probe.probe-down {
+  color: #f1adab;
+}
+.architecture-probe.probe-up i,
+.architecture-probe.probe-down i {
+  background: currentColor;
+}
+.architecture-health-grid small {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.architecture-health-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.7rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+.architecture-health-footer p {
+  margin: 0;
+  color: var(--muted);
+}
+.architecture-health-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--architecture-cyan);
+}
+.architecture-health-error {
+  margin: 0.5rem 1.7rem 1rem;
+  padding: 0.85rem 1rem;
+  color: var(--architecture-amber);
+  border: 1px solid
+    color-mix(in srgb, var(--architecture-amber) 30%, var(--border));
+  border-radius: 0.8rem;
+  font-size: 0.94rem;
+}
+.architecture-boundary {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.3rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--architecture-violet) 5%, var(--bg));
+}
+.architecture-boundary > svg {
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+  color: var(--architecture-violet);
+}
+.architecture-boundary h3 {
+  margin-bottom: 0.4rem;
+}
+.architecture-boundary p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+[data-theme="light"] .architecture-page {
+  --architecture-cyan: #006578;
+  --architecture-violet: #6040a0;
+  --architecture-amber: #875209;
+  --architecture-card: #f8fbfd;
+}
+[data-theme="light"] .architecture-probe.probe-up {
+  color: #176644;
+}
+[data-theme="light"] .architecture-probe.probe-down {
+  color: #a33030;
+}
+@media (max-width: 1450px) {
+  .architecture-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .architecture-details {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .architecture-details dl {
+    display: grid;
+    grid-template-columns: 12rem minmax(0, 1fr);
+    gap: 0.9rem 1.2rem;
+  }
+  .architecture-details dt {
+    margin: 0;
+  }
+  .architecture-details .btn {
+    width: fit-content;
+    gap: 1rem;
+  }
+}
+@media (max-width: 900px) {
+  .architecture-canvas {
+    display: none;
+  }
+  .architecture-mobile-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin: 1.3rem 0.5rem;
+  }
+  .architecture-mobile-list .architecture-node {
+    position: static;
+    width: 100%;
+    min-height: 6rem;
+    transform: none;
+  }
+  .architecture-journeys {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .architecture-health > header {
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.3rem;
+  }
+  .architecture-health-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .architecture-page {
+    gap: 1rem;
+  }
+  .architecture-journey-header,
+  .architecture-health > header {
+    padding: 1.2rem 1.1rem 0;
+  }
+  .architecture-guide-icon {
+    display: none;
+  }
+  .architecture-disclaimer {
+    margin: 0.3rem 1.1rem 1.2rem;
+  }
+  .architecture-details,
+  .architecture-connections-guide {
+    padding: 1.3rem 1.1rem;
+  }
+  .architecture-details dl,
+  .architecture-connections-guide ul {
+    display: block;
+  }
+  .architecture-details dt {
+    margin: 1.2rem 0 0.45rem;
+  }
+  .architecture-connections-guide li + li {
+    margin-top: 1.2rem;
+  }
+  .architecture-node {
+    gap: 0.5rem;
+    padding: 0.7rem;
+  }
+  .architecture-mobile-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .architecture-health-grid {
+    margin-right: 1.1rem;
+    margin-left: 1.1rem;
+  }
+  .architecture-health-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem 1.1rem;
+  }
+  .architecture-health-error {
+    margin-right: 1.1rem;
+    margin-left: 1.1rem;
+  }
+  .architecture-boundary {
+    padding: 1.1rem;
+  }
+}
+@media (max-width: 400px) {
+  .architecture-journeys,
+  .architecture-health-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .architecture-page *,
+  .architecture-page *::before,
+  .architecture-page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

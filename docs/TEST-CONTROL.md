@@ -93,6 +93,18 @@ measurements as JUnit test-suite properties.
 A release still requires checks on the final commit in a clean clone, browser
 end-to-end tests and a real local model/speech exercise with synthetic inputs.
 
+## Real speech in CI
+
+The separate speech-model job installs the public English/French speech artifacts
+using the manifest's pinned revisions, sizes and SHA-256 checks. It then runs the
+real synthesis, recognition, browser-codec, silence and CLI tests in an isolated
+network namespace as the unprivileged runner user. No operator configuration,
+client recording, model-service credential or cloud inference is used. The quick
+Python matrix still skips these model tests; the dedicated job is their gate.
+Initial artifact downloads require network availability, while inference does not.
+This narrow synthetic corpus detects regressions; it does not certify recognition
+accuracy for arbitrary accents, microphones or client terminology.
+
 ## Console regression checks
 
 The 2026-09-27 working tree has 119 frontend unit tests and 32 desktop/mobile

@@ -129,6 +129,14 @@ exceed the duration limit. Voice activity detection filters silence. A short
 fixed SRE vocabulary helps recognition of domain terms; it does not guarantee
 transcription accuracy.
 
+After validating the original recording, recognition adds exactly 400 ms of
+zero-valued acoustic context at each boundary. Speech padding in VAD is also
+explicitly 400 ms, and decoding uses a bounded ten-candidate beam. This leaves
+every decoded source sample unchanged and
+prevents a reproduced onset error on a short synthetic English greeting. It
+does not change the public recording duration, relax the 90-second input limit,
+alter model artifacts, or insert expected words into recognition prompts.
+
 The API must additionally enforce authentication, CSRF protections, a bounded
 upload, a bounded request queue and a single active voice operation. Use an
 external subprocess timeout (130 seconds maximum) and kill its process group
@@ -180,17 +188,60 @@ VOICE_TEST_REAL=1 unshare -rn uv run --locked --offline coverage run -m pytest -
 uv run --locked coverage report -m
 ```
 
-On the reference WSL2 workstation on 2026-09-27, **59 tests** passed in 24.24
-seconds with the network namespace isolated: 49 quick tests plus ten real model
-tests. The real tests cover English and French synthesis and recognition through WAV, browser
-WebM/Opus and Ogg/Opus, silence in both languages, private file permissions,
-refusing to overwrite existing output and a real CLI subprocess. Quick tests
+An earlier working-tree run on the reference WSL2 workstation on 2026-09-27
+passed **59 tests in 24.24 seconds**: 49 quick tests and ten real model tests,
+with network access removed and the previously installed pinned models.
+That observation did not establish repeatability: a later clean-clone check
+of `a81edde3` passed 56 tests and failed three English codec round trips because
+the greeting “Hello” was transcribed as “Although.” The failed synthetic WAV is
+now a fixed regression fixture, with documented provenance and SHA-256 in
+`apps/voice/tests/fixtures/README.md`; newly generated speech tests remain in place.
+
+The failure reproduced with VAD disabled, and with domain hints removed. VAD
+was retaining the entire original recording. Adding leading acoustic context
+corrected the preserved signal; trailing silence alone did not. Successive
+synthesis calls also produced different recognition results, so changing a
+test assertion or merely rerunning synthesis would have hidden the issue.
+
+Adding context with the original five-candidate decoding beam introduced a
+separate regression in a synthetic confidentiality phrase: “customer data”
+became “custom and data.” This candidate was rejected after comparison on eight
+separately generated English/French signals. A bounded ten-candidate beam
+preserves the greeting and confidentiality phrase, both now guarded by frozen
+regression fixtures. On those same eight signals, seven retain all checked
+semantic anchors, matching the baseline; a preexisting French recognition error
+on “latence réseau” remains. These checks are review indicators, not an accuracy
+certificate, and do not replace microphone acceptance testing.
+
+A second, previously unused corpus of four English and four French phrases
+was then compared without further parameter changes. All eight final-candidate
+transcripts were identical to the baseline on the same audio signals, including
+the tested negations, dates/times and quantities. Six cases matched every
+automatic anchor in both versions: one unmatched case was a punctuation-only
+anchor mismatch in “test, environment”; the other was a real French homophone
+error, “paie” becoming “paix,” already present in the baseline. Source hashes,
+model-manifest hashes and public durations matched throughout. This checks for
+regression on those signals; it does not establish universal recognition
+accuracy or resolve the existing French errors.
+
+After the acoustic-context and decoding correction, a working-tree run passed
+**65 tests in 37.70 seconds** with the network namespace isolated: 51 quick
+tests and 14 real model tests. The real tests cover English and French synthesis
+and recognition through WAV, browser WebM/Opus and Ogg/Opus, the fixed onset
+regression in all three formats, the confidentiality and negation regression,
+silence in both languages, private file
+permissions, refusing to overwrite existing output and a real CLI subprocess.
+Quick tests
 cover invalid language selection before file access, shared multilingual model
 artifacts, malformed media, size/duration bounds, symlinks, FIFOs,
 corrupt/truncated/oversized model downloads, hash verification, atomic publication
-and safe errors. Combined statement/branch coverage was 87%; CLI subprocess
+and safe errors. They also check exact preservation of the source samples and
+reported duration at both the 0.2-second and 90-second accepted boundaries.
+Combined statement/branch coverage was 87%; CLI subprocess
 execution is not included in that percentage. Ruff, mypy and wheel/source builds
-passed. Run checks from `apps/voice`, where their configuration is defined.
+passed and were rerun for the correction. These workstation observations are
+not hosted CI evidence. Run
+checks from `apps/voice`, where their configuration is defined.
 The control API's separate voice and assistant suite passed **59 tests**,
 including language routing, per-language caches, malformed requests, local-only
 conversation, admission control, cancellation, privacy and cleanup.
@@ -220,7 +271,8 @@ serializes voice operations and rejects simultaneous demand rather than queuing
 unbounded audio work. Piper's high setting describes the upstream model tier,
 not an independently measured listening-quality score.
 
-The English load probe produced intelligible transcripts but included recognition
+The initial English load probe, before the acoustic-context correction,
+produced intelligible transcripts but included recognition
 errors, such as “An” becoming “and” and one “Hello” becoming “Although.” A successful
 round trip means nonempty output, not perfect transcription. Review recognized
 text in manual mode; conversation mode may automatically send a mistaken

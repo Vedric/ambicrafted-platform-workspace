@@ -212,6 +212,13 @@ test("private landing, refused login, keyboard entry and accessible layout", asy
   await expect(
     page.getByRole("button", { name: "Pause animations" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Your intelligence, in motion.",
+      exact: true,
+    }),
+  ).toBeInViewport();
+  await scene.scrollIntoViewIfNeeded();
   await expect.poll(runningOrbitAnimations).toBeGreaterThan(0);
   await sansDefautsA11y(page);
   await testInfo.attach("overview", {

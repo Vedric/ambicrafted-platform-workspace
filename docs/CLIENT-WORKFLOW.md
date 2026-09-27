@@ -80,6 +80,28 @@ readiness instead of assuming that an installed package supplies a working
 voice. Configure a local password through `./plateforme mot-de-passe` if
 needed; never pass a password or key as a command argument.
 
+### Understand the installation before intake
+
+Open **Architecture** from navigation or **Explore the architecture** on
+**Overview**. Select **Investigation**, **Voice**, **Knowledge** or **Telemetry**,
+then select a component to read **Role in this system**, **Data handled** and
+**Boundary to remember**. **Open related workspace** takes you to the relevant
+operating page. On a narrow screen, use the component list; the same controls
+remain keyboard accessible.
+
+Use this guide to explain where mission material is processed and retained.
+The arrows and animation describe the design, not live traffic or an active
+agent fleet. **Measured availability** is a separate set of six local endpoint
+checks. **No direct health probe** means the component is not independently
+measured there; it is not a successful test. Use **Check services**, **System
+health** and **Readiness** to investigate the actual installation.
+
+The interface has larger supporting text and can be zoomed with the browser.
+Scrolling down and back up gives sections a brief entry accent. Use **Pause
+animations** in the header for a still workspace, or the operating system's
+reduced-motion setting. These display preferences do not change the incident
+workflow or AURA's audio permissions.
+
 Review the current [dependency findings](DEPENDENCIES.md) and
 [security assessment](SECURITY-RELEASE-2026-09-26.md) against the mission's
 requirements. Functional health does not establish an absence of
@@ -194,6 +216,24 @@ active work explicitly, use `./plateforme analyses annuler ANALYSIS_ID`.
 Inspect the returned `statut`; an exit code of zero can mean a successful
 status request, not a completed, approved diagnosis. Do not automatically
 retry an incident under its previous ID.
+
+### Read progress without overinterpreting the charts
+
+Return to **Overview** for the saved-run and service indicators. Under
+**Created runs**, switch between **7 days** and **14 days**. Use **Inspect a day**
+with the keyboard, or expand **View chart data**, to read the exact count and
+UTC date. **Run states** describes all currently retained records, regardless
+of the selected activity period; **Service response** describes current probes.
+
+These records include maintenance operations as well as analyses. Completion
+does not establish diagnosis quality or client acceptance. Deleting a record or
+applying retention changes the chart, so preserve the required mission evidence
+in the private mission record. Check the displayed refresh time before relying
+on service status. Probe durations do not measure model-response time or a
+historical availability commitment. Use **Observability** for detailed metrics
+and traces, and the individual analysis for evidence and the approval decision.
+
+### Optional conversation with AURA
 
 The **Voice assistant** provides optional local conversation through AURA.
 **Record** puts recognized speech into an editable draft for review before
@@ -339,7 +379,8 @@ client deployment and reuse its retained data for another client.
 ## Workstation tool audit for this guide
 
 Read-only checks on 27 September 2026 found Git 2.43.0, uv 0.12.5,
-Node 22.22.0, npm 11.10.0, Docker 29.2.1 and Compose 5.1.0, plus ripgrep,
+Node 22.22.0 (the system version at that audit), npm 11.10.0, Docker 29.2.1
+and Compose 5.1.0, plus ripgrep,
 direnv, curl, jq and OpenSSL. The control API, agent and runbook environments
 use Python 3.14.7; speech uses Python 3.13.15. The system Python is 3.12.3
 and must not be substituted for those locked environments. In this shell,
@@ -360,3 +401,5 @@ required by the current workflow: local speech uses PyAV, and durable incident
 state/retrieval use SQLite and Qdrant. This inventory is evidence about this
 workstation on this date, not a guarantee that a newly provisioned client VM
 is ready or that additional packages would improve the security boundary.
+Use the current [installation requirements](../README.md#install) when preparing
+a deployment; this dated inventory is not a pin for later maintenance releases.

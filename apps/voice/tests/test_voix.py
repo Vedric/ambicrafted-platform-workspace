@@ -66,6 +66,44 @@ def test_reconnaissance_partage_les_memes_poids_multilingues():
     assert aliases["transcription-en"]["fichiers"] == aliases["transcription-fr"]["fichiers"]
 
 
+@pytest.mark.parametrize("secondes", [0.2, 90])
+def test_contexte_acoustique_preserve_signal_bornes_et_duree(tmp_path, monkeypatch, secondes):
+    from types import SimpleNamespace
+
+    import faster_whisper
+
+    path = tmp_path / "source.wav"
+    source = np.full(int(secondes * moteur.FREQUENCE), 1234, dtype=np.int16)
+    source[0], source[-1] = -12345, 23456
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(moteur.FREQUENCE)
+        wav.writeframes(source.tobytes())
+    path.chmod(0o600)
+
+    class Reconnaissance:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def transcribe(self, signal, **options):
+            contexte = moteur.FREQUENCE * moteur.CONTEXTE_AUDIO_MS // 1000
+            assert signal.dtype == np.float32
+            assert len(signal) == len(source) + 2 * contexte
+            assert not np.any(signal[:contexte])
+            assert not np.any(signal[-contexte:])
+            np.testing.assert_array_equal(signal[contexte:-contexte], source / 32768.0)
+            assert options["vad_filter"] is True
+            assert options["vad_parameters"]["speech_pad_ms"] == moteur.CONTEXTE_AUDIO_MS
+            return iter([SimpleNamespace(text="A synthetic result.")]), None
+
+    monkeypatch.setattr(faster_whisper, "WhisperModel", Reconnaissance)
+    monkeypatch.setattr(moteur, "verifier_modele", lambda _alias: tmp_path)
+    resultat = moteur.transcrire(path)
+    assert resultat["duree_s"] == secondes
+    assert resultat["texte"] == "A synthetic result."
+
+
 def test_dossiers_crees_prives(tmp_path):
     cible = tmp_path / "a" / "b"
     fichiers.dossier_prive(cible, creer=True)

@@ -11,6 +11,7 @@ MAX_AUDIO_OCTETS = 8 * 1024 * 1024
 MAX_AUDIO_SECONDES = 90
 MAX_TEXTE = 2000
 FREQUENCE = 16000
+CONTEXTE_AUDIO_MS = 400
 LANGUES = ("en", "fr")
 
 
@@ -63,9 +64,16 @@ def decoder_audio(path: Path):
 def transcrire(path: Path, langue: str = "en") -> dict:
     langue = valider_langue(langue)
     hors_ligne()
+    import numpy as np
     from faster_whisper import WhisperModel
 
     audio = decoder_audio(path)
+    # Preserve a quiet acoustic context before an onset at sample zero. Without it,
+    # short utterances can misrecognize their first word even when VAD keeps every sample.
+    # Decode and enforce the source duration before adding this fixed context;
+    # metadata must describe the submitted recording, not inference padding.
+    contexte = FREQUENCE * CONTEXTE_AUDIO_MS // 1000
+    audio_inference = np.pad(audio, (contexte, contexte))
     alias = "transcription-" + langue
     dossier = verifier_modele(alias)
     model = WhisperModel(
@@ -77,9 +85,9 @@ def transcrire(path: Path, langue: str = "en") -> dict:
         local_files_only=True,
     )
     segments, _ = model.transcribe(
-        audio,
+        audio_inference,
         language=langue,
-        beam_size=5,
+        beam_size=10,
         vad_filter=True,
         condition_on_previous_text=False,
         temperature=0.0,
@@ -88,7 +96,7 @@ def transcrire(path: Path, langue: str = "en") -> dict:
             if langue == "en"
             else "plateforme, alerte, analyse, données, PostgreSQL, Grafana, runbook"
         ),
-        vad_parameters={"min_silence_duration_ms": 500},
+        vad_parameters={"min_silence_duration_ms": 500, "speech_pad_ms": CONTEXTE_AUDIO_MS},
     )
     texte = ""
     for segment in segments:

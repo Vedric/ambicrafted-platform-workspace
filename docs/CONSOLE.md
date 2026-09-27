@@ -18,6 +18,11 @@ AURA's English/French conversation selector is independent: changing the interfa
 does not change the voice or silently translate client evidence. Page names below
 use the English labels.
 
+Menus, descriptions, controls and supporting labels use a larger reading scale.
+Small text is sized in `rem` so browser font preferences remain effective;
+browser zoom is available without changing the application's language or state.
+Desktop and mobile layouts are checked with Playwright after typography changes.
+
 The welcome screen, overview and AURA use a consistent visual identity. Ambient
 motion uses transforms and opacity; pointer parallax applies only to a mouse.
 Offscreen orbital scenes and background tabs pause their CSS animations.
@@ -26,6 +31,19 @@ top bar. Its preference persists in this browser, alongside the light/dark theme
 The operating system's reduced-motion preference also disables decorative
 motion. Navigation remains available by keyboard, with a command menu on
 `Ctrl+K` / `Cmd+K`, a focus-trapped mobile menu and a skip-to-content link.
+
+The overview's **Operational pulse** charts show recorded activity over seven or
+fourteen UTC days, current saved run states and the latest service probe durations.
+Runs include investigations and maintenance operations. Deleted runs disappear
+from these aggregates. Use **Inspect a day** with the keyboard or open **View chart
+data** for the exact values. Health probe durations describe a local HTTP check;
+they are not model response times or an availability SLO.
+
+**Architecture** explains the investigation, voice, knowledge and telemetry paths.
+Select a path and a component to inspect its purpose and boundaries. Animated
+connections illustrate the documented design; service-health labels use live probes.
+Scroll accents work in either direction and stop with motion preferences, hidden
+tabs or keyboard focus. They do not gate access to content.
 
 ## Install and start
 

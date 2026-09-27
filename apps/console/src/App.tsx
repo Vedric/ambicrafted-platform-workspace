@@ -33,6 +33,7 @@ import {
   LockKeyhole,
   LogOut,
   Menu,
+  Network,
   Moon,
   Pause,
   Play,
@@ -50,8 +51,11 @@ import {
 } from "lucide-react";
 import { api, definirCsrf, type Session } from "./api";
 import Assistant from "./Assistant";
+import { ScrollExperience } from "./ScrollExperience";
 import { Missions } from "./pages/missions";
 import { Preparation } from "./pages/preparation";
+import { Architecture } from "./pages/architecture";
+import "./architecture.css";
 import {
   ToastContext,
   useToast,
@@ -169,6 +173,13 @@ const navigation = [
           return t("Agents & tools");
         },
         icone: Bot,
+      },
+      {
+        chemin: "/architecture",
+        get nom() {
+          return t("Architecture");
+        },
+        icone: Network,
       },
       {
         chemin: "/preparation",
@@ -306,6 +317,12 @@ export default function App() {
     definirCsrf(session.data?.csrf || null);
   }, [session.data]);
   useEffect(() => {
+    // Enter each workspace at its heading, including sign-in from a scrolled
+    // welcome page. Query filters and in-page anchors preserve their position.
+    if (window.scrollX || window.scrollY)
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [currentRoute.pathname, session.data?.connecte]);
+  useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(null), 6000);
       return () => clearTimeout(t);
@@ -315,6 +332,7 @@ export default function App() {
     setToast({ message, erreur });
   return (
     <MotionPreference.Provider value={animations}>
+      <ScrollExperience routeKey={currentRoute.pathname} />
       <MotionConfig reducedMotion={motionEnabled ? "never" : "always"}>
         <ToastContext.Provider value={notifier}>
           {ticketPending || session.isPending ? (
@@ -797,6 +815,7 @@ function Cadre({
               <Route path="/" element={<VueEnsemble />} />
               <Route path="/missions" element={<Missions />} />
               <Route path="/preparation" element={<Preparation />} />
+              <Route path="/architecture" element={<Architecture />} />
               <Route path="/analyses" element={<Analyses />} />
               <Route path="/analyses/nouvelle" element={<NouvelleAnalyse />} />
               <Route path="/analyses/:id" element={<DetailAnalyse />} />

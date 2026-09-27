@@ -74,11 +74,11 @@ h1 {
   font-weight: 650;
 }
 h2 {
-  font-size: 18px;
+  font-size: 1.25rem;
   font-weight: 650;
 }
 h3 {
-  font-size: 15px;
+  font-size: 1.125rem;
 }
 button {
   color: inherit;
@@ -145,11 +145,11 @@ input[type="checkbox"] {
 }
 select {
   width: auto;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 label {
   display: block;
-  font-size: 13px;
+  font-size: 1rem;
   font-weight: 650;
   color: var(--text);
   margin-bottom: 9px;
@@ -157,7 +157,7 @@ label {
 label span {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.9375rem;
   font-weight: 450;
   margin-top: 3px;
 }
@@ -174,7 +174,7 @@ label + input + label {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel-alt);
-  font-size: 12px;
+  font-size: 0.9375rem;
   font-weight: 700;
   white-space: nowrap;
   transition:
@@ -204,7 +204,7 @@ label + input + label {
 .btn.small {
   min-height: 34px;
   padding: 7px 12px;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .icon-button {
   width: 36px;
@@ -228,7 +228,7 @@ label + input + label {
   color: var(--text);
   border: 0;
   background: none;
-  font-size: 12px;
+  font-size: 0.9375rem;
   font-weight: 650;
   padding: 8px 0;
 }
@@ -239,7 +239,7 @@ label + input + label {
   color: var(--muted);
 }
 .tiny {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .break-all {
   overflow-wrap: anywhere;
@@ -251,13 +251,13 @@ label + input + label {
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 4px 8px;
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--muted);
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: 0.8125rem;
   letter-spacing: 0.15em;
   font-weight: 750;
   color: var(--mint);
@@ -324,7 +324,7 @@ label + input + label {
 }
 .brand-sub {
   display: block;
-  font-size: 7px;
+  font-size: 0.625rem;
   letter-spacing: 0.21em;
   color: var(--muted);
   font-weight: 600;
@@ -369,7 +369,7 @@ label + input + label {
   border-radius: 7px;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: 0.9375rem;
   font-weight: 750;
 }
 .workspace-switch div {
@@ -378,10 +378,10 @@ label + input + label {
 }
 .workspace-switch strong {
   display: block;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .workspace-switch small {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .workspace-switch > svg {
@@ -391,7 +391,7 @@ label + input + label {
   margin-bottom: 21px;
 }
 .nav-caption {
-  font-size: 8px;
+  font-size: 0.6875rem;
   font-weight: 750;
   letter-spacing: 0.15em;
   color: #8290a2;
@@ -402,7 +402,7 @@ label + input + label {
   align-items: center;
   gap: 11px;
   padding: 9px 13px;
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 580;
   border-radius: 7px;
   color: #9faec1;
@@ -433,7 +433,7 @@ label + input + label {
 }
 .nav-new {
   margin-left: auto;
-  font-size: 7px;
+  font-size: 0.625rem;
   letter-spacing: 0.06em;
   padding: 1px 5px;
   border-radius: 4px;
@@ -451,12 +451,12 @@ label + input + label {
   margin: 0 4px 14px;
 }
 .local-card strong {
-  font-size: 10px;
+  font-size: 0.8125rem;
   margin-left: 8px;
   color: #c4e7d4;
 }
 .local-card p {
-  font-size: 9px;
+  font-size: 0.75rem;
   margin: 5px 0 0 14px;
 }
 .operator {
@@ -475,7 +475,7 @@ label + input + label {
   border-radius: 50%;
   background: #30303f;
   color: #d0c9ec;
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 750;
 }
 .operator div:nth-child(2) {
@@ -483,11 +483,11 @@ label + input + label {
   line-height: 1.5;
 }
 .operator strong {
-  font-size: 11px;
+  font-size: 0.875rem;
   display: block;
 }
 .operator small {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .main-shell {
@@ -512,7 +512,7 @@ label + input + label {
   display: flex;
   align-items: center;
   gap: 11px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .breadcrumb strong {
@@ -530,19 +530,19 @@ label + input + label {
   gap: 9px;
   background: none;
   border: 0;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .command-button kbd {
   margin-left: 18px;
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .private-pill {
   display: flex;
   align-items: center;
   gap: 5px;
   color: var(--mint);
-  font-size: 8px;
+  font-size: 0.6875rem;
   letter-spacing: 0.12em;
   font-weight: 700;
 }
@@ -571,7 +571,7 @@ label + input + label {
   margin-bottom: 10px;
 }
 .page-title p {
-  font-size: 12px;
+  font-size: 0.9375rem;
   margin: 0;
   line-height: 1.8;
 }
@@ -602,7 +602,7 @@ label + input + label {
 .hero-copy .tag {
   border-color: #33483c;
   color: #b4ddc7;
-  font-size: 8px;
+  font-size: 0.6875rem;
   padding: 5px 8px;
   margin-bottom: 21px;
 }
@@ -616,7 +616,7 @@ label + input + label {
   color: #a2b6b0;
 }
 .hero-copy p {
-  font-size: 11px;
+  font-size: 0.875rem;
   line-height: 1.8;
 }
 .hero-actions {
@@ -630,7 +630,7 @@ label + input + label {
   align-items: center;
   gap: 7px;
   color: #a8b6ae;
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .hero-foot > span {
   margin: 0 7px;
@@ -742,7 +742,7 @@ label + input + label {
   right: 0;
   text-align: center;
   font-family: "JetBrains Mono Variable", monospace;
-  font-size: 8px;
+  font-size: 0.6875rem;
   letter-spacing: 0.18em;
   color: #7daca0;
 }
@@ -790,7 +790,7 @@ label + input + label {
 }
 .small-orbit .orbit-caption {
   bottom: 4%;
-  font-size: 7px;
+  font-size: 0.625rem;
 }
 @keyframes float {
   50% {
@@ -815,7 +815,7 @@ label + input + label {
   justify-content: space-between;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .stat-card > div svg {
@@ -830,7 +830,7 @@ label + input + label {
   color: var(--text);
 }
 .stat-card > small {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: #a1adbc;
 }
 .dashboard-grid {
@@ -862,7 +862,7 @@ label + input + label {
   min-height: 64px;
 }
 .panel-heading h2 {
-  font-size: 13px;
+  font-size: 1rem;
   letter-spacing: -0.02em;
   margin: 0;
 }
@@ -870,7 +870,7 @@ label + input + label {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .panel-heading > svg {
@@ -888,19 +888,19 @@ label + input + label {
   gap: 10px;
   align-items: center;
   padding: 10px 0;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .service-list small {
   margin-left: auto;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  font-size: 9px;
+  font-size: 0.75rem;
   line-height: 1.6;
   border-radius: 5px;
   background: #26313d;
@@ -988,7 +988,7 @@ label + input + label {
   gap: 5px;
 }
 .analysis-name strong {
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -996,7 +996,7 @@ label + input + label {
   color: var(--text);
 }
 .analysis-name small {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .analysis-row > svg {
@@ -1028,7 +1028,7 @@ label + input + label {
   text-align: center;
   left: 0;
   right: 0;
-  font-size: 8px;
+  font-size: 0.6875rem;
   color: var(--muted);
 }
 .quick-links {
@@ -1055,12 +1055,12 @@ label + input + label {
 }
 .quick-links strong {
   display: block;
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 .quick-links span {
   display: block;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
   margin-top: 3px;
 }
@@ -1072,7 +1072,7 @@ label + input + label {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: #8593a5;
   margin-top: auto;
 }
@@ -1098,7 +1098,7 @@ label + input + label {
 }
 .loading {
   gap: 14px;
-  font-size: 12px;
+  font-size: 0.9375rem;
   color: var(--muted);
 }
 .empty-icon {
@@ -1114,10 +1114,10 @@ label + input + label {
 }
 .empty h3 {
   margin: 0 0 9px;
-  font-size: 15px;
+  font-size: 1.125rem;
 }
 .empty p {
-  font-size: 11px;
+  font-size: 0.875rem;
   max-width: 360px;
   margin: 0 0 19px;
 }
@@ -1131,11 +1131,11 @@ label + input + label {
   color: #f0b2bc;
   padding: 17px;
   margin: 18px 0;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .error-box p {
   color: #efc5cc;
-  font-size: 11px;
+  font-size: 0.875rem;
   margin: 6px 0 0;
 }
 .error-box button {
@@ -1172,7 +1172,7 @@ label + input + label {
 }
 .search-input input {
   padding-left: 37px;
-  font-size: 12px;
+  font-size: 0.9375rem;
   min-width: 0;
 }
 .standalone {
@@ -1187,7 +1187,7 @@ label + input + label {
   justify-content: flex-end;
   gap: 17px;
   padding: 15px 22px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .form-grid {
@@ -1212,7 +1212,7 @@ label + input + label {
   display: flex;
   justify-content: space-between;
   gap: 15px;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
   margin-top: 9px;
 }
@@ -1228,7 +1228,7 @@ label + input + label {
   margin-bottom: 18px;
 }
 .instruction-card p {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .numbered-steps {
   list-style: none;
@@ -1254,7 +1254,7 @@ label + input + label {
   height: 22px;
   border: 1px solid var(--border);
   border-radius: 50%;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--mint);
   display: grid;
   place-items: center;
@@ -1272,14 +1272,14 @@ label + input + label {
   display: none;
 }
 .numbered-steps strong {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .numbered-steps p {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin: 4px 0 0;
 }
 .hint {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
   line-height: 1.8;
 }
@@ -1292,7 +1292,7 @@ label + input + label {
   align-items: center;
   gap: 7px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.875rem;
   margin-bottom: 22px;
 }
 .back-link:hover {
@@ -1316,11 +1316,11 @@ label + input + label {
 }
 .approval-banner strong,
 .running-banner strong {
-  font-size: 13px;
+  font-size: 1rem;
 }
 .approval-banner p,
 .running-banner p {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin: 5px 0 0;
   color: #c9bda6;
 }
@@ -1341,14 +1341,14 @@ label + input + label {
   padding: 25px;
 }
 .diagnostic-content h3 {
-  font-size: 11px;
+  font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
   margin: 0 0 12px;
 }
 .diagnostic-cause {
-  font-size: 16px;
+  font-size: 1.125rem;
   color: var(--text);
   line-height: 1.8;
 }
@@ -1365,14 +1365,14 @@ label + input + label {
 }
 .source-card small {
   display: block;
-  font-size: 8px;
+  font-size: 0.6875rem;
   letter-spacing: 0.1em;
   color: var(--muted);
   margin-bottom: 5px;
 }
 .source-card a,
 .source-card strong {
-  font-size: 11px;
+  font-size: 0.875rem;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1390,7 +1390,7 @@ label + input + label {
   padding: 17px 0;
 }
 .actions-list > li > span {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--mint);
   font-family: "JetBrains Mono Variable", monospace;
   padding-top: 3px;
@@ -1404,16 +1404,16 @@ label + input + label {
   border: 1px solid #34473c;
   border-radius: 8px;
   margin: 20px 0;
-  font-size: 11px;
+  font-size: 0.875rem;
   color: #b5cbbd;
 }
 .notice strong {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: #d9e6dc;
 }
 .notice p {
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .notice ul {
   padding-left: 17px;
@@ -1435,7 +1435,7 @@ label + input + label {
   gap: 6px;
   white-space: nowrap;
   color: var(--mint);
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .timeline {
   padding: 24px;
@@ -1471,13 +1471,13 @@ label + input + label {
   border-radius: 50%;
 }
 .timeline strong {
-  font-size: 10px;
+  font-size: 0.8125rem;
   display: block;
   font-weight: 600;
 }
 .timeline small {
   display: block;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -1485,14 +1485,14 @@ label + input + label {
   padding: 22px;
 }
 .metadata h2 {
-  font-size: 13px;
+  font-size: 1rem;
 }
 .metadata dl,
 .settings-panel dl {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 14px 12px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   margin: 23px 0;
 }
 .metadata dt,
@@ -1513,23 +1513,23 @@ label + input + label {
   background: #2c231d;
 }
 .warning-panel h2 {
-  font-size: 14px;
+  font-size: 1.0625rem;
 }
 .warning-panel p,
 .warning-panel li {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .disclosure summary {
   padding: 19px 23px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .disclosure summary span {
   float: right;
   color: var(--muted);
 }
 .disclosure ul {
-  font-size: 11px;
+  font-size: 0.875rem;
   padding: 0 25px 20px 40px;
   color: var(--muted);
 }
@@ -1564,13 +1564,13 @@ dialog::backdrop {
 }
 .modal-head + p,
 dialog > p {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .checkbox-label {
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  font-size: 12px;
+  font-size: 0.9375rem;
   line-height: 1.7;
   padding: 15px;
   border: 1px solid var(--border);
@@ -1593,7 +1593,7 @@ dialog > p {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 12px;
+  font-size: 0.9375rem;
   z-index: 100;
   box-shadow: var(--shadow);
 }
@@ -1625,7 +1625,7 @@ dialog > p {
   border-bottom: 1px solid var(--border);
   background: none;
   padding: 13px 10px;
-  font-size: 12px;
+  font-size: 0.9375rem;
   text-align: left;
 }
 .palette-results button > svg:last-child {
@@ -1662,12 +1662,12 @@ dialog > p {
   gap: 10px;
 }
 .runbook-card h2 {
-  font-size: 17px;
+  font-size: 1.1875rem;
   margin-bottom: 10px;
   line-height: 1.4;
 }
 .runbook-card p {
-  font-size: 11px;
+  font-size: 0.875rem;
   line-height: 1.8;
   flex: 1;
 }
@@ -1679,11 +1679,11 @@ dialog > p {
   border-top: 1px solid var(--border);
   padding-top: 16px;
   margin-top: 16px;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .runbook-card-foot .mono {
-  font-size: 8px;
+  font-size: 0.6875rem;
   overflow-wrap: anywhere;
 }
 .editor-panel {
@@ -1695,11 +1695,11 @@ dialog > p {
 }
 .code-editor {
   font-family: "JetBrains Mono Variable", monospace;
-  font-size: 12px;
+  font-size: 0.9375rem;
   min-height: 440px;
 }
 .markdown {
-  font-size: 12px;
+  font-size: 0.9375rem;
   color: var(--muted);
   line-height: 1.9;
   overflow-wrap: anywhere;
@@ -1714,7 +1714,7 @@ dialog > p {
 }
 .markdown h3 {
   margin-top: 20px;
-  font-size: 15px;
+  font-size: 1.125rem;
 }
 .markdown a {
   color: var(--mint);
@@ -1734,7 +1734,7 @@ dialog > p {
   border-radius: 8px;
 }
 .markdown pre code {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .markdown :not(pre) > code {
   background: #ffffff07;
@@ -1780,7 +1780,7 @@ dialog > p {
   background: none;
   color: var(--muted);
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 0.875rem;
   padding: 8px 13px;
 }
 .segmented .selected {
@@ -1812,10 +1812,10 @@ dialog > p {
   margin: 0;
 }
 .service-card h2 {
-  font-size: 18px;
+  font-size: 1.25rem;
 }
 .service-card p {
-  font-size: 10px;
+  font-size: 0.8125rem;
   display: flex;
   justify-content: space-between;
   gap: 5px;
@@ -1837,11 +1837,11 @@ dialog > p {
   border: 0;
 }
 .model-list strong {
-  font-size: 11px;
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 .model-list small {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
   margin-left: auto;
   white-space: nowrap;
@@ -1852,7 +1852,7 @@ dialog > p {
   line-height: 1.8;
 }
 .big-number small {
-  font-size: 12px;
+  font-size: 0.9375rem;
   color: var(--muted);
   margin-left: 10px;
 }
@@ -1865,7 +1865,7 @@ dialog > p {
   gap: 15px;
   padding: 18px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .targets > div:last-child {
   border-bottom: 0;
@@ -1879,7 +1879,7 @@ dialog > p {
 .targets small {
   margin-left: auto;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .audit-list {
   padding: 0 22px;
@@ -1904,17 +1904,17 @@ dialog > p {
   color: var(--muted);
 }
 .audit-list strong {
-  font-size: 10px;
+  font-size: 0.8125rem;
   display: block;
   font-weight: 550;
 }
 .audit-list small {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .audit-list time {
   margin-left: auto;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .operations-grid {
@@ -1928,7 +1928,7 @@ dialog > p {
   margin-top: 22px;
 }
 .operation-card p {
-  font-size: 12px;
+  font-size: 0.9375rem;
   max-width: 380px;
   min-height: 44px;
 }
@@ -1945,16 +1945,16 @@ dialog > p {
   position: relative;
 }
 .agent-card h2 {
-  font-size: 17px;
+  font-size: 1.1875rem;
   margin-top: 22px;
   margin-bottom: 7px;
 }
 .agent-card strong {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--text);
 }
 .agent-card p {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin-top: 9px;
   min-height: 75px;
 }
@@ -1963,7 +1963,7 @@ dialog > p {
   right: 20px;
   top: 18px;
   font-family: "JetBrains Mono Variable", monospace;
-  font-size: 11px;
+  font-size: 0.875rem;
   color: #617485;
 }
 .tools-grid {
@@ -1980,11 +1980,11 @@ dialog > p {
 }
 .tools-grid strong {
   font-family: "JetBrains Mono Variable", monospace;
-  font-size: 11px;
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 .tools-grid p {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin: 6px 0;
 }
 .settings-panel {
@@ -1994,10 +1994,10 @@ dialog > p {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 17px;
+  font-size: 1.1875rem;
 }
 .settings-panel p {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .settings-panel form {
   margin-top: 23px;
@@ -2021,10 +2021,10 @@ dialog > p {
   border: 1px solid var(--border);
   border-radius: 7px;
   color: var(--mint);
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .cli-examples span {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .skip-link {
@@ -2067,7 +2067,7 @@ dialog > p {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .landing-main {
@@ -2086,7 +2086,7 @@ dialog > p {
   flex: 1;
 }
 .landing-copy > .eyebrow {
-  font-size: 9px;
+  font-size: 0.75rem;
   margin-bottom: 27px;
 }
 .landing h1 {
@@ -2102,7 +2102,7 @@ dialog > p {
   background-clip: text;
 }
 .landing-lead {
-  font-size: 14px;
+  font-size: 1.0625rem;
   line-height: 1.9;
   max-width: 430px;
 }
@@ -2110,7 +2110,7 @@ dialog > p {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
-  font-size: 9px;
+  font-size: 0.75rem;
   margin: 27px 0 34px;
   color: #afc1b8;
 }
@@ -2127,10 +2127,10 @@ dialog > p {
   padding: 23px;
 }
 .login-card strong {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .login-card p {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin: 8px 0 14px;
 }
 .command-line {
@@ -2144,10 +2144,10 @@ dialog > p {
   color: var(--mint);
 }
 .command-line code {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .login-card .text-button {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
   margin-top: 8px;
 }
@@ -2157,7 +2157,7 @@ dialog > p {
 }
 .login-row input {
   min-width: 0;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .landing-footer {
   display: flex;
@@ -2165,7 +2165,7 @@ dialog > p {
   justify-content: space-between;
   border-top: 1px solid var(--border);
   padding: 25px 0;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
   gap: 20px;
 }
@@ -2224,7 +2224,7 @@ dialog > p {
   font-size: 24px;
 }
 .chat-welcome p {
-  font-size: 12px;
+  font-size: 0.9375rem;
   max-width: 360px;
   margin: 0 auto 20px;
 }
@@ -2239,7 +2239,7 @@ dialog > p {
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 8px 12px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .chat-suggestions button:hover {
@@ -2260,7 +2260,7 @@ dialog > p {
   place-items: center;
   color: var(--mint);
   flex-shrink: 0;
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .chat-message.user .message-avatar {
   background: #2d2943;
@@ -2271,12 +2271,12 @@ dialog > p {
   flex: 1;
 }
 .message-body > strong {
-  font-size: 10px;
+  font-size: 0.8125rem;
   display: block;
   margin: 3px 0 8px;
 }
 .message-body > p {
-  font-size: 12px;
+  font-size: 0.9375rem;
   white-space: pre-wrap;
   color: var(--text);
 }
@@ -2292,7 +2292,7 @@ dialog > p {
   border: 0;
   background: none;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 0.75rem;
   display: flex;
   gap: 5px;
   align-items: center;
@@ -2305,7 +2305,7 @@ dialog > p {
 .chat-compose textarea {
   min-height: 80px;
   max-height: 170px;
-  font-size: 12px;
+  font-size: 0.9375rem;
   resize: vertical;
 }
 .compose-actions {
@@ -2321,7 +2321,7 @@ dialog > p {
   align-items: center;
 }
 .compose-actions .hint {
-  font-size: 9px;
+  font-size: 0.75rem;
   margin: 0;
 }
 .recording-button {
@@ -2332,7 +2332,7 @@ dialog > p {
 .voice-state {
   padding: 16px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 11px;
+  font-size: 0.875rem;
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -2344,13 +2344,13 @@ dialog > p {
   color: var(--muted);
 }
 .voice-aside .checkbox-label {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .voice-aside .instruction-card h2 {
-  font-size: 17px;
+  font-size: 1.1875rem;
 }
 .voice-aside .instruction-card p {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .chat-panel .error-box {
   margin: 0 18px 12px;
@@ -2359,7 +2359,7 @@ dialog > p {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--purple);
   padding: 0 25px 12px;
 }
@@ -2367,7 +2367,7 @@ dialog > p {
   padding: 20px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 @keyframes voice-pulse {
@@ -2499,7 +2499,7 @@ dialog > p {
     font-size: 34px;
   }
   .hero-copy p {
-    font-size: 13px;
+    font-size: 1rem;
   }
   .stat-card {
     padding: 22px;
@@ -2508,10 +2508,10 @@ dialog > p {
     padding: 22px 0;
   }
   .nav-link {
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .nav-caption {
-    font-size: 9px;
+    font-size: 0.75rem;
   }
 }
 @media (max-width: 1250px) {
@@ -2523,7 +2523,7 @@ dialog > p {
     padding-right: 12px;
   }
   .brand {
-    font-size: 18px;
+    font-size: 1.25rem;
   }
   .content {
     padding: 29px 25px 0;
@@ -2548,13 +2548,13 @@ dialog > p {
     gap: 17px;
   }
   .hero-actions .text-button {
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .stat-card {
     padding: 15px;
   }
   .stat-card > div {
-    font-size: 9px;
+    font-size: 0.75rem;
   }
   .stat-card > div svg {
     width: 15px;
@@ -2622,7 +2622,7 @@ dialog > p {
     margin-left: 8px;
   }
   .brand {
-    font-size: 16px;
+    font-size: 1.125rem;
   }
   .brand-icon {
     width: 31px;
@@ -2630,22 +2630,22 @@ dialog > p {
     border-radius: 9px;
   }
   .brand-sub {
-    font-size: 6px;
+    font-size: 0.625rem;
   }
   .nav-link {
-    font-size: 10px;
+    font-size: 0.8125rem;
     gap: 8px;
     padding: 9px;
   }
   .nav-caption {
-    font-size: 7px;
+    font-size: 0.625rem;
   }
   .workspace-switch {
     padding: 8px;
     gap: 7px;
   }
   .workspace-switch strong {
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .workspace-switch > svg {
     display: none;
@@ -2675,7 +2675,7 @@ dialog > p {
     display: none;
   }
   .stat-card > small {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -2687,10 +2687,10 @@ dialog > p {
     font-size: 25px;
   }
   .page-title p {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .title-actions > .btn {
-    font-size: 10px;
+    font-size: 0.8125rem;
     padding: 9px 12px;
   }
   .form-grid {
@@ -2735,16 +2735,16 @@ dialog > p {
   }
   .landing-tags {
     gap: 15px;
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .landing-lead {
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .targets small {
     display: none;
   }
   .breadcrumb strong {
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .command-button span {
     display: none;
@@ -2796,10 +2796,10 @@ dialog > p {
     font-size: 28px;
   }
   .page-title .eyebrow {
-    font-size: 9px;
+    font-size: 0.75rem;
   }
   .page-title p {
-    font-size: 12px;
+    font-size: 0.9375rem;
     max-width: 500px;
   }
   .title-actions {
@@ -2808,7 +2808,7 @@ dialog > p {
     width: 100%;
   }
   .title-actions > .btn {
-    font-size: 12px;
+    font-size: 0.9375rem;
     padding: 10px 14px;
   }
   .hero-copy {
@@ -2819,7 +2819,7 @@ dialog > p {
   }
   .hero-copy p {
     max-width: 85%;
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .small-orbit {
     right: -50px;
@@ -2827,7 +2827,7 @@ dialog > p {
     opacity: 0.26;
   }
   .hero-foot {
-    font-size: 8px;
+    font-size: 0.6875rem;
     gap: 5px;
     flex-wrap: wrap;
   }
@@ -2846,20 +2846,20 @@ dialog > p {
     padding: 17px;
   }
   .stat-card > div {
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .stat-card > div svg {
     display: block;
   }
   .stat-card > small {
-    font-size: 9px;
+    font-size: 0.75rem;
   }
   .stat-card > strong {
     font-size: 30px;
   }
   .panel-heading {
     padding: 18px;
-    font-size: 12px;
+    font-size: 0.9375rem;
     gap: 10px;
   }
   .analysis-row {
@@ -2868,16 +2868,16 @@ dialog > p {
     gap: 10px;
   }
   .analysis-name strong {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .analysis-row > svg {
     display: none;
   }
   .analysis-name small {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .analysis-row .badge {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .analysis-icon {
     width: 31px;
@@ -2885,7 +2885,7 @@ dialog > p {
   }
   .app-footer {
     flex-direction: column;
-    font-size: 8px;
+    font-size: 0.6875rem;
     gap: 8px;
   }
   .toolbar {
@@ -2898,7 +2898,7 @@ dialog > p {
     min-width: 170px;
   }
   .toolbar select {
-    font-size: 10px;
+    font-size: 0.8125rem;
     max-width: 45%;
   }
   .toolbar > .muted {
@@ -2931,7 +2931,7 @@ dialog > p {
     padding: 20px;
   }
   .diagnostic-cause {
-    font-size: 14px;
+    font-size: 1.0625rem;
   }
   .diagnostic-panel .panel-heading {
     flex-wrap: wrap;
@@ -2963,13 +2963,13 @@ dialog > p {
     top: 14px;
   }
   .agent-card h2 {
-    font-size: 15px;
+    font-size: 1.125rem;
   }
   .agent-card strong {
-    font-size: 9px;
+    font-size: 0.75rem;
   }
   .agent-card p {
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .inline-notice {
     align-items: flex-start;
@@ -3000,14 +3000,14 @@ dialog > p {
   }
   .segmented button {
     padding: 8px 10px;
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .targets {
     padding: 0 18px;
   }
   .targets > div {
     gap: 10px;
-    font-size: 10px;
+    font-size: 0.8125rem;
     flex-wrap: wrap;
   }
   .targets strong {
@@ -3018,21 +3018,21 @@ dialog > p {
     display: none;
   }
   .targets span:not(.health-dot) {
-    font-size: 9px;
+    font-size: 0.75rem;
   }
   .audit-list {
     padding: 0 17px;
   }
   .audit-list time {
-    font-size: 8px;
+    font-size: 0.6875rem;
     max-width: 80px;
     text-align: right;
   }
   .audit-list strong {
-    font-size: 9px;
+    font-size: 0.75rem;
   }
   .audit-list small {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .settings-panel {
     padding: 22px;
@@ -3043,7 +3043,7 @@ dialog > p {
   }
   .cli-examples span {
     margin-bottom: 12px;
-    font-size: 10px;
+    font-size: 0.8125rem;
   }
   .voice-aside {
     display: block;
@@ -3081,7 +3081,7 @@ dialog > p {
     font-size: 21px;
   }
   .private-label {
-    font-size: 8px;
+    font-size: 0.6875rem;
     max-width: 85px;
     line-height: 1.7;
   }
@@ -3109,14 +3109,14 @@ dialog > p {
     font-size: clamp(44px, 10vw, 62px);
   }
   .landing-copy > .eyebrow {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .landing-lead {
-    font-size: 13px;
+    font-size: 1rem;
     max-width: 390px;
   }
   .landing-tags {
-    font-size: 9px;
+    font-size: 0.75rem;
     gap: 15px;
   }
   .login-card {
@@ -3126,7 +3126,7 @@ dialog > p {
   }
   .landing-footer {
     align-items: flex-start;
-    font-size: 7px;
+    font-size: 0.625rem;
     gap: 10px;
   }
   .landing-footer > span:first-child {
@@ -3141,12 +3141,12 @@ dialog > p {
     display: none;
   }
   .mobile-nav .nav-link {
-    font-size: 13px;
+    font-size: 1rem;
     padding: 10px 12px;
     min-height: 42px;
   }
   .mobile-nav .nav-caption {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .mobile-nav .nav-group {
     margin-bottom: 16px;
@@ -3158,7 +3158,7 @@ dialog > p {
     display: none;
   }
   .mobile-nav .sidebar-bottom > .nav-link {
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .skip-link {
     left: 15px;
@@ -3169,7 +3169,7 @@ dialog > p {
   .toast {
     bottom: 15px;
     right: 15px;
-    font-size: 11px;
+    font-size: 0.875rem;
     padding: 15px;
   }
   .pagination {

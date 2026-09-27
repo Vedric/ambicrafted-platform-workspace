@@ -10,7 +10,7 @@
   --mint-bg: #143640;
   --purple: #c0b8fa;
   --amber: #e9b783;
-  --sidebar: 246px;
+  --sidebar: 276px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   color: var(--text);
   background: var(--bg);
@@ -102,7 +102,7 @@ select:focus {
 .brand-sub {
   letter-spacing: 0.22em;
   margin-top: 4px;
-  font-size: 7px;
+  font-size: 0.625rem;
   color: var(--muted);
 }
 .workspace-switch {
@@ -118,7 +118,7 @@ select:focus {
 }
 .nav-caption {
   font-family: "JetBrains Mono Variable", monospace;
-  font-size: 8px;
+  font-size: 0.6875rem;
   letter-spacing: 0.17em;
   color: var(--muted);
 }
@@ -130,7 +130,7 @@ select:focus {
   isolation: isolate;
   border-radius: 6px;
   min-height: 39px;
-  font-size: 11px;
+  font-size: 0.875rem;
   margin-bottom: 3px;
 }
 .nav-link > :not(.nav-active-plate) {
@@ -164,7 +164,7 @@ select:focus {
   box-shadow: 0 0 10px #75e2ff88;
 }
 .nav-new {
-  font-size: 6px;
+  font-size: 0.625rem;
   letter-spacing: 0.1em;
   color: var(--mint);
   border-color: #6cd9ec36;
@@ -184,12 +184,12 @@ select:focus {
 }
 .local-card strong {
   margin-left: 5px;
-  font-size: 7px;
+  font-size: 0.625rem;
   letter-spacing: 0.07em;
 }
 .local-card p {
   margin-left: 0;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .operator-avatar {
@@ -243,14 +243,14 @@ select:focus {
   letter-spacing: -0.055em;
 }
 .page-title p {
-  font-size: 12px;
+  font-size: 0.9375rem;
   max-width: 700px;
 }
 .eyebrow {
   font-family: "JetBrains Mono Variable", monospace;
   color: var(--mint);
   letter-spacing: 0.16em;
-  font-size: 8px;
+  font-size: 0.6875rem;
 }
 .panel,
 .stat-card,
@@ -264,12 +264,12 @@ select:focus {
   padding: 22px 24px;
 }
 .panel-heading h2 {
-  font-size: 14px;
+  font-size: 1.0625rem;
   letter-spacing: -0.025em;
   font-weight: 600;
 }
 .panel-heading > a {
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .hero-panel {
   position: relative;
@@ -330,7 +330,7 @@ select:focus {
   color: #b1e8f2;
   border-color: #5292a74d;
   border-radius: 4px;
-  font-size: 7px;
+  font-size: 0.625rem;
   letter-spacing: 0.12em;
   margin-bottom: 24px;
 }
@@ -346,7 +346,7 @@ select:focus {
   color: #98c2d0;
 }
 .hero-copy p {
-  font-size: 12px;
+  font-size: 0.9375rem;
   color: #adc2d1;
   line-height: 1.9;
 }
@@ -360,7 +360,7 @@ select:focus {
 }
 .hero-foot {
   color: #a0c2d0;
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .workspace-telemetry {
   display: flex;
@@ -374,7 +374,7 @@ select:focus {
   margin: -5px 9px 25px;
   color: #a8bfcd;
   font-family: "JetBrains Mono Variable", monospace;
-  font-size: 8px;
+  font-size: 0.6875rem;
 }
 .workspace-telemetry > span,
 .workspace-telemetry > a {
@@ -423,7 +423,7 @@ select:focus {
   );
 }
 .stat-card > div {
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .stat-card > div svg {
   color: var(--mint);
@@ -441,7 +441,7 @@ select:focus {
   font-variant-numeric: tabular-nums;
 }
 .stat-card > small {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .mission-ribbon {
@@ -461,7 +461,7 @@ select:focus {
 }
 .mission-ribbon strong {
   display: block;
-  font-size: 12px;
+  font-size: 0.9375rem;
   font-weight: 500;
   margin-top: 5px;
 }
@@ -469,7 +469,7 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 18px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   padding: 9px 12px;
   border: 1px solid #365264;
   border-radius: 5px;
@@ -501,19 +501,19 @@ select:focus {
 }
 .analysis-name strong {
   font-weight: 550;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .analysis-name small {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .badge {
-  font-size: 9px;
+  font-size: 0.75rem;
   letter-spacing: 0.01em;
   border-radius: 5px;
 }
 .service-list > div {
   padding: 12px 0;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .health-dot.healthy,
 .live-dot {
@@ -533,22 +533,22 @@ select:focus {
   transform: translateX(3px);
 }
 .quick-links strong {
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .quick-links span {
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .app-footer {
   margin-top: 35px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .form-panel,
 .instruction-card {
   padding: 27px;
 }
 .form-panel > label {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .form-panel > label span {
   color: var(--muted);
@@ -595,7 +595,7 @@ select:focus {
   background: #11232e;
 }
 .runbook-card h2 {
-  font-size: 16px;
+  font-size: 1.125rem;
   font-weight: 550;
 }
 .runbook-card p {
@@ -627,7 +627,7 @@ select:focus {
 }
 .service-card h2,
 .operation-card h2 {
-  font-size: 16px;
+  font-size: 1.125rem;
 }
 .big-number {
   font-variant-numeric: tabular-nums;
@@ -670,7 +670,7 @@ select:focus {
   color: var(--mint);
 }
 .agent-card h2 {
-  font-size: 18px;
+  font-size: 1.25rem;
 }
 .agent-card p {
   line-height: 1.8;
@@ -684,7 +684,7 @@ select:focus {
 .tools-grid strong {
   color: var(--mint);
   font-family: "JetBrains Mono Variable", monospace;
-  font-size: 11px;
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 .cli-examples code {
@@ -696,7 +696,7 @@ select:focus {
   padding: 28px;
 }
 .settings-panel h2 {
-  font-size: 18px;
+  font-size: 1.25rem;
 }
 .empty {
   min-height: 240px;
@@ -858,7 +858,7 @@ dialog::backdrop {
 .core-cross {
   position: absolute;
   font:
-    14px "JetBrains Mono Variable",
+    1.0625rem "JetBrains Mono Variable",
     monospace;
   color: #bde4ef6b;
 }
@@ -882,18 +882,18 @@ dialog::backdrop {
 }
 .core-label-top {
   top: 3%;
-  font-size: 6px;
+  font-size: 0.625rem;
   line-height: 1.9;
 }
 .core-label-top b {
   display: block;
-  font-size: 8px;
+  font-size: 0.6875rem;
   font-weight: 400;
   color: #b4dbe9;
 }
 .core-label-bottom {
   bottom: 4%;
-  font-size: 7px;
+  font-size: 0.625rem;
   color: #a4d3df;
 }
 .core-label-bottom i {
@@ -962,7 +962,7 @@ dialog::backdrop {
 }
 .private-label {
   font:
-    9px "JetBrains Mono Variable",
+    0.75rem "JetBrains Mono Variable",
     monospace;
   letter-spacing: 0.12em;
   color: #9bbaca;
@@ -985,7 +985,7 @@ dialog::backdrop {
   max-width: 650px;
 }
 .landing-copy > .eyebrow {
-  font-size: 8px;
+  font-size: 0.6875rem;
   letter-spacing: 0.17em;
   margin-bottom: 28px;
   color: #a4d8e8;
@@ -1012,14 +1012,14 @@ dialog::backdrop {
   margin-top: 12px;
 }
 .landing-lead {
-  font-size: 13px;
+  font-size: 1rem;
   line-height: 1.9;
   color: #a8bdce;
   max-width: 445px;
 }
 .landing-tags {
   color: #bfd6e0;
-  font-size: 9px;
+  font-size: 0.75rem;
   gap: 24px;
   margin: 27px 0;
 }
@@ -1036,11 +1036,11 @@ dialog::backdrop {
 }
 .login-card strong {
   color: #e4f1f7;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .login-card p {
   color: #afc1cf;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .command-line {
   background: #07131d;
@@ -1051,7 +1051,7 @@ dialog::backdrop {
 }
 .login-card .text-button {
   color: #aad7e4;
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .landing .orbit {
   width: min(43vw, 585px);
@@ -1080,18 +1080,18 @@ dialog::backdrop {
 }
 .landing-principles > div > span {
   font:
-    9px "JetBrains Mono Variable",
+    0.75rem "JetBrains Mono Variable",
     monospace;
   color: #8fc3d4;
   padding-top: 4px;
 }
 .landing-principles strong {
-  font-size: 12px;
+  font-size: 0.9375rem;
   font-weight: 500;
   color: #dceff8;
 }
 .landing-principles p {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: #9cb2c2;
   margin: 6px 0 0;
   max-width: 250px;
@@ -1106,7 +1106,7 @@ dialog::backdrop {
   margin: auto;
   padding: 23px 0 32px;
   font:
-    8px "JetBrains Mono Variable",
+    0.6875rem "JetBrains Mono Variable",
     monospace;
   color: #9bb3c4;
   letter-spacing: 0.06em;
@@ -1137,7 +1137,7 @@ dialog::backdrop {
 }
 .section-heading h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 1.125rem;
 }
 .section-heading .search-input {
   width: 300px;
@@ -1155,7 +1155,7 @@ dialog::backdrop {
 }
 .mission-intro .tag {
   border-radius: 4px;
-  font-size: 8px;
+  font-size: 0.6875rem;
   gap: 8px;
 }
 .mission-intro h2 {
@@ -1168,7 +1168,7 @@ dialog::backdrop {
   color: var(--mint);
 }
 .mission-intro p {
-  font-size: 12px;
+  font-size: 0.9375rem;
   max-width: 450px;
 }
 .mission-intro .text-button {
@@ -1201,19 +1201,19 @@ dialog::backdrop {
 }
 .mission-sequence li > span {
   font:
-    10px "JetBrains Mono Variable",
+    0.8125rem "JetBrains Mono Variable",
     monospace;
   color: var(--mint);
 }
 .mission-sequence strong {
   display: block;
-  font-size: 12px;
+  font-size: 0.9375rem;
   font-weight: 500;
 }
 .mission-sequence small {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
   margin-top: 3px;
 }
 .mission-sequence svg {
@@ -1259,12 +1259,12 @@ dialog::backdrop {
   gap: 10px;
   color: var(--muted);
   font:
-    7px "JetBrains Mono Variable",
+    0.625rem "JetBrains Mono Variable",
     monospace;
   letter-spacing: 0.08em;
 }
 .mission-top b {
-  font-size: 10px;
+  font-size: 0.8125rem;
   font-weight: 400;
   color: var(--mint);
 }
@@ -1279,12 +1279,12 @@ dialog::backdrop {
   color: var(--amber);
 }
 .mission-card h3 {
-  font-size: 16px;
+  font-size: 1.125rem;
   font-weight: 550;
   line-height: 1.4;
 }
 .mission-card p {
-  font-size: 11px;
+  font-size: 0.875rem;
   line-height: 1.85;
   flex: 1;
 }
@@ -1295,7 +1295,7 @@ dialog::backdrop {
   padding-top: 17px;
   border-top: 1px solid var(--border);
   margin-top: 17px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: var(--mint);
 }
 .mission-links {
@@ -1323,12 +1323,12 @@ dialog::backdrop {
 }
 .mission-links strong {
   display: block;
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 550;
 }
 .mission-links span {
   display: block;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
   margin-top: 5px;
 }
@@ -1341,18 +1341,18 @@ dialog::backdrop {
 }
 .mission-brief > span {
   font:
-    8px "JetBrains Mono Variable",
+    0.6875rem "JetBrains Mono Variable",
     monospace;
   color: var(--mint);
   letter-spacing: 0.12em;
 }
 .mission-brief strong {
   margin-left: 18px;
-  font-size: 13px;
+  font-size: 1rem;
 }
 .mission-brief p {
   margin: 7px 0 0;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .readiness-hero {
   display: flex;
@@ -1366,7 +1366,7 @@ dialog::backdrop {
   font-size: 23px;
 }
 .readiness-hero p {
-  font-size: 11px;
+  font-size: 0.875rem;
   margin-bottom: 5px;
 }
 .readiness-hero > .btn {
@@ -1407,7 +1407,7 @@ dialog::backdrop {
 .readiness-summary span {
   margin-left: auto;
   color: var(--text);
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .check-pass {
   color: #8ee8d7;
@@ -1436,10 +1436,10 @@ dialog::backdrop {
   display: flex;
   justify-content: space-between;
   gap: 15px;
-  font-size: 13px;
+  font-size: 1rem;
 }
 .readiness-group h3 span {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: var(--muted);
   font-weight: 400;
 }
@@ -1460,18 +1460,18 @@ dialog::backdrop {
 .readiness-check strong {
   display: block;
   color: var(--text);
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 550;
 }
 .readiness-check summary span {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.8125rem;
   margin-top: 3px;
   overflow-wrap: anywhere;
 }
 .readiness-check summary small {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .readiness-check summary::marker {
   display: none;
@@ -1481,12 +1481,12 @@ dialog::backdrop {
   color: var(--text);
 }
 .check-detail p {
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .check-detail pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: 10px;
+  font-size: 0.8125rem;
   background: var(--bg);
   padding: 15px;
   border-radius: 6px;
@@ -1502,23 +1502,23 @@ dialog::backdrop {
   border-radius: 5px;
 }
 .copy-command strong {
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .copy-command code {
   display: block;
   margin-top: 6px;
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .readiness-limits {
   margin-top: 24px;
   padding: 25px;
 }
 .readiness-limits h2 {
-  font-size: 16px;
+  font-size: 1.125rem;
 }
 .readiness-limits li {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.875rem;
   margin-bottom: 8px;
 }
 .client-start {
@@ -1534,7 +1534,7 @@ dialog::backdrop {
   font-weight: 500;
 }
 .client-start p {
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .client-start-footer {
   grid-column: 1 / -1;
@@ -1543,7 +1543,7 @@ dialog::backdrop {
   display: flex;
   align-items: center;
   gap: 15px;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .client-start-footer > span {
   margin-left: auto;
@@ -1555,7 +1555,7 @@ dialog::backdrop {
 .client-start > .hint {
   grid-column: 1 / -1;
   margin: 0;
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 /* Conversation instrument stays visible through every turn. */
 .aura-deck {
@@ -1578,7 +1578,7 @@ dialog::backdrop {
   align-items: center;
   justify-content: space-between;
   font:
-    6px "JetBrains Mono Variable",
+    0.625rem "JetBrains Mono Variable",
     monospace;
   letter-spacing: 0.1em;
   color: #abcad9;
@@ -1602,7 +1602,7 @@ dialog::backdrop {
   margin-top: -8px;
 }
 .aura-identity > .eyebrow {
-  font-size: 6px;
+  font-size: 0.625rem;
 }
 .aura-identity h2 {
   font-size: 38px;
@@ -1617,7 +1617,7 @@ dialog::backdrop {
   margin-left: 10px;
 }
 .aura-identity p {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: #b9d0de;
   min-height: 18px;
 }
@@ -1630,7 +1630,7 @@ dialog::backdrop {
   gap: 10px;
 }
 .aura-mode p {
-  font-size: 10px;
+  font-size: 0.8125rem;
   margin: 1px 0 12px;
   line-height: 1.8;
   width: 100%;
@@ -1641,19 +1641,19 @@ dialog::backdrop {
   padding: 18px 5px 0;
 }
 .aura-controls label {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: #b6d0e0;
   margin: 0 0 8px;
 }
 .aura-controls select {
   width: 100%;
-  font-size: 11px;
+  font-size: 0.875rem;
   color: #e2f3fa;
   background: #102736;
   border-color: #486a7e;
 }
 .aura-controls .voice-state {
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: #e2f3fa;
   padding: 12px 0;
 }
@@ -1692,7 +1692,7 @@ dialog::backdrop {
 .chat-suggestions button {
   padding: 10px 14px;
   border-radius: 5px;
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .chat-suggestions button:hover {
   background: var(--mint-bg);
@@ -1718,17 +1718,17 @@ dialog::backdrop {
   color: var(--mint);
   font-family: "JetBrains Mono Variable", monospace;
   font-weight: 450;
-  font-size: 9px;
+  font-size: 0.75rem;
   letter-spacing: 0.09em;
 }
 .message-body .markdown {
   color: var(--text);
-  font-size: 12px;
+  font-size: 0.9375rem;
   line-height: 1.9;
 }
 .chat-status {
   color: var(--mint);
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .chat-compose {
   background: #0b17205e;
@@ -1738,7 +1738,7 @@ dialog::backdrop {
   border-color: #38556a;
 }
 .field-foot {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .voice-aside {
   display: grid;
@@ -1761,7 +1761,7 @@ dialog::backdrop {
 }
 .voice-disclaimer {
   grid-column: 1 / -1;
-  font-size: 10px;
+  font-size: 0.8125rem;
   padding: 17px;
   background: #ffffff02;
 }
@@ -1948,7 +1948,7 @@ dialog::backdrop {
     gap: 10px;
   }
   .readiness-summary span {
-    font-size: 9px;
+    font-size: 0.75rem;
   }
   .voice-aside {
     grid-template-columns: 1fr;
@@ -2088,7 +2088,7 @@ dialog::backdrop {
     gap: 10px;
   }
   .private-label {
-    font-size: 7px;
+    font-size: 0.625rem;
   }
   .landing-header .brand {
     font-size: 22px;
@@ -2170,14 +2170,14 @@ dialog::backdrop {
     display: none;
   }
   .landing-lead {
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .landing-tags {
     gap: 12px 18px;
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .landing-copy > .eyebrow {
-    font-size: 7px;
+    font-size: 0.625rem;
   }
   .login-card {
     padding: 21px;
@@ -2208,7 +2208,7 @@ dialog::backdrop {
     font-size: 28px;
   }
   .page-title p {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .hero-panel {
     min-height: auto;
@@ -2223,17 +2223,17 @@ dialog::backdrop {
     font-size: 33px;
   }
   .hero-copy p {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .hero-copy .tag {
-    font-size: 6px;
+    font-size: 0.625rem;
   }
   .hero-actions {
     gap: 14px;
     margin-bottom: 18px;
   }
   .hero-foot {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .small-orbit {
     display: block;
@@ -2245,7 +2245,7 @@ dialog::backdrop {
     margin: 3px auto 8px;
   }
   .workspace-telemetry {
-    font-size: 7px;
+    font-size: 0.625rem;
     padding: 15px;
     gap: 12px;
   }
@@ -2256,7 +2256,7 @@ dialog::backdrop {
     padding: 19px;
   }
   .stat-card > div {
-    font-size: 9px;
+    font-size: 0.75rem;
     gap: 7px;
   }
   .stat-card > strong {
@@ -2266,7 +2266,7 @@ dialog::backdrop {
     display: none;
   }
   .stat-card > small {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .mission-ribbon {
     padding: 20px;
@@ -2275,7 +2275,7 @@ dialog::backdrop {
     flex-basis: 100%;
   }
   .mission-ribbon a {
-    font-size: 9px;
+    font-size: 0.75rem;
     gap: 10px;
     padding: 9px;
   }
@@ -2303,7 +2303,7 @@ dialog::backdrop {
     font-size: 19px;
   }
   .mission-card p {
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .mission-intro {
     padding: 25px;
@@ -2340,7 +2340,7 @@ dialog::backdrop {
     gap: 10px;
   }
   .readiness-check summary small {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
   .client-start {
     padding: 23px;
@@ -2396,7 +2396,7 @@ dialog::backdrop {
     padding: 15px;
   }
   .chat-compose textarea {
-    font-size: 12px;
+    font-size: 0.9375rem;
   }
   .compose-actions {
     gap: 7px;
@@ -2424,7 +2424,7 @@ dialog::backdrop {
     padding: 18px;
   }
   .app-footer {
-    font-size: 8px;
+    font-size: 0.6875rem;
   }
 }
 /* No decorative motion in hidden/offscreen contexts or when requested. */
@@ -2489,7 +2489,7 @@ dialog::backdrop {
   stroke: #edba7d;
 }
 .language-selector {
-  font-size: 10px;
+  font-size: 0.8125rem;
   padding: 7px 9px;
   max-width: 140px;
   min-height: 36px;
@@ -2506,7 +2506,7 @@ dialog::backdrop {
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 .landing-marquee {
   margin: 0 calc(-1 * max(6vw, 24px)) 40px;
@@ -2523,7 +2523,7 @@ dialog::backdrop {
   animation: marquee-drift 42s linear infinite;
   color: #92b6c8;
   font:
-    9px "JetBrains Mono Variable",
+    0.75rem "JetBrains Mono Variable",
     monospace;
   letter-spacing: 0.2em;
 }
@@ -2544,8 +2544,8 @@ dialog::backdrop {
 }
 @media (max-width: 600px) {
   .language-selector {
-    max-width: 91px;
-    font-size: 9px;
+    max-width: 112px;
+    font-size: 0.75rem;
     padding: 6px;
   }
   .landing-marquee {
@@ -2560,9 +2560,17 @@ dialog::backdrop {
   }
   .breadcrumb {
     gap: 6px;
+    min-width: 0;
   }
   .breadcrumb strong {
-    font-size: 10px;
+    font-size: 0.8125rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-actions {
+    flex-shrink: 0;
   }
   .topbar-actions .command-button {
     padding: 6px;
@@ -2640,7 +2648,7 @@ dialog::backdrop {
 
 .aura-draft-hint {
   text-align: center;
-  font-size: 10px;
+  font-size: 0.8125rem;
   color: #b9d0de;
   margin: 0 10px 18px;
 }

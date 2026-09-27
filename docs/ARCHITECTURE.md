@@ -4,7 +4,8 @@ The workstation hosts a six-service gateway/observability stack, local Ollama,
 a runbook corpus, two stdio MCP servers, and two implementations of one read-only
 incident-analysis workflow. The shared UI/CLI control API and local speech runtime
 are described in ADR 0010–0015; incident guarantees are in ADR 0009. Older ADRs
-remain historical records.
+remain historical records. [ADR 0017](adr/0017-indicateurs-flux-et-defilement.md)
+specifies the operational charts, interactive map and scroll behavior.
 
 ## Operator workspace and control boundary
 
@@ -16,6 +17,10 @@ defaults to English and persists in browser storage; it changes UI text and
 formatting without translating stored client content or changing voice language.
 Locally served fonts/assets, responsive navigation, a keyboard command menu and
 pausable/reduced motion apply throughout the interface.
+
+The authenticated `/architecture` route adds an explorable guide to those
+components. The overview's charts use the existing control API aggregates;
+neither feature creates a new telemetry collector or expands tool permissions.
 
 Mission templates are editable intake drafts for the same SRE analysis path.
 Selecting one does not submit work, discover client infrastructure, deploy an
@@ -46,6 +51,66 @@ flowchart LR
   Graph --> Gateway[Confidential local gateway aliases]
   Aura --> Gateway
 ```
+
+## Operational charts and interactive map
+
+The overview reads `/api/vue-ensemble`; the architecture page reads `/api/sante`
+for its measured service indicators. Their definitions are deliberately separate:
+
+| View | Data and interpretation |
+| --- | --- |
+| Saved-run activity | Counts of currently retained records by creation date, in UTC; the operator selects the last 7 or 14 days. Analyses and maintenance operations are both included. |
+| Run states | Current retained records grouped into disjoint states: in progress, human review, completed, rejected, stopped, failed and any unknown future states. This distribution is not filtered by the activity-period selector. |
+| Service response | Latest measured HTTP probe durations and explicit probe failures, refreshed approximately every 15 seconds while the page is active. The displayed refresh time describes the UI's successful data fetch. |
+
+Deletion and retention remove records from both the activity and state aggregates.
+These charts therefore cannot reconstruct an immutable workload history. A completed
+maintenance operation is not a human-approved diagnosis, and a completion count
+does not measure answer quality. Probe timings are not inference latency, historical
+uptime or an SLO. Historical operational investigation remains in
+Prometheus/Grafana/Tempo.
+
+The activity plot has a keyboard-operable day selector and an expandable table;
+state counts and service results also have textual labels. Empty data and failed
+probes remain explicit. Native SVG and CSS render the views without adding a chart
+service or sending the records elsewhere.
+
+The architecture map provides four conceptual journeys:
+
+| Journey | What the guide explains |
+| --- | --- |
+| Investigation | Authenticated intake, the supervised graph, source retrieval, local reasoning, checkpoints and human review. |
+| Voice | Browser audio/text, the control boundary, local recognition, AURA dialogue, local synthesis and WAV playback. |
+| Knowledge | Reviewed Markdown, local embeddings, versioned Qdrant publication and read-only source retrieval. |
+| Telemetry | Gateway accounting, correlated spans, metric scraping and dashboard queries. |
+
+Selecting a component displays its role, handled data, trust boundary and a link
+to its workspace. A textual connection guide accompanies the diagram, and mobile
+layouts expose the components as a selectable list. The paths and their animation
+are explanatory, not live packets, active agents or observed traces.
+
+Only components mapped to the six existing health endpoints display measured
+response states. Components such as PostgreSQL and the human gate have no direct
+probe in this view. A gateway response does not prove independent database
+readiness. If health retrieval fails, the conceptual guide remains usable and
+current availability is reported as unknown. Use Readiness for the broader
+operational checklist.
+
+## Readability and motion lifecycle
+
+Menu, form, status and supporting text sizes have been increased using relative
+units, with responsive layouts retained. Browser zoom remains available. Finite
+scroll accents replay when eligible sections enter the viewport from either
+direction; the page keeps native scrolling and a decorative progress indicator.
+The animation does not change document layout or leave content hidden.
+
+Scroll observation is bounded, uses viewport intersections and schedules progress
+updates on demand. Focused content is not animated. Pause, reduced-motion changes,
+hidden tabs and route cleanup cancel the relevant effects; the architecture's
+animated connections also stop outside the viewport. These behaviors support
+accessibility and limit inactive work, but do not constitute a universal frame-rate
+or browser-compatibility guarantee. Final responsive, keyboard and accessibility
+qualification is recorded against the integrated release commit.
 
 ## Readiness and local tools
 

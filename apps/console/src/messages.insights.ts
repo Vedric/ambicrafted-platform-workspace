@@ -1,0 +1,46 @@
+export const insightsFr = {
+  "Saved runs": "Exécutions conservées",
+  "Operational pulse": "Le pouls de votre activité",
+  "See the work. Understand the system.":
+    "Visualisez le travail. Comprenez le système.",
+  "Charts use saved runs and the latest local service probes.":
+    "Les graphiques utilisent les exécutions enregistrées et les dernières sondes des services locaux.",
+  "Activity window": "Période d’activité",
+  "7 days": "7 jours",
+  "14 days": "14 jours",
+  "Created runs": "Exécutions créées",
+  "Recorded activity · UTC": "Activité enregistrée · UTC",
+  "runs in this window": "exécutions sur cette période",
+  "Inspect a day": "Examiner une journée",
+  "View chart data": "Afficher les données du graphique",
+  Day: "Jour",
+  Count: "Nombre",
+  "No activity recorded yet.": "Aucune activité enregistrée pour le moment.",
+  "Run states": "États des exécutions",
+  "Current saved records": "Enregistrements actuellement conservés",
+  "In progress": "En traitement",
+  "Human review": "Validation humaine",
+  Stopped: "Arrêtées",
+  "Completed runs": "Terminées",
+  "Rejected runs": "Rejetées",
+  "Failed runs": "Échouées",
+  "Other states": "Autres états",
+  "No saved states yet": "Aucun état enregistré",
+  "Service response": "Réponse des services",
+  "Latest health checks · milliseconds":
+    "Dernières sondes de santé · millisecondes",
+  "{ready} of {total} service checks passed":
+    "{ready} sondes sur {total} réussies",
+  "No service probes available.": "Aucune sonde de service disponible.",
+  "Probe failed": "Sonde en échec",
+  "Snapshot, refreshed every 15 seconds. Probe time is not inference latency or an availability SLO.":
+    "Instantané actualisé toutes les 15 secondes. La durée d’une sonde ne mesure ni la latence d’inférence ni un SLO de disponibilité.",
+  "Saved runs include analyses and maintenance operations. Deleting a run removes it from these charts.":
+    "Les exécutions conservées comprennent les analyses et les opérations de maintenance. Une exécution supprimée ne figure plus dans ces graphiques.",
+  "Services up": "Services disponibles",
+  "Latest refresh: {time}": "Dernière actualisation : {time}",
+  "No current data": "Aucune donnée actuelle",
+  "Explore the architecture": "Explorer l’architecture",
+  Architecture: "Architecture",
+  "Keep scrolling": "Poursuivre la lecture",
+} as const;
