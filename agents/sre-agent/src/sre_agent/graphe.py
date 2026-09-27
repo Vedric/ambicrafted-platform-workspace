@@ -147,9 +147,14 @@ class EtatSRE(TypedDict, total=False):
 _CHAMPS_BUDGET = (
     "appels_outils",
     "appels_llm",
+    "appels_llm_tentes",
     "cout_usd",
     "tokens_entree",
     "tokens_sortie",
+    "appels_mesures_tokens",
+    "appels_mesures_entree",
+    "appels_mesures_sortie",
+    "appels_mesures_cout",
 )
 
 
@@ -172,7 +177,10 @@ def _budget(etat: EtatSRE) -> Budget:
         budget.echeance = _echeance
     for depense in etat.get("depenses") or []:
         for champ in _CHAMPS_BUDGET:
-            setattr(budget, champ, getattr(budget, champ) + depense.get(champ, 0))
+            valeur = depense.get(champ, 0)
+            if champ == "appels_llm_tentes" and champ not in depense:
+                valeur = depense.get("appels_llm", 0)
+            setattr(budget, champ, getattr(budget, champ) + valeur)
     return budget
 
 
@@ -263,7 +271,8 @@ def noeud(nom: str):
                 if budget.outils_appeles:
                     maj["outils_appeles"] = list(budget.outils_appeles)
                 maj["sources_lues"] = budget.sources_lues
-                span.set_attribute("ambicrafted.budget.spent_usd", round(budget.cout_usd, 6))
+                if budget.appels_mesures_cout or budget.cout_usd:
+                    span.set_attribute("ambicrafted.budget.spent_usd", round(budget.cout_usd, 6))
                 span.set_attribute(tracage.ATTR_BUDGET_OUTILS, budget.appels_outils)
                 return maj
 
@@ -926,7 +935,8 @@ def _finaliser(span: Any, resultat: dict[str, Any], id_trace: str | None) -> Rap
         message=resultat.get("message", ""),
     )
 
-    span.set_attribute(tracage.ATTR_COUT_TOTAL, round(budget.cout_usd, 6))
+    if budget.appels_mesures_cout or budget.cout_usd:
+        span.set_attribute(tracage.ATTR_COUT_TOTAL, round(budget.cout_usd, 6))
     span.set_attribute(tracage.ATTR_BUDGET_OUTILS, budget.appels_outils)
     span.set_attribute("ambicrafted.graph.path", ",".join(resultat.get("journal", [])))
     span.set_attribute(tracage.ATTR_VERDICT, statut)

@@ -1,5 +1,6 @@
 import { t } from "./i18n";
-export const missions = [
+import { specialistMissions } from "./mission-templates";
+const sreMissions = [
   {
     id: "incident",
     code: "01",
@@ -89,5 +90,9 @@ export const missions = [
     },
   },
 ] as const;
+export const missions = [
+  ...sreMissions.map((mission) => Object.assign(mission, { area: "SRE" })),
+  ...specialistMissions,
+];
 export const findMission = (id: string | null) =>
   missions.find((mission) => mission.id === id);

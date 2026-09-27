@@ -1,18 +1,29 @@
 # Runbooks MCP and indexer
 
 Four read-only tools are published over stdio: `list_runbooks`, `read_runbook`,
-`search_runbooks`, and `semantic_search`. Start from the checkout root when
-using `.mcp.json`; its paths are relative to that root.
+`search_runbooks`, and `semantic_search`. Repository clients connect through
+[NEXUS](../../docs/MCP-GATEWAY.md), which publishes them as `runbooks__*` and
+enforces its read-only allowlist. ATLAS selects the runbooks-only profile.
+Start from the checkout root when using `.mcp.json`; its paths are relative to
+that root. Install both backend and gateway runtimes:
 
 ```sh
 uv sync --locked --project mcp-servers/runbooks
+uv sync --locked --project apps/control-api
+uv run --locked --project apps/control-api python -m plateforme.passerelle
+```
+
+Direct backend startup is reserved for development/diagnosis. Indexing remains
+an explicit operator action, outside the read-only MCP gateway:
+
+```sh
 uv run --locked --directory mcp-servers/runbooks server.py
 uv run --locked --directory mcp-servers/runbooks indexer.py --dry-run
 uv run --locked --directory mcp-servers/runbooks indexer.py
 ```
 
 The indexer and semantic tool use `CONFIDENTIAL_KEY` and `local-embed` through
-the gateway. Configure `RUNBOOK_DIR`, `LITELLM_BASE_URL`, `QDRANT_URL` and
+the local LiteLLM gateway. Configure `RUNBOOK_DIR`, `LITELLM_BASE_URL`, `QDRANT_URL` and
 `QDRANT_COLLECTION` when their defaults do not apply. The agent forwards these
 values explicitly to its MCP subprocess.
 

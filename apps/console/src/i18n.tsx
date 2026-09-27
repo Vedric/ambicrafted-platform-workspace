@@ -3,6 +3,8 @@ import { frenchMessages } from "./messages.fr";
 import { assistantFr } from "./messages.assistant";
 import { insightsFr } from "./messages.insights";
 import { architectureFr } from "./messages.architecture";
+import { missionsFr } from "./messages.missions";
+import { experienceFr } from "./messages.experience";
 
 export type Language = "en" | "fr";
 const messages = {
@@ -10,6 +12,8 @@ const messages = {
   ...assistantFr,
   ...insightsFr,
   ...architectureFr,
+  ...experienceFr,
+  ...missionsFr,
 } as const;
 export type MessageKey = keyof typeof messages;
 const sourceMessages = new Map<string, MessageKey>(

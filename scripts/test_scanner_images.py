@@ -105,6 +105,14 @@ class ScannerTests(unittest.TestCase):
         self.assertEqual(len(targets), 6)
         self.assertEqual({t.service for t in targets}, set(scanner.SERVICES))
 
+    def test_dedicated_memory_is_explicit_and_has_one_pinned_build(self) -> None:
+        compose = Path(__file__).resolve().parents[1] / "gateway/neo4j-memory.yml"
+        with self.assertRaises(ValueError):
+            scanner.read_targets(compose)
+        targets = scanner.read_targets(compose, memory=True)
+        self.assertEqual([target.service for target in targets], ["neo4j"])
+        self.assertIsNotNone(targets[0].context)
+
     def test_build_only_two_explicit_local_contexts(self) -> None:
         for service in ("postgres", "qdrant"):
             context = self.root / "images" / service

@@ -1,0 +1,14 @@
+{
+  "title": "Orbital Drift",
+  "license": "CC0-1.0",
+  "original_composition": true,
+  "external_samples": false,
+  "generator": "apps/console/scripts/generate-ambient.py",
+  "duration_s": 96.0,
+  "sample_rate": 48000,
+  "channels": 2,
+  "peak_dbfs": -7.67,
+  "rms_dbfs": -19.62,
+  "sha256": "0d0d4d6e2dbd015b573b372580b68d6c420d59aabee536f674925a38b40dfa41",
+  "bytes": 1536880
+}

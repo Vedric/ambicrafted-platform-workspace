@@ -1,16 +1,8 @@
 {
   "mcpServers": {
-    "runbooks": {
+    "plateforme": {
       "command": "uv",
-      "args": [
-        "run", "--locked", "--directory",
-        "mcp-servers/runbooks",
-        "server.py"
-      ]
-    },
-    "plateforme-controle": {
-      "command": "uv",
-      "args": ["run", "--locked", "--project", "apps/control-api", "python", "-m", "plateforme.mcp"]
+      "args": ["run", "--locked", "--project", "apps/control-api", "python", "-m", "plateforme.passerelle"]
     }
   }
 }

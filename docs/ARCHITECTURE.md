@@ -138,11 +138,14 @@ microphone quality or production security approval. See [TOOLS.md](TOOLS.md) and
 ## AURA and speech lifecycle
 
 AURA is a local AI conversation interface using the confidential gateway path.
-It has no tools, approval authority or remediation path. Its ephemeral dialogue
-is separate from persisted incident state. English is the default conversation
-language; French is explicitly selectable independently of the UI language.
+It has no tools, approval authority or remediation path. Saved conversations and
+selected source documents share private console SQLite storage with incident state,
+in separate bounded tables. The reply language initially matches the interface and
+can then be selected independently. [CONVERSATIONS.md](CONVERSATIONS.md) describes
+retention, source selection and explicit graph-note copies.
 
-Piper synthesis and faster-whisper recognition run on CPU in a separate pinned
+Multilingual ONNX synthesis, Piper/eSpeak phonemization and faster-whisper recognition
+run on CPU in a separate pinned
 Python 3.13 environment; the API/agent/MCP runtime uses Python 3.14. Each selected
 voice's artifacts are verified locally. No browser cloud recognition service is
 used, and the application does not download models during voice requests.
@@ -245,10 +248,12 @@ Availability alerts stay local; no external notification destination is set.
 
 ## Deliberately bounded scope
 
-SQLite is incident state, not cross-customer conversational memory. Qdrant is
-document retrieval, not an execution planner. No use case currently requires
-Neo4j or another long-lived memory service. Introducing one requires an
-explicit graph query/use case, data partitioning and deletion design.
+SQLite contains incident state and bounded local conversations. Qdrant retrieves
+verified runbook passages. A dedicated authenticated Neo4j instance stores explicit
+operator notes and same-scope relationships; selected notes can become sourced
+conversation attachments. None of these stores is a cross-customer memory service
+or an execution planner. [MEMORY.md](MEMORY.md) describes partitioning, deletion,
+logical backup and the limits of scope filters.
 
 This is a workstation architecture. Host availability, disk capacity and
 model latency remain operational constraints; it has no multi-host failover.

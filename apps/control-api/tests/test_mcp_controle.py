@@ -16,7 +16,7 @@ def journal_mcp():
 
 
 @pytest.mark.asyncio
-async def test_mcp_transport_reel_neuf_outils_lecture_seule(parametres, serveur_http, journal_mcp):
+async def test_mcp_transport_reel_onze_outils_lecture_seule(parametres, serveur_http, journal_mcp):
     (parametres.racine / "runbooks/systemd.md").write_text("# Systemd\n\nVérifier le service.")
     parametres_stdio = StdioServerParameters(
         command=sys.executable,
@@ -50,6 +50,8 @@ async def test_mcp_transport_reel_neuf_outils_lecture_seule(parametres, serveur_
                 "plateforme_recherche",
                 "plateforme_analyse",
                 "plateforme_journal",
+                "plateforme_memoire",
+                "plateforme_note_memoire",
             }
             for outil in outils:
                 assert outil.annotations.read_only_hint is True

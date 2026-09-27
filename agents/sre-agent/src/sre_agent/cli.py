@@ -25,6 +25,23 @@ from .modeles import Rapport
 CODES = {"complet": 0, "budget_epuise": 2, "erreur": 3}
 
 
+def rendre_budget(budget: dict) -> str:
+    cout = budget.get("cout_usd")
+    mesure = budget.get("cout_disponible") or (isinstance(cout, (int, float)) and cout > 0)
+    cout_texte = f"{cout:.4f} USD rapportés" if mesure else "coût API inconnu"
+    tokens = budget.get("tokens_total")
+    tokens_texte = str(tokens) if budget.get("tokens_disponibles") else "inconnus"
+    tentatives = budget.get("appels_llm_tentes", budget.get("appels_llm", 0))
+    return (
+        f"BUDGET : {budget['appels_outils']}/{budget['max_appels_outils']} outils, "
+        f"{cout_texte} (plafond {budget['max_cout_usd']:.2f} USD), "
+        f"{tentatives} tentatives LLM\n"
+        f"JETONS OBSERVÉS : {tokens_texte}/{budget.get('max_tokens_total', 'inconnu')} ; "
+        f"mesures complètes {budget.get('appels_mesures_tokens', 0)}/{tentatives} appels. "
+        "Une mesure partielle est une borne basse."
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     analyseur = argparse.ArgumentParser(
         prog="sre-agent",
@@ -115,14 +132,7 @@ def rendre(rapport: Rapport) -> str:
         lignes += ["", "OUTILS APPELÉS : " + ", ".join(rapport.outils_appeles)]
 
     if b:
-        lignes += [
-            "",
-            (
-                f"BUDGET : {b['appels_outils']}/{b['max_appels_outils']} outils, "
-                f"{b['cout_usd']:.4f}/{b['max_cout_usd']:.2f} USD, "
-                f"{b['appels_llm']} appels LLM"
-            ),
-        ]
+        lignes += ["", rendre_budget(b)]
     if rapport.trace_id and config.TRACAGE_ACTIF:
         lignes.append(f"TRACE  : {rapport.trace_id}")
 

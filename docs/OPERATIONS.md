@@ -117,7 +117,11 @@ available. Cancel or explicitly resubmit interrupted work after verifying what
 happened. Only one control process can own a state directory.
 
 Backups include a sanitized console SQLite snapshot and individual graph
-checkpoints. Sessions and login tickets are removed in memory before writing the
+checkpoints, including saved conversations and extracted attachments. If dedicated
+Neo4j memory is configured, its bounded logical notes/relationships are also included
+and verified in a disposable authenticated Neo4j instance during restore testing.
+See [MEMORY.md](MEMORY.md) for its scope and read-committed consistency limits.
+Sessions and login tickets are removed in memory before writing the
 snapshot. Each database snapshot is coherent, including committed WAL data, but
 the collection is **not atomic across databases**. Inspect interrupted and pending
 jobs after a disaster recovery. Restoring the console while writers are running
@@ -149,10 +153,10 @@ Escape, a hidden tab, route departure, 12 seconds without detected speech or
 1.6 seconds. This is not simultaneous streaming or permission to act. On a noisy
 microphone, stop the conversation and use an editable manual recording instead.
 
-The `.mcp.json` configuration has two stdio servers. Run the MCP client from this
+The `.mcp.json` configuration has one NEXUS stdio entrypoint. Run the MCP client from this
 checkout with `uv` on its `PATH`, and start the control API first. Readiness tests
-actual startup and tool inventories: four tools on `runbooks`, nine on
-`plateforme-controle`. The latter reads the local API with its private credential;
+actual startup and tool inventories through its two profiles: four runbook tools
+and eleven control tools. The control backend reads the local API with its private credential;
 missing configuration returns unavailable without initialization. Never paste a
 key into a tool configuration or connect confidential source tools to an external
 consumer. [TOOLS.md](TOOLS.md) documents the bounded read-only surface; there is

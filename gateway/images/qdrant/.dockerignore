@@ -1,3 +1,8 @@
 *
 !Dockerfile
 !.dockerignore
+!web-ui-package.json
+!web-ui-package-lock.json
+!web-ui.patch
+!healthcheck.go
+!healthcheck_test.go

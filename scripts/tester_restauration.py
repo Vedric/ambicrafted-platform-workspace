@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 import httpx
+from memoire_sauvegarde import restore_check as verifier_memoire
 from sauvegarder import publier_sqlite, sqlite_prive, verifier_dossier_prive
 
 RACINE = Path(__file__).resolve().parents[1]
@@ -79,8 +80,7 @@ def verifier_console(dossier: Path, description: dict | None) -> dict:
                 or not re.fullmatch(r"[0-9a-f]{32}", identifiant)
                 or identifiant not in identifiants
                 or identifiant in vus
-                or checkpoint.get("fichier")
-                != f"console/analyses/{identifiant}/graphe.sqlite"
+                or checkpoint.get("fichier") != f"console/analyses/{identifiant}/graphe.sqlite"
             ):
                 raise ValueError("Identifiant de checkpoint invalide.")
             verifier_dossier_prive(dossier / "console/analyses")
@@ -118,11 +118,7 @@ def verifier(dossier: Path) -> dict:
     images = {}
     service = ""
     for ligne in (RACINE / "gateway/docker-compose.yml").read_text().splitlines():
-        if (
-            ligne.startswith("  ")
-            and not ligne.startswith("   ")
-            and ligne.endswith(":")
-        ):
+        if ligne.startswith("  ") and not ligne.startswith("   ") and ligne.endswith(":"):
             service = ligne.strip().rstrip(":")
         if ligne.strip().startswith("image:"):
             images[service] = ligne.split("image:", 1)[1].strip()
@@ -215,8 +211,15 @@ def verifier(dossier: Path) -> dict:
             "-d",
             "--name",
             qdrant,
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges:true",
             "--tmpfs",
-            "/qdrant/storage",
+            "/qdrant/storage:rw,uid=65532,gid=65532,mode=0700",
+            "--tmpfs",
+            "/tmp:rw,noexec,nosuid,size=128m",
+            "-e",
+            "QDRANT__STORAGE__SNAPSHOTS_PATH=/qdrant/storage/snapshots",
             "-e",
             "QDRANT__TELEMETRY_DISABLED=true",
             "-p",
@@ -234,6 +237,8 @@ def verifier(dossier: Path) -> dict:
                 except httpx.HTTPError:
                     pass
                 time.sleep(1)
+            else:
+                raise RuntimeError("Le Qdrant jetable ne devient pas disponible.")
             for i, snapshot in enumerate(manifeste["qdrant_snapshots"]):
                 fichier = dossier / snapshot["fichier"]
                 if fichier.resolve().parent != dossier.resolve():
@@ -252,23 +257,32 @@ def verifier(dossier: Path) -> dict:
                     response.raise_for_status()
                 response = client.get(f"/collections/restore-{i}")
                 response.raise_for_status()
-                resultat[f"points_qdrant_{i}"] = response.json()["result"][
-                    "points_count"
-                ]
+                resultat[f"points_qdrant_{i}"] = response.json()["result"]["points_count"]
         for nom in ("grafana.sqlite", "graphe.sqlite"):
             if (dossier / nom).exists():
-                connexion = sqlite3.connect(
-                    (dossier / nom).as_uri() + "?mode=ro", uri=True
-                )
+                connexion = sqlite3.connect((dossier / nom).as_uri() + "?mode=ro", uri=True)
                 try:
                     resultat[nom] = (
-                        connexion.execute("PRAGMA integrity_check").fetchone()[0]
-                        == "ok"
+                        connexion.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
                     )
                     if not resultat[nom]:
                         raise ValueError("Sauvegarde SQLite incohérente.")
                 finally:
                     connexion.close()
+        memory_config = RACINE / "gateway/neo4j-memory.yml"
+        memory_image = (
+            next(
+                (
+                    line.split("image:", 1)[1].strip()
+                    for line in memory_config.read_text().splitlines()
+                    if line.strip().startswith("image:")
+                ),
+                "",
+            )
+            if memory_config.exists()
+            else ""
+        )
+        resultat.update(verifier_memoire(dossier, manifeste.get("memoire"), memory_image))
         return resultat
     finally:
         for conteneur in reversed(conteneurs):

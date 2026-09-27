@@ -21,8 +21,15 @@ const targets = [
   ".page-scene .architecture-connections-guide",
   ".page-scene .architecture-health",
   ".page-scene .architecture-boundary",
+  ".page-scene .guide-step",
+  ".page-scene .guide-video",
+  ".page-scene .guide-flow",
+  ".page-scene .guide-faq > details",
+  ".page-scene [data-reveal]",
   ".landing-main > *",
   ".landing-principles > *",
+  ".landing-updates > *",
+  ".landing-guide-link",
 ].join(",");
 
 /** Entry accents never hide content or change layout/focus. */
@@ -43,12 +50,17 @@ export function ScrollExperience({ routeKey }: { routeKey: string }) {
     let previousY = window.scrollY;
     let direction = 1;
     let frame = 0;
+    let pointerActive = false;
+    let pointerEnd = 0;
+    const pointerAnimations = new Set<HTMLElement>();
     const cancel = (element: HTMLElement) => {
       animations.get(element)?.cancel();
       animations.delete(element);
+      element.dataset.revealState = "visible";
     };
     const observer = new IntersectionObserver(
       (entries) => {
+        let stagger = 0;
         for (const entry of entries) {
           const element = entry.target as HTMLElement;
           const wasVisible = watched.get(element);
@@ -64,26 +76,35 @@ export function ScrollExperience({ routeKey }: { routeKey: string }) {
           )
             continue;
           cancel(element);
+          element.dataset.revealState = "entering";
+          element.dataset.revealDirection = direction > 0 ? "down" : "up";
           const animation = element.animate(
             [
               {
-                opacity: 0.4,
-                transform: "translateY(" + direction * 18 + "px)",
+                opacity: 0.12,
+                transform: "translateY(" + direction * 28 + "px)",
               },
               { opacity: 1, transform: "translateY(0)" },
             ],
-            { duration: 620, easing: "cubic-bezier(.22,1,.36,1)" },
+            {
+              duration: 720,
+              delay: Math.min(stagger++, 5) * 55,
+              fill: "backwards",
+              easing: "cubic-bezier(.16,1,.3,1)",
+            },
           );
           animations.set(element, animation);
           const done = () => {
-            if (animations.get(element) === animation)
+            if (animations.get(element) === animation) {
               animations.delete(element);
+              element.dataset.revealState = "visible";
+            }
           };
           animation.onfinish = done;
           animation.oncancel = done;
         }
       },
-      { threshold: 0.08, rootMargin: "0px 0px -12px 0px" },
+      { threshold: 0.01, rootMargin: "0px 0px -24px 0px" },
     );
     const collect = () => {
       for (const element of watched.keys()) {
@@ -119,8 +140,32 @@ export function ScrollExperience({ routeKey }: { routeKey: string }) {
         frame = requestAnimationFrame(updateProgress);
     };
     const focus = () => {
+      // Focusing a control happens between pointer-down and click. Snapping its
+      // moving parent to the final position here makes the click miss the control.
+      if (pointerActive) return;
       for (const element of animations.keys())
         if (element.contains(document.activeElement)) cancel(element);
+    };
+    const pointerStart = (event: PointerEvent) => {
+      window.clearTimeout(pointerEnd);
+      pointerActive = true;
+      for (const [element, animation] of animations) {
+        if (event.target instanceof Node && element.contains(event.target)) {
+          animation.pause();
+          pointerAnimations.add(element);
+        }
+      }
+    };
+    const pointerRelease = () => {
+      window.clearTimeout(pointerEnd);
+      pointerActive = false;
+      for (const element of pointerAnimations) cancel(element);
+      pointerAnimations.clear();
+      focus();
+    };
+    const pointerUp = () => {
+      // Click captures its target before this fallback runs, including touch taps.
+      pointerEnd = window.setTimeout(pointerRelease, 0);
     };
     const visibility = () => {
       if (document.hidden) {
@@ -139,16 +184,25 @@ export function ScrollExperience({ routeKey }: { routeKey: string }) {
     window.addEventListener("scroll", scroll, { passive: true });
     window.addEventListener("resize", scroll, { passive: true });
     document.addEventListener("focusin", focus);
+    document.addEventListener("pointerdown", pointerStart, true);
+    document.addEventListener("pointerup", pointerUp, true);
+    document.addEventListener("pointercancel", pointerRelease, true);
+    document.addEventListener("click", pointerRelease, true);
     document.addEventListener("visibilitychange", visibility);
     return () => {
       observer.disconnect();
       mutation.disconnect();
       if (frame) cancelAnimationFrame(frame);
+      window.clearTimeout(pointerEnd);
       for (const element of animations.keys()) cancel(element);
       watched.clear();
       window.removeEventListener("scroll", scroll);
       window.removeEventListener("resize", scroll);
       document.removeEventListener("focusin", focus);
+      document.removeEventListener("pointerdown", pointerStart, true);
+      document.removeEventListener("pointerup", pointerUp, true);
+      document.removeEventListener("pointercancel", pointerRelease, true);
+      document.removeEventListener("click", pointerRelease, true);
       document.removeEventListener("visibilitychange", visibility);
     };
   }, [enabled, routeKey]);

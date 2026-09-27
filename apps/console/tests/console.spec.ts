@@ -123,56 +123,16 @@ test("private landing, refused login, keyboard entry and accessible layout", asy
     ).toBe(true);
   }
   await page.setViewportSize(viewport);
-  const runningOrbitAnimations = () =>
-    page
-      .locator(".orbit-scene")
-      .first()
-      .evaluate(
-        (element) =>
-          element
-            .getAnimations({ subtree: true })
-            .filter(
-              (animation) =>
-                animation.playState === "running" &&
-                animation.effect?.getComputedTiming().endTime === Infinity,
-            ).length,
-      );
-  const scene = page.locator(".orbit-scene").first();
-  const neutralScene = () =>
-    scene.evaluate(
-      (element) =>
-        new DOMMatrixReadOnly(getComputedStyle(element).transform).isIdentity,
-    );
-  const pointAtOrbit = async (fraction: number) => {
-    await scene.scrollIntoViewIfNeeded();
-    const bounds = await scene.boundingBox();
-    expect(bounds).not.toBeNull();
-    await page.mouse.move(
-      bounds!.x + bounds!.width * fraction,
-      bounds!.y + bounds!.height * 0.3,
-    );
-  };
-  // Narrow layouts deliberately disable pointer events on the decoration.
-  const interactivePointer = await scene.evaluate(
-    (element) =>
-      matchMedia("(pointer: fine)").matches &&
-      getComputedStyle(element).pointerEvents !== "none",
-  );
-  await pointAtOrbit(0.75);
-  if (interactivePointer) await expect.poll(neutralScene).toBe(false);
+  const scene = page.locator(".neural-core").first();
+  const runningOrbitAnimations = () => scene.evaluate((element) => element.getAnimations({ subtree: true }).filter((animation) => animation.playState === "running" && animation.effect?.getComputedTiming().endTime === Infinity).length);
+  await scene.scrollIntoViewIfNeeded();
   await expect.poll(runningOrbitAnimations).toBeGreaterThan(0);
-  // Changing the OS preference during the session must stop both CSS loops
-  // and JavaScript pointer parallax without a reload.
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await pointAtOrbit(0.25);
-  await expect.poll(neutralScene).toBe(true);
+  await expect(scene).toHaveAttribute("data-resting", "true");
   await expect.poll(runningOrbitAnimations).toBe(0);
-  await pointAtOrbit(0.8);
-  await expect.poll(neutralScene).toBe(true);
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await pointAtOrbit(0.7);
+  await expect(scene).toHaveAttribute("data-resting", "false");
   await expect.poll(runningOrbitAnimations).toBeGreaterThan(0);
-  if (interactivePointer) await expect.poll(neutralScene).toBe(false);
   await page.mouse.move(0, 0);
   await page.getByRole("button", { name: "Pause animations" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-motion", "paused");
@@ -592,12 +552,13 @@ test("assistant remains accessible in both themes when voice is unavailable", as
   const message = "How should I investigate this synthetic incident?";
   await page.getByLabel("Your message").fill(message);
   const requete = page.waitForRequest(
-    (r) => r.url().endsWith("/api/assistant/dialogue") && r.method() === "POST",
+    (r) => /\/api\/conversations\/[^/]+\/messages$/.test(r.url()) && r.method() === "POST",
   );
   await page.getByLabel("Your message").press("Control+Enter");
-  expect((await requete).postDataJSON()).toEqual({
+  expect((await requete).postDataJSON()).toMatchObject({
     langue: "en",
-    messages: [{ role: "user", content: message }],
+    message,
+    pieces: [],
   });
   await expect(
     page.getByText(
@@ -608,6 +569,6 @@ test("assistant remains accessible in both themes when voice is unavailable", as
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
     message,
   );
-  await page.getByRole("button", { name: "Clear conversation" }).click();
+  await page.getByRole("button", { name: "New conversation" }).click();
   await expect(page.getByText(message, { exact: true })).not.toBeVisible();
 });

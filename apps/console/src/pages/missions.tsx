@@ -17,10 +17,13 @@ import { Titre } from "../ui";
 export function Missions() {
   useI18n();
   const [query, setQuery] = useState("");
-  const filtered = missions.filter((mission) =>
-    `${mission.title} ${mission.category} ${mission.description}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
+  const [area, setArea] = useState("all");
+  const filtered = missions.filter(
+    (mission) =>
+      (area === "all" || mission.area === area) &&
+      `${mission.title} ${mission.category} ${mission.description}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
   );
   return (
     <>
@@ -86,6 +89,31 @@ export function Missions() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
+      </div>
+      <div
+        className="mission-filters"
+        role="group"
+        aria-label={t("Engineering discipline")}
+      >
+        <button
+          className="btn"
+          aria-pressed={area === "all"}
+          onClick={() => setArea("all")}
+        >
+          {t("All missions")}
+        </button>
+        {[...new Set(missions.map((mission) => mission.area))].map(
+          (discipline) => (
+            <button
+              key={discipline}
+              className="btn"
+              aria-pressed={area === discipline}
+              onClick={() => setArea(discipline)}
+            >
+              {discipline}
+            </button>
+          ),
+        )}
       </div>
       <div className="mission-grid">
         {filtered.map((mission) => (

@@ -9,6 +9,7 @@ import "@fontsource-variable/jetbrains-mono";
 import "./style.css";
 import "./premium.css";
 import App from "./App";
+import "./experience.css";
 
 const client = new QueryClient({
   defaultOptions: {

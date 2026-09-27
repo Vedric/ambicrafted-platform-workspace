@@ -9,6 +9,8 @@ Load the root `.env` through direnv, synchronize the projects, and index the
 runbooks before using semantic search:
 
 ```sh
+uv sync --locked --project ../../mcp-servers/runbooks
+uv sync --locked --project ../../apps/control-api
 uv sync --locked --extra graphe
 uv run --locked sre-agent 'synthetic alert' --json
 uv run --locked --extra graphe sre-agent-graph 'synthetic alert' --json
@@ -51,7 +53,9 @@ never approves. CLI text accepts explicit affirmative tokens; other text refuses
 |---|---:|
 | `SRE_MAX_APPELS_OUTILS` | 10 |
 | `SRE_MAX_TOURS` | 12; final answer on the last turn is accepted |
-| `SRE_MAX_COUT_USD` | 0.50; local inference has no gateway monetary charge |
+| `SRE_MAX_COUT_USD` | 0.50 of reported API cost; absent local headers remain unknown |
+| `SRE_MAX_TOKENS_TOTAL` | 60,000 observed tokens; allowed range 1–1,000,000 |
+| Completion cap | At most 6,000 tokens per request |
 | `SRE_MAX_DUREE_S` | 1800 per invocation, excluding human waiting |
 | `SRE_TIMEOUT_LLM_S` | 300 per request boundary |
 | Alert size / context size | 20,000 / 100,000 characters |
@@ -61,10 +65,17 @@ never approves. CLI text accepts explicit affirmative tokens; other text refuses
 Limits are checked before work and at response boundaries. Starting/stopping
 subprocesses and timed-out I/O may add cleanup time. Costs must be finite and
 non-negative. An external transport call with unknown cost stops explicitly.
+The token ceiling uses actual provider counters, not a tokenizer estimate; the
+last response can overshoot before the run stops. Partial usage is a lower bound
+and absent usage is unknown, not zero. Reports distinguish attempted calls,
+complete token measurements and API-cost coverage. Hardware and electricity
+costs are not measured. See [NEXUS and usage contracts](../../docs/MCP-GATEWAY.md).
 
 Source installs derive the repository root from the module location. For an
 installed wheel used elsewhere, set `SRE_RACINE_DEPOT` to the checkout containing
-the MCP project and runbooks. The wheel does not bundle the MCP server.
+the control-API gateway project, MCP backend and runbooks. The wheel does not
+bundle these services. The MCP client always selects the NEXUS runbooks profile;
+control-plane tools are not added to the model prompt.
 
 ## Persistence and retention
 

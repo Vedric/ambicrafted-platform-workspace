@@ -1,5 +1,6 @@
 import { t, useI18n, getLocale, number, countLabel } from "../i18n";
 import { useEffect, useState } from "react";
+import { RunUsage } from "../RunUsage";
 import {
   Link,
   useNavigate,
@@ -670,16 +671,6 @@ export function DetailAnalyse() {
               <dd>{r?.outils_appeles?.length ?? "—"}</dd>
               <dt>{t("Model calls")}</dt>
               <dd>{r?.budget?.appels_llm ?? "—"}</dd>
-              <dt>{t("Reported API cost")}</dt>
-              <dd>
-                {r?.budget?.cout_usd !== undefined
-                  ? number(r.budget.cout_usd, {
-                      style: "currency",
-                      currency: "USD",
-                      minimumFractionDigits: 4,
-                    })
-                  : "—"}
-              </dd>
             </dl>
             {r?.classification && (
               <div className="notice">
@@ -694,6 +685,7 @@ export function DetailAnalyse() {
             )}
             <span className="mono tiny muted break-all">{a.id}</span>
           </section>
+          <RunUsage budget={r?.budget} />
         </aside>
       </div>
       {decision && (

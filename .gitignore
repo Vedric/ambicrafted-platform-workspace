@@ -23,6 +23,7 @@ evals/output/
 coverage*.json
 htmlcov/
 dist/
+dist-preview/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/

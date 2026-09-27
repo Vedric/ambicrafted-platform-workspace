@@ -8,6 +8,7 @@ import os
 import secrets
 import subprocess
 from pathlib import Path
+from uuid import UUID
 
 import httpx
 import pytest
@@ -99,6 +100,99 @@ def client_simule(monkeypatch, parametres, repondre):
 
     monkeypatch.setattr(httpx, "Client", construire)
     return appels
+
+
+def test_conversation_cli_private_file_and_stable_retry_id(monkeypatch, parametres, tmp_path):
+    question = tmp_path / "question.txt"
+    question.write_text("Synthetic private question")
+    question.chmod(0o600)
+    thread, operation = "a" * 32, "b" * 32
+    reply = {"type": "done", "texte": "Bonjour, Védric.", "local": True}
+    calls = client_simule(
+        monkeypatch,
+        parametres,
+        lambda _: httpx.Response(
+            200,
+            content=json.dumps(reply).encode() + b"\n",
+            headers={"Content-Type": "application/x-ndjson"},
+        ),
+    )
+    args = cli.analyseur().parse_args(
+        [
+            "conversations",
+            "dire",
+            thread,
+            "--operation-id",
+            operation,
+            "--fichier",
+            str(question),
+            "--langue",
+            "fr",
+        ]
+    )
+    result = cli.executer(args, parametres)
+    assert result["texte"] == "Bonjour, Védric."
+    assert result["operation_id"] == str(UUID(operation))
+    assert json.loads(calls[0].content) == {
+        "message": "Synthetic private question",
+        "langue": "fr",
+        "pieces": [],
+        "operation_id": str(UUID(operation)),
+    }
+    assert "Synthetic" not in str(calls[0].url)
+
+
+@pytest.mark.parametrize(
+    "events",
+    [
+        [{"type": "token", "text": "Partial"}],
+        [{"type": "error", "message": "PRIVATE_UPSTREAM_DETAIL"}],
+        [{"type": "token", "text": "One"}, {"type": "done", "texte": "Two"}],
+        [{"type": "done", "texte": "Complete"}, {"type": "token", "text": "More"}],
+        [{"type": "done", "texte": " "}],
+    ],
+)
+def test_cli_refuses_incomplete_conversation_without_leaking_upstream(
+    monkeypatch, parametres, events
+):
+    client_simule(
+        monkeypatch,
+        parametres,
+        lambda _: httpx.Response(
+            200,
+            content="\n".join(json.dumps(event) for event in events),
+            headers={"Content-Type": "application/x-ndjson"},
+        ),
+    )
+    with cli.Client(parametres) as client, pytest.raises(cli.ErreurCLI) as failure:
+        client.dialogue(UUID("a" * 32), {"operation_id": str(UUID("b" * 32))})
+    assert "PRIVATE_UPSTREAM_DETAIL" not in str(failure.value)
+    assert str(UUID("b" * 32)) in str(failure.value)
+
+
+def test_attachment_cli_preserves_bytes_and_refuses_public_files(monkeypatch, parametres, tmp_path):
+    document = tmp_path / "synthetic.csv"
+    document.write_bytes(b"latency_ms\n125\n")
+    document.chmod(0o600)
+    calls = client_simule(
+        monkeypatch, parametres, lambda _: httpx.Response(201, json={"id": "synthetic"})
+    )
+    args = cli.analyseur().parse_args(
+        ["conversations", "joindre", "a" * 32, "--fichier", str(document)]
+    )
+    assert cli.executer(args, parametres) == {"id": "synthetic"}
+    body = json.loads(calls[0].content)
+    assert body["nom"] == document.name
+    assert base64.b64decode(body["contenu"]) == document.read_bytes()
+    document.chmod(0o644)
+    with pytest.raises(cli.ErreurCLI):
+        cli.executer(args, parametres)
+    assert len(calls) == 1
+
+
+def test_conversation_deletion_requires_explicit_confirmation():
+    with pytest.raises(SystemExit):
+        cli.analyseur().parse_args(["conversations", "supprimer", "a" * 32])
 
 
 @pytest.mark.parametrize("code", [301, 400, 401, 403, 404, 409, 413, 422, 429, 500, 503])

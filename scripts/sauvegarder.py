@@ -176,6 +176,7 @@ def copier_console(etat: Path, destination: Path) -> dict:
 def sauvegarder() -> Path:
     import httpx
     from dotenv import dotenv_values
+    from memoire_sauvegarde import export as exporter_memoire
 
     os.umask(0o077)
     dossier = DESTINATION / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -192,6 +193,7 @@ def sauvegarder() -> Path:
         (RACINE / "gateway/.env", "gateway.env"),
         (RACINE / "gateway/docker-compose.yml", "docker-compose.yml"),
         (RACINE / "gateway/config.yaml", "gateway-config.yaml"),
+        (RACINE / "gateway/neo4j-memory.yml", "neo4j-memory.yml"),
     ):
         if source.exists():
             if source.is_symlink():
@@ -199,6 +201,7 @@ def sauvegarder() -> Path:
             shutil.copyfile(source, dossier / nom)
             (dossier / nom).chmod(0o600)
     valeurs = dotenv_values(RACINE / ".env")
+    manifeste["memoire"] = exporter_memoire(dossier, valeurs.get("NEO4J_MEMORY_PASSWORD"))
     etat_console = (
         Path(
             os.environ.get("PLATFORM_STATE_DIR")

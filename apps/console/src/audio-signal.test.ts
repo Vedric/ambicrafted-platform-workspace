@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pcmSignal, signalPath, waveform } from "./audio-signal";
+import { inputActivity, pcmSignal, signalPath, waveform } from "./audio-signal";
 
 function chunk(name: string, bytes: Uint8Array) {
   const result = new Uint8Array(8 + bytes.length + (bytes.length % 2));
@@ -55,6 +55,39 @@ function tone(channels = 1, opposite = false) {
 }
 
 describe("measured signal energy", () => {
+  it("recognizes sustained quiet input but not a single short impulse", () => {
+    const read = inputActivity(0);
+    const quietVoice = waveform(new Float32Array(480).fill(0.004));
+    expect(quietVoice.level).toBeLessThan(0.08);
+    expect(read(quietVoice, 100).heard).toBe(false);
+    expect(read(waveform(new Float32Array(480)), 150).heard).toBe(false);
+    expect(read(quietVoice, 200).heard).toBe(false);
+    expect(read(quietVoice, 300)).toMatchObject({
+      heard: true,
+      available: true,
+      silence: 0,
+    });
+    expect(read(waveform(new Float32Array(480)), 1901)).toMatchObject({
+      heard: true,
+      available: true,
+      silence: 1601,
+    });
+  });
+  it("distinguishes missing measurement from measured silence", () => {
+    const read = inputActivity(100);
+    expect(read(null, 1000)).toMatchObject({ available: false, heard: false });
+    expect(read(undefined, 2000)).toMatchObject({
+      available: false,
+      heard: false,
+    });
+    expect(
+      read({ level: NaN, samples: new Float32Array() }, 3000),
+    ).toMatchObject({ available: false, heard: false });
+    expect(read(waveform(new Float32Array(480)), 4000)).toMatchObject({
+      available: true,
+      heard: false,
+    });
+  });
   it("distinguishes silence from amplitude without inventing activity", () => {
     const quiet = waveform(new Float32Array(480));
     const sound = waveform(new Float32Array(480).fill(0.125));

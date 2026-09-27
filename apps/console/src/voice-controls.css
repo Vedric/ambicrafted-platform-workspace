@@ -1,0 +1,67 @@
+.microphone-diagnostic {
+  text-align: left;
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--line, #31405b);
+  background: color-mix(in srgb, var(--panel, #101827) 85%, transparent);
+}
+.microphone-diagnostic > strong {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.microphone-diagnostic meter {
+  width: 100%;
+  height: 1rem;
+  accent-color: var(--accent, #63dfbe);
+}
+.microphone-diagnostic p {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 0.5rem 0;
+}
+.microphone-diagnostic-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.aura-stage .microphone-diagnostic {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 36rem;
+  margin-inline: auto;
+}
+.aura-stage .health-dot.checking {
+  background: var(--muted);
+  box-shadow: none;
+}
+.voice-step-hint {
+  padding: 0.85rem 1rem;
+  border-left: 2px solid var(--accent, #63dfbe);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+@media (max-width: 520px) {
+  .audio-device-fields {
+    grid-template-columns: 1fr;
+  }
+}
+.token-usage {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.token-usage > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.token-usage dt {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.token-usage dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

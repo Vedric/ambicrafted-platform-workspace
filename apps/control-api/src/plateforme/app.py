@@ -1,6 +1,7 @@
 """Authenticated private HTTP API and same-origin console."""
 
 import asyncio
+import contextlib
 import json
 import shutil
 from contextlib import asynccontextmanager
@@ -15,8 +16,11 @@ from . import __version__
 from .assistant import dialoguer
 from .catalogue import OUTILS
 from .config import Parametres, enregistrer_secret
+from .conversation_routes import routes as conversation_routes
 from .corpus import Corpus
 from .depot import Conflit, Depot, Introuvable
+from .memoire import Memoire
+from .memoire import routes as memory_routes
 from .moteur import ACTIFS, OPERATIONS, Moteur
 from .preparation import Preparation
 from .securite import (
@@ -27,6 +31,7 @@ from .securite import (
     verifier_mot_de_passe,
 )
 from .services import Services
+from .veille import Veille
 from .voix import Voix
 
 
@@ -83,16 +88,23 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
     auth, corpus = Authentification(p, depot), Corpus(p.racine / "runbooks", depot)
     moteur = moteur_classe(p, depot)
     voix = Voix(p)
+    veille = Veille(p, voix, moteur)
+    memoire = Memoire(p)
     preparation = Preparation(p, services, voix, corpus)
     flux_actifs = 0
 
     @asynccontextmanager
     async def cycle(app: FastAPI):
         await moteur.demarrer()
+        watch = asyncio.create_task(veille.boucle()) if p.veille_active else None
         try:
             voix.nettoyer_apres_arret()
             yield
         finally:
+            if watch:
+                watch.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await watch
             await moteur.fermer()
 
     app = FastAPI(
@@ -106,7 +118,11 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
     app.add_middleware(FrontiereHTTP, parametres=p)
     app.state.depot, app.state.auth, app.state.moteur = depot, auth, moteur
     app.state.voix = voix
+    app.state.veille = veille
+    app.state.memoire = memoire
     app.state.preparation = preparation
+    app.include_router(conversation_routes(p, auth, moteur, depot, memoire))
+    app.include_router(memory_routes(memoire, auth))
 
     @app.exception_handler(RequestValidationError)
     async def validation(request, erreur):
@@ -133,6 +149,17 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
     @app.get("/api/ping")
     async def ping():
         return {"statut": "disponible", "version": __version__}
+
+    @app.get("/api/veille")
+    async def technologie():
+        return veille.statut()
+
+    @app.get("/api/veille/audio/{language}")
+    async def technologie_audio(language: Literal["en", "fr"]):
+        path = veille.audio(language)
+        if not path:
+            raise HTTPException(404, "The technology briefing is not ready yet.")
+        return FileResponse(path, media_type="audio/wav")
 
     @app.get("/api/auth")
     async def session(request: Request):
@@ -361,6 +388,7 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
             "acces": "Local privé",
             "alias": "local",
             "file_max": p.taille_file,
+            "budget_tokens_total": p.budget_tokens_total,
             "retention_jours": p.retention_jours,
             "duree_session_heures": p.duree_session / 3600,
             "mot_de_passe": bool(p.mot_de_passe),

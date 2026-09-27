@@ -47,11 +47,13 @@ services:
 
   tempo:
     # Image vérifiée sur la pile isolée le 2026-09-26 ; digest immuable.
-    image: grafana/tempo:3.0.3@sha256:0296560ac66f8a3600d7fb3014a52c189d4d9c3549ad6ff441bf2409855d68d5
+    image: ambicrafted/tempo:3.0.3-security.20260927
+    build:
+      context: ./images/tempo
     container_name: tempo
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
-    user: root
+    user: "10001:10001"
     command:
       - -config.file=/etc/tempo.yaml
       - -backend-scheduler.provider.work.compaction.block-retention=336h
@@ -86,7 +88,9 @@ services:
       retries: 3
 
   grafana:
-    image: grafana/grafana:13.2.2@sha256:ac461fb352abc50da10a51c7d02462e9c05488f11f53f14b3ad79a8145f638a0
+    image: ambicrafted/grafana:13.2.2-security.20260927
+    build:
+      context: ./images/grafana
     container_name: grafana
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
@@ -109,20 +113,25 @@ services:
 
   qdrant:
     # Local security derivative; immutable base and exact package in Dockerfile.
-    image: ambicrafted/qdrant:1.19.1-security.20260926
+    image: ambicrafted/qdrant:1.19.1-security.20260927
     build:
       context: ./images/qdrant
     container_name: qdrant
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
+    read_only: true
+    cap_drop: ["ALL"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,uid=65532,gid=65532
     environment:
       QDRANT__TELEMETRY_DISABLED: "true"
+      QDRANT__STORAGE__SNAPSHOTS_PATH: /qdrant/storage/snapshots
     ports:
       - "127.0.0.1:6333:6333"
     volumes:
       - qdrantdata:/qdrant/storage
     healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333; printf 'GET /readyz HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3; read -r status <&3; [[ $$status == *' 200 '* ]]"]
+      test: ["CMD", "/qdrant/healthcheck"]
       interval: 10s
       timeout: 5s
       retries: 5

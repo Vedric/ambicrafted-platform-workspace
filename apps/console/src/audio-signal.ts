@@ -3,6 +3,24 @@ export type SignalFrame = { level: number; samples: Float32Array };
 export type SignalReader = () => SignalFrame | null;
 export type PcmSignal = (seconds: number) => SignalFrame;
 const BINS = 48;
+
+// This is an input-energy detector, not a speech classifier. Quiet but sustained
+// microphone input must not be discarded just because the visual is subtle.
+export function inputActivity(started: number) {
+  let began: number | null = null;
+  let lastSound = started;
+  let heard = false;
+  return (frame: SignalFrame | null | undefined, now: number) => {
+    const available = !!frame && Number.isFinite(frame.level);
+    const audible = available && frame.level >= 0.012;
+    if (audible) {
+      began ??= now;
+      if (now - began >= 100) heard = true;
+      lastSound = now;
+    } else if (available) began = null;
+    return { available, heard, silence: Math.max(0, now - lastSound) };
+  };
+}
 export function waveform(values: Float32Array): SignalFrame {
   const samples = new Float32Array(BINS);
   let sum = 0;

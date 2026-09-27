@@ -1,5 +1,14 @@
-import { t, useI18n } from "./i18n";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useAudioFocus } from "./audio-focus";
+import { texteOral } from "./spoken-text";
+export { texteOral } from "./spoken-text";
+import { getLanguage, number, t, useI18n, type MessageKey } from "./i18n";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { Link } from "react-router-dom";
 import {
   AudioLines,
@@ -18,12 +27,56 @@ import {
   Workflow,
 } from "lucide-react";
 import { NeuralCore, type CorePhase } from "./NeuralCore";
-import { pcmSignal, waveform, type SignalReader } from "./audio-signal";
+import {
+  inputActivity,
+  pcmSignal,
+  waveform,
+  type SignalReader,
+} from "./audio-signal";
+import { applyAudioOutput } from "./audio-devices";
 import { api, audioLocal } from "./api";
 import { Erreur, Markdown, Titre, useToast } from "./ui";
+import "./voice-controls.css";
 
-type Message = { role: "user" | "assistant"; content: string };
+export type Message = { role: "user" | "assistant"; content: string };
+export type SavedConversationProps = {
+  initialMessages?: Message[];
+  initialDraft?: string;
+  onDraftChange?: (draft: string) => void;
+  externalBusy?: boolean;
+  sendMessage?: (
+    text: string,
+    language: "en" | "fr",
+    signal: AbortSignal,
+    onText: (text: string) => void,
+  ) => Promise<{ texte: string; usage?: unknown }>;
+  onNew?: () => void;
+  composerExtra?: ReactNode;
+};
 type EtatVoix = { pret: boolean; local: boolean; voix: string; langue: string };
+type TokenUsage = {
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  total_tokens: number | null;
+};
+
+export function reportedUsage(value: unknown): TokenUsage {
+  const usage =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+  const count = (key: string) =>
+    typeof usage[key] === "number" &&
+    Number.isSafeInteger(usage[key]) &&
+    usage[key] >= 0
+      ? usage[key]
+      : null;
+  return {
+    prompt_tokens: count("prompt_tokens"),
+    completion_tokens: count("completion_tokens"),
+    total_tokens: count("total_tokens"),
+  };
+}
 type Phase =
   | "repos"
   | "permission"
@@ -33,25 +86,6 @@ type Phase =
   | "synthese"
   | "lecture";
 const MAX_AUDIO = 8 * 1024 * 1024;
-
-export function texteOral(texte: string, langue: "en" | "fr" = "en"): string {
-  return texte
-    .replace(
-      /```[\s\S]*?```/g,
-      langue === "fr"
-        ? " Un exemple de code est disponible à l’écran. "
-        : " A code example is available on screen. ",
-    )
-    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/^\s{0,3}(?:#{1,6}|>|[-*+] |\d+\. )/gm, " ")
-    .replace(/[`*_~|]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 2000)
-    .replace(/[\uD800-\uDBFF]$/, "");
-}
 
 function encoderAudio(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -83,25 +117,60 @@ const erreursMicro: Record<string, string> = {
       "Your browser blocked microphone access. Open the platform on localhost.",
     );
   },
+  get OverconstrainedError() {
+    return t(
+      "The default microphone is unavailable. Check your operating system’s audio input settings.",
+    );
+  },
 };
 
-export default function Assistant() {
+export default function Assistant({
+  initialMessages = [],
+  initialDraft = "",
+  onDraftChange,
+  externalBusy = false,
+  sendMessage,
+  onNew,
+  composerExtra,
+}: SavedConversationProps = {}) {
   useI18n();
   const notifier = useToast();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [brouillon, setBrouillon] = useState("");
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [brouillon, setBrouillon] = useState(initialDraft);
+  const draftCallback = useRef(onDraftChange);
+  draftCallback.current = onDraftChange;
+  useEffect(() => {
+    draftCallback.current?.(brouillon);
+  }, [brouillon]);
   const [phase, setPhase] = useState<Phase>("repos");
+  useAudioFocus(
+    phase === "permission" || phase === "micro"
+      ? "microphone"
+      : phase !== "repos"
+        ? "speech"
+        : null,
+  );
   const [secondes, setSecondes] = useState(0);
   const [waitingSeconds, setWaitingSeconds] = useState(0);
   const [automatique, setAutomatique] = useState(false);
   const automatiqueRef = useRef(false);
   const automaticSpeech = useRef(false);
-  const [langue, setLangue] = useState<"en" | "fr">("en");
+  const [langue, setLangue] = useState<"en" | "fr">(getLanguage);
+  const [microLevel, setMicroLevel] = useState(0);
+  const [captureNote, setCaptureNote] = useState<MessageKey | null>(null);
+  const [monitorBlocked, setMonitorBlocked] = useState(false);
+  const [reviewReady, setReviewReady] = useState(false);
+  const [lastUsage, setLastUsage] = useState<TokenUsage | null>(null);
+  const [sessionUsage, setSessionUsage] = useState({
+    total: 0,
+    reported: 0,
+    replies: 0,
+  });
   const [handsFree, setHandsFree] = useState(false);
   const handsFreeRef = useRef(false);
   const turns = useRef(0);
   const nextTurn = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestMessages = useRef<Message[]>([]);
+  const latestMessages = useRef<Message[]>(initialMessages);
   const signal = useRef<SignalReader | null>(null);
   const microphoneContext = useRef<AudioContext | null>(null);
   const microphoneSource = useRef<MediaStreamAudioSourceNode | null>(null);
@@ -122,7 +191,7 @@ export default function Assistant() {
   const envoiEnCours = useRef<{ texte: string; avant: Message[] } | null>(null);
   const actuel = (numero: number) =>
     vivant.current && numero === generation.current;
-  const occupe = phase !== "repos" && phase !== "lecture";
+  const occupe = externalBusy || (phase !== "repos" && phase !== "lecture");
   const microDisponible =
     typeof MediaRecorder !== "undefined" &&
     !!navigator.mediaDevices?.getUserMedia;
@@ -146,11 +215,23 @@ export default function Assistant() {
       void context.close().catch(() => {});
   }
 
-  function attachMicrophoneSignal(stream: MediaStream) {
+  function prepareMicrophoneSignal() {
     try {
       if (!window.AudioContext) return;
+      // Called synchronously from Record/Start, before awaiting microphone
+      // permission. Resume requires user activation in some browsers.
       const context = new AudioContext();
       microphoneContext.current = context;
+      if (context.state === "suspended") void context.resume().catch(() => {});
+    } catch {
+      releaseMicrophoneSignal();
+    }
+  }
+
+  function attachMicrophoneSignal(stream: MediaStream) {
+    try {
+      const context = microphoneContext.current;
+      if (!context) return;
       const source = context.createMediaStreamSource(stream);
       const analyser = context.createAnalyser();
       microphoneSource.current = source;
@@ -251,7 +332,7 @@ export default function Assistant() {
 
   useEffect(() => {
     setWaitingSeconds(0);
-    if (phase !== "reflexion") return;
+    if (!["transcription", "reflexion", "synthese"].includes(phase)) return;
     const start = Date.now();
     const interval = setInterval(
       () => setWaitingSeconds(Math.floor((Date.now() - start) / 1000)),
@@ -259,6 +340,10 @@ export default function Assistant() {
     );
     return () => clearInterval(interval);
   }, [phase]);
+
+  useEffect(() => {
+    if (reviewReady && phase === "repos") champ.current?.focus();
+  }, [reviewReady, phase]);
 
   useEffect(() => {
     if (conversation.current)
@@ -320,6 +405,8 @@ export default function Assistant() {
           setErreur(new Error(t("Your browser could not play this audio.")));
         }
       };
+      await applyAudioOutput(son);
+      if (!actuel(numero)) return;
       await son.play();
       if (actuel(numero)) setPhase("lecture");
     } catch (cause) {
@@ -352,11 +439,13 @@ export default function Assistant() {
     const texte = value.trim();
     if (!texte || texte.length > 4000) return;
     arreter(continueConversation);
+    setReviewReady(false);
+    setCaptureNote(null);
     const numero = generation.current;
     const controle = new AbortController();
     requete.current = controle;
     const suivants: Message[] = [
-      ...latestMessages.current.slice(-6),
+      ...latestMessages.current.slice(sendMessage ? -99 : -6),
       { role: "user", content: texte },
     ];
     const avant = latestMessages.current;
@@ -367,28 +456,40 @@ export default function Assistant() {
     setErreur(null);
     setPhase("reflexion");
     try {
-      const resultat = await api<{ texte: string }>(
-        "/assistant/dialogue",
-        "POST",
-        {
-          langue,
-          messages: suivants.map((message) => ({
-            ...message,
-            content: message.content.slice(0, 4000),
-          })),
-        },
-        controle.signal,
-      );
+      const resultat = sendMessage
+        ? await sendMessage(texte, langue, controle.signal, (text) => {
+            if (actuel(numero))
+              setMessages([...suivants, { role: "assistant", content: text }]);
+          })
+        : await api<{ texte: string; usage?: unknown }>(
+            "/assistant/dialogue",
+            "POST",
+            {
+              langue,
+              messages: suivants.map((message) => ({
+                ...message,
+                content: message.content.slice(0, 4000),
+              })),
+            },
+            controle.signal,
+          );
       if (!actuel(numero)) return;
       if (typeof resultat.texte !== "string" || !resultat.texte.trim())
         throw new Error(
           t("The local assistant returned an empty reply. Please try again."),
         );
       envoiEnCours.current = null;
+      const usage = reportedUsage(resultat.usage);
+      setLastUsage(usage);
+      setSessionUsage((previous) => ({
+        total: previous.total + (usage.total_tokens ?? 0),
+        reported: previous.reported + (usage.total_tokens === null ? 0 : 1),
+        replies: previous.replies + 1,
+      }));
       const updated = [
         ...suivants,
         { role: "assistant", content: resultat.texte },
-      ].slice(-7) as Message[];
+      ].slice(sendMessage ? -100 : -7) as Message[];
       latestMessages.current = updated;
       setMessages(updated);
       setPhase("repos");
@@ -438,8 +539,13 @@ export default function Assistant() {
     arreter(continueConversation);
     const numero = generation.current;
     setErreur(null);
+    setReviewReady(false);
+    setMicroLevel(0);
+    setCaptureNote(null);
+    setMonitorBlocked(false);
     setPhase("permission");
     setSecondes(0);
+    prepareMicrophoneSignal();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -543,8 +649,10 @@ export default function Assistant() {
           setPhase("repos");
           if (continueConversation && handsFreeRef.current) {
             void envoyerTexte(complet, true);
-          } else
+          } else {
+            setReviewReady(true);
             notifier(t("Transcript ready. Review the text, then select Send."));
+          }
         } catch (cause) {
           if (!actuel(numero)) return;
           endConversation();
@@ -559,34 +667,71 @@ export default function Assistant() {
       recorder.start(1000);
       setPhase("micro");
       const debut = Date.now();
-      let lastSpeech = debut,
-        heardSpeech = false;
+      const activity = inputActivity(debut);
+      stream.getAudioTracks?.().forEach((track) => {
+        track.addEventListener?.(
+          "ended",
+          () => {
+            if (!actuel(numero) || flux.current !== stream) return;
+            invalide = true;
+            arreter();
+            setErreur(
+              new Error(
+                t(
+                  "The microphone was disconnected. Reconnect it or choose another input, then record again.",
+                ),
+              ),
+            );
+          },
+          { once: true },
+        );
+      });
       minuterie.current = setInterval(() => {
         if (!actuel(numero)) return;
         const duree = Math.floor((Date.now() - debut) / 1000);
         setSecondes(Math.min(90, duree));
+        const frame = signal.current?.();
+        const measured = activity(frame, Date.now());
+        setMicroLevel(frame?.level || 0);
+        const muted = stream
+          .getAudioTracks?.()
+          .some((track) => track.muted || !track.enabled);
+        setMonitorBlocked(!measured.available);
+        setCaptureNote(
+          muted
+            ? "Your microphone is muted. Unmute it in your device or system settings."
+            : !measured.available
+              ? "The browser paused microphone monitoring. Recording still works; stop to review the transcript or enable monitoring."
+              : measured.heard
+                ? "Input signal detected."
+                : duree >= 3
+                  ? "No input signal yet. Check the selected microphone, hardware mute and system input level."
+                  : "Speak naturally and watch the input meter.",
+        );
         if (continueConversation && handsFreeRef.current) {
-          const frame = signal.current?.();
-          if (frame && frame.level > 0.08) {
-            heardSpeech = true;
-            lastSpeech = Date.now();
+          if (!measured.available && duree >= 1) {
+            // Missing analyser data is not evidence of silence. Keep the
+            // recording for manual review rather than discard a spoken turn.
+            endConversation();
+            return;
           }
-          if (heardSpeech && Date.now() - lastSpeech > 1600 && duree >= 2) {
+          if (measured.heard && measured.silence > 1600 && duree >= 2) {
             couperMicro();
             return;
           }
-          if (!heardSpeech && duree >= 12) {
-            arreter();
+          if (!measured.heard && duree >= 12) {
+            endConversation();
             notifier(
               t(
-                "Conversation paused: no speech detected. Check your microphone or use Record.",
+                "No input signal was detected. The recording will be transcribed for review; check your microphone.",
               ),
             );
+            couperMicro();
             return;
           }
         }
         if (duree >= 90) couperMicro();
-      }, 250);
+      }, 100);
     } catch (cause) {
       if (!actuel(numero)) return;
       couperMicro();
@@ -611,7 +756,9 @@ export default function Assistant() {
   }
 
   const etats: Record<Phase, string> = {
-    repos: t("Ready when you are"),
+    repos: reviewReady
+      ? t("Transcript ready. Review the text, then select Send.")
+      : t("Ready when you are"),
     permission: t("Waiting for microphone permission…"),
     micro: t("Recording · {seconds} / 90 s", { seconds: secondes }),
     transcription: t("Transcribing on your device…"),
@@ -642,16 +789,24 @@ export default function Assistant() {
       >
         <button
           className="btn"
-          disabled={!messages.length || occupe}
+          disabled={(!messages.length && !onNew) || occupe}
           onClick={() => {
             arreter();
+            if (onNew) {
+              onNew();
+              return;
+            }
             latestMessages.current = [];
             setMessages([]);
             setBrouillon("");
             setErreur(null);
+            setReviewReady(false);
+            setLastUsage(null);
+            setSessionUsage({ total: 0, reported: 0, replies: 0 });
           }}
         >
-          <Trash2 size={16} /> {t("Clear conversation")}
+          <Trash2 size={16} />{" "}
+          {onNew ? t("New conversation") : t("Clear conversation")}
         </button>
       </Titre>
       <div className="aura-deck">
@@ -661,7 +816,18 @@ export default function Assistant() {
         >
           <div className="instrument-heading">
             <span>
-              <i className="health-dot healthy" /> {t("LOCAL VOICE INTERFACE")}
+              <i
+                className={
+                  "health-dot " +
+                  (voix?.pret
+                    ? "healthy"
+                    : voix || erreurVoix
+                      ? "unhealthy"
+                      : "checking")
+                }
+                aria-hidden="true"
+              />{" "}
+              {t("LOCAL VOICE INTERFACE")}
             </span>
             <span>01 / AURA</span>
           </div>
@@ -672,8 +838,77 @@ export default function Assistant() {
               {t("AURA")}
               <span>—</span>
             </h2>
-            <p>{etats[phase]}</p>
+            <p>
+              {etats[phase]}
+              {["transcription", "reflexion", "synthese"].includes(phase) &&
+              waitingSeconds > 0
+                ? ` · ${waitingSeconds} s`
+                : ""}
+            </p>
           </div>
+          {phase === "micro" && (
+            <div
+              className="microphone-diagnostic"
+              aria-label={t("Microphone diagnostics")}
+            >
+              <strong>{t("Microphone input")}</strong>
+              <meter
+                min={0}
+                max={1}
+                value={microLevel}
+                aria-label={t("Measured input level")}
+              />
+              <p aria-live="polite">
+                {captureNote
+                  ? t(captureNote)
+                  : t("Speak naturally and watch the input meter.")}
+              </p>
+              <p>
+                {handsFree
+                  ? t(
+                      "Pause briefly when you finish. You can also send this turn now.",
+                    )
+                  : t(
+                      "Finish recording to see your text. Review it, then select Send to receive a reply.",
+                    )}
+              </p>
+              <div className="microphone-diagnostic-actions">
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={couperMicro}
+                >
+                  {handsFree ? t("Send this turn") : t("Finish recording")}
+                </button>
+                {monitorBlocked && !!window.AudioContext && (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      const context = microphoneContext.current;
+                      if (context)
+                        void context.resume().catch(() => {
+                          if (vivant.current)
+                            setErreur(
+                              new Error(
+                                t(
+                                  "Microphone monitoring is still blocked. Finish recording to review the transcript.",
+                                ),
+                              ),
+                            );
+                        });
+                      else if (flux.current) {
+                        prepareMicrophoneSignal();
+                        attachMicrophoneSignal(flux.current);
+                      }
+                    }}
+                  >
+                    {t("Enable microphone monitoring")}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="aura-mode">
             {handsFree ? (
               <>
@@ -750,6 +985,9 @@ export default function Assistant() {
               <strong>{phase === "micro" ? t("Recording") : t("Off")}</strong>
             </div>
           </div>
+          <p className="hint">
+            {t("AURA uses your system’s default microphone and speakers.")}
+          </p>
         </section>
         <div className="chat-layout">
           <section
@@ -844,7 +1082,13 @@ export default function Assistant() {
               ) : (
                 <LoaderCircle size={15} className="spin" />
               )}
-              <span>{etats[phase]}</span>
+              <span>
+                {etats[phase]}
+                {["transcription", "reflexion", "synthese"].includes(phase) &&
+                waitingSeconds > 0
+                  ? ` · ${waitingSeconds} s`
+                  : ""}
+              </span>
             </div>
             {phase === "reflexion" && waitingSeconds >= 15 && (
               <p className="chat-waiting" role="status">
@@ -854,7 +1098,26 @@ export default function Assistant() {
               </p>
             )}
             {erreur && <Erreur erreur={erreur} />}
+            {!handsFree && phase === "repos" && (
+              <p className="voice-step-hint">
+                {reviewReady
+                  ? t(
+                      "Your transcript is ready below. Edit it if needed, then select Send. Nothing has been sent to AURA yet.",
+                    )
+                  : t(
+                      "AURA only listens after you select Record or Start conversation. With Record, finish recording and select Send after reviewing your text.",
+                    )}
+              </p>
+            )}
             <form className="chat-compose" onSubmit={envoyer}>
+              {composerExtra && (
+                <fieldset
+                  className="attachment-controls"
+                  disabled={occupe || handsFree}
+                >
+                  {composerExtra}
+                </fieldset>
+              )}
               <label className="sr-only" htmlFor="message-assistante">
                 {t("Your message")}
               </label>
@@ -929,6 +1192,54 @@ export default function Assistant() {
             </form>
           </section>
           <aside className="voice-aside">
+            <section
+              className="panel instruction-card"
+              aria-label={t("Reported token usage")}
+            >
+              <h2>{t("Reported token usage")}</h2>
+              <dl className="token-usage">
+                <div>
+                  <dt>{t("Last input context")}</dt>
+                  <dd>
+                    {lastUsage?.prompt_tokens != null
+                      ? number(lastUsage.prompt_tokens)
+                      : t("Not reported")}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t("Last reply")}</dt>
+                  <dd>
+                    {lastUsage?.completion_tokens != null
+                      ? number(lastUsage.completion_tokens)
+                      : t("Not reported")}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t("Session · reported total")}</dt>
+                  <dd>
+                    {sessionUsage.reported
+                      ? number(sessionUsage.total)
+                      : t("Not reported")}
+                  </dd>
+                </div>
+              </dl>
+              <p className="hint">
+                {t("Usage reported for {count} of {total} completed replies.", {
+                  count: number(sessionUsage.reported),
+                  total: number(sessionUsage.replies),
+                })}
+              </p>
+              <p className="hint">
+                {t(
+                  "Input includes instructions and up to seven messages. Older messages leave the context window. Each reply is capped at 650 output tokens.",
+                )}
+              </p>
+              <p className="hint">
+                {t(
+                  "Unknown usage is not zero. Interrupted or failed requests may still consume tokens. These counters reset when you clear or leave this conversation.",
+                )}
+              </p>
+            </section>
             <section className="panel instruction-card">
               <span className="tile-icon">
                 <Headphones size={23} />
@@ -1012,14 +1323,16 @@ export default function Assistant() {
               <LockKeyhole size={16} />
               <p>
                 {t(
-                  "This conversation is temporary. The last seven messages provide context. Leaving this page clears the conversation. Recordings are not stored permanently.",
+                  sendMessage
+                    ? "Saved locally for 30 days after the last activity. AURA uses recent messages and the attachments you select. Audio recordings are not saved. Delete conversations from History."
+                    : "This conversation is temporary. The last seven messages provide context. Leaving this page clears the conversation. Recordings are not stored permanently.",
                 )}
               </p>
               <p>
                 {langue === "en"
-                  ? t("LJSpeech voice · public domain.")
+                  ? t("Synthetic voice · Apache-2.0 model.")
                   : t(
-                      "SIWIS voice · University of Edinburgh · CC BY 4.0.",
+                      "French training: SIWIS · University of Edinburgh · CC BY 4.0.",
                     )}{" "}
                 {t(
                   "Synthetic AI voice. Playback is limited to 2,000 characters per reply. Conversation uses successive local processing steps; response times depend on this device.",

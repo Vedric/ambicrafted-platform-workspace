@@ -16,22 +16,36 @@ import {
   Workflow,
   Wrench,
 } from "lucide-react";
-import { api, serviceName, type Liste, type Vue } from "../api";
+import { api, serviceName, type Liste, type Vue, type Runbook } from "../api";
 import { Erreur, Chargement, Vide, Titre, Orbit } from "../ui";
 import { ListeAnalyses } from "./analyses";
 import { Insights } from "../Insights";
+import { INSIGHT_RUN_LIMIT } from "../insight-model";
 
 export function VueEnsemble() {
   useI18n();
   const q = useQuery({
     queryKey: ["vue"],
-    queryFn: () => api<Vue>("/vue-ensemble"),
+    queryFn: ({ signal }) =>
+      api<Vue>("/vue-ensemble", "GET", undefined, signal),
     refetchInterval: 15000,
   });
   const recent = useQuery({
-    queryKey: ["recentes"],
-    queryFn: () => api<Liste>("/analyses?taille=4"),
+    queryKey: ["recentes", INSIGHT_RUN_LIMIT],
+    queryFn: ({ signal }) =>
+      api<Liste>(
+        "/analyses?taille=" + INSIGHT_RUN_LIMIT,
+        "GET",
+        undefined,
+        signal,
+      ),
     refetchInterval: 10000,
+  });
+  const runbooks = useQuery({
+    queryKey: ["runbooks", ""],
+    queryFn: ({ signal }) =>
+      api<Runbook[]>("/runbooks?recherche=", "GET", undefined, signal),
+    refetchInterval: 60000,
   });
   if (q.isPending) return <Chargement />;
   if (q.error)
@@ -165,7 +179,28 @@ export function VueEnsemble() {
           {t("All missions")} <Compass size={15} />
         </Link>
       </div>
-      <Insights data={d} updatedAt={q.dataUpdatedAt} />
+      <Insights
+        data={d}
+        updatedAt={q.dataUpdatedAt}
+        runs={{
+          data: recent.data,
+          loading: recent.isPending,
+          failed: recent.isError,
+          retry: () => {
+            void recent.refetch();
+          },
+          updatedAt: recent.dataUpdatedAt,
+        }}
+        runbooks={{
+          data: runbooks.data,
+          loading: runbooks.isPending,
+          failed: runbooks.isError,
+          retry: () => {
+            void runbooks.refetch();
+          },
+          updatedAt: runbooks.dataUpdatedAt,
+        }}
+      />
       <div className="dashboard-grid">
         <section className="panel">
           <div className="panel-heading">
@@ -188,7 +223,7 @@ export function VueEnsemble() {
               </Link>
             </Vide>
           ) : (
-            <ListeAnalyses elements={recent.data.elements} />
+            <ListeAnalyses elements={recent.data.elements.slice(0, 4)} />
           )}
         </section>
         <section className="panel">

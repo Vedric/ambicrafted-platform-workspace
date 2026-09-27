@@ -83,7 +83,7 @@ needed; never pass a password or key as a command argument.
 ### Understand the installation before intake
 
 Open **Architecture** from navigation or **Explore the architecture** on
-**Overview**. Select **Investigation**, **Voice**, **Knowledge** or **Telemetry**,
+**Overview**. Select **Investigation**, **Voice**, **Knowledge**, **Memory** or **Telemetry**,
 then select a component to read **Role in this system**, **Data handled** and
 **Boundary to remember**. **Open related workspace** takes you to the relevant
 operating page. On a narrow screen, use the component list; the same controls
@@ -103,7 +103,7 @@ reduced-motion setting. These display preferences do not change the incident
 workflow or AURA's audio permissions.
 
 Review the current [dependency findings](DEPENDENCIES.md) and
-[security assessment](SECURITY-RELEASE-2026-09-26.md) against the mission's
+[current security assessment](SECURITY-REFINEMENT-2026-09-27.md) against the mission's
 requirements. Functional health does not establish an absence of
 vulnerabilities. A new machine also needs its own synthetic inference,
 approval/refusal, microphone/playback if used, and backup restoration checks.
@@ -242,7 +242,7 @@ speech pause, it sends the transcription, reads the reply and listens again,
 for up to 20 turns. Use **End conversation** or Escape to stop. Choose manual
 recording when every transcript needs review before submission. Check displayed
 answers before sharing them. A spoken “yes” does not approve a proposal.
-Conversation is held in page memory and has no execution or approval authority;
+Conversation is saved locally with bounded recent context and has no execution or approval authority;
 important evidence belongs in the mission record and the supervised analysis
 workflow. If audio is unavailable, use typed input rather than a cloud speech
 fallback.

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { ambientState, observeAudio } from "./audio-observer";
 
 declare global {
   interface Window {
@@ -261,10 +262,12 @@ test("interface language persists and leaves operator input and speech language 
   await expect(
     page.getByRole("heading", { name: "Assistante vocale", exact: true }),
   ).toBeVisible();
-  await expect(page.locator("#voice-language")).toHaveValue("en");
+  await expect(page.locator("#voice-language")).toHaveValue("fr");
+  await page.locator("#voice-language").selectOption("en");
   await expect(page.getByLabel("Votre message")).toBeEditable();
   await accessible(page);
   await page.getByLabel("Langue de l’interface").selectOption("en");
+  await expect(page.locator("#voice-language")).toHaveValue("en");
   await expect(
     page.getByRole("heading", { name: "Voice assistant", exact: true }),
   ).toBeVisible();
@@ -274,13 +277,17 @@ test("AURA measures a real synthetic microphone, supports motion pause and revie
   page,
 }) => {
   await syntheticSpeech(page);
+  await observeAudio(page);
   await login(page);
   await page.goto("/assistant");
   await expect(
     page.getByRole("button", { name: "Record", exact: true }),
   ).toBeEnabled();
   expect(await page.evaluate(() => window.__auraSynthetic.starts)).toBe(0);
+  await page.getByRole("button", { name: "Play ambient music", exact: true }).click();
+  await expect.poll(async () => (await ambientState(page))?.time).toBeGreaterThan(.1);
   await page.getByRole("button", { name: "Record", exact: true }).click();
+  await expect.poll(async () => (await ambientState(page))?.volume).toBe(0);
   const core = page.locator(".aura-stage .neural-core");
   await core.scrollIntoViewIfNeeded();
   await expect(core).toHaveAttribute("data-signal", "measured");
@@ -314,6 +321,7 @@ test("AURA measures a real synthetic microphone, supports motion pause and revie
   await page.getByRole("button", { name: "Listen", exact: true }).click();
   await core.scrollIntoViewIfNeeded();
   await expect(page.locator(".chat-status")).toContainText("Speaking");
+  await expect.poll(async () => (await ambientState(page))?.volume).toBeLessThan(.01);
   await expect(core).toHaveAttribute("data-signal", "measured");
   await expect
     .poll(() =>

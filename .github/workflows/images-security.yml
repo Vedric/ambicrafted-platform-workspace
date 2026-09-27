@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   images:
-    name: Six images, rapports complets, seuil CRITICAL et HIGH
+    name: Sept images, rapports complets, seuil CRITICAL et HIGH
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
@@ -44,14 +44,14 @@ jobs:
             "$TRIVY_DIRECTORY/trivy.tar.gz" | sha256sum --check --strict
           tar -xzf "$TRIVY_DIRECTORY/trivy.tar.gz" -C "$TRIVY_DIRECTORY" trivy
           "$TRIVY_DIRECTORY/trivy" --version
-      - name: Construire les dérivées déclarées et analyser les six images
+      - name: Construire les dérivées déclarées et analyser les sept images
         env:
           TRIVY_BINARY: ${{ runner.temp }}/trivy-0.74.0/trivy
           IMAGE_REPORTS: ${{ runner.temp }}/image-security-reports
           IMAGE_CACHE: ${{ runner.temp }}/image-security-cache
         run: |
           uv run --no-project --python 3.14 scripts/scanner_images.py \
-            --compose gateway/docker-compose.yml \
+            --compose gateway/docker-compose.yml --memory-compose gateway/neo4j-memory.yml \
             --trivy "$TRIVY_BINARY" --output "$IMAGE_REPORTS" --cache "$IMAGE_CACHE"
       - name: Résumé même en cas de vulnérabilités ou d'erreur
         if: always()

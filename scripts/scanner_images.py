@@ -1,4 +1,4 @@
-"""Scan the six declared images without loading Compose environment files.
+"""Scan the declared platform images without loading Compose environment files.
 
 Only the repository's explicit image/build-context YAML subset is accepted. A
 future Compose syntax change must update this reader and its tests deliberately.
@@ -51,8 +51,9 @@ def scalar(value: str) -> str:
     return value
 
 
-def read_targets(compose: Path) -> list[Target]:
+def read_targets(compose: Path, *, memory: bool = False) -> list[Target]:
     """Extract only service names, images and local build contexts; ignore env data."""
+    expected = ("neo4j",) if memory else SERVICES
     entries: dict[str, dict[str, str]] = {}
     current: str | None = None
     in_services = False
@@ -75,7 +76,7 @@ def read_targets(compose: Path) -> list[Target]:
         indent = len(raw) - len(raw.lstrip(" "))
         if indent == 2:
             match = re.fullmatch(r"  ([a-z][a-z0-9_-]*):", raw)
-            if not match or match[1] not in SERVICES or match[1] in entries:
+            if not match or match[1] not in expected or match[1] in entries:
                 raise ValueError("Services Compose inattendus, ambigus ou dupliqués.")
             current = match[1]
             entries[current] = {}
@@ -108,13 +109,13 @@ def read_targets(compose: Path) -> list[Target]:
                     "Seul un contexte de construction local explicite est accepté."
                 )
             entries[current]["context"] = scalar(match[1])
-    if sections != 1 or set(entries) != set(SERVICES):
+    if sections != 1 or set(entries) != set(expected):
         raise ValueError(
-            "Le fichier Compose doit déclarer exactement les six services attendus."
+            "Le fichier Compose doit déclarer exactement les services attendus."
         )
 
     targets = []
-    for service in SERVICES:
+    for service in expected:
         entry = entries[service]
         image = entry.get("image", "")
         if not IMAGE.fullmatch(image) or image.split(":", 1)[-1] in {
@@ -126,7 +127,7 @@ def read_targets(compose: Path) -> list[Target]:
             )
         context = None
         if "build" in entry:
-            if service not in {"postgres", "qdrant"}:
+            if service not in {"postgres", "qdrant", "tempo", "grafana", "neo4j"}:
                 raise ValueError("Construction dérivée non prévue pour ce service.")
             if entry.get("context") != f"./images/{service}":
                 raise ValueError(
@@ -276,7 +277,7 @@ def write_summary(results: list[Result], output: Path) -> int:
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     rows = [
-        "# Sécurité des six images",
+        f"# Sécurité des {len(results)} images",
         "",
         "Seuil : toute occurrence CRITICAL/HIGH. Aucun filtre de vulnérabilité ni dérogation.",
         "",
@@ -318,9 +319,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--cache", type=Path, required=True, help="Cache Trivy hors des rapports"
     )
+    parser.add_argument("--memory-compose", type=Path, help="Compose de la mémoire Neo4j dédiée")
     args = parser.parse_args(argv)
     try:
         targets = read_targets(args.compose.resolve())
+        if args.memory_compose:
+            targets.extend(read_targets(args.memory_compose.resolve(), memory=True))
         # Refuse old reports: a failed scan must never reuse a prior clean JSON.
         args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
         args.cache.mkdir(mode=0o700, parents=True, exist_ok=True)

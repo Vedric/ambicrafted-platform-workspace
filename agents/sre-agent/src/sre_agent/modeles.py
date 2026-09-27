@@ -105,7 +105,7 @@ class Rapport(BaseModel):
     injections_signalees: list[str] = Field(default_factory=list)
 
     outils_appeles: list[str] = Field(default_factory=list)
-    budget: dict[str, float | int] = Field(default_factory=dict)
+    budget: dict[str, float | int | bool | None] = Field(default_factory=dict)
     trace_id: str | None = None
     message: str = ""
 

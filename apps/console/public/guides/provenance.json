@@ -1,0 +1,55 @@
+{
+  "source": "Playwright capture of the local application served by tests/server.py",
+  "data": "Synthetic disposable data; model inference and voice recognition are deterministic fixtures. No customer data.",
+  "browser": "Chromium",
+  "clips": [
+    {
+      "lesson": "first-steps",
+      "language": "en",
+      "duration_seconds": 11.88,
+      "bytes": 1340140,
+      "sha256": "7303381a17fba9e72a09ec6652c6ae06f72847c6b6279602737e2331d4ad7595",
+      "page_errors": []
+    },
+    {
+      "lesson": "voice",
+      "language": "en",
+      "duration_seconds": 10.85,
+      "bytes": 1192076,
+      "sha256": "f92d4df4f215df31f8dd9759b0cc6da36fa8f87347ee6893e98f8412517708b0",
+      "page_errors": []
+    },
+    {
+      "lesson": "investigation",
+      "language": "en",
+      "duration_seconds": 13.08,
+      "bytes": 1098085,
+      "sha256": "4286a9d3a8ace0408c1c764e8b05220563af6740ba5dce86700e28a1c3e3a77e",
+      "page_errors": []
+    },
+    {
+      "lesson": "first-steps",
+      "language": "fr",
+      "duration_seconds": 11.7,
+      "bytes": 1181635,
+      "sha256": "bc37c38abe729ac7d75af3ad496fdfd5a65f474940f2bf6e7196cb00ff4c8a96",
+      "page_errors": []
+    },
+    {
+      "lesson": "voice",
+      "language": "fr",
+      "duration_seconds": 10.85,
+      "bytes": 1208400,
+      "sha256": "be4e96fb755e8e8ba45dce7480be37f963ecac11b1839dbf3e5cf785ed5eb774",
+      "page_errors": []
+    },
+    {
+      "lesson": "investigation",
+      "language": "fr",
+      "duration_seconds": 13.12,
+      "bytes": 1036083,
+      "sha256": "c6e098c5433e13e8cf524282126adeb911221641748e1c262031023de3fe8368",
+      "page_errors": []
+    }
+  ]
+}

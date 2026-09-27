@@ -27,6 +27,7 @@ import {
   type Sante,
 } from "../api";
 import { Erreur, Chargement, Vide, Titre, Modal } from "../ui";
+import { WorkspacePreferences } from "../ExperiencePreferences";
 
 const indexStatusLabels: Record<string, string> = {
   get green() {
@@ -235,7 +236,7 @@ const toolLabels: Record<string, { name: string; description: string }> = {
     },
     get description() {
       return t(
-        "Generate speech locally with Piper’s female French SIWIS voice.",
+        "Generate French speech locally with the multilingual female voice.",
       );
     },
   },
@@ -626,7 +627,13 @@ export function Agents() {
     queryKey: ["outils"],
     queryFn: () =>
       api<{
-        outils: { nom: string; description: string; lecture_seule: boolean }[];
+        outils: {
+          nom: string;
+          description: string;
+          lecture_seule: boolean;
+          mcp_nom?: string;
+          mcp_serveur?: string;
+        }[];
       }>("/outils"),
   });
   return (
@@ -641,25 +648,25 @@ export function Agents() {
       <div className="agents-flow">
         {[
           {
-            nom: "Extraction",
+            nom: "IRIS",
             role: t("Understand the signal"),
             texte: t("Structures symptoms and flags suspicious instructions."),
             icon: Search,
           },
           {
-            nom: "Triage",
+            nom: "VEGA",
             role: t("Assess the situation"),
             texte: t("Suggests a classification and urgency for your review."),
             icon: Activity,
           },
           {
-            nom: "Investigation",
+            nom: "ATLAS",
             role: t("Follow the evidence"),
             texte: t("Consults runbooks through MCP within a defined budget."),
             icon: BookOpen,
           },
           {
-            nom: "Supervision",
+            nom: "ARGUS",
             role: t("Keep you in control"),
             texte: t("Checks the sources and waits for your approval."),
             icon: ShieldCheck,
@@ -679,10 +686,28 @@ export function Agents() {
           </section>
         ))}
       </div>
+      <section className="panel gateway-summary">
+        <span className="tile-icon">
+          <GitBranch size={25} />
+        </span>
+        <div>
+          <span className="eyebrow">NEXUS · MCP</span>
+          <h2>{t("One gateway for your tools")}</h2>
+          <p>
+            {t(
+              "The SRE agent receives only runbook tools. The operator profile can also inspect the control API. Tool access does not grant approval authority.",
+            )}
+          </p>
+        </div>
+        <Link className="btn" to="/architecture">
+          {t("Architecture")}
+          <ArrowRight size={16} />
+        </Link>
+      </section>
       <section className="panel">
         <div className="panel-heading">
           <h2>{t("Approved tools & connectors")}</h2>
-          <span className="tag">{t("LOCAL MCP")}</span>
+          <span className="tag">{t("LOCAL TOOLS")}</span>
         </div>
         {q.isPending ? (
           <Chargement />
@@ -703,7 +728,12 @@ export function Agents() {
                     {toolLabels[o.nom]?.description ||
                       t("A capability provided by the local platform.")}
                   </p>
-                  <code className="tiny muted">{o.nom}</code>
+                  <code className="tiny muted">{o.mcp_nom || o.nom}</code>
+                  <span className="tiny muted">
+                    {o.mcp_serveur
+                      ? "NEXUS · " + o.mcp_serveur
+                      : t("Operator API")}
+                  </span>
                   <span className="tiny muted">
                     {o.lecture_seule
                       ? t("Read-only")
@@ -738,6 +768,7 @@ export function Parametres() {
         file_max: number;
         retention_jours: number;
         duree_session_heures: number;
+        budget_tokens_total?: number | null;
       }>("/parametres"),
   });
   const [mot, setMot] = useState(""),
@@ -761,8 +792,9 @@ export function Parametres() {
           "Manage local access, understand session limits and work from your terminal.",
         )}
       />
+      <WorkspacePreferences />
       <div className="dashboard-grid">
-        <section className="panel settings-panel">
+        <section className="panel settings-panel" id="access-settings">
           <h2>
             <LockKeyhole size={19} /> {t("Access & privacy")}
           </h2>
@@ -788,8 +820,19 @@ export function Parametres() {
               <dd>{countLabel(q.data!.duree_session_heures, "hour")}</dd>
               <dt>{t("Analysis retention")}</dt>
               <dd>{countLabel(q.data!.retention_jours, "day")}</dd>
+              <dt>{t("Observed token limit per analysis")}</dt>
+              <dd>
+                {typeof q.data!.budget_tokens_total === "number"
+                  ? number(q.data!.budget_tokens_total!)
+                  : t("Not reported")}
+              </dd>
             </dl>
           )}
+          <p className="hint">
+            {t(
+              "Configure this operational limit with SRE_MAX_TOKENS_TOTAL and restart the service. The CLI and UI use the same value.",
+            )}
+          </p>
           <p className="hint">
             {t(
               "Change the theme or pause animations from the top bar. Your choices are saved on this browser. Animations also respect your system’s reduced-motion preference.",
@@ -848,7 +891,7 @@ export function Parametres() {
           </form>
         </section>
       </div>
-      <section className="panel settings-panel">
+      <section className="panel settings-panel" id="cli-settings">
         <h2>
           <SquareTerminal size={20} />{" "}
           {t("The same platform, from your terminal.")}

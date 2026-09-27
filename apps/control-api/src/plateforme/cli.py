@@ -18,6 +18,7 @@ import webbrowser
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any, Self
+from uuid import UUID, uuid4
 
 import httpx
 
@@ -125,17 +126,17 @@ def lire_entree(fichier: Path | None, limite: int, *, prive: bool = True) -> str
     return valeur
 
 
-def lire_audio(fichier: Path) -> bytes:
+def lire_audio(fichier: Path, *, nature: str = "audio") -> bytes:
     fd = os.open(fichier, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(fd, "rb") as flux:
         info = os.fstat(flux.fileno())
         if not stat.S_ISREG(info.st_mode):
-            raise ErreurCLI("Le fichier audio doit être régulier, sans lien symbolique.")
+            raise ErreurCLI(f"Le fichier {nature} doit être régulier, sans lien symbolique.")
         if info.st_uid != os.getuid() or info.st_mode & 0o077:
-            raise ErreurCLI("Le fichier audio doit vous appartenir et être en mode 0600.")
+            raise ErreurCLI(f"Le fichier {nature} doit vous appartenir et être en mode 0600.")
         contenu = flux.read(LIMITE_AUDIO + 1)
     if not contenu or len(contenu) > LIMITE_AUDIO:
-        raise ErreurCLI("Le fichier audio doit contenir entre 1 octet et 8 Mio.")
+        raise ErreurCLI(f"Le fichier {nature} doit contenir entre 1 octet et 8 Mio.")
     return contenu
 
 
@@ -213,6 +214,57 @@ class Client:
             resultat = self.appeler("GET", f"/api/analyses/{resultat['id']}")
         return resultat
 
+    def dialogue(self, identifiant: UUID, charge: dict) -> dict:
+        """Consume bounded NDJSON; only return a complete, saved conversational turn."""
+        try:
+            with self.http.stream(
+                "POST", f"/api/conversations/{identifiant}/messages", json=charge, timeout=180
+            ) as response:
+                response.raise_for_status()
+                if response.headers.get("content-type", "").split(";")[0] != "application/x-ndjson":
+                    raise ValueError("Invalid stream type")
+                payload = bytearray()
+                for chunk in response.iter_bytes(chunk_size=8192):
+                    payload.extend(chunk)
+                    if len(payload) > 1_000_000:
+                        raise ValueError("Stream too large")
+            result, accumulated = None, ""
+            for line in payload.splitlines():
+                if not line:
+                    continue
+                if len(line) > 65536 or result is not None:
+                    raise ValueError("Invalid stream frame")
+                event = json.loads(line)
+                if not isinstance(event, dict):
+                    raise TypeError("Invalid stream event")
+                if event.get("type") == "token" and isinstance(event.get("text"), str):
+                    accumulated += event["text"]
+                    if len(accumulated) > 6000:
+                        raise ValueError("Reply too large")
+                elif event.get("type") == "done" and isinstance(event.get("texte"), str):
+                    if (
+                        not event["texte"].strip()
+                        or len(event["texte"]) > 6000
+                        or (accumulated and accumulated != event["texte"])
+                    ):
+                        raise ValueError("Contradictory reply")
+                    result = event
+                else:
+                    raise ValueError("Interrupted reply")
+            if result is None:
+                raise ValueError("Incomplete reply")
+            return {
+                **result,
+                "conversation_id": str(identifiant),
+                "operation_id": charge["operation_id"],
+            }
+        except httpx.HTTPError, ValueError, TypeError:
+            raise ErreurCLI(
+                "Dialogue indisponible ou interrompu. Consultez l'historique avant de réessayer ; réutilisez --operation-id "
+                + charge["operation_id"]
+                + " pour éviter un doublon."
+            ) from None
+
 
 def options_attente(analyseur: argparse.ArgumentParser) -> None:
     analyseur.add_argument("--attendre", action="store_true", help="Attendre un état stable.")
@@ -234,6 +286,46 @@ def analyseur() -> argparse.ArgumentParser:
     commandes.add_parser("vue-ensemble", help="Afficher les indicateurs de la plateforme.")
     commandes.add_parser("observabilite", help="Afficher les cibles et le journal d'exploitation.")
     commandes.add_parser("parametres", help="Afficher les paramètres publics, sans secrets.")
+    commandes.add_parser("veille", help="Consulter le bulletin technologique public mis en cache.")
+    conversations = commandes.add_parser("conversations", help="Historique et dialogue AURA privé.")
+    ca = conversations.add_subparsers(dest="action", required=True)
+    cl = ca.add_parser("lister")
+    cl.add_argument("--page", type=entier_positif, default=1)
+    ca.add_parser("creer")
+    for action in ("voir", "supprimer", "joindre", "dire"):
+        cc = ca.add_parser(action)
+        cc.add_argument("identifiant", type=UUID)
+        if action == "supprimer":
+            cc.add_argument("--confirmer", action="store_true", required=True)
+        if action in {"joindre", "dire"}:
+            cc.add_argument("--fichier", type=Path, required=action == "joindre")
+        if action == "dire":
+            cc.add_argument("--langue", choices=("en", "fr"), default="en")
+            cc.add_argument("--piece", type=UUID, action="append", default=[])
+            cc.add_argument(
+                "--operation-id",
+                type=UUID,
+                help="Identifiant stable à réutiliser lors d'un nouvel essai.",
+            )
+    memory = commandes.add_parser("memoire", help="Mémoire Neo4j dédiée, périmètre explicite.")
+    memory_actions = memory.add_subparsers(dest="action", required=True)
+    memory_actions.add_parser("statut")
+    memory_actions.add_parser("installer", help="Installer uniquement l'instance Neo4j dédiée.")
+    memory_create = memory_actions.add_parser(
+        "creer", help="Lire une note JSON privée sur stdin ou fichier."
+    )
+    memory_create.add_argument("--fichier", type=Path)
+    for action in ("lister", "voir", "supprimer"):
+        command = memory_actions.add_parser(action)
+        command.add_argument("--scope", required=True)
+        if action == "lister":
+            command.add_argument("--recherche", default="")
+        else:
+            command.add_argument("identifiant", type=UUID)
+    memory_link = memory_actions.add_parser("lier")
+    memory_link.add_argument("--scope", required=True)
+    memory_link.add_argument("origine", type=UUID)
+    memory_link.add_argument("destination", type=UUID)
     mdp = commandes.add_parser("mot-de-passe", help="Configurer le mot de passe de la console.")
     mdp.add_argument("--stdin", action="store_true", help="Lire le mot de passe sur stdin.")
     service = commandes.add_parser(
@@ -421,6 +513,13 @@ WantedBy=default.target
 
 
 def executer(args: argparse.Namespace, p: Parametres) -> Any:
+    if args.commande == "memoire" and args.action == "installer":
+        import asyncio
+
+        from .installer_memoire import main as installer_memoire
+
+        asyncio.run(installer_memoire())
+        return None
     if args.commande == "servir":
         if not (p.web / "index.html").is_file():
             raise ErreurCLI(
@@ -444,6 +543,72 @@ def executer(args: argparse.Namespace, p: Parametres) -> Any:
     if args.commande == "installer-service":
         return installer_service(p, demarrer=args.demarrer, remplacer=args.remplacer)
     with Client(p) as client:
+        if args.commande == "conversations":
+            path = "/api/conversations"
+            if args.action == "lister":
+                return client.appeler("GET", path, params={"page": args.page})
+            if args.action == "creer":
+                return client.appeler("POST", path)
+            path += "/" + str(args.identifiant)
+            if args.action == "dire":
+                if len(args.piece) > 8:
+                    raise ErreurCLI("Sélectionner au maximum huit pièces jointes.")
+                message = lire_entree(args.fichier, 4000)
+                operation = str(args.operation_id or uuid4())
+                print("Identifiant du tour : " + operation, file=sys.stderr)
+                return client.dialogue(
+                    args.identifiant,
+                    {
+                        "message": message,
+                        "langue": args.langue,
+                        "pieces": [str(value) for value in args.piece],
+                        "operation_id": operation,
+                    },
+                )
+            if args.action == "joindre":
+                return client.appeler(
+                    "POST",
+                    path + "/pieces",
+                    json={
+                        "nom": args.fichier.name,
+                        "contenu": base64.b64encode(
+                            lire_audio(args.fichier, nature="joint")
+                        ).decode("ascii"),
+                    },
+                )
+            return client.appeler("DELETE" if args.action == "supprimer" else "GET", path)
+        if args.commande == "veille":
+            return client.appeler("GET", "/api/veille")
+        if args.commande == "memoire":
+            if args.action == "statut":
+                return client.appeler("GET", "/api/memoire/statut")
+            if args.action == "creer":
+                try:
+                    data = json.loads(lire_entree(args.fichier, 8000))
+                except ValueError:
+                    raise ErreurCLI("Une note JSON valide est requise.") from None
+                return client.appeler("POST", "/api/memoire", json=data)
+            if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", args.scope):
+                raise ErreurCLI("Périmètre invalide : minuscules, chiffres, tirets ou tirets bas.")
+            if args.action == "lister":
+                return client.appeler(
+                    "GET", "/api/memoire", params={"scope": args.scope, "recherche": args.recherche}
+                )
+            if args.action == "lier":
+                return client.appeler(
+                    "POST",
+                    "/api/memoire/liens",
+                    json={
+                        "scope": args.scope,
+                        "origine": str(args.origine),
+                        "destination": str(args.destination),
+                    },
+                )
+            return client.appeler(
+                "DELETE" if args.action == "supprimer" else "GET",
+                "/api/memoire/" + str(args.identifiant),
+                params={"scope": args.scope},
+            )
         if args.commande == "ouvrir":
             resultat = client.appeler("POST", "/api/auth/ticket")
             ticket = resultat.get("ticket", "") if isinstance(resultat, dict) else ""

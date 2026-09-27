@@ -1,31 +1,39 @@
 {
-  "version": 3,
+  "version": 4,
   "aliases": {
     "voix-feminine-fr": {
-      "repertoire": "synthese",
-      "entree": "voix.onnx",
+      "repertoire": "synthese-conversation",
+      "entree": "conversation.onnx",
+      "style": "style-fr.bin",
       "langue": "fr-FR",
-      "licence_donnees": "CC-BY-4.0",
-      "attribution": "Yamagishi, Honnet, Garner, Lazaridis (2017), The SIWIS French Speech Synthesis Database, University of Edinburgh. DOI:10.7488/ds/1705",
-      "source": "https://datashare.ed.ac.uk/handle/10283/2353",
+      "moteur": "multilingue-onnx",
+      "licence": "Apache-2.0",
+      "attribution": "Kokoro-82M v1.0, hexgrad and contributors; ONNX export by onnx-community. French training includes the SIWIS dataset (Yamagishi, Honnet, Garner, Lazaridis, 2017, CC-BY-4.0).",
+      "source": "https://huggingface.co/hexgrad/Kokoro-82M",
       "fichiers": [
         {
-          "nom": "voix.onnx",
-          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx",
-          "octets": 63201294,
-          "sha256": "641d1ab097da2b81128c076810edb052b385decc8be3381814802a64a73baf99"
+          "nom": "conversation.onnx",
+          "url": "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/1939ad2a8e416c0acfeecc08a694d14ef25f2231/onnx/model.onnx",
+          "octets": 325532232,
+          "sha256": "8fbea51ea711f2af382e88c833d9e288c6dc82ce5e98421ea61c058ce21a34cb"
         },
         {
-          "nom": "voix.onnx.json",
-          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx.json",
-          "octets": 4875,
-          "sha256": "39479916c2db192b5ac9764daddd0c744d83e023ad890c6976c0633ae4df8959"
+          "nom": "style-en.bin",
+          "url": "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/1939ad2a8e416c0acfeecc08a694d14ef25f2231/voices/af_heart.bin",
+          "octets": 522240,
+          "sha256": "d583ccff3cdca2f7fae535cb998ac07e9fcb90f09737b9a41fa2734ec44a8f0b"
         },
         {
-          "nom": "MODEL_CARD",
-          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/fr/fr_FR/siwis/medium/MODEL_CARD",
-          "octets": 284,
-          "sha256": "bd8b8d079d4d3d2c4cc20345889bbcd586d72f021a132f93357a763eb5232cce"
+          "nom": "style-fr.bin",
+          "url": "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/1939ad2a8e416c0acfeecc08a694d14ef25f2231/voices/ff_siwis.bin",
+          "octets": 522240,
+          "sha256": "a35f5675ad08948e326ae75fd0ea16ba5d0042e4f76b5f3d1df77d0a48c54861"
+        },
+        {
+          "nom": "phonemes.json",
+          "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/config.json",
+          "octets": 2351,
+          "sha256": "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f"
         }
       ]
     },
@@ -67,33 +75,38 @@
       ]
     },
     "voix-feminine-en": {
-      "repertoire": "synthese-en",
-      "entree": "voix.onnx",
+      "repertoire": "synthese-conversation",
+      "entree": "conversation.onnx",
+      "style": "style-en.bin",
       "langue": "en-US",
-      "qualite": "high",
-      "licence": "public-domain",
-      "licence_donnees": "public-domain",
-      "attribution": "Piper voice by Bryce Beattie. LJ Speech Dataset (2017), Keith Ito and Linda Johnson; LibriVox recordings.",
-      "source": "https://brycebeattie.com/files/tts/",
-      "source_donnees": "https://keithito.com/LJ-Speech-Dataset/",
+      "moteur": "multilingue-onnx",
+      "licence": "Apache-2.0",
+      "attribution": "Kokoro-82M v1.0, hexgrad and contributors; ONNX export by onnx-community. French training includes the SIWIS dataset (Yamagishi, Honnet, Garner, Lazaridis, 2017, CC-BY-4.0).",
+      "source": "https://huggingface.co/hexgrad/Kokoro-82M",
       "fichiers": [
         {
-          "nom": "voix.onnx",
-          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx",
-          "octets": 114199011,
-          "sha256": "5d4f08ba6a2a48c44592eed3ce56bf85e9de3dd4e20df90541ae68a8310c029a"
+          "nom": "conversation.onnx",
+          "url": "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/1939ad2a8e416c0acfeecc08a694d14ef25f2231/onnx/model.onnx",
+          "octets": 325532232,
+          "sha256": "8fbea51ea711f2af382e88c833d9e288c6dc82ce5e98421ea61c058ce21a34cb"
         },
         {
-          "nom": "voix.onnx.json",
-          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx.json",
-          "octets": 4970,
-          "sha256": "7e1f4634af596d83cca997fb7a931ba80b70f8a316a2655ee69c55365e0ace14"
+          "nom": "style-en.bin",
+          "url": "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/1939ad2a8e416c0acfeecc08a694d14ef25f2231/voices/af_heart.bin",
+          "octets": 522240,
+          "sha256": "d583ccff3cdca2f7fae535cb998ac07e9fcb90f09737b9a41fa2734ec44a8f0b"
         },
         {
-          "nom": "MODEL_CARD",
-          "url": "https://huggingface.co/rhasspy/piper-voices/resolve/c10ece1aade47bb51c153c893d14e5bf8e5b7117/en/en_US/ljspeech/high/MODEL_CARD",
-          "octets": 513,
-          "sha256": "289f7421072d689a3d91f6c632f486af46f9b8b04417536104a4ea667b8a394b"
+          "nom": "style-fr.bin",
+          "url": "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/1939ad2a8e416c0acfeecc08a694d14ef25f2231/voices/ff_siwis.bin",
+          "octets": 522240,
+          "sha256": "a35f5675ad08948e326ae75fd0ea16ba5d0042e4f76b5f3d1df77d0a48c54861"
+        },
+        {
+          "nom": "phonemes.json",
+          "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/config.json",
+          "octets": 2351,
+          "sha256": "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f"
         }
       ]
     },

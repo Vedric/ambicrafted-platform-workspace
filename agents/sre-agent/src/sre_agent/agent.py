@@ -116,7 +116,8 @@ def analyser(alerte: str) -> Rapport:
 
         rapport.budget = budget.resume()
         rapport.outils_appeles = list(budget.outils_appeles)
-        span.set_attribute(tracage.ATTR_COUT_TOTAL, round(budget.cout_usd, 6))
+        if budget.appels_mesures_cout or budget.cout_usd:
+            span.set_attribute(tracage.ATTR_COUT_TOTAL, round(budget.cout_usd, 6))
         span.set_attribute(tracage.ATTR_BUDGET_OUTILS, budget.appels_outils)
         if rapport.statut == "complet":
             span.set_attribute(tracage.ATTR_VERDICT, "complete")

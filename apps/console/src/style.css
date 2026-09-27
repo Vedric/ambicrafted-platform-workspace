@@ -2418,11 +2418,8 @@ dialog > p {
 }
 [data-theme="light"] .hero-panel,
 [data-theme="light"] .landing {
-  --text: #eaf0f6;
-  --muted: #a8b8c3;
-  --mint: #9af0cc;
-  background: #142521;
-  color: #eaf0f6;
+  background: var(--panel);
+  color: var(--text);
 }
 [data-theme="light"] .hero-copy h2 {
   color: #fff;

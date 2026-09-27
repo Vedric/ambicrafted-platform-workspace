@@ -1,0 +1,77 @@
+{
+  "source": "Local deterministic E2E application, Playwright Chromium, 1512×1050 viewport",
+  "annotations": "SVG arrows and labels rendered in the browser before capture; original screenshots retained in private qualification evidence",
+  "data": "Synthetic disposable data; no customer data, credentials or live production metrics",
+  "screenshots": [
+    {
+      "file": "welcome-dark.png",
+      "route": "/welcome",
+      "theme": "dark",
+      "sha256": "a513fd969f1a44fac828142741533b60c7243d2bc7ddca79f53f11301c167bdd",
+      "bytes": 602043
+    },
+    {
+      "file": "assistant-dark.png",
+      "route": "/assistant",
+      "theme": "dark",
+      "sha256": "6b78db3fd108138d12504d7203400f2886e1a56f6d0a9cb1373d1f96aa658861",
+      "bytes": 780680
+    },
+    {
+      "file": "workspace-dark.png",
+      "route": "/",
+      "theme": "dark",
+      "sha256": "18c6fe7f733b2d25f04e29ce4164d87eda16e517aa6a2d9835d34fa75409118c",
+      "bytes": 1214593
+    },
+    {
+      "file": "architecture-dark.png",
+      "route": "/architecture",
+      "theme": "dark",
+      "sha256": "59a2ea9612d8f0cae402afecbb9b18b55eb84ba5566111df36801a1e5bfa967b",
+      "bytes": 819680
+    },
+    {
+      "file": "settings-dark.png",
+      "route": "/parametres",
+      "theme": "dark",
+      "sha256": "7eb1d8d48054df1d7a64061d1166ac656faa788d627fc9e7e2c4d1fd5f376a48",
+      "bytes": 282362
+    },
+    {
+      "file": "welcome-light.png",
+      "route": "/welcome",
+      "theme": "light",
+      "sha256": "9b2e8ea0d1ba857c51bc8464ea7b907004707ad4ef80a63eee2ab8398115c8d0",
+      "bytes": 596843
+    },
+    {
+      "file": "assistant-light.png",
+      "route": "/assistant",
+      "theme": "light",
+      "sha256": "9b1ed8fb6d73f36a934f399f903473600d55e36890611389c22489552821232a",
+      "bytes": 753433
+    },
+    {
+      "file": "workspace-light.png",
+      "route": "/",
+      "theme": "light",
+      "sha256": "d78292d5b6a863871061678a150929f6686a75ec1a82db3153baad9f7e22bee9",
+      "bytes": 1122099
+    },
+    {
+      "file": "architecture-light.png",
+      "route": "/architecture",
+      "theme": "light",
+      "sha256": "c3cd23b3a1a4a8e0527c93a0c88f99a0e09d257c286b6d8aa16b13e870ef77ac",
+      "bytes": 1166618
+    },
+    {
+      "file": "settings-light.png",
+      "route": "/parametres",
+      "theme": "light",
+      "sha256": "6e9e53239a98cf09dd7050d48359311d4533d6a4d517a7fa3f4fb7110a7c9c32",
+      "bytes": 330262
+    }
+  ]
+}

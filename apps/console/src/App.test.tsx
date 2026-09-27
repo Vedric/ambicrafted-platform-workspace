@@ -11,6 +11,8 @@ vi.mock("./Assistant", () => ({ default: () => <div>Local assistant</div> }));
 let clients: QueryClient[] = [];
 beforeEach(() => {
   localStorage.clear();
+  // Welcome audio has its own lifecycle tests; auth tests do not drive jsdom media.
+  localStorage.setItem("ambicrafted-welcome-audio", "off");
   window.history.replaceState(null, "", "/");
   // jsdom has no viewport intersection API; actual animation behavior is
   // exercised in Playwright with the real browser implementation.
@@ -135,7 +137,11 @@ describe("private landing and failure states", () => {
     expect(
       await screen.findByRole("heading", { name: /Intelligence/ }),
     ).toBeVisible();
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        vi.mocked(fetch).mock.calls.filter(([path]) => path === "/api/auth"),
+      ).toHaveLength(2),
+    );
   });
 
   it("opens a ticket session when an older signed-out response arrives after the exchange", async () => {

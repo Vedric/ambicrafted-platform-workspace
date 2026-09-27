@@ -11,8 +11,15 @@ features, measured acceptance checks and remaining production conditions.
 Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
-Current console/control release: **0.3.0**; local speech runtime: **0.2.0**.
-See the [2026-09-27 delivery review](docs/RELEASE-2026-09-27.md).
+Console/control **0.4.0**, local speech runtime **0.3.0**.
+See the [0.4.0 delivery report](docs/RELEASE-0.4.0.md) for exact qualification and
+remaining conditions. This is a private, single-operator workspace; it is not a
+multi-tenant commercial service or a zero-vulnerability certification.
+
+This version adds [saved conversations and documents](docs/CONVERSATIONS.md),
+[dedicated graph memory](docs/MEMORY.md), the [NEXUS MCP gateway](docs/MCP-GATEWAY.md),
+more natural bilingual speech with English technical pronunciation, and an original
+quiet instrumental. Background music yields to AURA and mutes during recording.
 
 ## Private console, CLI and voice
 
@@ -29,6 +36,17 @@ respects the operating system's reduced-motion preference.
 Interface language is selectable between English and French, defaults to English,
 and persists in the browser independently of AURA's conversation language.
 The target remains one trusted operator on this workstation.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/media/welcome-dark.png">
+  <img src="docs/media/welcome-light.png" alt="AURA welcome page with local audio controls and annotated interface features">
+</picture>
+
+These are actual browser captures with annotated arrows and **synthetic demo data**.
+[Workspace and KPI view](docs/media/workspace-dark.png) ·
+[Architecture and trust boundaries](docs/media/architecture-light.png) ·
+[Appearance settings](docs/media/settings-light.png).
+Capture hashes and provenance are recorded in [docs/media/provenance.json](docs/media/provenance.json).
 
 ```bash
 # From the repository root, after the gateway and local models are configured:
@@ -62,7 +80,8 @@ See [console operations](docs/CONSOLE.md), [voice installation and licensing](do
 [client mission walkthrough](docs/CLIENT-WORKFLOW.md).
 
 Start in **Readiness**, inspect anything incomplete, then open **Missions**.
-Choose incident, performance, capacity or change investigation; edit the brief
+Choose among 18 presets spanning incident response, SRE, DevOps, DevSecOps, cloud
+architecture, platform engineering, security, FinOps and agent evaluation; edit the brief
 with observed facts before submitting it. These presets use the same bounded SRE
 workflow. They do not deploy agents to client systems or create tenant isolation.
 
@@ -73,7 +92,7 @@ contribution. Charts include keyboard inspection and a data table. Probe duratio
 are snapshots, not model inference latency or an availability SLO.
 
 Open **Architecture** at `/architecture` to follow **Investigation**, **Voice**,
-**Knowledge** or **Telemetry**. Select a component to inspect its role, data and
+**Knowledge**, **Memory** or **Telemetry**. Select a component to inspect its role, data and
 boundary, then open the relevant workspace. Animated connections explain the
 design; only the separately identified health probes report measured availability.
 See [the architecture guide](docs/ARCHITECTURE.md#operational-charts-and-interactive-map).
@@ -90,8 +109,8 @@ See [the architecture guide](docs/ARCHITECTURE.md#operational-charts-and-interac
 | Tempo, Prometheus, Grafana | Local traces, metrics, availability rules and dashboard |
 | promptfoo | Synthetic model evaluations, with a local-only configuration |
 | React / FastAPI console | Authenticated local workspace, bounded jobs, SSE and approvals |
-| Unified CLI / control MCP | Operator commands, 19 readiness checks and nine read-only control tools |
-| Piper / faster-whisper | Offline English/French female speech and transcription on CPU |
+| Unified CLI / NEXUS MCP | Operator commands, 19 readiness checks, four runbook and eleven read-only control tools |
+| Multilingual ONNX speech / faster-whisper | Offline English/French female speech and transcription on CPU |
 
 ```mermaid
 flowchart LR
@@ -152,13 +171,14 @@ Complete the console/voice setup above after these core services are ready.
 Dependency and model installation requires network access; inference remains
 local. Voice installation is explicit and verifies pinned artifact hashes.
 
-The checked-in `.mcp.json` configures exactly two stdio servers: `runbooks`
-(four source/search tools) and `plateforme-controle` (nine read-only operator
-tools). Start the console API before using the control adapter and use the
+The checked-in `.mcp.json` configures one stdio entrypoint: NEXUS (`plateforme`).
+It routes four source/search tools and eleven read-only operator tools from two
+fixed backend profiles. Start the console API before using control tools and use the
 checkout root as the MCP client's working directory. Keep keys out of the MCP
 configuration. Connect confidential tools only to a trusted local consumer;
 the server cannot control what a remote consumer later does with returned data.
-No Neo4j service or generic network/shell tool is required by this workflow.
+Dedicated Neo4j memory is optional for SRE runbook analysis; its two read-only tools
+require the separate memory service. No generic network/shell tool is exposed.
 
 Run an analysis with synthetic input first:
 

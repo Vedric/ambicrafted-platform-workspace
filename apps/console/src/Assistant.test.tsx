@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Assistant, { texteOral } from "./Assistant";
+import Assistant, { reportedUsage, texteOral } from "./Assistant";
 
 const mocks = vi.hoisted(() => ({
   api: vi.fn(),
@@ -82,6 +82,19 @@ function afficher() {
 }
 
 describe("spoken text conversion", () => {
+  it.each([
+    undefined,
+    null,
+    [],
+    { prompt_tokens: true, completion_tokens: -1, total_tokens: "23" },
+    { prompt_tokens: 1.2, completion_tokens: Infinity, total_tokens: 2 ** 53 },
+  ])("treats missing or malformed usage as unknown: %j", (usage) => {
+    expect(reportedUsage(usage)).toEqual({
+      prompt_tokens: null,
+      completion_tokens: null,
+      total_tokens: null,
+    });
+  });
   it("removes Markdown syntax and replaces code without reading link destinations", () => {
     const texte = texteOral(
       "# Bonjour\n\n**Équipe** : [guide](https://private.invalid)\n```sh\nrm impossible\n```\n- Fin.",
@@ -91,8 +104,12 @@ describe("spoken text conversion", () => {
     expect(texte).toContain("A code example is available on screen.");
     expect(texte).not.toContain("private.invalid");
     expect(texte).not.toContain("rm impossible");
-    expect(texteOral("é".repeat(2500))).toHaveLength(2000);
-    expect(texteOral("a".repeat(1999) + "😀")).toBe("a".repeat(1999));
+    expect(texteOral("é".repeat(2500))).toBe(
+      "The rest is available on screen.",
+    );
+    expect(texteOral("a".repeat(1999) + "😀")).toBe(
+      "The rest is available on screen.",
+    );
     expect(texteOral("```sh\nsynthetic command\n```", "fr")).toBe(
       "Un exemple de code est disponible à l’écran.",
     );

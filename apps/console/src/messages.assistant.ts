@@ -1,4 +1,15 @@
 export const assistantFr = {
+  "Reported token usage": "Usage des tokens déclaré",
+  "Last input context": "Dernier contexte d’entrée",
+  "Last reply": "Dernière réponse",
+  "Session · reported total": "Session · total déclaré",
+  "Not reported": "Non communiqué",
+  "Usage reported for {count} of {total} completed replies.":
+    "Usage communiqué pour {count} réponses terminées sur {total}.",
+  "Input includes instructions and up to seven messages. Older messages leave the context window. Each reply is capped at 650 output tokens.":
+    "L’entrée comprend les instructions et jusqu’à sept messages. Les messages plus anciens quittent la fenêtre de contexte. Chaque réponse est limitée à 650 tokens de sortie.",
+  "Unknown usage is not zero. Interrupted or failed requests may still consume tokens. These counters reset when you clear or leave this conversation.":
+    "Un usage inconnu n’est pas nul. Une demande interrompue ou échouée peut consommer des tokens. Ces compteurs sont réinitialisés lorsque vous effacez ou quittez cette conversation.",
   "Send or clear your draft before starting hands-free mode.":
     "Envoyez ou effacez votre brouillon avant de démarrer le mode mains libres.",
   "A conversation that stays with you. Think, speak and explore with your private AI assistant.":
@@ -28,7 +39,8 @@ export const assistantFr = {
   "How do I back up my platform?": "Comment sauvegarder ma plateforme ?",
   "How do I start an analysis?": "Comment démarrer une analyse ?",
   "How do the agents work?": "Comment fonctionnent les agents ?",
-  "LJSpeech voice · public domain.": "Voix LJSpeech · domaine public.",
+  "Synthetic voice · Apache-2.0 model.":
+    "Voix de synthèse · modèle Apache-2.0.",
   "LOCAL VOICE INTERFACE": "INTERFACE VOCALE LOCALE",
   "Let’s think this through.": "Prenons le temps d’y réfléchir.",
   Listen: "Écouter",
@@ -60,8 +72,8 @@ export const assistantFr = {
   "Recording · {seconds} / 90 s": "Enregistrement · {seconds} / 90 s",
   "Recording is unavailable in this browser. Use a recent browser on localhost or type your message.":
     "L’enregistrement n’est pas disponible dans ce navigateur. Utilisez un navigateur récent sur localhost ou saisissez votre message.",
-  "SIWIS voice · University of Edinburgh · CC BY 4.0.":
-    "Voix SIWIS · Université d’Édimbourg · CC BY 4.0.",
+  "French training: SIWIS · University of Edinburgh · CC BY 4.0.":
+    "Entraînement français : SIWIS · Université d’Édimbourg · CC BY 4.0.",
   Send: "Envoyer",
   "Speak now": "Prendre la parole",
   "Speaking…": "AURA vous parle…",
@@ -124,4 +136,64 @@ export const assistantFr = {
   "You’re in control.": "Vous gardez la maîtrise.",
   excerpt: "extrait",
   "{count} / 4,000": "{count} / 4 000",
+  "Audio devices": "Périphériques audio",
+  "Saved microphone · allow access to identify it":
+    "Microphone mémorisé · autorisez l’accès pour l’identifier",
+  "Saved audio output": "Sortie audio mémorisée",
+  "Microphone input": "Entrée microphone",
+  "Audio output": "Sortie audio",
+  "System default": "Réglage du système",
+  "Microphone {number}": "Microphone {number}",
+  "Speaker {number}": "Haut-parleur {number}",
+  "Allow microphone access": "Autoriser l’accès au microphone",
+  "Choose audio output": "Choisir la sortie audio",
+  "Refresh audio devices": "Actualiser les périphériques audio",
+  "Device names appear after permission. This permission check stops the microphone immediately; it records nothing.":
+    "Les noms des périphériques apparaissent après autorisation. Cette vérification coupe aussitôt le microphone ; elle n’enregistre rien.",
+  "This browser uses your system audio output. Choose your speaker or headset in the operating system sound settings.":
+    "Ce navigateur utilise la sortie audio du système. Choisissez vos haut-parleurs ou votre casque dans les paramètres audio de votre appareil.",
+  "This audio output is not available. Choose another output or use the system default.":
+    "Cette sortie audio n’est pas disponible. Choisissez une autre sortie ou le réglage du système.",
+  "A selected audio device was disconnected. The system default is selected now.":
+    "Un périphérique audio sélectionné a été déconnecté. Le réglage du système est désormais sélectionné.",
+  "Audio devices could not be listed. Check your browser and system audio settings.":
+    "Impossible d’afficher les périphériques audio. Vérifiez les paramètres du navigateur et du système.",
+  "Microphone capture is unavailable. Use HTTPS or localhost in a supported browser.":
+    "La capture du microphone n’est pas disponible. Utilisez HTTPS ou localhost avec un navigateur compatible.",
+  "No microphone could be opened. Check the device connection and your system privacy settings.":
+    "Aucun microphone n’a pu être ouvert. Vérifiez sa connexion et les paramètres de confidentialité de votre appareil.",
+  "Audio output selection was not completed. Choose the system default or try again.":
+    "La sélection de sortie audio n’a pas abouti. Choisissez le réglage du système ou réessayez.",
+  "The default microphone is unavailable. Check your operating system’s audio input settings.":
+    "Le microphone par défaut n’est pas disponible. Vérifiez les paramètres d’entrée audio de votre système.",
+  "Microphone changed. Start recording again to use the selected input.":
+    "Le microphone a changé. Relancez l’enregistrement pour utiliser l’entrée sélectionnée.",
+  "The microphone was disconnected. Reconnect it or choose another input, then record again.":
+    "Le microphone a été déconnecté. Rebranchez-le ou choisissez une autre entrée, puis recommencez l’enregistrement.",
+  "Your microphone is muted. Unmute it in your device or system settings.":
+    "Votre microphone est coupé. Réactivez-le sur votre appareil ou dans les paramètres du système.",
+  "The browser paused microphone monitoring. Recording still works; stop to review the transcript or enable monitoring.":
+    "Le navigateur a suspendu la mesure du microphone. L’enregistrement continue ; terminez-le pour relire la transcription ou activez la mesure.",
+  "Input signal detected.": "Un signal audio est détecté.",
+  "No input signal yet. Check the selected microphone, hardware mute and system input level.":
+    "Aucun signal audio pour le moment. Vérifiez le microphone sélectionné, son bouton de coupure et le niveau d’entrée du système.",
+  "Speak naturally and watch the input meter.":
+    "Parlez naturellement et observez le niveau du microphone.",
+  "No input signal was detected. The recording will be transcribed for review; check your microphone.":
+    "Aucun signal audio détecté. L’enregistrement sera transcrit pour relecture ; vérifiez votre microphone.",
+  "Microphone diagnostics": "Diagnostic du microphone",
+  "Measured input level": "Niveau d’entrée mesuré",
+  "Pause briefly when you finish. You can also send this turn now.":
+    "Marquez une courte pause lorsque vous avez terminé. Vous pouvez aussi envoyer cet échange maintenant.",
+  "Finish recording to see your text. Review it, then select Send to receive a reply.":
+    "Terminez l’enregistrement pour afficher votre texte. Relisez-le, puis sélectionnez Envoyer pour recevoir une réponse.",
+  "Send this turn": "Envoyer cet échange",
+  "Finish recording": "Terminer l’enregistrement",
+  "Enable microphone monitoring": "Activer la mesure du microphone",
+  "Microphone monitoring is still blocked. Finish recording to review the transcript.":
+    "La mesure du microphone reste bloquée. Terminez l’enregistrement pour relire la transcription.",
+  "Your transcript is ready below. Edit it if needed, then select Send. Nothing has been sent to AURA yet.":
+    "Votre transcription est prête ci-dessous. Corrigez-la si nécessaire, puis sélectionnez Envoyer. Rien n’a encore été envoyé à AURA.",
+  "AURA only listens after you select Record or Start conversation. With Record, finish recording and select Send after reviewing your text.":
+    "AURA écoute uniquement après un clic sur Enregistrer ou Démarrer la conversation. Avec Enregistrer, terminez la capture puis sélectionnez Envoyer après avoir relu votre texte.",
 } as const;
