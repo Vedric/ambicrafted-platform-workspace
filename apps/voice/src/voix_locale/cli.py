@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .fichiers import ErreurVoix, installer, verifier_modele
-from .moteur import MAX_AUDIO_OCTETS, MAX_AUDIO_SECONDES, MAX_TEXTE, parler, transcrire
+from .moteur import LANGUES, MAX_AUDIO_OCTETS, MAX_AUDIO_SECONDES, MAX_TEXTE, parler, transcrire
 
 
 @contextmanager
@@ -37,25 +37,28 @@ def delai_depasse(_signal, _frame):
 
 
 def executer(argv: list[str] | None = None) -> dict:
-    parser = argparse.ArgumentParser(description="Voix française privée, entièrement locale")
+    parser = argparse.ArgumentParser(description="Private English and French local voice")
     commandes = parser.add_subparsers(dest="commande", required=True)
     commandes.add_parser("installer", help="Télécharger et vérifier les modèles épinglés")
-    commandes.add_parser("statut", help="Vérifier les modèles locaux et leurs empreintes")
+    statut = commandes.add_parser("statut", help="Vérifier les modèles locaux et leurs empreintes")
     transcription = commandes.add_parser("transcrire", help="Transcrire un fichier audio privé")
     transcription.add_argument("audio", type=Path)
     synthese = commandes.add_parser("parler", help="Synthétiser le texte UTF-8 lu sur stdin")
     synthese.add_argument("--sortie", required=True, type=Path)
+    for commande in (statut, transcription, synthese):
+        commande.add_argument("--langue", choices=LANGUES, default="en")
     args = parser.parse_args(argv)
     if args.commande == "installer":
         return installer()
     if args.commande == "statut":
-        for alias in ("voix-feminine-fr", "transcription-fr"):
+        for alias in ("voix-feminine-" + args.langue, "transcription-" + args.langue):
             verifier_modele(alias)
         return {
             "pret": True,
             "local": True,
-            "voix": "voix-feminine-fr",
-            "langue": "fr-FR",
+            "voix": "voix-feminine-" + args.langue,
+            "langue": "en-US" if args.langue == "en" else "fr-FR",
+            "langues": list(LANGUES),
             "max_audio_octets": MAX_AUDIO_OCTETS,
             "max_audio_secondes": MAX_AUDIO_SECONDES,
             "max_texte_caracteres": MAX_TEXTE,
@@ -65,7 +68,7 @@ def executer(argv: list[str] | None = None) -> dict:
         signal.alarm(120)
         try:
             with diagnostics_prives():
-                return transcrire(args.audio)
+                return transcrire(args.audio, args.langue)
         finally:
             signal.alarm(0)
     texte = sys.stdin.buffer.read(MAX_TEXTE * 4 + 1)
@@ -75,7 +78,7 @@ def executer(argv: list[str] | None = None) -> dict:
     signal.alarm(120)
     try:
         with diagnostics_prives():
-            return parler(texte.decode("utf-8"), args.sortie)
+            return parler(texte.decode("utf-8"), args.sortie, args.langue)
     finally:
         signal.alarm(0)
 

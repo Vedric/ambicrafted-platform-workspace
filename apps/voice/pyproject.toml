@@ -1,7 +1,7 @@
 [project]
 name = "ambicrafted-voice"
-version = "0.1.0"
-description = "Private, offline French speech input and output for Ambicrafted"
+version = "0.2.0"
+description = "Private, offline English and French speech input and output for Ambicrafted"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "av==18.1.0",

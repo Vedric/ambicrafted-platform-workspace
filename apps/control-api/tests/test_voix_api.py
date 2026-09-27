@@ -32,8 +32,15 @@ def runtime_voix(application, monkeypatch):
 
     async def executer(arguments, texte=""):
         appels.append((arguments, texte))
-        if arguments == ["statut"]:
-            return {"pret": True, "local": True, "voix": "voix-feminine-fr", "langue": "fr-FR"}
+        langue = arguments[arguments.index("--langue") + 1]
+        if arguments[0] == "statut":
+            return {
+                "pret": True,
+                "local": True,
+                "voix": "voix-feminine-" + langue,
+                "langue": "en-US" if langue == "en" else "fr-FR",
+                "langues": ["en", "fr"],
+            }
         chemin = Path(arguments[-1])
         assert chemin.parent.stat().st_mode & 0o777 == 0o700
         if arguments[0] == "parler":
@@ -44,7 +51,7 @@ def runtime_voix(application, monkeypatch):
         assert arguments[0] == "transcrire"
         assert chemin.stat().st_mode & 0o777 == 0o600
         assert chemin.read_bytes() == audio
-        return {"texte": "Phrase synthétique", "langue": "fr", "local": True, "duree_s": 0.01}
+        return {"texte": "Phrase synthétique", "langue": langue, "local": True, "duree_s": 0.01}
 
     monkeypatch.setattr(application.state.voix, "executer", executer)
     return appels, audio
@@ -63,17 +70,30 @@ def test_voix_et_dialogue_exigent_authentification(client, route, charge):
     assert client.get("/api/voix/statut").status_code == 401
 
 
-def test_synthese_transcription_locales_et_nettoyage(client, application, bearer, runtime_voix):
+@pytest.mark.parametrize("langue", [None, "en", "fr"])
+def test_synthese_transcription_locales_et_nettoyage(
+    client, application, bearer, runtime_voix, langue
+):
     appels, audio = runtime_voix
-    assert client.get("/api/voix/statut", headers=bearer).json()["pret"] is True
-    assert client.get("/api/voix/statut", headers=bearer).json()["local"] is True
-    assert sum(a[0] == ["statut"] for a in appels) == 1
-    reponse = client.post("/api/voix/parler", headers=bearer, json={"texte": "Bonjour synthétique"})
+    extra = {"langue": langue} if langue else {}
+    route = "/api/voix/statut" + ("?langue=" + langue if langue else "")
+    assert client.get(route, headers=bearer).json()["pret"] is True
+    assert client.get(route, headers=bearer).json()["local"] is True
+    assert sum(a[0] == ["statut", "--langue", langue or "en"] for a in appels) == 1
+    reponse = client.post(
+        "/api/voix/parler", headers=bearer, json={"texte": "Bonjour synthétique", **extra}
+    )
     assert reponse.status_code == 200 and reponse.content == audio
     assert reponse.headers["content-type"] == "audio/wav"
     assert reponse.headers["cache-control"] == "no-store"
     transcription = client.post(
-        "/api/voix/transcrire", headers=bearer, json={"audio": base64.b64encode(audio).decode()}
+        "/api/voix/transcrire",
+        headers=bearer,
+        json={"audio": base64.b64encode(audio).decode(), **extra},
+    )
+    assert transcription.json()["langue"] == (langue or "en")
+    assert all(
+        arguments[arguments.index("--langue") + 1] == (langue or "en") for arguments, _ in appels
     )
     assert (
         transcription.status_code == 200 and transcription.json()["texte"] == "Phrase synthétique"
@@ -88,6 +108,58 @@ def test_voix_cookie_exige_csrf_et_micro_autorise_uniquement_soi(client, session
     assert reponse.status_code == 403
     assert "microphone=(self)" in reponse.headers["permissions-policy"]
     assert "media-src 'self' blob:" in reponse.headers["content-security-policy"]
+
+
+def test_statut_cache_independant_par_langue(client, bearer, runtime_voix):
+    appels, _ = runtime_voix
+    for langue, locale in (("en", "en-US"), ("fr", "fr-FR"), ("en", "en-US")):
+        resultat = client.get("/api/voix/statut", params={"langue": langue}, headers=bearer)
+        assert resultat.status_code == 200
+        assert resultat.json()["langue"] == locale
+        assert resultat.json()["voix"] == "voix-feminine-" + langue
+    assert len(appels) == 2
+
+
+@pytest.mark.parametrize("langue", ["de", "en-US", "../fr", ""])
+def test_langue_api_hors_contrat_refusee(client, bearer, langue):
+    assert (
+        client.get("/api/voix/statut", params={"langue": langue}, headers=bearer).status_code == 422
+    )
+    for route, charge in (
+        ("parler", {"texte": "Hello"}),
+        ("transcrire", {"audio": "UklGRg=="}),
+    ):
+        assert (
+            client.post(
+                "/api/voix/" + route, headers=bearer, json={**charge, "langue": langue}
+            ).status_code
+            == 422
+        )
+
+
+@pytest.mark.asyncio
+async def test_bridge_langue_invalide_refusee_avant_processus(parametres, monkeypatch):
+    voix = Voix(parametres)
+
+    async def interdit(*args, **kwargs):
+        pytest.fail("Invalid language must never reach a subprocess")
+
+    monkeypatch.setattr(voix, "executer", interdit)
+    for appel in (voix.statut("de"), voix.parler("Hello", "de"), voix.transcrire("UklGRg==", "de")):
+        with pytest.raises(HTTPException) as erreur:
+            await appel
+        assert erreur.value.status_code == 422
+    assert list(voix.temp.iterdir()) == []
+
+
+@pytest.mark.asyncio
+async def test_modele_absent_indique_langue_selectionnee(parametres):
+    voix = Voix(parametres)
+    for langue in ("en", "fr"):
+        resultat = await voix.statut(langue)
+        assert resultat["pret"] is False
+        assert resultat["voix"] == "voix-feminine-" + langue
+        assert resultat["langues"] == ["en", "fr"]
 
 
 @pytest.mark.parametrize(
@@ -110,7 +182,8 @@ def test_limite_corps_audio_specifique_sans_elargir_autres_routes(
 ):
     appels = []
 
-    async def transcrire(audio):
+    async def transcrire(audio, langue="en"):
+        assert langue == "en"
         appels.append(len(audio))
         return {"texte": "Synthétique", "local": True}
 

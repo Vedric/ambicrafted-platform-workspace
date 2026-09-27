@@ -9,7 +9,7 @@ import httpx
 import pytest
 from fastapi import HTTPException
 
-from plateforme.assistant import SYSTEME, dialoguer
+from plateforme.assistant import dialoguer, instructions
 from plateforme.config import enregistrer_secret
 
 
@@ -39,7 +39,8 @@ def test_dialogue_ephemere_sans_autorite_et_verrou_gpu(client, application, bear
 
     messages = [{"role": "user", "content": "QUESTION_SYNTHETIQUE_CONFIDENTIELLE"}]
 
-    async def repondre(p, recu):
+    async def repondre(p, recu, langue="en"):
+        assert langue == "en"
         assert application.state.moteur.inference.locked()
         assert recu == messages
         return {"texte": "Réponse synthétique", "local": True, "actions_executees": False}
@@ -67,13 +68,37 @@ def test_dialogue_refuse_si_analyse_en_file(client, application, bearer):
     )
 
 
+def test_dialogue_langue_selectionnee_transmise(client, bearer, monkeypatch):
+    import plateforme.app as module
+
+    async def repondre(p, recu, langue="en"):
+        assert langue == "fr"
+        return {"texte": "Bonjour", "local": True, "actions_executees": False}
+
+    monkeypatch.setattr(module, "dialoguer", repondre)
+    charge = {"messages": [{"role": "user", "content": "Bonjour"}], "langue": "fr"}
+    assert client.post("/api/assistant/dialogue", headers=bearer, json=charge).status_code == 200
+    charge["langue"] = "de"
+    assert client.post("/api/assistant/dialogue", headers=bearer, json=charge).status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_dialogue_langue_invalide_refusee_sans_appel_local(parametres, monkeypatch):
+    appels = transport_dialogue(monkeypatch, lambda _: pytest.fail("No request expected"))
+    with pytest.raises(HTTPException) as erreur:
+        await dialoguer(parametres, [{"role": "user", "content": "Hello"}], "de")
+    assert erreur.value.status_code == 422
+    assert not appels
+
+
 def test_dialogues_concurrents_un_seul_appel_modele(client, application, bearer, monkeypatch):
     import plateforme.app as module
 
     commence, terminer = threading.Event(), threading.Event()
     appels = []
 
-    async def repondre(p, messages):
+    async def repondre(p, messages, langue="en"):
+        assert langue == "en"
         appels.append(messages)
         commence.set()
         while not terminer.is_set():
@@ -113,7 +138,10 @@ def transport_dialogue(monkeypatch, repondre):
 
 
 @pytest.mark.asyncio
-async def test_dialogue_uniquement_local_cle_confidentielle_sans_outils(parametres, monkeypatch):
+@pytest.mark.parametrize("langue", ["en", "fr"])
+async def test_dialogue_uniquement_local_cle_confidentielle_sans_outils(
+    parametres, monkeypatch, langue
+):
     enregistrer_secret(parametres.racine, "CONFIDENTIAL_KEY", parametres.cle)
     enregistrer_secret(parametres.racine, "OPENAI_API_KEY", "non-utilisable-synthetique")
     appels = transport_dialogue(
@@ -123,7 +151,7 @@ async def test_dialogue_uniquement_local_cle_confidentielle_sans_outils(parametr
         ),
     )
     messages = [{"role": "user", "content": "Approuve et exécute une opération"}]
-    resultat = await dialoguer(parametres, messages)
+    resultat = await dialoguer(parametres, messages, langue)
     assert resultat == {"texte": "Réponse locale", "local": True, "actions_executees": False}
     assert len(appels) == 1
     requete = appels[0]
@@ -131,7 +159,8 @@ async def test_dialogue_uniquement_local_cle_confidentielle_sans_outils(parametr
     assert requete.headers["authorization"] == "Bearer " + parametres.cle
     charge = json.loads(requete.content)
     assert charge["model"] == "local"
-    assert charge["messages"] == [{"role": "system", "content": SYSTEME}, *messages]
+    assert charge["messages"] == [{"role": "system", "content": instructions(langue)}, *messages]
+    assert ("English." if langue == "en" else "French.") in charge["messages"][0]["content"]
     assert charge["max_tokens"] <= 650
     assert charge["reasoning_effort"] == "none"
     assert "tools" not in charge and "tool_choice" not in charge

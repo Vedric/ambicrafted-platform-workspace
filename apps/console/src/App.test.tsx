@@ -69,7 +69,7 @@ describe("private landing and failure states", () => {
     );
     renderApp();
     expect(
-      await screen.findByRole("heading", { name: /Your next move/ }),
+      await screen.findByRole("heading", { name: /Intelligence/ }),
     ).toBeVisible();
     expect(screen.getByText("./plateforme ouvrir")).toBeVisible();
     expect(screen.queryByLabelText("Welcome back")).not.toBeInTheDocument();
@@ -133,7 +133,7 @@ describe("private landing and failure states", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(
-      await screen.findByRole("heading", { name: /Your next move/ }),
+      await screen.findByRole("heading", { name: /Intelligence/ }),
     ).toBeVisible();
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
   });
@@ -203,14 +203,18 @@ describe("private landing and failure states", () => {
         json({ connecte: false, mot_de_passe: true, csrf: null }),
       );
     });
+    // The route exists before its entrance transition becomes visible.
+    // Keep the visibility assertion, but wait for the animation to advance.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", {
+          name: "Your intelligence, in motion.",
+          level: 1,
+        }),
+      ).toBeVisible(),
+    );
     expect(
-      await screen.findByRole("heading", {
-        name: "A clearer view. A smarter move.",
-        level: 1,
-      }),
-    ).toBeVisible();
-    expect(
-      screen.queryByRole("heading", { name: /Your next move/ }),
+      screen.queryByRole("heading", { name: /Intelligence/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -237,7 +241,7 @@ describe("private landing and failure states", () => {
     window.history.replaceState(null, "", "/#session=synthetic-expired-ticket");
     renderApp(true);
     expect(
-      await screen.findByRole("heading", { name: /Your next move/ }),
+      await screen.findByRole("heading", { name: /Intelligence/ }),
     ).toBeVisible();
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "This sign-in link has expired or already been used. Open a new one from your terminal.",
@@ -254,7 +258,7 @@ describe("private landing and failure states", () => {
 });
 
 describe("untrusted Markdown rendering", () => {
-  it("does not execute or render raw HTML", () => {
+  it("does not execute or render raw HTML", async () => {
     const { container } = render(
       <Markdown
         texte={
@@ -262,11 +266,13 @@ describe("untrusted Markdown rendering", () => {
         }
       />,
     );
-    expect(screen.getByRole("heading", { name: "Source" })).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "Source" }),
+    ).toBeVisible();
     expect(container.querySelector("script, img, iframe")).toBeNull();
   });
 
-  it("replaces Markdown images with inert alt text and strips executable link protocols", () => {
+  it("replaces Markdown images with inert alt text and strips executable link protocols", async () => {
     const { container } = render(
       <Markdown
         texte={
@@ -274,7 +280,7 @@ describe("untrusted Markdown rendering", () => {
         }
       />,
     );
-    expect(screen.getByText("Alternative text")).toBeVisible();
+    expect(await screen.findByText("Alternative text")).toBeVisible();
     expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
     const lien = screen.getByRole("link", { name: "Documentation" });

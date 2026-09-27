@@ -11,17 +11,25 @@ features, measured acceptance checks and remaining production conditions.
 Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
+Current console/control release: **0.3.0**; local speech runtime: **0.2.0**.
+See the [2026-09-27 delivery review](docs/RELEASE-2026-09-27.md).
+
 ## Private console, CLI and voice
 
-The production console runs on `http://127.0.0.1:8787`. It includes supervised
-analyses, approvals, a runbook editor, local semantic search, observability,
-maintenance operations and an ephemeral voice/text assistant. All fonts and
-browser assets are hosted locally. The default target is one trusted operator
-on this workstation, as explicitly selected by the owner.
+The private console runs at [http://127.0.0.1:8787](http://127.0.0.1:8787). Its responsive workspace
+includes mission templates, supervised analyses, approvals, a runbook editor,
+local semantic search, measured readiness, observability and maintenance
+operations. AURA is its local AI voice/text assistant. The welcome page,
+workspace, forms and navigation share the same visual design, keyboard controls,
+light/dark themes and pausable motion. Fonts and browser assets are hosted locally.
+Interface language is selectable between English and French, defaults to English,
+and persists in the browser independently of AURA's conversation language.
+The target remains one trusted operator on this workstation.
 
 ```bash
 # From the repository root, after the gateway and local models are configured:
 uv sync --locked --all-extras --project agents/sre-agent
+uv sync --locked --project mcp-servers/runbooks
 uv sync --locked --project apps/control-api
 uv sync --locked --project apps/voice
 uv run --locked --project apps/voice voix-locale installer
@@ -30,6 +38,7 @@ npm ci
 npm run build
 cd ../..
 ./plateforme installer-service --demarrer
+./plateforme preparation
 ./plateforme ouvrir
 ```
 
@@ -37,13 +46,21 @@ cd ../..
 configure a password with `./plateforme mot-de-passe`. Both UI and CLI use the same
 authenticated control API; `./plateforme --help` documents every command.
 
-The French feminine voice and microphone transcription run locally on CPU.
-Review the transcription before sending it. Conversation has no approval or
-execution authority; use the analysis workflow for a sourced proposal.
+AURA offers female synthetic English and French voices, with local CPU speech
+recognition and playback. Manual recording lets you review the transcription.
+An explicitly started hands-free conversation sends speech after a pause, reads
+the reply and then listens for the next turn. Stop, Escape, hiding the tab or
+leaving the page ends it. Conversation has no approval or execution authority;
+use the analysis workflow for a sourced proposal.
 
 See [console operations](docs/CONSOLE.md), [voice installation and licensing](docs/VOICE.md),
-[ADR 0010](docs/adr/0010-console-et-plan-de-controle.md) and
-[ADR 0011](docs/adr/0011-voix-locale-et-outils-de-controle.md).
+[local tools and readiness](docs/TOOLS.md) and the
+[client mission walkthrough](docs/CLIENT-WORKFLOW.md).
+
+Start in **Readiness**, inspect anything incomplete, then open **Missions**.
+Choose incident, performance, capacity or change investigation; edit the brief
+with observed facts before submitting it. These presets use the same bounded SRE
+workflow. They do not deploy agents to client systems or create tenant isolation.
 
 ## Components
 
@@ -57,8 +74,8 @@ See [console operations](docs/CONSOLE.md), [voice installation and licensing](do
 | Tempo, Prometheus, Grafana | Local traces, metrics, availability rules and dashboard |
 | promptfoo | Synthetic model evaluations, with a local-only configuration |
 | React / FastAPI console | Authenticated local workspace, bounded jobs, SSE and approvals |
-| Unified CLI / control MCP | Operator commands and three read-only control tools |
-| Piper / faster-whisper | Offline French feminine speech and transcription on CPU |
+| Unified CLI / control MCP | Operator commands, 19 readiness checks and nine read-only control tools |
+| Piper / faster-whisper | Offline English/French female speech and transcription on CPU |
 
 ```mermaid
 flowchart LR
@@ -81,10 +98,21 @@ preconditions and risks. The agent never executes a remediation.
 
 ## Install
 
-Validated workstation tools: Python 3.14.7, uv 0.12.5, Node 22.22.0,
-npm 11.10.0, Docker Compose, and Ollama 0.32.15. The local model needs the
+Reference workstation tools: Python 3.14.7 for the API/agent/MCP and 3.13.15
+for speech, uv 0.12.5, Node 22.22.0, npm 11.10.0, Docker Compose, and Ollama
+0.32.15. Use the project Python selectors and committed locks; do not substitute
+the system Python or install packages globally. The local model needs the
 GPU/RAM described in `CLAUDE.md`. A second-machine installation remains a
 separate qualification exercise.
+
+Put the installed `uv` on `PATH` before using the commands below. The platform
+wrapper also recognizes its usual `~/.local/bin/uv` location. Install the managed
+Python versions explicitly when preparing a new workstation:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+uv python install 3.14.7 3.13.15
+```
 
 1. Review [gateway setup](gateway/README.md), prepare its private environment
    from `gateway/.env.example`, and start the six services.
@@ -104,6 +132,17 @@ uv run --locked scripts/plateforme.py verifier
 
 The key command preserves existing keys. `--inclure-frontiere` additionally
 creates an external-evaluation key; the SRE pipeline does not use it.
+Complete the console/voice setup above after these core services are ready.
+Dependency and model installation requires network access; inference remains
+local. Voice installation is explicit and verifies pinned artifact hashes.
+
+The checked-in `.mcp.json` configures exactly two stdio servers: `runbooks`
+(four source/search tools) and `plateforme-controle` (nine read-only operator
+tools). Start the console API before using the control adapter and use the
+checkout root as the MCP client's working directory. Keep keys out of the MCP
+configuration. Connect confidential tools only to a trusted local consumer;
+the server cannot control what a remote consumer later does with returned data.
+No Neo4j service or generic network/shell tool is required by this workflow.
 
 Run an analysis with synthetic input first:
 
@@ -130,6 +169,8 @@ of checkpoints/backups older than 14 days. The user systemd manager must run;
 missed calendar events are caught up through `Persistent=true`.
 
 - [Architecture and boundaries](docs/ARCHITECTURE.md)
+- [End-to-end client mission guide](docs/CLIENT-WORKFLOW.md)
+- [Measured readiness and tool contracts](docs/TOOLS.md)
 - [Security, including limitations](SECURITY.md)
 - [Operations, recovery and retention](docs/OPERATIONS.md)
 - [Agent contract](agents/sre-agent/README.md)
@@ -138,9 +179,13 @@ missed calendar events are caught up through `Persistent=true`.
 - [Contributing and checks](CONTRIBUTING.md)
 - [Remaining dependency risks](docs/DEPENDENCIES.md)
 
-The project is intended for a local workstation. It does not claim high
-availability, exhaustive incident coverage, or freedom from upstream image
-vulnerabilities. Dependencies are pinned and scanned; findings are tracked
-rather than hidden behind a green functional test suite.
+The [security review dated 26 September 2026](docs/SECURITY-RELEASE-2026-09-26.md)
+records **166 remaining HIGH package occurrences** in the promoted images.
+Continued supervised use in the existing private workstation scope has a
+**conditional GO**. Unqualified production security sign-off, remote exposure
+and mutually untrusted users remain **NO-GO** under that assessment. Readiness
+checks and green functional tests do not resolve those findings or establish
+high availability, exhaustive incident coverage or a vulnerability-free system.
+Reassess the dated findings against a fresh scan before expanding the scope.
 
 License: Apache-2.0.

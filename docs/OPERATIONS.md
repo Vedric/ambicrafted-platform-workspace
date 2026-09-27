@@ -7,11 +7,22 @@ or container environments. Scripts below keep credential values out of output.
 ## Daily checks
 
 ```sh
+./plateforme preparation
+./plateforme statut
 uv run --locked scripts/plateforme.py verifier
-cd gateway && docker compose ps
+docker compose --project-directory gateway ps
 ```
 
-The checker reports service health, restricted aliases, refusal of an external
+`preparation` (also `doctor`) reads the same measured checklist as the UI's
+**Readiness** page. Its 19 checks cover local permissions/listeners, installed
+runtimes, six services, restricted alias inventory, knowledge, both voices and
+actual handshakes with the two MCP servers. It has no automatic repair, downloads
+or inference requests. Results are cached for 30 seconds and voice artifacts for
+up to 60 seconds. Required failures produce CLI exit code 2; voice and monitoring
+are optional. Review the evidence, not only the summary. See [TOOLS.md](TOOLS.md)
+for the exact contract and remaining qualification limits.
+
+The separate `scripts/plateforme.py verifier` reports health, restricted aliases, refusal of an external
 alias, model digests, index presence and free disk space. It uses synthetic
 content for the routing refusal probe. It does not measure model correctness.
 Tempo readiness and exporter errors are also visible through local Prometheus
@@ -20,6 +31,19 @@ metrics and the provisioned Grafana dashboard `plateforme-sre`.
 The dashboard and rules are versioned under `gateway/observability`. Rules
 create local alerts; no Slack, email or other notification destination is
 configured. Configure a destination only after deciding what metadata may leave.
+
+The [security assessment dated 26 September 2026](SECURITY-RELEASE-2026-09-26.md)
+records 166 remaining HIGH package occurrences in the promoted image set. Its
+conditional GO is limited to the existing supervised private workstation.
+Unqualified production security approval and remote/untrusted multi-user access
+remain NO-GO. Re-run scans and review reachability, ownership and remediation
+before changing that decision; a green readiness page does not supersede it.
+
+The manual/weekly [image security workflow](../.github/workflows/images-security.yml) scans all six pinned images,
+retains reports and fails for HIGH/CRITICAL findings. It is separate from the push
+functional workflow so residual image debt remains visible. [The scanner and
+dated assessment](SECURITY-RELEASE-2026-09-26.md) describe the baseline evidence;
+a completed functional CI run is not an image-security sign-off.
 
 The provisioned data sources use `Plateforme Tempo` and `Plateforme Prometheus`
 with stable UIDs. Older sources named `Tempo` and `Prometheus` remain available
@@ -37,6 +61,12 @@ Backups live under `~/.local/state/platform-backups/<UTC timestamp>`, directory
 archive, coherent SQLite backups of Grafana and the graph, and a snapshot of
 the active runbook index. They are confidential local data, not Git artifacts.
 A `manifest.json` must say `complet=true` before a backup is used.
+
+The platform backup does not copy the Markdown corpus or an operator's separate
+mission files, reports or exports. Preserve those through a private client backup
+process, without committing client material to this development repository.
+Transient audio and downloadable voice-model weights are excluded; reinstall
+voice weights from the pinned manifest after recovering the private state.
 
 The restore drill creates uniquely named temporary PostgreSQL and Qdrant
 containers, restores actual backup data, checks the restored schema/points,
@@ -73,6 +103,14 @@ Use `systemctl --user status ambicrafted-console.service` and
 HTTP access logging is disabled. The API binds only to `127.0.0.1:8787`.
 See [CONSOLE.md](CONSOLE.md) for the operator commands and private login flow.
 
+The UI language preference is browser-local, defaults to English, and can be
+changed to French independently of AURA's conversation language. It is not part
+of the console database backup. Mission presets only open editable SRE briefs;
+review the filled evidence before submission. They neither provision a client
+workspace nor establish an access boundary. Use the
+[client mission guide](CLIENT-WORKFLOW.md) for dedicated client environments,
+evidence handling, approvals, export and cleanup.
+
 On restart, queued, executing and decision-in-progress jobs become interrupted;
 the server never silently replays an alert. Pending human approvals remain
 available. Cancel or explicitly resubmit interrupted work after verifying what
@@ -89,6 +127,36 @@ reuse the previous `-wal`, `-shm` or journal files beside a restored database.
 Reconfigure the state path or replace the stopped directory as a whole, keeping
 the old private directory for rollback. Authenticate again after recovery.
 The restoration test checks copies only; it does not activate restored data.
+
+## Voice and MCP diagnostics
+
+```sh
+./plateforme voix statut --langue en
+./plateforme voix statut --langue fr
+./plateforme preparation
+```
+
+If an optional voice check fails, follow [VOICE.md](VOICE.md) to synchronize the
+locked speech environment and explicitly install/verify its model files in the
+correct private state directory. A green artifact check does not test the actual
+microphone, browser permission, accent or playback device. Qualify those with
+synthetic speech before receiving client material.
+
+AURA's manual recording mode permits transcript review. Explicit conversation
+mode alternates capture, local transcription, dialogue and playback. It stops on
+Escape, a hidden tab, route departure, 12 seconds without detected speech or
+20 completed turns. Silence after detected speech ends a turn after approximately
+1.6 seconds. This is not simultaneous streaming or permission to act. On a noisy
+microphone, stop the conversation and use an editable manual recording instead.
+
+The `.mcp.json` configuration has two stdio servers. Run the MCP client from this
+checkout with `uv` on its `PATH`, and start the control API first. Readiness tests
+actual startup and tool inventories: four tools on `runbooks`, nine on
+`plateforme-controle`. The latter reads the local API with its private credential;
+missing configuration returns unavailable without initialization. Never paste a
+key into a tool configuration or connect confidential source tools to an external
+consumer. [TOOLS.md](TOOLS.md) documents the bounded read-only surface; there is
+no generic shell, network, approval or remediation MCP capability.
 
 ## Scheduling and retention
 
@@ -157,6 +225,14 @@ Then check model routing, embedding dimensions, MCP reads/search, an incident
 analysis, graph approval/refusal, metrics targets and the dashboard. A failed
 upgrade requires restoring the matching data snapshot as well as the previous
 images when schemas changed. Do not remove named data volumes as a shortcut.
+
+For a console/API update, synchronize the locked Python projects, rebuild the
+console with `npm ci` and `npm run build`, run the exact-commit checks, then restart
+`ambicrafted-console.service`. Reinstall its unit with
+`./plateforme installer-service --remplacer` when its checkout or settings change.
+Run readiness and synthetic UI/CLI checks after the restart, including the chosen
+interface language, AURA if used, and an explicit approval/refusal. Do not infer
+successful deployment merely because a build completed.
 
 ## Resource and failure behavior
 

@@ -23,10 +23,17 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0010](0010-console-et-plan-de-controle.md) | Private console and shared control plane | Accepted | 2026-09-26 | Authenticated UI/CLI, bounded jobs, human decisions and operator tools. |
 | [0011](0011-voix-locale-et-outils-de-controle.md) | Offline voice and explicit control tools | Accepted | 2026-09-26 | Feminine French voice, local transcription, ephemeral conversation and read-only control MCP. |
 | [0012](0012-images-correctives-verifiees.md) | Verified corrective container derivatives | Accepted | 2026-09-26 | Narrow pinned Qdrant/PostgreSQL rebuilds, isolated recovery tests and visible residual findings. |
+| [0013](0013-voix-anglaise-reactive.md) | English default voice with explicit French selection | Accepted | 2026-09-27 | Offline English/French female speech, selected-language recognition and local AURA dialogue. |
+| [0014](0014-readiness-et-outils-locaux.md) | Measured local readiness and read-only operator MCP | Accepted | 2026-09-27 | Evidence-based local checks shared by UI/CLI/MCP and a bounded nine-tool control surface. |
+| [0015](0015-experience-immersive-bilingue.md) | Immersive bilingual workspace and supervised voice interaction | Accepted | 2026-09-27 | Shared EN/FR interface, mission intake and opt-in AURA conversation within the existing local boundary. |
 
 ## Reading order
 
-- **Current behavior**: 0009, then the current README and security document.
+- **Current behavior**: 0009–0015, then the current README and security document;
+  the dated records remain unchanged when implementation evolves.
+- **Operating the current workspace**: [console guide](../CONSOLE.md),
+  [local tools](../TOOLS.md), [voice](../VOICE.md) and
+  [client mission walkthrough](../CLIENT-WORKFLOW.md).
 - **Historical context**: 0001 (the gateway), then 0003 (the agent), then
   0002 (the RAG pipeline).
 - **Interested in the security argument**: 0003, then 0007, then 0008, then

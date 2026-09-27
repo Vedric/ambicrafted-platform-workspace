@@ -1,7 +1,8 @@
-# Private French voice
+# Private English and French voices
 
-The console uses two local speech engines in a separate Python 3.13 process: a
-French female synthetic voice and French speech recognition. Speech processing
+The console's local AI assistant, AURA, uses two speech engines in a separate
+Python 3.13 process: a US English female synthetic voice by default, an optional French female voice,
+and multilingual speech recognition explicitly configured for the selected language. Speech processing
 uses CPU inference with four threads per process, leaving the GPU available to
 the SRE agent. The speech engine neither decides on actions nor executes tools.
 The control API owns authentication, concurrency, conversation and approval.
@@ -20,9 +21,10 @@ From the repository root:
 uv sync --project apps/voice --locked
 uv run --project apps/voice --locked voix-locale installer
 uv run --project apps/voice --locked voix-locale statut
+uv run --project apps/voice --locked voix-locale statut --langue fr
 ```
 
-Installation downloads approximately 550 MB of public model files. It requires
+Installation downloads approximately 664 MB (114 MB additional for an existing French installation) of public model files. It requires
 network access only for this explicit step. The package's
 `src/voix_locale/modeles.json` records immutable upstream revisions, exact byte
 counts, SHA-256 checksums, aliases and attribution. Downloads are written to
@@ -31,13 +33,15 @@ installation is rejected. Repeating installation reuses valid files and repairs
 corrupt ones.
 
 Models are stored outside Git in
-`~/.local/state/ambicrafted/voice/{synthese,transcription}`. Set `VOICE_STATE_DIR`
+`~/.local/state/ambicrafted/voice/{synthese-en,synthese,transcription}`. Set `VOICE_STATE_DIR`
 to an absolute private directory to override the location. Directories must be
 owned by the current user, mode `700`, without symbolic links. Model files use
 mode `600`. New intermediate state directories also use `700`. Every inference
 verifies model file sizes and hashes before loading them. Runtime model names in
-code are only the aliases `voix-feminine-fr` and `transcription-fr`; the model
-manifest is the source configuration.
+code are only the aliases `voix-feminine-en`, `voix-feminine-fr`,
+`transcription-en` and `transcription-fr`; the model manifest is the source
+configuration. Both transcription aliases share exactly the same multilingual
+weights on disk. Selecting French requires no additional recognition download.
 
 `VOICE_STATE_DIR` applies to the standalone speech CLI. The control API always
 uses `<PLATFORM_STATE_DIR>/voice` (the default platform state is
@@ -64,15 +68,36 @@ logs. Invalid CLI syntax uses argparse's normal help and exit code `2`.
 
 | Command | Input | Output |
 | --- | --- | --- |
-| `statut` | None | `pret`, `local`, voice alias, language and request limits |
+| `statut [--langue en\|fr]` | None | `pret`, `local`, voice alias, language and request limits |
 | `installer` | None; explicit network use | `pret`, `fichiers_installes`, `local` |
-| `transcrire /absolute/private/audio.webm` | A private audio file | `texte`, `langue`, `duree_s`, `local`, `alias` |
-| `parler --sortie /absolute/private/new.wav` | Raw UTF-8 text through stdin | `format`, `frequence_hz`, `duree_s`, `octets`, `local`, `alias` |
+| `transcrire [--langue en\|fr] /absolute/private/audio.webm` | A private audio file | `texte`, `langue`, `duree_s`, `local`, `alias` |
+| `parler [--langue en\|fr] --sortie /absolute/private/new.wav` | Raw UTF-8 text through stdin | `format`, `frequence_hz`, `duree_s`, `octets`, `local`, `alias` |
 
-Example synthesis result:
+Language defaults to `en` on all commands; `fr` preserves the original French
+voice. Values other than these two exact codes are rejected before inference.
+Speech recognition uses the selected language explicitly, rather than a remote
+or automatic translation service. English speech is synthesized with the pinned
+high-quality model; French preserves its existing timing and voice settings.
+
+The HTTP API accepts optional `langue: "en" | "fr"` on `/api/voix/parler`,
+`/api/voix/transcrire` and `/api/assistant/dialogue`, and the same optional query
+parameter on `/api/voix/statut`. Requests without it remain valid and now use
+English. The bridge forwards the language explicitly to the subprocess and
+caches readiness separately for each language for up to 60 seconds. `pret`
+means both selected synthesis and recognition models passed hash verification;
+`langues` lists supported languages, not independently verified installations.
+The selected voice locale remains `en-US` or `fr-FR` in status, while inference
+results use `en` or `fr`.
+
+Assistant replies use the selected language, English by default. An explicit
+user request for another reply language is respected without granting action,
+tool, approval or system-prompt authority. This preference is independent of
+the selected synthesis voice: select the matching voice for the best pronunciation.
+
+Example English synthesis metadata (duration and byte count omitted):
 
 ```json
-{"format":"wav","frequence_hz":22050,"duree_s":6.49,"octets":286252,"local":true,"alias":"voix-feminine-fr"}
+{"format":"wav","frequence_hz":22050,"local":true,"alias":"voix-feminine-en","langue":"en"}
 ```
 
 The output path must not exist. Existing files and symbolic links are never
@@ -124,6 +149,11 @@ snapshot while workers are running. Restore verification reports their counts
 and missing checkpoints without activating the recovered state.
 
 Show recognized text to the operator before it becomes an analysis request.
+Manual message review and sending remain the default. An explicitly enabled
+conversation mode may send a completed transcript to AURA automatically, play
+the local reply, and then resume listening for the next turn. This is sequential
+turn-taking, not simultaneous streaming or action approval. The operator must
+have a visible stop control and a way to return to editable manual transcripts.
 Spoken words are untrusted input. An audible “yes” is not an approval of a
 diagnostic or an infrastructure operation; the existing authenticated explicit
 approval control remains required. Recognition may mishear names, numbers,
@@ -134,10 +164,11 @@ negation, noise or accents, so the operator must be able to edit the transcript.
 The quick suite does not download models:
 
 ```sh
-uv run --project apps/voice --locked ruff check apps/voice
-uv run --project apps/voice --locked mypy apps/voice/src/voix_locale
-uv run --project apps/voice --locked pytest apps/voice/tests
-uv build --project apps/voice
+cd apps/voice
+uv run --locked ruff check .
+uv run --locked mypy src/voix_locale
+uv run --locked pytest
+uv build
 ```
 
 After explicit model installation, run real speech and codec tests with network
@@ -149,33 +180,60 @@ VOICE_TEST_REAL=1 unshare -rn uv run --locked --offline coverage run -m pytest -
 uv run --locked coverage report -m
 ```
 
-On the reference WSL2 workstation on 2026-09-26, all **43 tests** passed in
-12.78 seconds with the network namespace isolated: 37 quick tests plus six real
-model tests. The real tests cover synthesis, recognition, WAV, browser
-WebM/Opus and Ogg/Opus, silence, private file permissions, refusing to overwrite
-existing output and a real CLI subprocess. Quick tests cover malformed inputs,
-size/duration bounds, symlinks, FIFOs, corrupt/truncated/oversized model
-downloads, hash verification, atomic publication and safe errors. Combined
-statement/branch coverage was 86%; subprocess execution is not included in
-that percentage. Ruff, mypy and wheel/source builds also passed.
+On the reference WSL2 workstation on 2026-09-27, **59 tests** passed in 24.24
+seconds with the network namespace isolated: 49 quick tests plus ten real model
+tests. The real tests cover English and French synthesis and recognition through WAV, browser
+WebM/Opus and Ogg/Opus, silence in both languages, private file permissions,
+refusing to overwrite existing output and a real CLI subprocess. Quick tests
+cover invalid language selection before file access, shared multilingual model
+artifacts, malformed media, size/duration bounds, symlinks, FIFOs,
+corrupt/truncated/oversized model downloads, hash verification, atomic publication
+and safe errors. Combined statement/branch coverage was 87%; CLI subprocess
+execution is not included in that percentage. Ruff, mypy and wheel/source builds
+passed. Run checks from `apps/voice`, where their configuration is defined.
+The control API's separate voice and assistant suite passed **59 tests**,
+including language routing, per-language caches, malformed requests, local-only
+conversation, admission control, cancellation, privacy and cleanup.
 
-A separate initial isolated CLI measurement synthesized 6.49 seconds of French
-speech in 1.13 seconds, then transcribed it in 3.64 seconds; both subprocesses
-had empty stderr. These are workstation measurements, not latency guarantees.
-The dependency audit of the 26 locked runtime dependencies reported no known
-vulnerabilities on the same date. Audit again during delivery; an absence of
-known advisories does not assess every native decoder behavior.
+Real local dialogue calls also verified AURA's AI identity, selected English
+and French replies, and `actions_executees: false`. The first English request
+took 60.636 seconds; the following French request took 5.702 seconds and a
+repeated English request 1.047 seconds. These are short synthetic conversations;
+initialization and inference latency must remain visible to the operator.
+The timings do not establish the cause of the slower first request.
 
-A reproducible load probe is available as
-`unshare -rn uv run --locked --offline python qualifier.py --repetitions 6 --concurrence 2`
-from `apps/voice`. It uses three synthetic French phrases, private temporary
-audio files and real subprocesses, reports their transcripts, and removes the
-audio afterward. The measured run completed six of six round trips in 13.252
-seconds with two concurrent clients. Synthesis median/max were 1.059/1.073
-seconds; recognition median/max were 3.393/3.445 seconds. The transcripts
-preserved the words of these short synthetic phrases with punctuation
-differences. This is a bounded component load probe; the production API still
-serializes voice operations and must test its own admission control.
+A reproducible load probe is available from `apps/voice`:
+
+```sh
+unshare -rn uv run --locked --offline python qualifier.py --langue en --repetitions 6 --concurrence 2
+unshare -rn uv run --locked --offline python qualifier.py --langue fr --repetitions 6 --concurrence 2
+```
+
+It uses three synthetic phrases per language, private temporary audio files
+and real subprocesses, reports their transcripts, and removes the audio
+afterward. The English measurement completed six of six requests in 15.724
+seconds with two concurrent clients. Synthesis median/max were 1.794/1.924
+seconds; recognition median/max were 3.377/4.072 seconds. This includes process
+startup, file hash verification, model loading and inference. These are
+workstation measurements, not latency guarantees; the production API still
+serializes voice operations and rejects simultaneous demand rather than queuing
+unbounded audio work. Piper's high setting describes the upstream model tier,
+not an independently measured listening-quality score.
+
+The English load probe produced intelligible transcripts but included recognition
+errors, such as “An” becoming “and” and one “Hello” becoming “Although.” A successful
+round trip means nonempty output, not perfect transcription. Review recognized
+text in manual mode; conversation mode may automatically send a mistaken
+transcript and can be stopped to edit it. Automatic reply playback remains optional.
+The voice process synthesizes a bounded complete WAV; this implementation does
+not claim streaming speech, simultaneous listening during playback or
+zero-latency interruption.
+
+The French run on 2026-09-27 completed six of six round trips in 16.839
+seconds, with synthesis median/max 1.255/1.329 seconds and recognition
+median/max 4.119/5.052 seconds. These French transcripts retained the phrase
+words with some punctuation differences. Both languages continue to use CPU
+inference, leaving the GPU for local assistant and analysis work.
 
 The test corpus is synthetic. It does not establish a word error rate for the
 operator's microphone, browser/device permission handling, accent, real alerts,
@@ -190,6 +248,18 @@ authenticated conversation flow, cancellation and load admission.
   [upstream license](https://github.com/OHF-Voice/piper1-gpl/blob/main/COPYING)
   applies to redistribution of that component; preserve the relevant notices
   and corresponding source obligations when distributing a runtime bundle.
+- English voice: the pinned Piper LJSpeech high model. The
+  [model publisher](https://brycebeattie.com/files/tts/) identifies the English
+  female model as high quality, trained from scratch for 2,000 epochs, and
+  releases it into the public domain. The
+  [LJ Speech dataset](https://keithito.com/LJ-Speech-Dataset/), Keith Ito and
+  Linda Johnson (2017), provides public-domain LibriVox recordings. The
+  [pinned upstream model card](https://huggingface.co/rhasspy/piper-voices/blob/c10ece1aade47bb51c153c893d14e5bf8e5b7117/en/en_US/ljspeech/high/MODEL_CARD)
+  identifies the high tier and 22,050 Hz output; its training paragraph repeats
+  the medium model description, so the publisher's separate high-model entry
+  is the supporting source for the training tier. Model, config and card are
+  all independently pinned by byte size and SHA-256. Voice attribution is
+  retained even where the publisher does not require it.
 - French voice: the pinned Piper SIWIS medium model, trained with the
   [SIWIS French Speech Synthesis Database](https://datashare.ed.ac.uk/handle/10283/2353),
   by Junichi Yamagishi, Pierre-Edouard Honnet, Philip Garner and Alexandros

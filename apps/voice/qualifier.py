@@ -10,21 +10,28 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 
-PHRASES = [
-    "Bonjour, je suis votre assistante locale. La plateforme protège vos données.",
-    "Une alerte signale une erreur de connexion. Je vais rechercher le guide adapté.",
-    "Le diagnostic attend votre validation. Aucune action ne sera exécutée sans votre accord.",
-]
+PHRASES = {
+    "en": [
+        "Hello, I am your local assistant. The platform protects your data.",
+        "An alert reports a connection error. I will look for the right runbook.",
+        "The diagnosis awaits your approval. No action will run without your permission.",
+    ],
+    "fr": [
+        "Bonjour, je suis votre assistante locale. La plateforme protège vos données.",
+        "Une alerte signale une erreur de connexion. Je vais rechercher le guide adapté.",
+        "Le diagnostic attend votre validation. Aucune action ne sera exécutée sans votre accord.",
+    ],
+}
 
 
-def scenario(numero: int) -> dict:
+def scenario(numero: int, langue: str = "en") -> dict:
     executable = Path(__file__).parent / ".venv/bin/voix-locale"
     with tempfile.TemporaryDirectory(prefix="ambicrafted-voice-probe-") as temp:
         chemin = Path(temp) / "parole.wav"
-        texte = PHRASES[numero % len(PHRASES)]
+        texte = PHRASES[langue][numero % len(PHRASES[langue])]
         debut = time.monotonic()
         synthese = subprocess.run(
-            [str(executable), "parler", "--sortie", str(chemin)],
+            [str(executable), "parler", "--langue", langue, "--sortie", str(chemin)],
             input=texte,
             text=True,
             capture_output=True,
@@ -36,7 +43,7 @@ def scenario(numero: int) -> dict:
             return {"ok": False, "etape": "synthese"}
         debut = time.monotonic()
         transcription = subprocess.run(
-            [str(executable), "transcrire", str(chemin)],
+            [str(executable), "transcrire", "--langue", langue, str(chemin)],
             text=True,
             capture_output=True,
             timeout=130,
@@ -51,7 +58,8 @@ def scenario(numero: int) -> dict:
             "tts_s": round(tts_s, 3),
             "stt_s": round(stt_s, 3),
             "audio_s": json.loads(synthese.stdout)["duree_s"],
-            "phrase": numero % len(PHRASES),
+            "phrase": numero % len(PHRASES[langue]),
+            "langue": langue,
             "transcription": lu["texte"],
         }
 
@@ -60,13 +68,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Qualification vocale sur données synthétiques")
     parser.add_argument("--repetitions", type=int, default=6, choices=range(1, 21))
     parser.add_argument("--concurrence", type=int, default=2, choices=(1, 2))
+    parser.add_argument("--langue", choices=("en", "fr"), default="en")
     args = parser.parse_args()
     debut = time.monotonic()
     with ThreadPoolExecutor(max_workers=args.concurrence) as pool:
-        resultats = list(pool.map(scenario, range(args.repetitions)))
+        resultats = list(
+            pool.map(lambda numero: scenario(numero, args.langue), range(args.repetitions))
+        )
     rapport = {
         "date": datetime.now(UTC).isoformat(),
         "repetitions": args.repetitions,
+        "langue": args.langue,
         "concurrence": args.concurrence,
         "temps_total_s": round(time.monotonic() - debut, 3),
         "reussites": sum(resultat["ok"] for resultat in resultats),

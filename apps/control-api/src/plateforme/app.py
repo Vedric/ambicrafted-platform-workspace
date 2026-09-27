@@ -18,6 +18,7 @@ from .config import Parametres, enregistrer_secret
 from .corpus import Corpus
 from .depot import Conflit, Depot, Introuvable
 from .moteur import ACTIFS, OPERATIONS, Moteur
+from .preparation import Preparation
 from .securite import (
     COOKIE,
     Authentification,
@@ -57,10 +58,12 @@ class MotDePasse(Charge):
 
 
 class Parole(Charge):
+    langue: Literal["en", "fr"] = "en"
     texte: str = Field(min_length=1, max_length=2000)
 
 
 class Audio(Charge):
+    langue: Literal["en", "fr"] = "en"
     audio: str = Field(min_length=1, max_length=11_184_812)
 
 
@@ -70,6 +73,7 @@ class Message(Charge):
 
 
 class Dialogue(Charge):
+    langue: Literal["en", "fr"] = "en"
     messages: list[Message] = Field(min_length=1, max_length=8)
 
 
@@ -79,6 +83,7 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
     auth, corpus = Authentification(p, depot), Corpus(p.racine / "runbooks", depot)
     moteur = moteur_classe(p, depot)
     voix = Voix(p)
+    preparation = Preparation(p, services, voix, corpus)
     flux_actifs = 0
 
     @asynccontextmanager
@@ -101,6 +106,7 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
     app.add_middleware(FrontiereHTTP, parametres=p)
     app.state.depot, app.state.auth, app.state.moteur = depot, auth, moteur
     app.state.voix = voix
+    app.state.preparation = preparation
 
     @app.exception_handler(RequestValidationError)
     async def validation(request, erreur):
@@ -325,6 +331,16 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
         auth.acteur(request)
         return await services.sante()
 
+    @app.get("/api/preparation")
+    async def preparer(request: Request):
+        auth.acteur(request)
+        return await preparation.verifier()
+
+    @app.get("/api/journal")
+    async def journal(request: Request, limite: int = Query(20, ge=1, le=100)):
+        auth.acteur(request)
+        return {"elements": depot.journal(limite)}
+
     @app.get("/api/observabilite")
     async def observabilite(request: Request):
         auth.acteur(request)
@@ -356,21 +372,21 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
         return {"outils": OUTILS}
 
     @app.get("/api/voix/statut")
-    async def voix_statut(request: Request):
+    async def voix_statut(request: Request, langue: Literal["en", "fr"] = "en"):
         auth.acteur(request)
-        return await voix.statut()
+        return await voix.statut(langue)
 
     @app.post("/api/voix/parler")
     async def parler(request: Request, charge: Parole):
         auth.acteur(request, mutation=True)
         auth.limiter("synthese", maximum=20)
-        return Response(await voix.parler(charge.texte), media_type="audio/wav")
+        return Response(await voix.parler(charge.texte, charge.langue), media_type="audio/wav")
 
     @app.post("/api/voix/transcrire")
     async def transcrire(request: Request, charge: Audio):
         auth.acteur(request, mutation=True)
         auth.limiter("transcription", maximum=12)
-        return await voix.transcrire(charge.audio)
+        return await voix.transcrire(charge.audio, charge.langue)
 
     @app.post("/api/assistant/dialogue")
     async def dialogue(request: Request, charge: Dialogue):
@@ -383,7 +399,7 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
                 409, "Le moteur local traite une analyse. Réessayer lorsqu'elle sera terminée."
             )
         async with moteur.inference:
-            return await dialoguer(p, [m.model_dump() for m in charge.messages])
+            return await dialoguer(p, [m.model_dump() for m in charge.messages], charge.langue)
 
     @app.get("/{chemin:path}")
     async def console(chemin: str):

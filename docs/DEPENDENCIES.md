@@ -59,3 +59,16 @@ Functional CI passing is therefore not a container security sign-off.
 
 Image reports and checksums are outside Git at
 `/home/vedric/platform/finalisation-2026-09-26/console/security/`.
+
+## Application update — 2026-09-27
+
+The console and control plane are version 0.3.0; the speech runtime is version
+0.2.0. The immersive bilingual interface adds no application dependency. Translation
+is explicit and local; Markdown is loaded in a separate chunk. The additional
+English speech weights have a pinned revision, size, checksum and license in
+[the voice manifest and guide](VOICE.md). French and English reuse the same
+multilingual transcription model.
+
+The image set above has not changed in this application release; its dated findings
+remain open. Application dependency audit results and final-commit verification
+are recorded separately in [the current release review](RELEASE-2026-09-27.md).

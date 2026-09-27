@@ -11,6 +11,13 @@ MAX_AUDIO_OCTETS = 8 * 1024 * 1024
 MAX_AUDIO_SECONDES = 90
 MAX_TEXTE = 2000
 FREQUENCE = 16000
+LANGUES = ("en", "fr")
+
+
+def valider_langue(langue: str) -> str:
+    if langue not in LANGUES:
+        raise ErreurVoix("Langue vocale non prise en charge. Choisissez en ou fr.")
+    return langue
 
 
 def hors_ligne() -> None:
@@ -53,12 +60,14 @@ def decoder_audio(path: Path):
     return resultat
 
 
-def transcrire(path: Path) -> dict:
+def transcrire(path: Path, langue: str = "en") -> dict:
+    langue = valider_langue(langue)
     hors_ligne()
     from faster_whisper import WhisperModel
 
     audio = decoder_audio(path)
-    dossier = verifier_modele("transcription-fr")
+    alias = "transcription-" + langue
+    dossier = verifier_modele(alias)
     model = WhisperModel(
         str(dossier),
         device="cpu",
@@ -69,12 +78,16 @@ def transcrire(path: Path) -> dict:
     )
     segments, _ = model.transcribe(
         audio,
-        language="fr",
+        language=langue,
         beam_size=5,
         vad_filter=True,
         condition_on_previous_text=False,
         temperature=0.0,
-        hotwords="plateforme, alerte, analyse, données, PostgreSQL, Grafana, runbook",
+        hotwords=(
+            "platform, alert, analysis, data, PostgreSQL, Grafana, runbook"
+            if langue == "en"
+            else "plateforme, alerte, analyse, données, PostgreSQL, Grafana, runbook"
+        ),
         vad_parameters={"min_silence_duration_ms": 500},
     )
     texte = ""
@@ -84,10 +97,10 @@ def transcrire(path: Path) -> dict:
             raise ErreurVoix("La transcription dépasse la longueur autorisée.")
     return {
         "texte": texte,
-        "langue": "fr",
+        "langue": langue,
         "duree_s": round(len(audio) / FREQUENCE, 3),
         "local": True,
-        "alias": "transcription-fr",
+        "alias": alias,
     }
 
 
@@ -100,7 +113,8 @@ def valider_texte(texte: str) -> str:
     return texte
 
 
-def parler(texte: str, sortie: Path) -> dict:
+def parler(texte: str, sortie: Path, langue: str = "en") -> dict:
+    langue = valider_langue(langue)
     texte = valider_texte(texte)
     dossier_prive(sortie.parent)
     hors_ligne()
@@ -108,8 +122,9 @@ def parler(texte: str, sortie: Path) -> dict:
     from piper import PiperVoice, SynthesisConfig
     from piper.config import PiperConfig
 
-    definition = manifeste()["aliases"]["voix-feminine-fr"]
-    dossier = verifier_modele("voix-feminine-fr")
+    alias = "voix-feminine-" + langue
+    definition = manifeste()["aliases"][alias]
+    dossier = verifier_modele(alias)
     options = onnxruntime.SessionOptions()
     options.intra_op_num_threads = 4
     options.inter_op_num_threads = 1
@@ -133,7 +148,10 @@ def parler(texte: str, sortie: Path) -> dict:
                 wav.setframerate(voix.config.sample_rate)
                 total = 0
                 for morceau in voix.synthesize(
-                    texte, syn_config=SynthesisConfig(length_scale=1.05, normalize_audio=True)
+                    texte,
+                    syn_config=SynthesisConfig(
+                        length_scale=1.0 if langue == "en" else 1.05, normalize_audio=True
+                    ),
                 ):
                     donnees = morceau.audio_int16_bytes
                     total += len(donnees)
@@ -155,5 +173,6 @@ def parler(texte: str, sortie: Path) -> dict:
         "duree_s": round(duree, 3),
         "octets": sortie.stat().st_size,
         "local": True,
-        "alias": "voix-feminine-fr",
+        "alias": alias,
+        "langue": langue,
     }

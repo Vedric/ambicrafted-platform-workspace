@@ -24,7 +24,7 @@ async function connexion(page: Page) {
   await page.goto("/#session=" + ticket);
   await expect(
     page.getByRole("heading", {
-      name: "A clearer view. A smarter move.",
+      name: "Your intelligence, in motion.",
       level: 1,
       exact: true,
     }),
@@ -104,7 +104,7 @@ test("private landing, refused login, keyboard entry and accessible layout", asy
 }, testInfo) => {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /Your next move/ }),
+    page.getByRole("heading", { name: /Intelligence/ }),
   ).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", /^en(?:-|$)/);
   await sansDefautsA11y(page);
@@ -199,7 +199,7 @@ test("private landing, refused login, keyboard entry and accessible layout", asy
   await page.getByLabel("Welcome back").press("Enter");
   await expect(
     page.getByRole("heading", {
-      name: "A clearer view. A smarter move.",
+      name: "Your intelligence, in motion.",
       level: 1,
       exact: true,
     }),
@@ -298,7 +298,7 @@ test("navigation, command palette, focus confinement and theme", async ({
     .filter({ visible: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: /Your next move/ }),
+    page.getByRole("heading", { name: /Intelligence/ }),
   ).toBeVisible();
 });
 
@@ -483,7 +483,7 @@ test("reduced motion, keyboard skip link and session expiration", async ({
   await page.reload();
   await expect(
     page.getByRole("heading", {
-      name: "A clearer view. A smarter move.",
+      name: "Your intelligence, in motion.",
       level: 1,
       exact: true,
     }),
@@ -495,7 +495,7 @@ test("reduced motion, keyboard skip link and session expiration", async ({
   await page.keyboard.press("Enter");
   await expect(page.locator("#contenu")).toBeFocused();
   const animees = await page
-    .locator(".orbit-ring")
+    .locator(".core-track")
     .evaluateAll((elements) =>
       elements.map((e) => parseFloat(getComputedStyle(e).animationDuration)),
     );
@@ -504,7 +504,7 @@ test("reduced motion, keyboard skip link and session expiration", async ({
   await page.context().clearCookies();
   await aller(page, "Runbooks");
   await expect(
-    page.getByRole("heading", { name: /Your next move/ }),
+    page.getByRole("heading", { name: /Intelligence/ }),
   ).toBeVisible();
 });
 
@@ -517,7 +517,7 @@ test("offline session discovery is recoverable without a blank screen", async ({
   await page.unroute("**/api/auth");
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(
-    page.getByRole("heading", { name: /Your next move/ }),
+    page.getByRole("heading", { name: /Intelligence/ }),
   ).toBeVisible();
 });
 
@@ -561,7 +561,7 @@ test("assistant remains accessible in both themes when voice is unavailable", as
   page,
 }) => {
   await connexion(page);
-  await aller(page, "Voice assistant VOICE");
+  await aller(page, "AURA · Voice assistant VOICE");
   await expect(
     page.getByRole("heading", {
       name: "Voice assistant",
@@ -570,7 +570,9 @@ test("assistant remains accessible in both themes when voice is unavailable", as
     }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Record" })).toBeDisabled();
-  await expect(page.getByText("Unavailable", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Unavailable", { exact: true }).first(),
+  ).toBeVisible();
   await expect(page.getByLabel("Your message")).toBeEditable();
   await sansDefautsA11y(page);
   await page.getByRole("button", { name: "Switch to light theme" }).click();
@@ -587,6 +589,7 @@ test("assistant remains accessible in both themes when voice is unavailable", as
   );
   await page.getByLabel("Your message").press("Control+Enter");
   expect((await requete).postDataJSON()).toEqual({
+    langue: "en",
     messages: [{ role: "user", content: message }],
   });
   await expect(

@@ -1,3 +1,4 @@
+import { t, useI18n, LanguageSelector, systemText } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import {
   Link,
@@ -21,6 +22,8 @@ import {
   BookOpen,
   Bot,
   Check,
+  Compass,
+  ClipboardCheck,
   ChevronDown,
   ChevronRight,
   Gauge,
@@ -47,6 +50,8 @@ import {
 } from "lucide-react";
 import { api, definirCsrf, type Session } from "./api";
 import Assistant from "./Assistant";
+import { Missions } from "./pages/missions";
+import { Preparation } from "./pages/preparation";
 import {
   ToastContext,
   useToast,
@@ -80,35 +85,125 @@ export {
   Modal,
 } from "./ui";
 
+function readPreference(key: string, fallback: string): string {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+function savePreference(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* Keep the active in-memory preference. */
+  }
+}
+
 const navigation = [
   {
-    titre: "WORKSPACE",
+    get titre() {
+      return t("WORKSPACE");
+    },
     liens: [
-      { chemin: "/", nom: "Overview", icone: LayoutDashboard },
-      { chemin: "/assistant", nom: "Voice assistant", icone: AudioLines },
-      { chemin: "/analyses", nom: "Analyses", icone: Workflow },
-      { chemin: "/approbations", nom: "Approvals", icone: ShieldCheck },
+      {
+        chemin: "/",
+        get nom() {
+          return t("Overview");
+        },
+        icone: LayoutDashboard,
+      },
+      {
+        chemin: "/missions",
+        get nom() {
+          return t("Missions");
+        },
+        icone: Compass,
+      },
+      {
+        chemin: "/assistant",
+        get nom() {
+          return t("AURA · Voice assistant");
+        },
+        icone: AudioLines,
+      },
+      {
+        chemin: "/analyses",
+        get nom() {
+          return t("Analyses");
+        },
+        icone: Workflow,
+      },
+      {
+        chemin: "/approbations",
+        get nom() {
+          return t("Approvals");
+        },
+        icone: ShieldCheck,
+      },
     ],
   },
   {
-    titre: "KNOWLEDGE",
+    get titre() {
+      return t("KNOWLEDGE");
+    },
     liens: [
       { chemin: "/runbooks", nom: "Runbooks", icone: BookOpen },
-      { chemin: "/recherche", nom: "Search", icone: Search },
+      {
+        chemin: "/recherche",
+        get nom() {
+          return t("Search");
+        },
+        icone: Search,
+      },
     ],
   },
   {
-    titre: "PLATFORM",
+    get titre() {
+      return t("PLATFORM");
+    },
     liens: [
-      { chemin: "/agents", nom: "Agents & tools", icone: Bot },
-      { chemin: "/sante", nom: "System health", icone: Activity },
-      { chemin: "/observabilite", nom: "Observability", icone: Gauge },
-      { chemin: "/operations", nom: "Operations", icone: Wrench },
+      {
+        chemin: "/agents",
+        get nom() {
+          return t("Agents & tools");
+        },
+        icone: Bot,
+      },
+      {
+        chemin: "/preparation",
+        get nom() {
+          return t("Readiness");
+        },
+        icone: ClipboardCheck,
+      },
+      {
+        chemin: "/sante",
+        get nom() {
+          return t("System health");
+        },
+        icone: Activity,
+      },
+      {
+        chemin: "/observabilite",
+        get nom() {
+          return t("Observability");
+        },
+        icone: Gauge,
+      },
+      {
+        chemin: "/operations",
+        get nom() {
+          return t("Operations");
+        },
+        icone: Wrench,
+      },
     ],
   },
 ];
 const liens = navigation.flatMap((g) => g.liens);
 function Logo({ compact = false }: { compact?: boolean }) {
+  useI18n();
   return (
     <div className="brand">
       <span className="brand-icon">
@@ -117,13 +212,15 @@ function Logo({ compact = false }: { compact?: boolean }) {
       </span>
       {!compact && (
         <span>
-          ambicrafted<span className="brand-sub">AGENTIC WORKSPACE</span>
+          ambicrafted<span className="brand-sub">{t("AGENTIC WORKSPACE")}</span>
         </span>
       )}
     </div>
   );
 }
 export default function App() {
+  useI18n();
+  const currentRoute = useLocation();
   const client = useQueryClient();
   const [ticket] = useState(() =>
     new URLSearchParams(location.hash.slice(1)).get("session"),
@@ -135,18 +232,18 @@ export default function App() {
     erreur: boolean;
   } | null>(null);
   const [ticketErreur, setTicketErreur] = useState<Error | null>(null);
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem("ambicrafted-theme") || "dark",
+  const [theme, setTheme] = useState(() =>
+    readPreference("ambicrafted-theme", "dark"),
   );
   const [animations, setAnimations] = useState(
-    () => localStorage.getItem("ambicrafted-motion") !== "paused",
+    () => readPreference("ambicrafted-motion", "enabled") !== "paused",
   );
   const reduced = useReducedMotionPreference();
   const motionEnabled = animations && !reduced;
   useEffect(() => {
     const value = animations ? "enabled" : "paused";
     document.documentElement.dataset.motion = value;
-    localStorage.setItem("ambicrafted-motion", value);
+    savePreference("ambicrafted-motion", value);
   }, [animations]);
   useEffect(() => {
     const update = () => {
@@ -168,7 +265,7 @@ export default function App() {
   });
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("ambicrafted-theme", theme);
+    savePreference("ambicrafted-theme", theme);
   }, [theme]);
   useEffect(() => {
     if (!ticket) return;
@@ -230,7 +327,7 @@ export default function App() {
                 recommencer={() => session.refetch()}
               />
             </main>
-          ) : session.data?.connecte ? (
+          ) : session.data?.connecte && currentRoute.pathname !== "/welcome" ? (
             <Cadre
               theme={theme}
               changerTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -240,6 +337,7 @@ export default function App() {
             />
           ) : (
             <AccueilPublic
+              connecte={session.data?.connecte || false}
               motDePasse={session.data?.mot_de_passe || false}
               erreur={ticketErreur}
               animations={animations}
@@ -256,9 +354,9 @@ export default function App() {
                 exit={{ opacity: 0, y: 16 }}
               >
                 {toast.erreur ? <XCircle size={20} /> : <Check size={20} />}
-                <span>{toast.message}</span>
+                <span>{systemText(toast.message)}</span>
                 <button
-                  aria-label="Dismiss notification"
+                  aria-label={t("Dismiss notification")}
                   onClick={() => setToast(null)}
                 >
                   <X size={16} />
@@ -278,7 +376,8 @@ function AnimationControl({
   enabled: boolean;
   toggle: () => void;
 }) {
-  const label = enabled ? "Pause animations" : "Enable animations";
+  useI18n();
+  const label = enabled ? t("Pause animations") : t("Enable animations");
   return (
     <button
       className="icon-button motion-control"
@@ -291,16 +390,22 @@ function AnimationControl({
   );
 }
 function AccueilPublic({
+  connecte = false,
   motDePasse,
   erreur,
   animations,
   changerAnimations,
 }: {
+  connecte?: boolean;
   motDePasse: boolean;
   erreur: Error | null;
   animations: boolean;
   changerAnimations: () => void;
 }) {
+  const { language } = useI18n();
+  useEffect(() => {
+    document.title = "Ambicrafted · " + t("AGENTIC WORKSPACE");
+  }, [language]);
   const [mot, setMot] = useState("");
   const [instructions, setInstructions] = useState(false);
   const client = useQueryClient();
@@ -316,8 +421,9 @@ function AccueilPublic({
       <header className="landing-header">
         <Logo />
         <div className="landing-controls">
+          <LanguageSelector />
           <span className="private-label">
-            <LockKeyhole size={14} /> PRIVATE WORKSPACE
+            <LockKeyhole size={14} /> {t("PRIVATE WORKSPACE")}
           </span>
           <AnimationControl enabled={animations} toggle={changerAnimations} />
         </div>
@@ -325,126 +431,164 @@ function AccueilPublic({
       <main className="landing-main">
         <div className="landing-copy reveal-copy">
           <div className="eyebrow">
-            <span className="live-dot" /> INTELLIGENCE. WITH INTENTION.
+            <span className="live-dot" />{" "}
+            {t("YOUR PRIVATE AGENTIC OPERATING SPACE")}
           </div>
           <h1>
-            Your next move.
+            {t("Intelligence.")}
             <br />
-            <span>
-              Already
-              <br />
-              in focus.
-            </span>
+            <span>{t("Within reach.")}</span>
+            <em>{t("Entirely yours.")}</em>
           </h1>
           <p className="landing-lead">
-            Turn signals into understanding. A private agentic workspace that
-            connects your knowledge, your tools, and your next decision.
+            {t(
+              "Orchestrate investigations. Explore your knowledge. Talk to AURA. One immersive workspace, powered locally and guided by you.",
+            )}
           </p>
           <div className="landing-tags">
             <span>
-              <ShieldCheck size={16} /> Local by design
+              <ShieldCheck size={16} /> {t("Local by design")}
             </span>
             <span>
-              <GitBranch size={16} /> Evidence-led decisions
+              <GitBranch size={16} /> {t("Evidence-led decisions")}
             </span>
             <span>
-              <AudioLines size={16} /> Voice enabled
+              <AudioLines size={16} /> {t("Meet AURA")}
             </span>
           </div>
           {(erreur || connexion.error) && (
             <Erreur erreur={erreur || connexion.error} />
           )}
-          <div className="login-card">
-            {motDePasse ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  connexion.mutate();
-                }}
-              >
-                <label htmlFor="connexion-privee">Welcome back</label>
-                <div className="login-row">
-                  <input
-                    id="connexion-privee"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="Enter your password"
-                    value={mot}
-                    onChange={(e) => setMot(e.target.value)}
-                    required
-                    maxLength={128}
-                  />
-                  <button
-                    className="btn primary"
-                    disabled={connexion.isPending}
-                  >
-                    {connexion.isPending ? (
-                      <LoaderCircle className="spin" size={18} />
-                    ) : (
-                      <ArrowRight size={18} />
-                    )}
-                    <span>Enter workspace</span>
-                  </button>
-                </div>
-              </form>
+          <div className="landing-entry">
+            {connecte ? (
+              <Link to="/" className="btn primary">
+                {t("Rejoin workspace")} <ArrowRight size={18} />
+              </Link>
             ) : (
-              <>
-                <strong>Your workspace, one command away.</strong>
-                <p>Open a secure session from your terminal.</p>
-                <div className="command-line">
-                  <SquareTerminal size={18} />
-                  <code>./plateforme ouvrir</code>
-                </div>
-              </>
-            )}
-            <button
-              className="text-button"
-              onClick={() => setInstructions(!instructions)}
-            >
-              Sign in from your terminal <ChevronDown size={14} />
-            </button>
-            {instructions && (
-              <p className="hint">
-                From the project directory, run <code>./plateforme ouvrir</code>
-                . A single-use link opens your session. To set up a password,
-                run <code>./plateforme mot-de-passe</code>.
-              </p>
+              <a href="#workspace-access" className="btn primary">
+                {t("Enter workspace")} <ArrowRight size={18} />
+              </a>
             )}
           </div>
+          {!connecte && (
+            <div className="login-card" id="workspace-access" tabIndex={-1}>
+              {motDePasse ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    connexion.mutate();
+                  }}
+                >
+                  <label htmlFor="connexion-privee">{t("Welcome back")}</label>
+                  <div className="login-row">
+                    <input
+                      id="connexion-privee"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder={t("Enter your password")}
+                      value={mot}
+                      onChange={(e) => setMot(e.target.value)}
+                      required
+                      maxLength={128}
+                    />
+                    <button
+                      className="btn primary"
+                      disabled={connexion.isPending}
+                    >
+                      {connexion.isPending ? (
+                        <LoaderCircle className="spin" size={18} />
+                      ) : (
+                        <ArrowRight size={18} />
+                      )}
+                      <span>{t("Enter workspace")}</span>
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <strong>{t("Your workspace, one command away.")}</strong>
+                  <p>{t("Open a secure session from your terminal.")}</p>
+                  <div className="command-line">
+                    <SquareTerminal size={18} />
+                    <code>./plateforme ouvrir</code>
+                  </div>
+                </>
+              )}
+              <button
+                className="text-button"
+                onClick={() => setInstructions(!instructions)}
+              >
+                {t("Sign in from your terminal")} <ChevronDown size={14} />
+              </button>
+              {instructions && (
+                <p className="hint">
+                  {t("From the project directory, run")}{" "}
+                  <code>./plateforme ouvrir</code>
+                  {t(
+                    ". A single-use link opens your session. To set up a password, run",
+                  )}{" "}
+                  <code>./plateforme mot-de-passe</code>.
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <Orbit />
       </main>
-      <section className="landing-principles" aria-label="Workspace principles">
+      <section
+        className="landing-principles"
+        aria-label={t("Workspace principles")}
+      >
         <div>
           <span>01</span>
           <div>
-            <strong>Connected thinking.</strong>
-            <p>Knowledge and tools, in one considered workspace.</p>
+            <strong>{t("Connected thinking.")}</strong>
+            <p>{t("Knowledge and tools, in one considered workspace.")}</p>
           </div>
           <BookOpen size={21} />
         </div>
         <div>
           <span>02</span>
           <div>
-            <strong>Considered action.</strong>
-            <p>From an alert to a proposal you can actually review.</p>
+            <strong>{t("Considered action.")}</strong>
+            <p>{t("From an alert to a proposal you can actually review.")}</p>
           </div>
           <GitBranch size={21} />
         </div>
         <div>
           <span>03</span>
           <div>
-            <strong>Entirely your space.</strong>
-            <p>Local inference. A human at every decision.</p>
+            <strong>{t("Entirely your space.")}</strong>
+            <p>{t("Local inference. A human at every decision.")}</p>
           </div>
           <ShieldCheck size={21} />
         </div>
       </section>
+      <div className="landing-marquee" aria-hidden="true">
+        <div className="marquee-track">
+          {[0, 1].map((copy) => (
+            <span key={copy}>
+              {[
+                t("Missions"),
+                t("Knowledge"),
+                t("Agents & tools"),
+                t("Human oversight"),
+                "AURA",
+              ].map((label) => (
+                <span key={label}>
+                  {label}
+                  <i>✦</i>
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
       <footer className="landing-footer">
         <span>
-          AM B I C R A F T E D <b> / </b> MISSION CONTROL
+          AM B I C R A F T E D <b> / </b> {t("MISSION CONTROL")}
         </span>
-        <span>Built for clarity. Designed for you.</span>
+        <span>{t("Built for clarity. Designed for you.")}</span>
       </footer>
     </div>
   );
@@ -462,6 +606,7 @@ function Cadre({
   changerAnimations: () => void;
   motionEnabled: boolean;
 }) {
+  useI18n();
   const [mobile, setMobile] = useState(false),
     [palette, setPalette] = useState(false);
   const client = useQueryClient(),
@@ -470,10 +615,10 @@ function Cadre({
   const titre =
     liens.find((l) => l.chemin === lieu.pathname)?.nom ||
     (lieu.pathname.startsWith("/analyses/")
-      ? "Analysis details"
+      ? t("Analysis details")
       : lieu.pathname.startsWith("/runbooks/")
         ? "Runbook"
-        : "Settings & help");
+        : t("Settings & help"));
   useEffect(() => {
     setMobile(false);
     document.title = titre + " · Ambicrafted";
@@ -500,18 +645,22 @@ function Cadre({
   };
   const sidebar = (
     <>
-      <Link className="brand-link" to="/" aria-label="Ambicrafted home">
+      <Link
+        className="brand-link"
+        to="/welcome"
+        aria-label={t("Ambicrafted home")}
+      >
         <Logo />
       </Link>
       <div className="workspace-switch">
-        <span className="workspace-avatar">A</span>
+        <span className="workspace-avatar">{t("A")}</span>
         <div>
-          <strong>Personal workspace</strong>
-          <small>Private environment</small>
+          <strong>{t("Personal workspace")}</strong>
+          <small>{t("Private environment")}</small>
         </div>
         <LockKeyhole size={15} />
       </div>
-      <nav aria-label="Main navigation">
+      <nav aria-label={t("Main navigation")}>
         {navigation.map((g) => (
           <div className="nav-group" key={g.titre}>
             <div className="nav-caption">{g.titre}</div>
@@ -541,7 +690,7 @@ function Cadre({
                     <l.icone size={18} />
                     <span>{l.nom}</span>
                     {l.chemin === "/assistant" && (
-                      <span className="nav-new">VOICE</span>
+                      <span className="nav-new">{t("VOICE")}</span>
                     )}
                   </>
                 )}
@@ -553,21 +702,21 @@ function Cadre({
       <div className="sidebar-bottom">
         <div className="local-card">
           <span className="live-dot" />
-          <strong>Your intelligence. Your space.</strong>
-          <p>Local inference. Always in your control.</p>
+          <strong>{t("PRIVATE COMPUTE / HUMAN CONTROL")}</strong>
+          <p>{t("Local inference. Always in your control.")}</p>
         </div>
         <NavLink className="nav-link" to="/parametres">
-          <Settings2 size={18} /> Settings & help
+          <Settings2 size={18} /> {t("Settings & help")}
         </NavLink>
         <div className="operator">
-          <div className="operator-avatar">YOU</div>
+          <div className="operator-avatar">{t("YOU")}</div>
           <div>
-            <strong>You</strong>
-            <small>Local operator</small>
+            <strong>{t("You")}</strong>
+            <small>{t("Local operator")}</small>
           </div>
           <button
             className="icon-button"
-            aria-label="Sign out"
+            aria-label={t("Sign out")}
             onClick={sortir}
           >
             <LogOut size={17} />
@@ -579,7 +728,7 @@ function Cadre({
   return (
     <div className="app-shell">
       <a className="skip-link" href="#contenu">
-        Skip to content
+        {t("Skip to content")}
       </a>
       <aside className="sidebar">
         <LayoutGroup id="desktop-navigation">{sidebar}</LayoutGroup>
@@ -596,27 +745,28 @@ function Cadre({
           <div className="breadcrumb">
             <button
               className="icon-button mobile-menu"
-              aria-label="Open navigation"
+              aria-label={t("Open navigation")}
               onClick={() => setMobile(true)}
             >
               <Menu size={22} />
             </button>
-            <span>Workspace</span>
+            <span>{t("Workspace")}</span>
             <ChevronRight size={14} />
             <strong>{titre}</strong>
           </div>
           <div className="topbar-actions">
+            <LanguageSelector />
             <button
               className="command-button"
-              aria-label="Open command menu"
+              aria-label={t("Open command menu")}
               onClick={() => setPalette(true)}
             >
               <Search size={16} />
-              <span>Quick search</span>
+              <span>{t("Command center")}</span>
               <kbd>⌘ K</kbd>
             </button>
             <span className="private-pill">
-              <LockKeyhole size={13} /> PRIVATE
+              <LockKeyhole size={13} /> {t("PRIVATE")}
             </span>
             <AnimationControl enabled={animations} toggle={changerAnimations} />
             <button
@@ -624,8 +774,8 @@ function Cadre({
               onClick={changerTheme}
               aria-label={
                 theme === "dark"
-                  ? "Switch to light theme"
-                  : "Switch to dark theme"
+                  ? t("Switch to light theme")
+                  : t("Switch to dark theme")
               }
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -645,6 +795,8 @@ function Cadre({
           >
             <Routes>
               <Route path="/" element={<VueEnsemble />} />
+              <Route path="/missions" element={<Missions />} />
+              <Route path="/preparation" element={<Preparation />} />
               <Route path="/analyses" element={<Analyses />} />
               <Route path="/analyses/nouvelle" element={<NouvelleAnalyse />} />
               <Route path="/analyses/:id" element={<DetailAnalyse />} />
@@ -662,11 +814,11 @@ function Cadre({
                 path="*"
                 element={
                   <Vide
-                    titre="This page is off the map."
-                    texte="Let’s get you back to your workspace."
+                    titre={t("This page is off the map.")}
+                    texte={t("Let’s get you back to your workspace.")}
                   >
                     <Link className="btn primary" to="/">
-                      Back to overview
+                      {t("Back to overview")}
                     </Link>
                   </Vide>
                 }
@@ -675,10 +827,11 @@ function Cadre({
           </motion.div>
           <footer className="app-footer">
             <span>
-              Ambicrafted <b> / </b> Local intelligence. Human decisions.
+              {t("Ambicrafted")} <b> / </b>{" "}
+              {t("Local intelligence. Human decisions.")}
             </span>
             <Link to="/parametres">
-              CLI reference <ArrowRight size={12} />
+              {t("CLI reference")} <ArrowRight size={12} />
             </Link>
           </footer>
         </main>
@@ -688,16 +841,17 @@ function Cadre({
   );
 }
 function Palette({ fermer }: { fermer: () => void }) {
+  useI18n();
   const [q, setQ] = useState("");
   const navigate = useNavigate();
   return (
-    <Modal titre="Go anywhere" fermer={fermer}>
+    <Modal titre={t("Go anywhere")} fermer={fermer}>
       <div className="search-input">
         <Search size={18} />
         <input
-          aria-label="Search pages"
+          aria-label={t("Search pages")}
           autoFocus
-          placeholder="Find a page, a tool, your next move…"
+          placeholder={t("Find a page, a tool, your next move…")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -706,13 +860,18 @@ function Palette({ fermer }: { fermer: () => void }) {
         {[
           ...liens,
           {
+            chemin: "/parametres",
+            nom: t("Settings & CLI reference"),
+            icone: Settings2,
+          },
+          {
             chemin: "/analyses/nouvelle",
-            nom: "New analysis",
+            nom: t("New analysis"),
             icone: Plus,
           },
         ]
           .filter((l) =>
-            l.nom.toLocaleLowerCase("en").includes(q.toLocaleLowerCase("en")),
+            l.nom.toLocaleLowerCase().includes(q.toLocaleLowerCase("en")),
           )
           .map((l) => (
             <button
@@ -728,7 +887,9 @@ function Palette({ fermer }: { fermer: () => void }) {
             </button>
           ))}
       </div>
-      <p className="hint">Tab to browse · Enter to open · Esc to close</p>
+      <p className="hint">
+        {t("Tab to browse · Enter to open · Esc to close")}
+      </p>
     </Modal>
   );
 }

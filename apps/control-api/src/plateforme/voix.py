@@ -17,13 +17,18 @@ from .config import Parametres, dossier_prive
 from .moteur import Moteur
 
 
+def valider_langue(langue: str) -> str:
+    if langue not in ("en", "fr"):
+        raise HTTPException(422, "Unsupported voice language. Choose en or fr.")
+    return langue
+
+
 class Voix:
     def __init__(self, p: Parametres):
         self.p = p
         self.verrou = asyncio.Lock()
         self.temp = dossier_prive(p.etat / "audio-temp")
-        self.cache: dict = {}
-        self.date = 0.0
+        self.cache: dict[str, tuple[float, dict]] = {}
 
     def nettoyer_apres_arret(self) -> None:
         """Only call after acquiring the single-instance control lock."""
@@ -76,23 +81,32 @@ class Voix:
         finally:
             await Moteur.terminer(processus)
 
-    async def statut(self) -> dict:
-        if self.cache and time.monotonic() - self.date < 60:
-            return self.cache
+    async def statut(self, langue: str = "en") -> dict:
+        langue = valider_langue(langue)
+        precedent = self.cache.get(langue)
+        if precedent and time.monotonic() - precedent[0] < 60:
+            return precedent[1]
         try:
-            resultat = await self.executer(["statut"])
+            resultat = await self.executer(["statut", "--langue", langue])
         except HTTPException:
-            resultat = {"pret": False, "local": True, "voix": "voix-feminine-fr", "langue": "fr-FR"}
-        self.cache, self.date = resultat, time.monotonic()
+            resultat = {
+                "pret": False,
+                "local": True,
+                "voix": "voix-feminine-" + langue,
+                "langue": "en-US" if langue == "en" else "fr-FR",
+                "langues": ["en", "fr"],
+            }
+        self.cache[langue] = (time.monotonic(), resultat)
         return resultat
 
-    async def parler(self, texte: str) -> bytes:
+    async def parler(self, texte: str, langue: str = "en") -> bytes:
+        langue = valider_langue(langue)
         if self.verrou.locked():
             raise HTTPException(409, "Le moteur vocal traite déjà une demande.")
         async with self.verrou:
             with tempfile.TemporaryDirectory(dir=self.temp, prefix="capture-") as dossier:
                 sortie = Path(dossier) / "reponse.wav"
-                await self.executer(["parler", "--sortie", str(sortie)], texte)
+                await self.executer(["parler", "--langue", langue, "--sortie", str(sortie)], texte)
                 fd = os.open(sortie, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
                 with os.fdopen(fd, "rb") as fichier:
                     if not stat.S_ISREG(os.fstat(fichier.fileno()).st_mode):
@@ -102,7 +116,8 @@ class Voix:
                     raise HTTPException(502, "Réponse audio invalide.")
                 return audio
 
-    async def transcrire(self, audio: str) -> dict:
+    async def transcrire(self, audio: str, langue: str = "en") -> dict:
+        langue = valider_langue(langue)
         if self.verrou.locked():
             raise HTTPException(409, "Le moteur vocal traite déjà une demande.")
         try:
@@ -118,7 +133,7 @@ class Voix:
                 with os.fdopen(fd, "wb") as fichier:
                     fichier.write(donnees)
                 del donnees
-                resultat = await self.executer(["transcrire", str(source)])
+                resultat = await self.executer(["transcrire", "--langue", langue, str(source)])
                 if not isinstance(resultat.get("texte"), str) or len(resultat["texte"]) > 20_000:
                     raise HTTPException(502, "Transcription invalide.")
                 return resultat

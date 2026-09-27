@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   audio: vi.fn(),
   notifier: vi.fn(),
 }));
+vi.mock("./NeuralCore", () => ({
+  NeuralCore: () => <div aria-hidden="true" />,
+}));
 vi.mock("./api", () => ({ api: mocks.api, audioLocal: mocks.audio }));
 vi.mock("./ui", () => ({
   useToast: () => mocks.notifier,
@@ -48,8 +51,8 @@ beforeEach(() => {
   localStorage.clear();
   mocks.api.mockImplementation((route: string) =>
     Promise.resolve(
-      route === "/voix/statut"
-        ? { pret: true, local: true, voix: "voix-feminine-fr", langue: "fr-FR" }
+      route.startsWith("/voix/statut")
+        ? { pret: true, local: true, voix: "voix-feminine-en", langue: "en-US" }
         : route === "/voix/transcrire"
           ? { texte: "Une alerte à vérifier." }
           : { texte: "Je vous accompagne." },
@@ -90,6 +93,9 @@ describe("spoken text conversion", () => {
     expect(texte).not.toContain("rm impossible");
     expect(texteOral("é".repeat(2500))).toHaveLength(2000);
     expect(texteOral("a".repeat(1999) + "😀")).toBe("a".repeat(1999));
+    expect(texteOral("```sh\nsynthetic command\n```", "fr")).toBe(
+      "Un exemple de code est disponible à l’écran.",
+    );
   });
 });
 
@@ -99,7 +105,7 @@ describe("private assistant conversation", () => {
     expect(
       screen.getByRole("heading", { name: "Voice assistant" }),
     ).toBeVisible();
-    expect(screen.getByText("French female voice")).toBeVisible();
+    expect(screen.getByLabelText("Conversation language")).toHaveValue("en");
     expect(
       screen.getByLabelText("Read replies automatically"),
     ).not.toBeChecked();
@@ -113,6 +119,7 @@ describe("private assistant conversation", () => {
       "/assistant/dialogue",
       "POST",
       {
+        langue: "en",
         messages: [{ role: "user", content: "Comment lancer une analyse ?" }],
       },
       expect.any(AbortSignal),
@@ -260,15 +267,19 @@ describe("private assistant conversation", () => {
     await userEvent.click(
       await screen.findByRole("button", { name: "Listen" }),
     );
-    await screen.findByText("Speaking…");
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Speaking…"),
+    );
     await userEvent.click(
       screen.getByRole("button", { name: "Stop playback" }),
     );
-    expect(screen.getByText("Ready when you are")).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Ready when you are");
     expect(pause).toHaveBeenCalledTimes(1);
     expect(revocation).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole("button", { name: "Listen" }));
-    await screen.findByText("Speaking…");
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Speaking…"),
+    );
     vue.unmount();
     expect(pause).toHaveBeenCalledTimes(2);
     expect(revocation).toHaveBeenCalledTimes(2);
