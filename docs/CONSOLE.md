@@ -347,11 +347,25 @@ then **Send**. **Listen** plays a reply through the selected female synthetic
 voice. The conversation-language selector defaults to English and also offers
 French independently of the interface language.
 
+On entering AURA, the authenticated local model is prepared with a fixed one-token
+request. The microphone stays off and **Start conversation** waits for readiness.
+A cold start can take a couple of minutes. If the model is busy or unavailable,
+**Prepare conversation** offers an explicit retry. The local request asks the runtime
+to retain the model for 24 hours; another workload or a restart can still unload it.
+
 Explicitly start hands-free conversation and grant microphone permission to use
-successive spoken turns. Browser voice activity detection ends a spoken turn
-after approximately 1.6 seconds of silence once speech was detected. AURA
+successive spoken turns. Browser input-energy detection ends a spoken turn
+after approximately 1.1 seconds of silence once speech was detected. AURA
 transcribes, sends that turn, generates a reply, speaks it and resumes listening.
-Without detected speech it stops after 12 seconds; it also pauses after 20 turns.
+A turn is sent after at most 30 seconds of detected input, even if background noise
+prevents a pause. **Send this turn** sends earlier. Without detected input, capture
+stops after 12 seconds and any transcription remains available for manual review;
+it also pauses after 20 completed turns. Spoken replies target at most 55 words and
+220 output tokens; typed replies retain their 650-token budget.
+A conversational transcription or synthesis is stopped after 30 seconds, and
+model generation after 45 seconds. The UI names the failing stage. The typed
+message is preserved if generation fails; a completed written answer survives a
+voice failure. Retry does not silently run in the background.
 These are bounded sequential steps, not simultaneous streaming or listening
 during playback. Device load and model initialization can introduce delays.
 

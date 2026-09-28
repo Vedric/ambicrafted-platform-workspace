@@ -10,7 +10,12 @@ guarantee of human-like speech on every utterance.
 
 1. Open **Voice assistant**. Choose the reply language; it initially matches the UI.
 2. Type a question, or use **Record** and review its transcript before sending.
-   **Start conversation** enables the explicit hands-free loop. Escape stops it.
+   Wait for local model preparation before **Start conversation** enables the
+   explicit hands-free loop. Preparation leaves the microphone off. If unavailable,
+   select **Prepare conversation** to retry. A spoken turn is sent after a brief
+   pause, or at 30 seconds; **Send this turn** sends it sooner. Escape stops it.
+   Spoken replies favor at most 55 words and 220 output tokens, with history and
+   selected documents retained. Type a message for a more detailed answer.
 3. Use **Attach a document or image**, then select the files needed for this turn.
    Attachments remain local. Reopening an existing conversation does not silently
    select its documents again.
@@ -23,7 +28,8 @@ guarantee of human-like speech on every utterance.
 
 Responses appear progressively. Only complete user/assistant pairs are committed.
 If interrupted, retry the unchanged message in the same thread; the operation ID
-prevents duplicate saved turns. Editing the message, language or selected sources
+prevents duplicate saved turns. Retrying a failed spoken message through **Send**
+retains its original spoken mode and operation ID. Editing the message, language or selected sources
 starts a new operation. Source documents and model replies are untrusted content.
 AURA has no action, approval or remediation authority.
 

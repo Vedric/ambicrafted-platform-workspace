@@ -161,6 +161,45 @@ describe("scroll accents and operator control", () => {
     observer().show(panel);
     expect(animations).toHaveLength(2);
   });
+  it("observes sections of tall AURA and Welcome panels independently", () => {
+    const { container } = render(
+      <MotionPreference.Provider value={true}>
+        <ScrollExperience routeKey="/welcome" />
+        <main className="landing-main">
+          <div className="landing-copy">
+            <h1>Welcome</h1>
+            <p>Introduction</p>
+          </div>
+          <section className="welcome-voice">
+            <div className="welcome-instrument">AURA</div>
+            <div className="welcome-voice-controls">
+              <div>Playback controls</div>
+              <details>Audio setup</details>
+            </div>
+          </section>
+        </main>
+        <main className="page-scene">
+          <section className="aura-stage panel">
+            <div>Core</div>
+            <section className="audio-devices">Microphone setup</section>
+          </section>
+        </main>
+      </MotionPreference.Provider>,
+    );
+    expect(observer().observed.size).toBe(7);
+    expect(
+      observer().observed.has(container.querySelector(".aura-stage")!),
+    ).toBe(false);
+    expect(
+      observer().observed.has(container.querySelector(".welcome-voice")!),
+    ).toBe(false);
+    const setup = container.querySelector<HTMLElement>(".audio-devices")!;
+    observer().show(setup);
+    expect(animations[0].element).toBe(setup);
+    observer().show(setup, false);
+    observer().show(setup);
+    expect(animations).toHaveLength(2);
+  });
 
   it("never starts motion around focused controls and cancels on focus arrival", () => {
     render(scene());

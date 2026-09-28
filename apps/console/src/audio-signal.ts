@@ -10,13 +10,20 @@ export function inputActivity(started: number) {
   let began: number | null = null;
   let lastSound = started;
   let heard = false;
+  let peak = 0;
   return (frame: SignalFrame | null | undefined, now: number) => {
     const available = !!frame && Number.isFinite(frame.level);
-    const audible = available && frame.level >= 0.012;
+    // A fixed low threshold alone lets steady background noise hold the turn
+    // open. Keep quiet input sensitive, but require 15% of the recent peak
+    // after louder speech. This remains energy detection, not speech VAD.
+    if (available) peak = Math.max(frame.level, peak * 0.995);
+    const audible = available && frame.level >= Math.max(0.012, peak * 0.15);
     if (audible) {
       began ??= now;
-      if (now - began >= 100) heard = true;
-      lastSound = now;
+      if (now - began >= 100) {
+        heard = true;
+        lastSound = now;
+      }
     } else if (available) began = null;
     return { available, heard, silence: Math.max(0, now - lastSound) };
   };

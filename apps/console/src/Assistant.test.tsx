@@ -51,7 +51,7 @@ beforeEach(() => {
   localStorage.clear();
   mocks.api.mockImplementation((route: string) =>
     Promise.resolve(
-      route.startsWith("/voix/statut")
+      route.startsWith("/voix/statut") || route === "/assistant/preparer"
         ? { pret: true, local: true, voix: "voix-feminine-en", langue: "en-US" }
         : route === "/voix/transcrire"
           ? { texte: "Une alerte à vérifier." }

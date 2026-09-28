@@ -1,6 +1,6 @@
 [project]
 name = "ambicrafted-control"
-version = "0.4.0"
+version = "0.4.1"
 description = "Plan de contrôle privé de la plateforme agentique Ambicrafted."
 requires-python = ">=3.14"
 dependencies = [

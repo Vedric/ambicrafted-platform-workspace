@@ -816,12 +816,6 @@ dialog::backdrop {
   stroke-width: 1;
   transform-origin: 256px 256px;
 }
-.track-one {
-  animation: instrument-orbit 60s linear infinite;
-}
-.track-two {
-  animation: instrument-orbit 44s linear reverse infinite;
-}
 .core-track .core-arc {
   stroke: #a6eff6;
   stroke-width: 3;
@@ -835,7 +829,6 @@ dialog::backdrop {
   stroke: #73bfd644;
   stroke-width: 0.9;
   transform-origin: 256px 256px;
-  animation: instrument-orbit 100s linear infinite;
 }
 .core-signal {
   fill: #70dbf504;
@@ -909,12 +902,6 @@ dialog::backdrop {
 }
 .neural-core[data-phase="listening"] .core-signal {
   stroke: #90f1d4;
-}
-.neural-core[data-phase="thinking"] .track-one {
-  animation-duration: 12s;
-}
-.neural-core[data-phase="loading"] .track-two {
-  animation-duration: 15s;
 }
 .neural-core[data-phase="thinking"] .core-lens {
   stroke: #c6bdff;
@@ -1111,21 +1098,6 @@ dialog::backdrop {
   color: #9bb3c4;
   letter-spacing: 0.06em;
   border-color: #2e4959;
-}
-.reveal-copy > * {
-  animation: settle-in 800ms var(--ease-out) both;
-}
-.reveal-copy > :nth-child(2) {
-  animation-delay: 80ms;
-}
-.reveal-copy > :nth-child(3) {
-  animation-delay: 160ms;
-}
-.reveal-copy > :nth-child(4) {
-  animation-delay: 240ms;
-}
-.reveal-copy > :nth-child(5) {
-  animation-delay: 320ms;
 }
 /* Missions and readiness make capabilities discoverable without executing them. */
 .section-heading {
@@ -2440,7 +2412,6 @@ dialog::backdrop {
   transition-duration: 0s !important;
   scroll-behavior: auto !important;
 }
-[data-motion="paused"] .reveal-copy > *,
 [data-motion="paused"] .stat-card,
 [data-motion="paused"] .chat-message,
 [data-motion="paused"] .activity-chart span {

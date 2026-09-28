@@ -150,7 +150,14 @@ AURA's manual recording mode permits transcript review. Explicit conversation
 mode alternates capture, local transcription, dialogue and playback. It stops on
 Escape, a hidden tab, route departure, 12 seconds without detected speech or
 20 completed turns. Silence after detected speech ends a turn after approximately
-1.6 seconds. This is not simultaneous streaming or permission to act. On a noisy
+1.1 seconds, with a 30-second cap per spoken turn. Manual recordings retain the
+90-second cap. Before hands-free mode, AURA warms the local model with fixed
+synthetic input; preparation can be retried if the gateway is unavailable or busy.
+No microphone data is collected during preparation. Conversational STT/TTS have
+30-second browser deadlines; generation has 45 seconds. Disconnecting cancels
+the STT/TTS subprocess and releases its lock. Error recovery preserves written
+messages/replies where available. This is not simultaneous streaming or permission
+to act. On a noisy
 microphone, stop the conversation and use an editable manual recording instead.
 
 The `.mcp.json` configuration has one NEXUS stdio entrypoint. Run the MCP client from this

@@ -164,7 +164,7 @@ function pcmBlob() {
 }
 function defaultApi(route: string) {
   return Promise.resolve(
-    route.startsWith("/voix/statut")
+    route.startsWith("/voix/statut") || route === "/assistant/preparer"
       ? { pret: true, local: true, voix: "voix-feminine-en", langue: "en-US" }
       : route === "/voix/transcrire"
         ? { texte: "A synthetic question." }
@@ -457,7 +457,7 @@ describe("manual speech resources and language", () => {
   });
   it("keeps typed chat available when the speech engine is unavailable", async () => {
     mocks.api.mockImplementation((route: string) =>
-      route.startsWith("/voix/statut")
+      route.startsWith("/voix/statut") || route === "/assistant/preparer"
         ? Promise.reject(new Error("Offline"))
         : defaultApi(route),
     );
@@ -866,10 +866,10 @@ describe("explicit bounded hands-free conversation", () => {
     );
     expect(calls("/assistant/dialogue")).toHaveLength(0);
   });
-  it("stops capture at 90 seconds even if speech never pauses", async () => {
+  it("stops a conversational turn at 30 seconds even if speech never pauses", async () => {
     await show();
     await click("Start conversation");
-    await advance(90000);
+    await advance(30000);
     expect(recorders[0].state).toBe("inactive");
     expect(calls("/voix/transcrire")).toHaveLength(1);
     expect(track.stop).toHaveBeenCalled();
@@ -1074,4 +1074,127 @@ describe("local microphone and sound check", () => {
       screen.getByRole("button", { name: "Test microphone" }),
     ).toBeEnabled();
   });
+});
+
+describe("responsive spoken turns", () => {
+  beforeEach(() => vi.useFakeTimers());
+  it("waits for actual model preparation before opening the microphone", async () => {
+    let ready!: (value: { pret: boolean }) => void;
+    mocks.api.mockImplementation((route: string) =>
+      route === "/assistant/preparer"
+        ? new Promise((resolve) => {
+            ready = resolve;
+          })
+        : defaultApi(route),
+    );
+    await show();
+    expect(
+      screen.getByRole("button", { name: "Start conversation" }),
+    ).toBeDisabled();
+    expect(screen.getByText(/Preparing the local model before/)).toBeVisible();
+    expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+    await act(async () => ready({ pret: true }));
+    await click("Start conversation");
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledOnce();
+    await click("End conversation");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it("offers a preparation retry after failure without secretly recording", async () => {
+    mocks.api.mockImplementation((route: string) =>
+      route === "/assistant/preparer"
+        ? Promise.resolve({ pret: false })
+        : defaultApi(route),
+    );
+    await show();
+    expect(
+      screen.getByRole("button", { name: "Start conversation" }),
+    ).toBeDisabled();
+    mocks.api.mockImplementation(defaultApi);
+    await click("Prepare conversation");
+    expect(
+      screen.getByRole("button", { name: "Start conversation" }),
+    ).toBeEnabled();
+    expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+  });
+  it("sends after a brief pause even with a low background noise floor", async () => {
+    await show();
+    await click("Start conversation");
+    await advance(500);
+    amplitude = 0.0035; // Above the old fixed threshold, below 15% of speech.
+    await advance(1300);
+    await advance(300);
+    expect(calls("/assistant/dialogue")).toHaveLength(1);
+    expect(calls("/assistant/dialogue")[0][2].vocal).toBe(true);
+    expect(screen.getByRole("status")).toHaveTextContent("Speaking");
+    await click("End conversation");
+  });
+  it.each(["transcription", "dialogue", "synthesis"])(
+    "bounds a stalled %s and ignores a late result",
+    async (step) => {
+      let finish!: (value: unknown) => void;
+      const stalled = () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        });
+      if (step === "synthesis") mocks.audio.mockImplementation(stalled);
+      else
+        mocks.api.mockImplementation((route: string) =>
+          route ===
+          (step === "transcription"
+            ? "/voix/transcrire"
+            : "/assistant/dialogue")
+            ? stalled()
+            : defaultApi(route),
+        );
+      await show();
+      await click("Start conversation");
+      await advance(500);
+      amplitude = 0;
+      await advance(1600);
+      await advance(step === "dialogue" ? 45_000 : 30_000);
+      expect(screen.getByRole("alert")).toHaveTextContent("took too long");
+      expect(
+        screen.queryByRole("button", { name: "End conversation" }),
+      ).not.toBeInTheDocument();
+      if (step === "dialogue")
+        expect(screen.getByLabelText("Your message")).toHaveValue(
+          "A synthetic question.",
+        );
+      const signal =
+        step === "synthesis"
+          ? mocks.audio.mock.calls[0][1]
+          : calls(
+              step === "transcription"
+                ? "/voix/transcrire"
+                : "/assistant/dialogue",
+            )[0][3];
+      expect(signal.aborted).toBe(true);
+      await act(async () =>
+        finish(
+          step === "synthesis"
+            ? pcmBlob()
+            : { texte: "Stale synthetic result" },
+        ),
+      );
+      expect(mocks.audio).toHaveBeenCalledTimes(step === "synthesis" ? 1 : 0);
+      expect(players).toHaveLength(0);
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledOnce();
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+});
+
+it("finishes an unmonitored conversation capture for review instead of recording for a minute", async () => {
+  vi.useFakeTimers();
+  await show();
+  await click("Start conversation");
+  contexts[0].state = "suspended";
+  await advance(12000);
+  expect(recorders[0].state).toBe("inactive");
+  expect(screen.getByLabelText("Your message")).toHaveValue(
+    "A synthetic question.",
+  );
+  expect(calls("/assistant/dialogue")).toHaveLength(0);
+  await advance(1); // Drain the focus task after making the transcript editable.
+  expect(vi.getTimerCount()).toBe(0);
 });

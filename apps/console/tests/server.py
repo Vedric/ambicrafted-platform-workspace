@@ -137,7 +137,7 @@ async def dialoguer_simule(_, messages, langue="en"):
     }
 
 
-async def flux_simule(p, messages, langue="en"):
+async def flux_simule(p, messages, langue="en", vocal=False):
     result = await dialoguer_simule(p, messages, langue)
     for word in result["texte"].split(" "):
         yield {"type": "token", "text": word + " "}
@@ -146,6 +146,10 @@ async def flux_simule(p, messages, langue="en"):
 
 
 conversation_module.flux_dialogue = flux_simule
+
+
+async def preparer_simule(_):
+    await asyncio.sleep(0.01)
 
 
 def main():
@@ -174,6 +178,7 @@ def main():
         Services.cibles = cibles
         Services.semantique = semantique
         application_module.dialoguer = dialoguer_simule
+        application_module.preparer_dialogue = preparer_simule
         app = creer_app(p, moteur_classe=MoteurDeterministe)
         uvicorn.run(
             app, host="127.0.0.1", port=8789, access_log=False, log_level="error"

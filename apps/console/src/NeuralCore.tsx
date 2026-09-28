@@ -88,6 +88,11 @@ export function NeuralCore({
           <circle cx="256" cy="256" r="250" fill={`url(#${id}glow)`} />
           <circle className="core-pulse-ring" cx="256" cy="256" r="116" />
         </g>
+        {/* Decorative breathing stays independent of measured microphone/voice energy. */}
+        <g className="core-waves">
+          <circle cx="256" cy="256" r="126" />
+          <circle cx="256" cy="256" r="126" />
+        </g>
         <g className="core-grid">
           <path d="M256 17v75m0 328v75M17 256h75m328 0h75M85 85l43 43m256 256 43 43M85 427l43-43m256-256 43-43" />
           <circle cx="256" cy="256" r="237" />

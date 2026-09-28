@@ -223,3 +223,16 @@ describe("signal outline", () => {
     }
   });
 });
+
+it("recognizes the end of louder speech over a steady low background", () => {
+  const read = inputActivity(0);
+  const frame = (level: number) => ({ level, samples: new Float32Array(48) });
+  read(frame(0.25), 100);
+  expect(read(frame(0.25), 200).heard).toBe(true);
+  for (let now = 300; now <= 1300; now += 100) {
+    expect(read(frame(0.025), now).silence).toBe(now - 200);
+  }
+  // Isolated clicks must not postpone a reply once sustained speech has ended.
+  expect(read(frame(0.1), 1400).silence).toBe(1200);
+  expect(read(frame(0.025), 1500).silence).toBe(1300);
+});

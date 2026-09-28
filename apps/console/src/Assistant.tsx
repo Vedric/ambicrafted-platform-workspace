@@ -55,6 +55,7 @@ export type SavedConversationProps = {
     language: "en" | "fr",
     signal: AbortSignal,
     onText: (text: string) => void,
+    vocal?: boolean,
   ) => Promise<{ texte: string; usage?: unknown }>;
   onNew?: () => void;
   composerExtra?: ReactNode;
@@ -133,7 +134,11 @@ export default function Assistant({
         : null,
   );
   const [secondes, setSecondes] = useState(0);
+  const [captureLimit, setCaptureLimit] = useState(90);
   const [waitingSeconds, setWaitingSeconds] = useState(0);
+  const [modelReady, setModelReady] = useState(false);
+  const [modelError, setModelError] = useState(false);
+  const [preparationAttempt, setPreparationAttempt] = useState(0);
   const [automatique, setAutomatique] = useState(false);
   const automatiqueRef = useRef(false);
   const automaticSpeech = useRef(false);
@@ -333,6 +338,34 @@ export default function Assistant({
   }, [langue]);
 
   useEffect(() => {
+    const control = new AbortController();
+    let active = true;
+    setModelReady(false);
+    setModelError(false);
+    const deadline = setTimeout(() => {
+      if (!active) return;
+      active = false;
+      control.abort();
+      setModelError(true);
+    }, 155_000);
+    api<{ pret: boolean }>("/assistant/preparer", "POST", {}, control.signal)
+      .then((result) => {
+        if (!active) return;
+        setModelReady(result.pret === true);
+        setModelError(result.pret !== true);
+      })
+      .catch(() => {
+        if (active) setModelError(true);
+      })
+      .finally(() => clearTimeout(deadline));
+    return () => {
+      active = false;
+      clearTimeout(deadline);
+      control.abort();
+    };
+  }, [preparationAttempt]);
+
+  useEffect(() => {
     setWaitingSeconds(0);
     if (!["transcription", "reflexion", "synthese"].includes(phase)) return;
     const start = Date.now();
@@ -340,7 +373,37 @@ export default function Assistant({
       () => setWaitingSeconds(Math.floor((Date.now() - start) / 1000)),
       1000,
     );
-    return () => clearInterval(interval);
+    const duration = handsFreeRef.current
+      ? phase === "reflexion"
+        ? 45_000
+        : 30_000
+      : phase === "reflexion"
+        ? 180_000
+        : 130_000;
+    const deadline = setTimeout(() => {
+      const message =
+        phase === "transcription"
+          ? t(
+              "Transcription took too long. Check your microphone and try a shorter recording.",
+            )
+          : phase === "synthese"
+            ? t(
+                "Voice preparation took too long. Your reply is available in the conversation; select Listen to try again.",
+              )
+            : t(
+                "The local model took too long. Your message is preserved below; check system health and retry.",
+              );
+      arreter();
+      if (phase === "reflexion") {
+        setModelReady(false);
+        setModelError(true);
+      }
+      setErreur(new Error(message));
+    }, duration);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(deadline);
+    };
   }, [phase]);
 
   useEffect(() => {
@@ -458,15 +521,25 @@ export default function Assistant({
     setPhase("reflexion");
     try {
       const resultat = sendMessage
-        ? await sendMessage(texte, langue, controle.signal, (text) => {
-            if (actuel(numero))
-              setMessages([...suivants, { role: "assistant", content: text }]);
-          })
+        ? await sendMessage(
+            texte,
+            langue,
+            controle.signal,
+            (text) => {
+              if (actuel(numero))
+                setMessages([
+                  ...suivants,
+                  { role: "assistant", content: text },
+                ]);
+            },
+            continueConversation,
+          )
         : await api<{ texte: string; usage?: unknown }>(
             "/assistant/dialogue",
             "POST",
             {
               langue,
+              ...(continueConversation ? { vocal: true } : {}),
               messages: suivants.map((message) => ({
                 ...message,
                 content: message.content.slice(0, 4000),
@@ -546,6 +619,8 @@ export default function Assistant({
     setMonitorBlocked(false);
     setPhase("permission");
     setSecondes(0);
+    let captureLimit = continueConversation ? 30 : 90;
+    setCaptureLimit(captureLimit);
     prepareMicrophoneSignal();
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
@@ -685,7 +760,7 @@ export default function Assistant({
       minuterie.current = setInterval(() => {
         if (!actuel(numero)) return;
         const duree = Math.floor((Date.now() - debut) / 1000);
-        setSecondes(Math.min(90, duree));
+        setSecondes(Math.min(captureLimit, duree));
         const frame = signal.current?.();
         const measured = activity(frame, Date.now());
         setMicroLevel(frame?.level || 0);
@@ -707,11 +782,22 @@ export default function Assistant({
         if (continueConversation && handsFreeRef.current) {
           if (!measured.available && duree >= 1) {
             // Missing analyser data is not evidence of silence. Keep the
-            // recording for manual review rather than discard a spoken turn.
+            // recording for bounded manual review rather than discard a spoken turn.
+            captureLimit = 12;
+            setCaptureLimit(captureLimit);
             endConversation();
             return;
           }
-          if (measured.heard && measured.silence > 1600 && duree >= 2) {
+          if (measured.heard && measured.silence > 1100 && duree >= 2) {
+            couperMicro();
+            return;
+          }
+          if (duree >= 30 && measured.heard) {
+            notifier(
+              t(
+                "Sending this 30-second turn. Continue after AURA’s reply, or use Record for a longer message.",
+              ),
+            );
             couperMicro();
             return;
           }
@@ -726,7 +812,7 @@ export default function Assistant({
             return;
           }
         }
-        if (duree >= 90) couperMicro();
+        if (duree >= captureLimit) couperMicro();
       }, 100);
     } catch (cause) {
       if (!actuel(numero)) return;
@@ -738,11 +824,19 @@ export default function Assistant({
   }
 
   const etats: Record<Phase, string> = {
-    repos: reviewReady
-      ? t("Transcript ready. Review the text, then select Send.")
-      : t("Ready when you are"),
+    repos:
+      !modelReady && !modelError
+        ? t("Preparing the local model…")
+        : reviewReady
+          ? t("Transcript ready. Review the text, then select Send.")
+          : t("Ready when you are"),
     permission: t("Waiting for microphone permission…"),
-    micro: t("Recording · {seconds} / 90 s", { seconds: secondes }),
+    micro: handsFree
+      ? t("Listening · {seconds} / 30 s", { seconds: secondes })
+      : t("Recording · {seconds} / {limit} s", {
+          seconds: secondes,
+          limit: captureLimit,
+        }),
     transcription: t("Transcribing on your device…"),
     reflexion: t("AURA is thinking locally…"),
     synthese: t("Preparing local voice playback…"),
@@ -750,15 +844,17 @@ export default function Assistant({
   };
 
   const corePhase: CorePhase =
-    phase === "micro"
-      ? "listening"
-      : phase === "lecture"
-        ? "speaking"
-        : phase === "reflexion"
-          ? "thinking"
-          : phase === "repos"
-            ? "idle"
-            : "loading";
+    phase === "repos" && !modelReady && !modelError
+      ? "loading"
+      : phase === "micro"
+        ? "listening"
+        : phase === "lecture"
+          ? "speaking"
+          : phase === "reflexion"
+            ? "thinking"
+            : phase === "repos"
+              ? "idle"
+              : "loading";
 
   return (
     <>
@@ -907,6 +1003,7 @@ export default function Assistant({
               <button
                 className="btn primary"
                 disabled={
+                  !modelReady ||
                   !voix?.pret ||
                   !microDisponible ||
                   occupe ||
@@ -937,6 +1034,27 @@ export default function Assistant({
             <p className="aura-draft-hint">
               {t("Send or clear your draft before starting hands-free mode.")}
             </p>
+          )}
+          {!modelReady && (
+            <div className="aura-preparation" role="status">
+              <p>
+                {modelError
+                  ? t(
+                      "The local model is unavailable or busy. Prepare it again before starting a spoken conversation.",
+                    )
+                  : t(
+                      "Preparing the local model before you speak. A cold start can take up to two minutes; your microphone is off.",
+                    )}
+              </p>
+              {modelError && (
+                <button
+                  className="btn"
+                  onClick={() => setPreparationAttempt((value) => value + 1)}
+                >
+                  {t("Prepare conversation")}
+                </button>
+              )}
+            </div>
           )}
           <div className="aura-controls">
             <label htmlFor="voice-language">{t("Conversation language")}</label>
@@ -1214,7 +1332,7 @@ export default function Assistant({
               </p>
               <p className="hint">
                 {t(
-                  "Input includes instructions and up to seven messages. Older messages leave the context window. Each reply is capped at 650 output tokens.",
+                  "Input includes instructions and bounded recent context. Typed replies use up to 650 output tokens; spoken replies up to 220. Local model preparation is not included in these counters.",
                 )}
               </p>
               <p className="hint">

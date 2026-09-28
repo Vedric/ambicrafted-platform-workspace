@@ -170,14 +170,15 @@ def test_public_endpoint_exposes_only_cached_public_data_without_triggering_fetc
     assert client.get("/api/veille/audio/de").status_code == 422
 
 
-@pytest.mark.parametrize('language', ['en', 'fr'])
+@pytest.mark.parametrize("language", ["en", "fr"])
 def test_spoken_digest_caps_words_and_characters_at_a_complete_sentence(language):
     from plateforme.veille import borner_briefing
-    sentence = 'Version 1.37 is described in the announcement; review its deployment requirements. '
+
+    sentence = "Version 1.37 is described in the announcement; review its deployment requirements. "
     bounded = borner_briefing(sentence * 30, language)
     assert len(bounded) <= 1500 and len(bounded.split()) <= 195
     assert bounded.startswith(sentence)
-    assert '1.37' in bounded and bounded.endswith('.')
+    assert "1.37" in bounded and bounded.endswith(".")
     assert borner_briefing(sentence, language) == sentence
     with pytest.raises(ValueError):
-        borner_briefing('unbroken ' * 500, language)
+        borner_briefing("unbroken " * 500, language)

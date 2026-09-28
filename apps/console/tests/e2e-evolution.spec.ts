@@ -634,7 +634,7 @@ test("AURA hands-free speech advances after silence and stops on Escape", async 
   await expect
     .poll(() => page.evaluate(() => window.__auraSynthetic.starts))
     .toBe(1);
-  await expect(page.locator(".chat-status")).toContainText("Recording");
+  await expect(page.locator(".chat-status")).toContainText("Listening");
   await page.waitForTimeout(750); // Let VAD observe actual nonzero analyser samples.
   await page.evaluate(() => {
     window.__auraSynthetic.gains.at(-1)!.gain.value = 0;
@@ -662,6 +662,9 @@ test("local microphone check measures capture and plays a real encoded sample wi
   await observeAudio(page);
   await login(page);
   await page.goto("/assistant");
+  await expect(
+    page.getByRole("button", { name: "Start conversation" }),
+  ).toBeEnabled();
   const uploads: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "POST")
@@ -695,4 +698,82 @@ test("local microphone check measures capture and plays a real encoded sample wi
   await expect(
     page.getByRole("button", { name: "Record", exact: true }),
   ).toBeEnabled();
+});
+
+test("spoken conversation waits for model preparation and can recover from a busy engine", async ({
+  page,
+}) => {
+  await syntheticSpeech(page);
+  let ready!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    ready = resolve;
+  });
+  let attempts = 0;
+  await page.route("**/api/assistant/preparer", async (route) => {
+    attempts++;
+    if (attempts === 1) {
+      await pending;
+      await route.fulfill({
+        status: 503,
+        json: { detail: "Synthetic unavailable engine" },
+      });
+    } else await route.fulfill({ json: { pret: true, local: true } });
+  });
+  await login(page);
+  await page.goto("/assistant");
+  await expect(
+    page.getByText(/Preparing the local model before/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Start conversation" }),
+  ).toBeDisabled();
+  expect(await page.evaluate(() => window.__auraSynthetic.starts)).toBe(0);
+  ready();
+  await page.getByRole("button", { name: "Prepare conversation" }).click();
+  await expect(
+    page.getByRole("button", { name: "Start conversation" }),
+  ).toBeEnabled();
+  expect(await page.evaluate(() => window.__auraSynthetic.starts)).toBe(0);
+});
+
+test("retrying an uncertain spoken reply through Send does not duplicate history", async ({
+  page,
+}) => {
+  await syntheticSpeech(page);
+  await login(page);
+  await page.goto("/assistant");
+  const bodies: { vocal: boolean; operation_id: string }[] = [];
+  let conversationUrl = "";
+  await page.route("**/api/conversations/*/messages", async (route) => {
+    bodies.push(route.request().postDataJSON());
+    conversationUrl = route
+      .request()
+      .url()
+      .replace(/\/messages$/, "");
+    if (bodies.length === 1) {
+      const completed = await route.fetch();
+      expect(completed.ok()).toBe(true);
+      await completed.body(); // The server saved the pair, but the browser did not receive it.
+      await route.abort("failed");
+    } else await route.continue();
+  });
+  await page.getByRole("button", { name: "Start conversation" }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.__auraSynthetic.starts))
+    .toBe(1);
+  await page.waitForTimeout(750);
+  await page.evaluate(() => {
+    window.__auraSynthetic.gains.at(-1)!.gain.value = 0;
+  });
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByLabel("Your message")).toHaveValue(
+    "Synthetic browser question.",
+  );
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.locator(".chat-messages")).toContainText("Synthetic reply");
+  expect(bodies).toHaveLength(2);
+  expect(bodies[1].vocal).toBe(true);
+  expect(bodies[1].operation_id).toBe(bodies[0].operation_id);
+  const thread = await (await page.request.get(conversationUrl)).json();
+  expect(thread.total_messages).toBe(2);
 });

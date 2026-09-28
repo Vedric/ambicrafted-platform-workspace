@@ -74,7 +74,7 @@ Do not mention Ambicrafted screens unless the question explicitly concerns this 
 """
 
 
-def instructions(langue: str) -> str:
+def instructions(langue: str, vocal: bool = False) -> str:
     if langue not in ("en", "fr"):
         raise HTTPException(422, "Unsupported conversation language. Choose en or fr.")
     langue_choisie = "English." if langue == "en" else "French."
@@ -83,7 +83,20 @@ def instructions(langue: str) -> str:
         if langue == "en"
         else "Use vous. When an address is useful, use Védric."
     )
-    return SYSTEME + "\nSelected reply language: " + langue_choisie + " " + ton
+    return (
+        SYSTEME
+        + "\nSelected reply language: "
+        + langue_choisie
+        + " "
+        + ton
+        + (
+            "\nThis is a live spoken conversation. Answer in one to three short sentences, "
+            "at most 55 words. Start with the useful answer, then let the operator respond. "
+            "Avoid lists and code blocks. Offer to expand only when useful."
+            if vocal
+            else ""
+        )
+    )
 
 
 def usage_reel(reponse: dict) -> dict[str, int | None]:
@@ -99,9 +112,11 @@ def usage_reel(reponse: dict) -> dict[str, int | None]:
     }
 
 
-async def flux_dialogue(p: Parametres, messages: list[dict], langue: str = "en"):
+async def flux_dialogue(
+    p: Parametres, messages: list[dict], langue: str = "en", vocal: bool = False
+):
     """Stream bounded text through the same confidential alias; never forward raw events."""
-    systeme = instructions(langue)
+    systeme = instructions(langue, vocal)
     valeurs = lire_environnement(p.racine)
     text = ""
     usage = usage_reel({})
@@ -118,7 +133,8 @@ async def flux_dialogue(p: Parametres, messages: list[dict], langue: str = "en")
             json={
                 "model": "local",
                 "messages": [{"role": "system", "content": systeme}, *messages],
-                "max_tokens": 650,
+                "max_tokens": 220 if vocal else 650,
+                "keep_alive": "24h",
                 "reasoning_effort": "none",
                 "temperature": 0.2,
                 "stream": True,
@@ -171,8 +187,10 @@ async def flux_dialogue(p: Parametres, messages: list[dict], langue: str = "en")
     yield {"type": "done", "texte": text, "usage": usage, "local": True, "actions_executees": False}
 
 
-async def dialoguer(p: Parametres, messages: list[dict], langue: str = "en") -> dict:
-    systeme = instructions(langue)
+async def dialoguer(
+    p: Parametres, messages: list[dict], langue: str = "en", vocal: bool = False
+) -> dict:
+    systeme = instructions(langue, vocal)
     valeurs = lire_environnement(p.racine)
     try:
         async with asyncio.timeout(180), httpx.AsyncClient(timeout=180, trust_env=False) as client:
@@ -184,7 +202,8 @@ async def dialoguer(p: Parametres, messages: list[dict], langue: str = "en") -> 
                 json={
                     "model": "local",
                     "messages": [{"role": "system", "content": systeme}, *messages],
-                    "max_tokens": 650,
+                    "max_tokens": 220 if vocal else 650,
+                    "keep_alive": "24h",
                     "reasoning_effort": "none",
                     "temperature": 0.2,
                 },
@@ -202,3 +221,24 @@ async def dialoguer(p: Parametres, messages: list[dict], langue: str = "en") -> 
         raise HTTPException(
             503, "Le modèle local n'a pas répondu. Vérifier la passerelle et réessayer."
         ) from None
+
+
+async def preparer_dialogue(p: Parametres) -> None:
+    """Warm the confidential alias with fixed synthetic input, never conversation data."""
+    valeurs = lire_environnement(p.racine)
+    async with asyncio.timeout(150), httpx.AsyncClient(timeout=150, trust_env=False) as client:
+        data = await json_borne(
+            client,
+            "POST",
+            "http://127.0.0.1:4000/v1/chat/completions",
+            headers={"Authorization": "Bearer " + valeurs.get("CONFIDENTIAL_KEY", "")},
+            json={
+                "model": "local",
+                "messages": [{"role": "user", "content": "Reply with OK."}],
+                "max_tokens": 1,
+                "reasoning_effort": "none",
+                "keep_alive": "24h",
+            },
+        )
+        if not isinstance(data, dict) or not data.get("choices"):
+            raise ValueError("Invalid warm-up response")

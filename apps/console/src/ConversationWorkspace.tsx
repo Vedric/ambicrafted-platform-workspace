@@ -56,6 +56,7 @@ export default function ConversationWorkspace() {
     conversation: string;
     pieces: string;
     language: string;
+    vocal: boolean;
   } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const list = useQuery({
@@ -243,30 +244,34 @@ export default function ConversationWorkspace() {
           else drafts.current.delete(key);
         }}
         onNew={reset}
-        sendMessage={async (text, language, signal, onText) => {
+        sendMessage={async (text, language, signal, onText, vocal = false) => {
           const generation = version.current;
           const active = await ensure(signal);
           const previous = lastOperation.current,
             pieces = JSON.stringify(selected);
-          const operation =
+          const retry =
             previous?.text === text &&
             previous.conversation === active.id &&
             previous.pieces === pieces &&
-            previous.language === language
-              ? previous.id
-              : crypto.randomUUID();
+            previous.language === language;
+          const operation = retry ? previous.id : crypto.randomUUID();
+          // Retry the exact uncertain operation, including its reply mode. A
+          // spoken turn retried via Send must not duplicate an already saved pair.
+          const spoken = retry ? previous.vocal : vocal;
           lastOperation.current = {
             id: operation,
             text,
             conversation: active.id,
             pieces,
             language,
+            vocal: spoken,
           };
           const result = await savedDialogue(
             active.id,
             {
               message: text,
               langue: language,
+              ...(spoken ? { vocal: true } : {}),
               pieces: selected,
               operation_id: operation,
             },

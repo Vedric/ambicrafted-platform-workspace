@@ -7,13 +7,15 @@ import shutil
 from contextlib import asynccontextmanager
 from typing import Literal
 
+import httpx
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from . import __version__
-from .assistant import dialoguer
+from .annulation import avec_connexion
+from .assistant import dialoguer, preparer_dialogue
 from .catalogue import OUTILS
 from .config import Parametres, enregistrer_secret
 from .conversation_routes import routes as conversation_routes
@@ -78,6 +80,7 @@ class Message(Charge):
 
 
 class Dialogue(Charge):
+    vocal: StrictBool = False
     langue: Literal["en", "fr"] = "en"
     messages: list[Message] = Field(min_length=1, max_length=8)
 
@@ -408,13 +411,31 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
     async def parler(request: Request, charge: Parole):
         auth.acteur(request, mutation=True)
         auth.limiter("synthese", maximum=20)
-        return Response(await voix.parler(charge.texte, charge.langue), media_type="audio/wav")
+        return Response(
+            await avec_connexion(request, voix.parler(charge.texte, charge.langue)),
+            media_type="audio/wav",
+        )
 
     @app.post("/api/voix/transcrire")
     async def transcrire(request: Request, charge: Audio):
         auth.acteur(request, mutation=True)
         auth.limiter("transcription", maximum=12)
-        return await voix.transcrire(charge.audio, charge.langue)
+        return await avec_connexion(request, voix.transcrire(charge.audio, charge.langue))
+
+    @app.post("/api/assistant/preparer")
+    async def preparer_assistant(request: Request):
+        auth.acteur(request, mutation=True)
+        auth.limiter("preparation-assistant", maximum=12)
+        if moteur.inference.locked() or not moteur.file.empty():
+            raise HTTPException(409, "The local engine is busy. Try again shortly.")
+        async with moteur.inference:
+            try:
+                await avec_connexion(request, preparer_dialogue(p))
+            except httpx.HTTPError, TimeoutError, ValueError, TypeError:
+                raise HTTPException(
+                    503, "The local model could not be prepared. Try again."
+                ) from None
+        return {"pret": True, "local": True}
 
     @app.post("/api/assistant/dialogue")
     async def dialogue(request: Request, charge: Dialogue):
@@ -427,7 +448,12 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
                 409, "Le moteur local traite une analyse. Réessayer lorsqu'elle sera terminée."
             )
         async with moteur.inference:
-            return await dialoguer(p, [m.model_dump() for m in charge.messages], charge.langue)
+            return await dialoguer(
+                p,
+                [m.model_dump() for m in charge.messages],
+                charge.langue,
+                **({"vocal": True} if charge.vocal else {}),
+            )
 
     @app.get("/{chemin:path}")
     async def console(chemin: str):

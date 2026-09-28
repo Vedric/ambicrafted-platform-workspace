@@ -60,42 +60,6 @@
   height: 18px;
   accent-color: var(--mint);
 }
-.core-heartbeat {
-  transform-origin: 256px 256px;
-  animation: aura-heartbeat 3.2s ease-in-out infinite;
-}
-.core-pulse-ring {
-  stroke: var(--mint);
-  stroke-width: 0.8;
-  opacity: 0.25;
-}
-.neural-core[data-phase="listening"] .core-heartbeat,
-.neural-core[data-phase="speaking"] .core-heartbeat {
-  animation-duration: 1.9s;
-}
-.neural-core[data-resting="true"] .core-heartbeat {
-  animation: none;
-}
-@keyframes aura-heartbeat {
-  0%,
-  40%,
-  100% {
-    transform: scale(0.96);
-    opacity: 0.55;
-  }
-  10% {
-    transform: scale(1.025);
-    opacity: 1;
-  }
-  20% {
-    transform: scale(0.98);
-    opacity: 0.7;
-  }
-  29% {
-    transform: scale(1.045);
-    opacity: 0.95;
-  }
-}
 .browser-access-notice {
   position: relative;
   z-index: 30;
@@ -137,13 +101,4 @@
   .aura-deck .voice-aside {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  .core-heartbeat {
-    animation: none;
-  }
-}
-[data-motion="paused"] .core-heartbeat,
-[data-visible="hidden"] .core-heartbeat {
-  animation-play-state: paused;
 }

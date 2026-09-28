@@ -152,9 +152,17 @@ used, and the application does not download models during voice requests.
 
 Manual recording produces an editable transcript before submission. Explicit
 hands-free mode sequences capture, local transcription, local dialogue, complete
-WAV synthesis and playback, then reopens listening. Browser VAD ends a detected
-spoken turn after roughly 1.6 seconds of silence; 12 seconds without speech or
-20 turns ends the session. This is turn-taking, not simultaneous streaming.
+WAV synthesis and playback, then reopens listening. Browser input-energy detection ends a detected
+spoken turn after roughly 1.1 seconds of silence; 12 seconds without speech or
+20 turns ends the session. A detected turn is capped at 30 seconds; the manual
+90-second path is unchanged. A fixed one-token warm-up through the confidential
+`local` alias prepares inference before hands-free capture. Spoken replies carry
+a strict boolean `vocal` flag, a 55-word instruction and a 220-token cap; it is
+included in the idempotency fingerprint. Both conversation paths request 24-hour
+model retention. Browser deadlines are 30 seconds for conversational STT/TTS and
+45 seconds for generation. ASGI disconnect monitoring cancels voice work and
+model preparation, including subprocess cleanup and lock release.
+This is turn-taking, not simultaneous streaming.
 Escape, tab hiding and route cleanup stop browser capture/playback and invalidate
 pending continuations. Spoken input never grants an approval. Audio has bounded
 size/duration and private temporary-file cleanup; model weights are reinstallable

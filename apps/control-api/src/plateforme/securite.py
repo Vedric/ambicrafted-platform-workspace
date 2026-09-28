@@ -174,7 +174,9 @@ class FrontiereHTTP:
             longueur = int(entetes.get(b"content-length", b"0"))
         except ValueError:
             return await refuser(400, "Longueur invalide.")
-        document = scope["path"].startswith("/api/conversations/") and scope["path"].endswith("/pieces")
+        document = scope["path"].startswith("/api/conversations/") and scope["path"].endswith(
+            "/pieces"
+        )
         maximum = 11_300_000 if scope["path"] == "/api/voix/transcrire" or document else 96_000
         if longueur > maximum or longueur < 0:
             return await refuser(413, "Requête trop volumineuse.")

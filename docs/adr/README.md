@@ -66,3 +66,5 @@ written honestly; every ADR here names what its decision costs.
 
 State what was **verified**, and how. A consequence that has not been
 observed is written as a prediction, not as a result.
+
+- [0028 — Conversation responsiveness and continuous motion](0028-reactivite-conversation-et-mouvement.md): bounded spoken turns, local preparation, cancellation and visible motion.

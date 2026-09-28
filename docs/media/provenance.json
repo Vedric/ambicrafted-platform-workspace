@@ -14,11 +14,11 @@
       "file": "assistant-dark.png",
       "route": "/assistant",
       "theme": "dark",
-      "sha256": "6f0b34df44eafbd1e71ec1132eac273c30840fa49ef177474f85a81f5278a8c4",
-      "bytes": 919043,
-      "revision": "0.4.2 vertical AURA and explicit browser audio routing",
+      "sha256": "df6aef16abb2abb181672bf4e89aa1229daaf80da231279ff1cf3edfa3db9e68",
+      "bytes": 925054,
+      "revision": "0.4.3 continuous AURA motion and prepared spoken conversations",
       "annotations": "None; direct browser capture",
-      "data": "Empty synthetic workspace; voice readiness is an explicit demo fixture."
+      "data": "Empty disposable workspace; readiness from real local speech and inference. No operator history."
     },
     {
       "file": "workspace-dark.png",
@@ -52,11 +52,11 @@
       "file": "assistant-light.png",
       "route": "/assistant",
       "theme": "light",
-      "sha256": "99382a9bf6a2d6410f1a6521ee5bc4b3843fa484b491b047923039ed92977669",
-      "bytes": 894777,
-      "revision": "0.4.2 vertical AURA and explicit browser audio routing",
+      "sha256": "dd0745fbb35f63299e96f5defc1fe9577ca9ae86ddb5b8f67a62541e36c9db23",
+      "bytes": 904356,
+      "revision": "0.4.3 continuous AURA motion and prepared spoken conversations",
       "annotations": "None; direct browser capture",
-      "data": "Empty synthetic workspace; voice readiness is an explicit demo fixture."
+      "data": "Empty disposable workspace; readiness from real local speech and inference. No operator history."
     },
     {
       "file": "workspace-light.png",

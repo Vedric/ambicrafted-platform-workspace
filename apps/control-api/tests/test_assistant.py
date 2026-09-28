@@ -257,3 +257,61 @@ async def test_dialogue_arrete_une_reponse_trop_volumineuse(parametres, monkeypa
     with pytest.raises(HTTPException) as erreur:
         await dialoguer(parametres, [{"role": "user", "content": "Synthétique"}])
     assert erreur.value.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_warmup_uses_only_fixed_local_input_and_bounded_budget(parametres, monkeypatch):
+    from plateforme.assistant import preparer_dialogue
+
+    calls = transport_dialogue(monkeypatch, lambda _: httpx.Response(200, json={"choices": [{}]}))
+    await preparer_dialogue(parametres)
+    data = json.loads(calls[0].content)
+    assert data["model"] == "local" and data["max_tokens"] == 1
+    assert data["keep_alive"] == "24h"
+    assert data["messages"] == [{"role": "user", "content": "Reply with OK."}]
+    assert "tools" not in data
+
+
+@pytest.mark.asyncio
+async def test_spoken_reply_preserves_local_authority_and_shortens_budget(parametres, monkeypatch):
+    calls = transport_dialogue(
+        monkeypatch,
+        lambda _: httpx.Response(200, json={"choices": [{"message": {"content": "Bien sûr."}}]}),
+    )
+    await dialoguer(parametres, [{"role": "user", "content": "Bonjour"}], "fr", vocal=True)
+    data = json.loads(calls[0].content)
+    assert data["max_tokens"] == 220 and data["model"] == "local"
+    assert "55 words" in data["messages"][0]["content"]
+    assert "You execute no actions" in data["messages"][0]["content"]
+    assert "vous, never tu" in data["messages"][0]["content"]
+
+
+def test_warmup_requires_auth_and_releases_inference_lease(
+    client, bearer, application, monkeypatch
+):
+    import plateforme.app as module
+
+    async def warm(p):
+        assert application.state.moteur.inference.locked()
+
+    monkeypatch.setattr(module, "preparer_dialogue", warm)
+    assert client.post("/api/assistant/preparer", json={}).status_code == 401
+    response = client.post("/api/assistant/preparer", headers=bearer, json={})
+    assert response.json() == {"pret": True, "local": True}
+    assert not application.state.moteur.inference.locked()
+    assert application.state.depot.statistiques()["total"] == 0
+
+
+def test_warmup_failure_is_sanitized_and_retryable(client, bearer, application, monkeypatch):
+    import plateforme.app as module
+
+    async def broken(p):
+        raise ValueError("PRIVATE_SYNTHETIC_FAILURE")
+
+    monkeypatch.setattr(module, "preparer_dialogue", broken)
+    response = client.post("/api/assistant/preparer", headers=bearer, json={})
+    assert response.status_code == 503
+    assert "PRIVATE_SYNTHETIC_FAILURE" not in response.text
+    assert not application.state.moteur.inference.locked()
+    application.state.moteur.creer("Incident", "Synthetic", "test")
+    assert client.post("/api/assistant/preparer", headers=bearer, json={}).status_code == 409

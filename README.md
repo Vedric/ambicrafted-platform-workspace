@@ -11,7 +11,7 @@ features, measured acceptance checks and remaining production conditions.
 Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
-Console **0.4.2**, control API **0.4.0**, local speech runtime **0.3.1**.
+Console **0.4.3**, control API **0.4.1**, local speech runtime **0.3.1**.
 See the [0.4.0 delivery report](docs/RELEASE-0.4.0.md) for exact qualification and
 remaining conditions. This is a private, single-operator workspace; it is not a
 multi-tenant commercial service or a zero-vulnerability certification.
@@ -81,7 +81,13 @@ This diagnostic sends no recording to the API. Device choices stay in this
 browser and apply to AURA, greetings, videos and music. Browsers without output
 selection use the system output; see [audio setup](docs/CONSOLE.md#microphone-sound-and-walkthroughs).
 **User guide** contains six narrated MP4 walkthroughs with English/French captions.
-See the [audio routing report and completion assessment](docs/RELEASE-0.4.2.md).
+See the [conversation responsiveness and motion report](docs/RELEASE-0.4.3.md).
+AURA now breathes, pulses and rotates continuously while visible, including Welcome
+and Overview. Page entrances fade again in both scroll directions; reduced-motion
+and pause controls remain available. Before starting a spoken conversation, the
+local model is prepared without opening the microphone. Spoken turns end after a
+brief pause and are limited to 30 seconds; manual recordings still allow 90 seconds.
+Spoken replies favor one to three short sentences.
 
 AURA offers synthetic English and French voices, with local CPU speech
 recognition and playback. Manual recording lets you review the transcription.

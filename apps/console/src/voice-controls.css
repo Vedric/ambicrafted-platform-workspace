@@ -65,3 +65,15 @@
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
+
+.aura-preparation {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  text-align: center;
+}
+.aura-preparation p {
+  margin: 0 0 0.7rem;
+  font-size: 0.95rem;
+}

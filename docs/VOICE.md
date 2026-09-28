@@ -558,3 +558,36 @@ Browser behavior follows [MDN Web Audio activation guidance](https://developer.m
 and [autoplay handling](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay).
 These describe browser constraints; passing automated tests does not verify a
 physical Windows microphone or speaker.
+
+
+## Responsive turns (console 0.4.3 / control API 0.4.1)
+
+On authenticated AURA entry, `POST /api/assistant/preparer` warms only the confidential
+`local` alias with a fixed one-token request. It accepts no user content or model URL,
+shares the inference lock and is cancelled on departure. The microphone remains off
+until preparation succeeds and the operator explicitly starts a conversation.
+A busy/unavailable gateway offers a preparation retry. Preparation is bounded to
+150 seconds server-side / 155 seconds browser-side. Chat generation requests
+`keep_alive: 24h`; successful retention was verified on the running local runtime.
+This reserves GPU memory longer and does not prevent eviction or a server restart.
+
+Input energy uses a low absolute floor and 15% of its decaying recent peak to reduce
+noise holding a turn open. It is **not a speech classifier**. A sustained signal
+followed by about 1.1 seconds below that threshold ends the turn; the 30-second cap
+also ends continuous noisy capture. Quiet sustained input remains covered. Manual
+recording retains its editable transcript and 90-second limit. Conversational STT
+and TTS each have a 30-second browser deadline; dialogue has 45 seconds. The timed-out
+operation is aborted and late results cannot resume playback or capture. ASGI
+cancellation also terminates the speech subprocess and cleans private temporary files.
+
+The `vocal` reply mode targets 1–3 sentences / 55 words and caps generation at 220
+tokens. Typed replies retain 650 tokens. It uses the same model, bounded history,
+selected documents, local credential, French vous and no-action authority. Prompt
+changes are not fine-tuning of model weights. STT precision, beam, models and voice
+synthesis algorithms are unchanged, preserving the prior real-speech qualifications.
+
+See [the measured release report](RELEASE-0.4.3.md) and
+[ADR 0028](adr/0028-reactivite-conversation-et-mouvement.md). Native browser tests
+use prerecorded synthetic speech; they cannot certify a physical microphone or a
+listener's judgment of naturalness. The local pipeline remains sequential, with
+measurable recognition/synthesis latency rather than a subsecond realtime guarantee.

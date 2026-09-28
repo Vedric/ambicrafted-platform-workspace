@@ -1,4 +1,21 @@
 export const assistantFr = {
+  "Recording · {seconds} / {limit} s": "Enregistrement · {seconds} / {limit} s",
+  "Preparing the local model…": "Préparation du modèle local…",
+  "Transcription took too long. Check your microphone and try a shorter recording.":
+    "La transcription a pris trop de temps. Vérifiez votre micro et essayez un enregistrement plus court.",
+  "Voice preparation took too long. Your reply is available in the conversation; select Listen to try again.":
+    "La préparation vocale a pris trop de temps. Votre réponse reste disponible dans la conversation ; sélectionnez Écouter pour réessayer.",
+  "The local model took too long. Your message is preserved below; check system health and retry.":
+    "Le modèle local a pris trop de temps. Votre message est conservé ci-dessous ; vérifiez la santé des services puis réessayez.",
+  "Sending this 30-second turn. Continue after AURA’s reply, or use Record for a longer message.":
+    "Envoi de ces 30 secondes de parole. Poursuivez après la réponse d’AURA, ou utilisez Enregistrer pour un message plus long.",
+  "Listening · {seconds} / 30 s": "Écoute · {seconds} / 30 s",
+  "The local model is unavailable or busy. Prepare it again before starting a spoken conversation.":
+    "Le modèle local est indisponible ou occupé. Relancez sa préparation avant de démarrer une conversation vocale.",
+  "Preparing the local model before you speak. A cold start can take up to two minutes; your microphone is off.":
+    "Préparation du modèle local avant votre prise de parole. Un démarrage à froid peut prendre jusqu’à deux minutes ; votre micro est éteint.",
+  "Prepare conversation": "Préparer la conversation",
+
   "Reported token usage": "Usage des tokens déclaré",
   "Last input context": "Dernier contexte d’entrée",
   "Last reply": "Dernière réponse",
@@ -6,8 +23,8 @@ export const assistantFr = {
   "Not reported": "Non communiqué",
   "Usage reported for {count} of {total} completed replies.":
     "Usage communiqué pour {count} réponses terminées sur {total}.",
-  "Input includes instructions and up to seven messages. Older messages leave the context window. Each reply is capped at 650 output tokens.":
-    "L’entrée comprend les instructions et jusqu’à sept messages. Les messages plus anciens quittent la fenêtre de contexte. Chaque réponse est limitée à 650 tokens de sortie.",
+  "Input includes instructions and bounded recent context. Typed replies use up to 650 output tokens; spoken replies up to 220. Local model preparation is not included in these counters.":
+    "L’entrée comprend les instructions et un contexte récent borné. Les réponses écrites utilisent jusqu’à 650 tokens de sortie ; les réponses vocales jusqu’à 220. La préparation du modèle local ne figure pas dans ces compteurs.",
   "Unknown usage is not zero. Interrupted or failed requests may still consume tokens. These counters reset when you clear or leave this conversation.":
     "Un usage inconnu n’est pas nul. Une demande interrompue ou échouée peut consommer des tokens. Ces compteurs sont réinitialisés lorsque vous effacez ou quittez cette conversation.",
   "Send or clear your draft before starting hands-free mode.":

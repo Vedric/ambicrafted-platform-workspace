@@ -10,7 +10,7 @@ from uuid import UUID
 import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from .assistant import flux_dialogue
 from .conversations import Conversations
@@ -56,6 +56,7 @@ class Tour(ChargeConversation):
     message: str = Field(min_length=1, max_length=4000)
     operation_id: UUID
     langue: Literal["en", "fr"] = "en"
+    vocal: StrictBool = False
     pieces: list[UUID] = Field(default_factory=list, max_length=8)
 
 
@@ -141,6 +142,7 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
         empreinte = hashlib.sha256(
             json.dumps(
                 {
+                    **({"vocal": True} if charge.vocal else {}),
                     "message": charge.message,
                     "langue": charge.langue,
                     "pieces": sorted({str(value) for value in charge.pieces}),
@@ -168,7 +170,9 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
 
         async def events():
             try:
-                async for event in flux_dialogue(p, messages, charge.langue):
+                async for event in flux_dialogue(
+                    p, messages, charge.langue, **({"vocal": True} if charge.vocal else {})
+                ):
                     if event["type"] == "done":
                         store.enregistrer_tour(
                             conversation_id, operation_id, charge.message, event, empreinte

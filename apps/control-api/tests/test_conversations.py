@@ -242,3 +242,22 @@ def test_malformed_upload_rejected_without_persistence(client, bearer, body):
         f"/api/conversations/{identifier}/pieces", headers=bearer, json=body
     ).status_code in {415, 422}
     assert not client.get(f"/api/conversations/{identifier}", headers=bearer).json()["pieces"]
+
+
+def test_spoken_reply_mode_is_strict_and_part_of_idempotency(client, bearer, monkeypatch):
+    calls = []
+
+    async def spoken(p, messages, langue, vocal=False):
+        calls.append(vocal)
+        yield {"type": "done", "texte": "Short reply.", "local": True, "actions_executees": False}
+
+    monkeypatch.setattr("plateforme.conversation_routes.flux_dialogue", spoken)
+    identifier = client.post("/api/conversations", headers=bearer, json={}).json()["id"]
+    url = f"/api/conversations/{identifier}/messages"
+    body = {**turn(), "vocal": True}
+    result = client.post(url, headers=bearer, json=body)
+    assert result.status_code == 200 and calls == [True]
+    assert client.post(url, headers=bearer, json=body).status_code == 200
+    assert calls == [True]
+    assert client.post(url, headers=bearer, json={**body, "vocal": False}).status_code == 409
+    assert client.post(url, headers=bearer, json={**turn(), "vocal": "true"}).status_code == 422

@@ -11,6 +11,7 @@ import "./premium.css";
 import App from "./App";
 import "./experience.css";
 import "./aura-workspace.css";
+import "./neural-core-motion.css";
 
 const client = new QueryClient({
   defaultOptions: {
