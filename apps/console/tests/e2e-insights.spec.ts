@@ -201,7 +201,7 @@ test("architecture health fails closed while its explanatory map remains usable"
   await accessible(page);
 });
 
-test("scroll entrances run in both directions and respect pause and reduced motion", async ({
+test("scroll entrances run in both directions and respect pause and an explicit full motion choice", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -249,6 +249,6 @@ test("scroll entrances run in both directions and respect pause and reduced moti
   await page.getByRole("button", { name: "Enable animations" }).click();
   await expect(page.locator(".scroll-progress")).toHaveCount(1);
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(page.locator(".scroll-progress")).toHaveCount(0);
+  await expect(page.locator(".scroll-progress")).toHaveCount(1);
   await expect(page.locator(".insights")).toBeVisible();
 });

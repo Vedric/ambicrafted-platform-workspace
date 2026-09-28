@@ -2427,20 +2427,20 @@ dialog::backdrop {
   transform: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :where(:root:not([data-motion-mode="full"])) *,
+  :where(:root:not([data-motion-mode="full"])) *::before,
+  :where(:root:not([data-motion-mode="full"])) *::after {
     animation: none !important;
     transition-duration: 0s !important;
     scroll-behavior: auto !important;
   }
-  .btn:hover:not(:disabled),
-  .btn:active:not(:disabled),
-  .icon-button:active,
-  .quick-links a:hover,
-  .runbook-card:hover,
-  .mission-card:hover,
-  .palette-results button:hover {
+  :where(:root:not([data-motion-mode="full"])) .btn:hover:not(:disabled),
+  :where(:root:not([data-motion-mode="full"])) .btn:active:not(:disabled),
+  :where(:root:not([data-motion-mode="full"])) .icon-button:active,
+  :where(:root:not([data-motion-mode="full"])) .quick-links a:hover,
+  :where(:root:not([data-motion-mode="full"])) .runbook-card:hover,
+  :where(:root:not([data-motion-mode="full"])) .mission-card:hover,
+  :where(:root:not([data-motion-mode="full"])) .palette-results button:hover {
     transform: none !important;
   }
 }

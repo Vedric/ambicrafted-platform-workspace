@@ -592,7 +592,9 @@ test("AURA measures a real synthetic microphone, supports motion pause and revie
   ).toBeEnabled();
   await page.getByRole("button", { name: "Enable animations" }).click();
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(core).toHaveAttribute("data-resting", "true");
+  await core.scrollIntoViewIfNeeded();
+  // Enable is an explicit full-motion choice, including during real capture.
+  await expect(core).toHaveAttribute("data-resting", "false");
   await page
     .getByRole("button", { name: "Stop recording", exact: true })
     .click();

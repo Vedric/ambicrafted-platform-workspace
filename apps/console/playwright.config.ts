@@ -33,6 +33,14 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "desktop-firefox-motion",
+      testMatch: "**/e2e-motion-preferences.spec.ts",
+      use: {
+        ...devices["Desktop Firefox"],
+        viewport: { width: 1440, height: 1000 },
+      },
+    },
+    {
       name: "desktop-chromium",
       use: {
         ...devices["Desktop Chrome"],

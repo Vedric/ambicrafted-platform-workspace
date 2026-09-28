@@ -3,21 +3,24 @@ import { createContext, useContext, useState } from "react";
 import { Moon, Sun, Sparkles, Columns3, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LanguageSelector, t, useI18n } from "./i18n";
-import { useReducedMotionPreference } from "./motion-preferences";
+import {
+  type MotionMode,
+  useSystemReducedMotionPreference,
+} from "./motion-preferences";
 
 export const ExperiencePreferences = createContext({
   theme: "dark",
-  animations: true,
+  motionMode: "system" as MotionMode,
   density: "comfortable",
   setTheme: (_value: string) => {},
-  setAnimations: (_value: boolean) => {},
+  setMotionMode: (_value: MotionMode) => {},
   setDensity: (_value: string) => {},
 });
 
 export function WorkspacePreferences() {
   useI18n();
   const preferences = useContext(ExperiencePreferences);
-  const reduced = useReducedMotionPreference();
+  const reduced = useSystemReducedMotionPreference();
   const [welcome, setWelcome] = useState(() => {
     try {
       return localStorage.getItem("ambicrafted-welcome-audio") !== "off";
@@ -99,22 +102,29 @@ export function WorkspacePreferences() {
                 {t("Animation settings")}
               </strong>
               <p>
-                {reduced
-                  ? t("Reduced motion is enabled on your device")
-                  : t("Fades, flow diagrams and subtle interaction effects.")}
+                {preferences.motionMode === "full"
+                  ? t("Full animations are enabled in this browser.")
+                  : preferences.motionMode === "paused"
+                    ? t("Animations are paused in this browser.")
+                    : reduced
+                      ? t("Reduced motion is enabled on your device")
+                      : t(
+                          "Fades, flow diagrams and subtle interaction effects.",
+                        )}
               </p>
             </div>
-            <label className="preference-switch">
-              <input
-                type="checkbox"
-                checked={preferences.animations}
-                onChange={(event) =>
-                  preferences.setAnimations(event.target.checked)
-                }
-                aria-label={t("Enable animations")}
-              />
-              <span aria-hidden="true" />
-            </label>
+            <select
+              className="motion-mode-select"
+              aria-label={t("Animation settings")}
+              value={preferences.motionMode}
+              onChange={(event) =>
+                preferences.setMotionMode(event.target.value as MotionMode)
+              }
+            >
+              <option value="system">{t("Follow device settings")}</option>
+              <option value="full">{t("Full animations")}</option>
+              <option value="paused">{t("Pause animations")}</option>
+            </select>
           </div>
           <div className="preference-row">
             <div>

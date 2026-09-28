@@ -529,19 +529,7 @@
     transform: scaleX(1);
   }
 }
-.scroll-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  z-index: 40;
-  pointer-events: none;
-  transform-origin: left;
-  transform: scaleX(var(--page-progress, 0));
-  background: linear-gradient(90deg, var(--mint), var(--purple));
-  opacity: 0.8;
-}
+
 @keyframes chart-draw {
   from {
     stroke-dashoffset: 1;
@@ -647,18 +635,17 @@
   animation: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  .insight-metric-panel .metric-fill {
+  :where(:root:not([data-motion-mode="full"]))
+    .insight-metric-panel
+    .metric-fill {
     animation: none !important;
   }
-  .chart-line {
+  :where(:root:not([data-motion-mode="full"])) .chart-line {
     animation: none;
   }
-  .ring-arc,
-  .probe-track i,
-  .chart-dot {
+  :where(:root:not([data-motion-mode="full"])) .ring-arc,
+  :where(:root:not([data-motion-mode="full"])) .probe-track i,
+  :where(:root:not([data-motion-mode="full"])) .chart-dot {
     transition: none;
-  }
-  .scroll-progress {
-    display: none;
   }
 }

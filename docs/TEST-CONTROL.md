@@ -240,3 +240,17 @@ all successful. It is not a soak test or a capacity/SLO certification. Physical
 microphone quality, subjective voice naturalness and browsers beyond Chromium
 remain outside this automated acceptance scope. The image security gate still
 fails on 53 HIGH findings; see the current release and security reports.
+
+
+## Explicit motion preferences (console 0.4.4)
+
+`motion-preferences.test.tsx` checks device changes, previous preferences, explicit
+overrides, persistence failures and storage synchronization. Native Playwright
+`e2e-motion-preferences.spec.ts` runs on desktop Chromium, mobile Chromium and
+Firefox. It measures running CSS clocks and changing transforms, observes native
+fade lifecycle/opacity in both scroll directions with reduced motion enabled,
+checks reloads, tabs, keyboard activation, bilingual labels and Settings recovery.
+Firefox is installed in CI alongside Chromium. Chrome and Edge share Chromium;
+these engine tests do not claim an observation of the operator's Windows profiles.
+The full existing desktop/mobile suite also remains enabled. Rendering performance
+probes are local observations, separate from correctness and physical-device tests.

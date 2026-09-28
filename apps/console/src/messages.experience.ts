@@ -1,4 +1,12 @@
 export const experienceFr = {
+  "Motion on": "Animations actives",
+  "Motion off": "Animations en pause",
+  "Follow device settings": "Suivre les réglages de l’appareil",
+  "Full animations": "Animations complètes",
+  "Full animations are enabled in this browser.":
+    "Les animations complètes sont activées dans ce navigateur.",
+  "Animations are paused in this browser.":
+    "Les animations sont en pause dans ce navigateur.",
   "Open Audio devices, detect and select your microphone and speakers, then test the signal and playback before starting a conversation.":
     "Ouvrez Périphériques audio, détectez et choisissez votre microphone et votre sortie audio, puis testez le signal et la lecture avant de commencer une conversation.",
   "This browser": "Ce navigateur",
@@ -211,8 +219,8 @@ export const experienceFr = {
   "First start recording or a conversation. Confirm microphone permission, then select the right input. If the level stays flat, check your operating system privacy and microphone settings.":
     "Démarrez d’abord un enregistrement ou une conversation. Vérifiez l’autorisation du microphone puis sélectionnez la bonne entrée. Si le niveau reste plat, vérifiez la confidentialité et les réglages microphone du système.",
   "Why are animations still?": "Pourquoi les animations sont-elles immobiles ?",
-  "Enable animations in the header. Your device’s reduced-motion preference and hidden tabs also pause decorative movement.":
-    "Activez les animations dans l’en-tête. La préférence de réduction du mouvement du système et les onglets masqués suspendent aussi les animations décoratives.",
+  "Enable animations in the header, or choose Full animations in Settings → Appearance. Follow device settings respects reduced motion; hidden tabs and offscreen AURA always pause.":
+    "Activez les animations dans l’en-tête, ou choisissez Animations complètes dans Réglages → Apparence. Suivre les réglages de l’appareil respecte la réduction du mouvement ; les onglets masqués et AURA hors écran restent en pause.",
   "Reduced motion is enabled on your device":
     "La réduction du mouvement est activée sur votre appareil",
   "Animation settings": "Réglages des animations",

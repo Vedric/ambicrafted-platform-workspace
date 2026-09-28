@@ -55,6 +55,11 @@ import WelcomeVoice from "./WelcomeVoice";
 import { WelcomeUpdates } from "./WelcomeUpdates";
 import { ExperiencePreferences } from "./ExperiencePreferences";
 import { ScrollExperience } from "./ScrollExperience";
+import {
+  MotionModePreference,
+  useMotionSettings,
+  useSystemReducedMotionPreference,
+} from "./motion-preferences";
 const Missions = lazy(() =>
   import("./pages/missions").then((module) => ({ default: module.Missions })),
 );
@@ -68,7 +73,6 @@ import {
   Vide,
   Modal,
   MotionPreference,
-  useReducedMotionPreference,
 } from "./ui";
 const VueEnsemble = lazy(() =>
   import("./pages/vue-ensemble").then((module) => ({
@@ -290,9 +294,13 @@ export default function App() {
   const [theme, setTheme] = useState(() =>
     readPreference("ambicrafted-theme", "dark"),
   );
-  const [animations, setAnimations] = useState(
-    () => readPreference("ambicrafted-motion", "enabled") !== "paused",
-  );
+  const {
+    mode: motionMode,
+    setMode: setMotionMode,
+    enabled: motionEnabled,
+  } = useMotionSettings();
+  const toggleAnimations = () =>
+    setMotionMode(motionEnabled ? "paused" : "full");
   const [density, setDensity] = useState(() =>
     readPreference("ambicrafted-density", "comfortable") === "compact"
       ? "compact"
@@ -302,13 +310,6 @@ export default function App() {
     document.documentElement.dataset.density = density;
     savePreference("ambicrafted-density", density);
   }, [density]);
-  const reduced = useReducedMotionPreference();
-  const motionEnabled = animations && !reduced;
-  useEffect(() => {
-    const value = animations ? "enabled" : "paused";
-    document.documentElement.dataset.motion = value;
-    savePreference("ambicrafted-motion", value);
-  }, [animations]);
   useEffect(() => {
     const update = () => {
       document.documentElement.dataset.visible = document.hidden
@@ -384,115 +385,125 @@ export default function App() {
   const notifier = (message: string, erreur = false) =>
     setToast({ message, erreur });
   return (
-    <ExperiencePreferences.Provider
-      value={{
-        theme,
-        setTheme,
-        animations,
-        setAnimations,
-        density,
-        setDensity,
-      }}
-    >
-      <AmbientAudioProvider>
-        <MotionPreference.Provider value={animations}>
-          <ScrollExperience routeKey={currentRoute.pathname} />
-          <MotionConfig reducedMotion={motionEnabled ? "never" : "always"}>
-            <ToastContext.Provider value={notifier}>
-              {ticketPending || session.isPending ? (
-                <Chargement />
-              ) : session.isError ? (
-                <main className="fatal">
-                  <Logo />
-                  <Erreur
-                    erreur={session.error}
-                    recommencer={() => session.refetch()}
-                  />
-                </main>
-              ) : !session.data?.connecte &&
-                currentRoute.pathname === "/guide" ? (
-                <div className="public-guide">
-                  <header className="public-guide-header">
-                    <Link to="/welcome" aria-label={t("Ambicrafted home")}>
-                      <Logo />
-                    </Link>
-                    <LanguageSelector />
-                    <Link className="btn" to="/welcome">
-                      {t("Enter workspace")}
-                      <ArrowRight size={16} />
-                    </Link>
-                  </header>
-                  <main className="page-scene">
-                    <Suspense fallback={<Chargement />}>
-                      <UserGuide />
-                    </Suspense>
+    <MotionModePreference.Provider value={motionMode}>
+      <ExperiencePreferences.Provider
+        value={{
+          theme,
+          setTheme,
+          motionMode,
+          setMotionMode,
+          density,
+          setDensity,
+        }}
+      >
+        <AmbientAudioProvider>
+          <MotionPreference.Provider value={motionEnabled}>
+            <ScrollExperience routeKey={currentRoute.pathname} />
+            <MotionConfig reducedMotion={motionEnabled ? "never" : "always"}>
+              <ToastContext.Provider value={notifier}>
+                {ticketPending || session.isPending ? (
+                  <Chargement />
+                ) : session.isError ? (
+                  <main className="fatal">
+                    <Logo />
+                    <Erreur
+                      erreur={session.error}
+                      recommencer={() => session.refetch()}
+                    />
                   </main>
-                </div>
-              ) : session.data?.connecte &&
-                currentRoute.pathname !== "/welcome" ? (
-                <>
-                  {!session.data.mot_de_passe && (
-                    <div className="browser-access-notice" role="status">
-                      <LockKeyhole size={18} aria-hidden="true" />
-                      <span>
-                        {t("Keep browser access after this session ends.")}
-                      </span>
-                      <Link
-                        to="/parametres#browser-access"
-                        className="text-button"
-                      >
-                        {t("Set up browser access")} <ArrowRight size={16} />
+                ) : !session.data?.connecte &&
+                  currentRoute.pathname === "/guide" ? (
+                  <div className="public-guide">
+                    <header className="public-guide-header">
+                      <Link to="/welcome" aria-label={t("Ambicrafted home")}>
+                        <Logo />
                       </Link>
-                    </div>
-                  )}
-                  <Cadre
+                      <LanguageSelector />
+                      <AnimationControl
+                        enabled={motionEnabled}
+                        toggle={toggleAnimations}
+                      />
+                      <Link className="btn" to="/welcome">
+                        {t("Enter workspace")}
+                        <ArrowRight size={16} />
+                      </Link>
+                    </header>
+                    <main className="page-scene">
+                      <Suspense fallback={<Chargement />}>
+                        <UserGuide />
+                      </Suspense>
+                    </main>
+                  </div>
+                ) : session.data?.connecte &&
+                  currentRoute.pathname !== "/welcome" ? (
+                  <>
+                    {!session.data.mot_de_passe && (
+                      <div className="browser-access-notice" role="status">
+                        <LockKeyhole size={18} aria-hidden="true" />
+                        <span>
+                          {t("Keep browser access after this session ends.")}
+                        </span>
+                        <Link
+                          to="/parametres#browser-access"
+                          className="text-button"
+                        >
+                          {t("Set up browser access")} <ArrowRight size={16} />
+                        </Link>
+                      </div>
+                    )}
+                    <Cadre
+                      theme={theme}
+                      changerTheme={() =>
+                        setTheme(theme === "dark" ? "light" : "dark")
+                      }
+                      animations={motionEnabled}
+                      motionEnabled={motionEnabled}
+                      changerAnimations={toggleAnimations}
+                    />
+                  </>
+                ) : (
+                  <AccueilPublic
+                    connecte={session.data?.connecte || false}
+                    motDePasse={session.data?.mot_de_passe || false}
+                    erreur={ticketErreur}
+                    animations={motionEnabled}
+                    changerAnimations={toggleAnimations}
                     theme={theme}
                     changerTheme={() =>
                       setTheme(theme === "dark" ? "light" : "dark")
                     }
-                    animations={animations}
-                    motionEnabled={motionEnabled}
-                    changerAnimations={() => setAnimations((value) => !value)}
                   />
-                </>
-              ) : (
-                <AccueilPublic
-                  connecte={session.data?.connecte || false}
-                  motDePasse={session.data?.mot_de_passe || false}
-                  erreur={ticketErreur}
-                  animations={animations}
-                  changerAnimations={() => setAnimations((value) => !value)}
-                  theme={theme}
-                  changerTheme={() =>
-                    setTheme(theme === "dark" ? "light" : "dark")
-                  }
-                />
-              )}
-              <AnimatePresence>
-                {toast && (
-                  <motion.div
-                    role={toast.erreur ? "alert" : "status"}
-                    className={"toast " + (toast.erreur ? "toast-error" : "")}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 16 }}
-                  >
-                    {toast.erreur ? <XCircle size={20} /> : <Check size={20} />}
-                    <span>{systemText(toast.message)}</span>
-                    <button
-                      aria-label={t("Dismiss notification")}
-                      onClick={() => setToast(null)}
-                    >
-                      <X size={16} />
-                    </button>
-                  </motion.div>
                 )}
-              </AnimatePresence>
-            </ToastContext.Provider>
-          </MotionConfig>
-        </MotionPreference.Provider>
-      </AmbientAudioProvider>
-    </ExperiencePreferences.Provider>
+                <AnimatePresence>
+                  {toast && (
+                    <motion.div
+                      role={toast.erreur ? "alert" : "status"}
+                      className={"toast " + (toast.erreur ? "toast-error" : "")}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 16 }}
+                    >
+                      {toast.erreur ? (
+                        <XCircle size={20} />
+                      ) : (
+                        <Check size={20} />
+                      )}
+                      <span>{systemText(toast.message)}</span>
+                      <button
+                        aria-label={t("Dismiss notification")}
+                        onClick={() => setToast(null)}
+                      >
+                        <X size={16} />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </ToastContext.Provider>
+            </MotionConfig>
+          </MotionPreference.Provider>
+        </AmbientAudioProvider>
+      </ExperiencePreferences.Provider>
+    </MotionModePreference.Provider>
   );
 }
 function AnimationControl({
@@ -503,17 +514,22 @@ function AnimationControl({
   toggle: () => void;
 }) {
   useI18n();
-  const reduced = useReducedMotionPreference();
+  const reduced = useSystemReducedMotionPreference();
   const label = enabled ? t("Pause animations") : t("Enable animations");
   return (
     <button
       className="icon-button motion-control"
       onClick={toggle}
       aria-label={label}
-      title={reduced ? t("Reduced motion is enabled on your device") : label}
-      data-system-reduced={reduced}
+      title={
+        !enabled && reduced
+          ? t("Reduced motion is enabled on your device")
+          : label
+      }
+      data-motion-active={enabled}
     >
       {enabled ? <Pause size={16} /> : <Play size={16} />}
+      <span>{enabled ? t("Motion on") : t("Motion off")}</span>
     </button>
   );
 }

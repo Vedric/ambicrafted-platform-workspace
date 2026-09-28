@@ -134,7 +134,17 @@ textarea {
 [data-theme="light"] .hero-panel .btn.primary {
   color: white;
 }
-.motion-control[data-system-reduced="true"] {
+.icon-button.motion-control {
+  width: auto;
+  min-width: 36px;
+  padding-inline: 10px;
+  gap: 7px;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--mint);
+}
+.motion-control[data-motion-active="false"] {
+  color: var(--amber);
   border: 1px dashed var(--amber);
 }
 .mission-filters {
@@ -393,6 +403,7 @@ textarea {
   color: var(--text);
 }
 .landing-header {
+  height: auto;
   padding-block: 28px;
 }
 .landing-main {
@@ -1144,6 +1155,9 @@ textarea {
   max-width: 170px;
   flex-shrink: 0;
 }
+.preference-row .motion-mode-select {
+  max-width: min(100%, 270px);
+}
 .preference-switch {
   display: inline-flex;
   align-items: center;
@@ -1194,7 +1208,7 @@ textarea {
   outline-offset: 4px;
 }
 
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+@media (hover: hover) {
   [data-motion="enabled"] .guide-lesson:hover,
   [data-motion="enabled"] .landing-updates article:hover {
     transform: translateY(-3px);
@@ -1489,7 +1503,7 @@ textarea {
   animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
-  .guide-flow-path button::after {
+  :where(:root:not([data-motion-mode="full"])) .guide-flow-path button::after {
     animation: none;
   }
 }
@@ -1632,5 +1646,44 @@ textarea {
   .topbar .command-button span,
   .topbar .command-button kbd {
     display: none;
+  }
+}
+
+/* Shared scroll feedback must also load on direct Welcome/Settings entry. */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 40;
+  pointer-events: none;
+  transform-origin: left;
+  transform: scaleX(var(--page-progress, 0));
+  background: linear-gradient(90deg, var(--mint), var(--purple));
+  opacity: 0.8;
+}
+
+@media (max-width: 480px) {
+  .landing-controls {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  .topbar {
+    height: auto;
+    min-height: 62px;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+  .topbar .breadcrumb {
+    flex: 1 1 100%;
+  }
+  .topbar-actions {
+    flex: 1 1 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
   }
 }

@@ -305,7 +305,7 @@ export function UserGuide() {
               ],
               [
                 "Why are animations still?",
-                "Enable animations in the header. Your device’s reduced-motion preference and hidden tabs also pause decorative movement.",
+                "Enable animations in the header, or choose Full animations in Settings → Appearance. Follow device settings respects reduced motion; hidden tabs and offscreen AURA always pause.",
               ],
             ] as const
           ).map(([question, answer]) => (

@@ -179,7 +179,7 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: uv sync --locked --project ../control-api
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox
       - name: Desktop, mobile, clavier et WCAG
         run: npm run test:e2e
         env:

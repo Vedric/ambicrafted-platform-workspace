@@ -55,7 +55,7 @@ function snapshot(core: Locator) {
 }
 
 for (const route of ["/welcome", "/", "/assistant"]) {
-  test(`AURA keeps visibly moving at rest on ${route}, then honors pause and reduced motion`, async ({
+  test(`AURA keeps visibly moving at rest on ${route}, then honors pause and explicit full motion`, async ({
     page,
   }) => {
     const errors: string[] = [];
@@ -97,15 +97,21 @@ for (const route of ["/welcome", "/", "/assistant"]) {
       .poll(async () => (await snapshot(core)).ring)
       .not.toBe(paused.ring);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await expect(core).toHaveAttribute("data-resting", "true");
-    await expect.poll(async () => (await snapshot(core)).running).toBe(0);
+    await expect(core).toHaveAttribute("data-resting", "false");
+    await expect
+      .poll(async () => (await snapshot(core)).running)
+      .toBe(first.running);
     expect(errors).toEqual([]);
   });
 }
 
-test("AURA suspends offscreen motion and resumes its clocks when visible again", async ({
+test("full-motion AURA still suspends offscreen and resumes when visible again", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() =>
+    localStorage.setItem("ambicrafted-motion-mode", "full"),
+  );
   await open(page, "/assistant");
   const core = page.locator(".neural-core").first();
   await core.scrollIntoViewIfNeeded();

@@ -841,7 +841,7 @@ export function Parametres() {
           </p>
           <p className="hint">
             {t(
-              "Change the theme or pause animations from the top bar. Your choices are saved on this browser. Animations also respect your system’s reduced-motion preference.",
+              "Change the theme or pause animations from the top bar. Your choices are saved in this browser. Animation settings lets you follow your device preference or explicitly enable full movement.",
             )}
           </p>
         </section>

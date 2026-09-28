@@ -11,7 +11,7 @@ features, measured acceptance checks and remaining production conditions.
 Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
-Console **0.4.3**, control API **0.4.1**, local speech runtime **0.3.1**.
+Console **0.4.4**, control API **0.4.1**, local speech runtime **0.3.1**.
 See the [0.4.0 delivery report](docs/RELEASE-0.4.0.md) for exact qualification and
 remaining conditions. This is a private, single-operator workspace; it is not a
 multi-tenant commercial service or a zero-vulnerability certification.
@@ -32,7 +32,12 @@ workspace, forms and navigation share the same visual design, keyboard controls,
 light/dark themes and pausable motion. Fonts and browser assets are hosted locally.
 Larger text and controls support reading across the workspace. Sections receive
 finite entry accents when scrolling down or back up; motion can be paused and
-respects the operating system's reduced-motion preference.
+follows the operating system's reduced-motion preference by default. **Motion on /
+Motion off** in the header shows the actual state. Select **Enable animations**
+to explicitly enable full movement, or choose **Follow device settings / Full
+animations / Pause animations** in **Settings → Appearance**. The choice persists
+and synchronizes between tabs on the same origin. See the
+[motion controls correction](docs/RELEASE-0.4.4.md).
 Interface language is selectable between English and French, defaults to English,
 and persists in the browser independently of AURA's conversation language.
 The target remains one trusted operator on this workstation.
