@@ -47,49 +47,6 @@
       ]
     },
     {
-      "lesson": "voice",
-      "language": "en",
-      "duration_seconds": 17.62,
-      "bytes": 1262670,
-      "sha256": "88fd72e61b9c6c6a75073c07ad62fb2e48cc296beca1ca8106a5fd95b245b6e6",
-      "page_errors": [],
-      "cues": [
-        {
-          "start": 0.00217232999999942,
-          "text": "AURA follows your system’s default microphone and speakers."
-        },
-        {
-          "start": 4.976988111999999,
-          "text": "Record a draft, then review its transcription. This transcript is synthetic."
-        },
-        {
-          "start": 11.227846540999998,
-          "text": "Send reviewed text to AURA. Conversation cannot approve an operation."
-        }
-      ],
-      "file": "voice-en.mp4",
-      "video_codec": "h264",
-      "audio_codec": "aac",
-      "audio_rms": 0.064286,
-      "narration": [
-        {
-          "file": "voice-en-0.wav",
-          "text": "AURA follows your system’s default microphone and speakers.",
-          "duration": 4.175
-        },
-        {
-          "file": "voice-en-1.wav",
-          "text": "Record a draft, then review its transcription. This transcript is synthetic.",
-          "duration": 5.45
-        },
-        {
-          "file": "voice-en-2.wav",
-          "text": "Send reviewed text to AURA. Conversation cannot approve an operation.",
-          "duration": 5.55
-        }
-      ]
-    },
-    {
       "lesson": "investigation",
       "language": "en",
       "duration_seconds": 18.64,
@@ -176,49 +133,6 @@
       ]
     },
     {
-      "lesson": "voice",
-      "language": "fr",
-      "duration_seconds": 17.85,
-      "bytes": 1445293,
-      "sha256": "728a687cb19fcb17b3186064720c87e5a3439ea9ac98fd700cf906e5b1394591",
-      "page_errors": [],
-      "cues": [
-        {
-          "start": 0.0016351740000100107,
-          "text": "AURA utilise le microphone et la sortie audio par défaut du système."
-        },
-        {
-          "start": 5.502106743000011,
-          "text": "Enregistrez puis relisez la transcription. Ici, elle est simulée."
-        },
-        {
-          "start": 11.15239804,
-          "text": "Envoyez le texte relu à AURA. La conversation ne valide aucune opération."
-        }
-      ],
-      "file": "voice-fr.mp4",
-      "video_codec": "h264",
-      "audio_codec": "aac",
-      "audio_rms": 0.095793,
-      "narration": [
-        {
-          "file": "voice-fr-0.wav",
-          "text": "AURA utilise le microphone et la sortie audio par défaut du système.",
-          "duration": 4.7
-        },
-        {
-          "file": "voice-fr-1.wav",
-          "text": "Enregistrez puis relisez la transcription. Ici, elle est simulée.",
-          "duration": 4.85
-        },
-        {
-          "file": "voice-fr-2.wav",
-          "text": "Envoyez le texte relu à AURA. La conversation ne valide aucune opération.",
-          "duration": 5.85
-        }
-      ]
-    },
-    {
       "lesson": "investigation",
       "language": "fr",
       "duration_seconds": 17.14,
@@ -258,6 +172,92 @@
           "file": "investigation-fr-2.wav",
           "text": "Votre décision est enregistrée. Elle ne lance aucune remédiation.",
           "duration": 4.825
+        }
+      ]
+    },
+    {
+      "lesson": "voice",
+      "language": "en",
+      "duration_seconds": 20.34,
+      "bytes": 1925071,
+      "sha256": "c338eb6d84dc602a41a75174f69d3ce7faa53ecdd8be48aa484fd49b603d7a0c",
+      "page_errors": [],
+      "cues": [
+        {
+          "start": 0.0042556790000001,
+          "text": "In Audio devices, detect and choose your microphone and speakers. Test the signal before talking."
+        },
+        {
+          "start": 7.683140634,
+          "text": "Record a draft, then review its transcription. This transcript is synthetic."
+        },
+        {
+          "start": 13.932995931999999,
+          "text": "Send reviewed text to AURA. Conversation cannot approve an operation."
+        }
+      ],
+      "file": "voice-en.mp4",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.064419,
+      "narration": [
+        {
+          "file": "voice-en-0.wav",
+          "text": "In Audio devices, detect and choose your microphone and speakers. Test the signal before talking.",
+          "duration": 6.875
+        },
+        {
+          "file": "voice-en-1.wav",
+          "text": "Record a draft, then review its transcription. This transcript is synthetic.",
+          "duration": 5.45
+        },
+        {
+          "file": "voice-en-2.wav",
+          "text": "Send reviewed text to AURA. Conversation cannot approve an operation.",
+          "duration": 5.55
+        }
+      ]
+    },
+    {
+      "lesson": "voice",
+      "language": "fr",
+      "duration_seconds": 20.82,
+      "bytes": 2040431,
+      "sha256": "e4d1281ccfa73a02be6d4c3b64028f3835253146b8da69b91a11a5575561b6d2",
+      "page_errors": [],
+      "cues": [
+        {
+          "start": 0.003099179000000049,
+          "text": "Dans Périphériques audio, détectez puis choisissez votre micro et vos haut-parleurs. Testez le signal avant de parler."
+        },
+        {
+          "start": 8.455738017000002,
+          "text": "Enregistrez puis relisez la transcription. Ici, elle est simulée."
+        },
+        {
+          "start": 14.106980234,
+          "text": "Envoyez le texte relu à AURA. La conversation ne valide aucune opération."
+        }
+      ],
+      "file": "voice-fr.mp4",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.096064,
+      "narration": [
+        {
+          "file": "voice-fr-0.wav",
+          "text": "Dans Périphériques audio, détectez puis choisissez votre micro et vos haut-parleurs. Testez le signal avant de parler.",
+          "duration": 7.65
+        },
+        {
+          "file": "voice-fr-1.wav",
+          "text": "Enregistrez puis relisez la transcription. Ici, elle est simulée.",
+          "duration": 4.85
+        },
+        {
+          "file": "voice-fr-2.wav",
+          "text": "Envoyez le texte relu à AURA. La conversation ne valide aucune opération.",
+          "duration": 5.85
         }
       ]
     }

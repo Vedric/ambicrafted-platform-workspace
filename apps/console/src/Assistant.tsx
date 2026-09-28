@@ -1,4 +1,10 @@
-import { MicrophoneCheck } from "./MicrophoneCheck";
+import { AudioDevices } from "./AudioDevices";
+import {
+  microphoneConstraints,
+  microphoneError,
+  playWithAudioOutput,
+  useAudioOutput,
+} from "./audio-devices";
 import { useAudioFocus } from "./audio-focus";
 import { texteOral } from "./spoken-text";
 export { texteOral } from "./spoken-text";
@@ -100,30 +106,6 @@ function encoderAudio(blob: Blob): Promise<string> {
   });
 }
 
-const erreursMicro: Record<string, string> = {
-  get NotAllowedError() {
-    return t(
-      "Microphone access was denied. Allow access in your browser’s site settings.",
-    );
-  },
-  get NotFoundError() {
-    return t("No microphone was found. Connect one or type your message.");
-  },
-  get NotReadableError() {
-    return t("The microphone is unavailable or in use by another application.");
-  },
-  get SecurityError() {
-    return t(
-      "Your browser blocked microphone access. Open the platform on localhost.",
-    );
-  },
-  get OverconstrainedError() {
-    return t(
-      "The default microphone is unavailable. Check your operating system’s audio input settings.",
-    );
-  },
-};
-
 export default function Assistant({
   initialMessages = [],
   initialDraft = "",
@@ -188,6 +170,10 @@ export default function Assistant({
   const minuterie = useRef<ReturnType<typeof setInterval> | null>(null);
   const lecteur = useRef<HTMLAudioElement | null>(null),
     urlAudio = useRef<string | null>(null);
+  useAudioOutput(lecteur, (cause) => {
+    arreter();
+    setErreur(cause);
+  });
   const conversation = useRef<HTMLDivElement | null>(null),
     champ = useRef<HTMLTextAreaElement | null>(null);
   const envoiEnCours = useRef<{ texte: string; avant: Message[] } | null>(null);
@@ -422,7 +408,7 @@ export default function Assistant({
         }
       };
       if (!actuel(numero)) return;
-      await son.play();
+      await playWithAudioOutput(son, () => actuel(numero));
       if (actuel(numero)) setPhase("lecture");
     } catch (cause) {
       if (!actuel(numero)) return;
@@ -562,14 +548,9 @@ export default function Assistant({
     setSecondes(0);
     prepareMicrophoneSignal();
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-        video: false,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia(
+        microphoneConstraints(),
+      );
       if (!actuel(numero)) {
         stream.getTracks().forEach((piste) => piste.stop());
         return;
@@ -752,21 +733,7 @@ export default function Assistant({
       couperMicro();
       endConversation();
       setPhase("repos");
-      const nom =
-        cause &&
-        typeof cause === "object" &&
-        "name" in cause &&
-        typeof cause.name === "string"
-          ? cause.name
-          : "";
-      setErreur(
-        new Error(
-          erreursMicro[nom] ||
-            t(
-              "The microphone is unavailable. You can still type your message.",
-            ),
-        ),
-      );
+      setErreur(new Error(microphoneError(cause)));
     }
   }
 
@@ -1000,10 +967,7 @@ export default function Assistant({
               <strong>{phase === "micro" ? t("Recording") : t("Off")}</strong>
             </div>
           </div>
-          <p className="hint">
-            {t("AURA uses your system’s default microphone and speakers.")}
-          </p>
-          <MicrophoneCheck
+          <AudioDevices
             disabled={externalBusy || phase !== "repos" || handsFree}
             onActiveChange={setCheckingAudio}
           />

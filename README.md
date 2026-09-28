@@ -11,7 +11,7 @@ features, measured acceptance checks and remaining production conditions.
 Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
-Console **0.4.1**, control API **0.4.0**, local speech runtime **0.3.1**.
+Console **0.4.2**, control API **0.4.0**, local speech runtime **0.3.1**.
 See the [0.4.0 delivery report](docs/RELEASE-0.4.0.md) for exact qualification and
 remaining conditions. This is a private, single-operator workspace; it is not a
 multi-tenant commercial service or a zero-vulnerability certification.
@@ -44,7 +44,7 @@ The target remains one trusted operator on this workstation.
 
 These are actual browser captures with annotated arrows and **synthetic demo data**.
 [Workspace and KPI view](docs/media/workspace-dark.png) ·
-[AURA horizontal workspace](docs/media/assistant-dark.png) ·
+[AURA vertical workspace](docs/media/assistant-dark.png) ·
 [Architecture and trust boundaries](docs/media/architecture-light.png) ·
 [Appearance settings](docs/media/settings-light.png).
 Capture hashes and provenance are recorded in [docs/media/provenance.json](docs/media/provenance.json).
@@ -72,12 +72,16 @@ sign-in takes you straight to the workspace. Without a configured password, an
 expired browser session needs another one-use CLI entry; CLI access remains available. Both UI and CLI use the same
 authenticated control API; `./plateforme --help` documents every command.
 
-AURA has a horizontal desktop control area with a gentle heartbeat accent,
-responsive layouts and plain **English voice / French voice** choices. If capture
-or playback fails, open **Check microphone & sound**: record up to eight seconds
-and listen back locally. This diagnostic sends no recording to the API.
+AURA has a vertical, centered instrument with a gentle heartbeat accent,
+responsive layouts and plain **English voice / French voice** choices. In
+**Audio devices**, select **Detect devices**, allow browser microphone access,
+then choose your input and output. **Test speakers** checks playback;
+**Check microphone & sound** records up to eight seconds and replays locally.
+This diagnostic sends no recording to the API. Device choices stay in this
+browser and apply to AURA, greetings, videos and music. Browsers without output
+selection use the system output; see [audio setup](docs/CONSOLE.md#microphone-sound-and-walkthroughs).
 **User guide** contains six narrated MP4 walkthroughs with English/French captions.
-See the [browser and media recovery report](docs/RELEASE-0.4.1.md).
+See the [audio routing report and completion assessment](docs/RELEASE-0.4.2.md).
 
 AURA offers synthetic English and French voices, with local CPU speech
 recognition and playback. Manual recording lets you review the transcription.

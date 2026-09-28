@@ -180,7 +180,14 @@ raw transient microphone audio is not retained. See [conversations](CONVERSATION
 AURA uses Védric in both languages and French vous. Spoken text preserves sentence
 and paragraph boundaries. The engine adds only the missing portion of a 180 ms
 sentence pause, preserving existing silence and phonemes. This does not train new
-voice weights. Input/output follow the operating system defaults.
+voice weights. Input/output initially follow the operating system defaults.
+Console 0.4.2 adds explicit browser-local choices in **Audio devices**, on Welcome
+and in AURA. Choose and test the physical microphone, then the speakers. The
+optional processing switch helps diagnose virtual inputs affected by noise
+suppression. Output selection requires browser support; the default path remains
+available without it. Diagnostic recordings never leave the browser. Follow the
+[audio setup steps](CONSOLE.md#microphone-sound-and-walkthroughs) and
+[routing ADR](adr/0027-browser-audio-routing.md).
 
 The platform backup includes the console database and per-analysis checkpoints,
 but excludes transient audio and downloadable voice model binaries. Model
@@ -503,17 +510,18 @@ and stop persistence in desktop and mobile Chromium. Physical speaker levels and
 Safari/Firefox playback are not certified by Chromium emulation.
 
 
-## Browser recovery and narrated guides (0.4.1 console / 0.3.1 voice)
+## Browser recovery and narrated guides (0.4.2 console / 0.3.1 voice)
 
 Language choices are **English voice** and **French voice**; the internal aliases
-remain unchanged. The desktop AURA deck runs horizontally, with an optional
+remain unchanged. The AURA instrument is vertical again, with an optional
 heartbeat accent. Reduced motion, Pause animations, offscreen scenes and hidden
 tabs suspend decorative activity; measured input still drives signal feedback.
 
 The browser microphone analyser now feeds a zero-gain destination to keep the
 audio graph active without audible microphone feedback. The AudioContext activated
 by the initial click is reused between hands-free turns, then closed on completion,
-error or cancellation. Native output follows the system default without `setSinkId`.
+error or cancellation. System-default playback does not require `setSinkId`;
+an explicit output choice uses it when the browser supports selection.
 **Check microphone & sound** captures at most eight seconds for local replay, with
 no API upload. It releases tracks and object URLs on cancellation/unmount and
 handles denied permission or blocked playback explicitly. Physical device privacy

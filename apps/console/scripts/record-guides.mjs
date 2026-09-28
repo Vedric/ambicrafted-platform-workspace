@@ -144,6 +144,16 @@ try {
           );
         cue(0);
         await go("/assistant");
+        await page
+          .getByRole("button", {
+            name:
+              language === "fr"
+                ? "Détecter les périphériques"
+                : "Detect devices",
+            exact: true,
+          })
+          .click();
+        await page.locator(".audio-devices").scrollIntoViewIfNeeded();
         await pause();
         cue(1);
         await page

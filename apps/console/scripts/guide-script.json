@@ -13,12 +13,12 @@
   },
   "voice": {
     "en": [
-      "AURA follows your system’s default microphone and speakers.",
+      "In Audio devices, detect and choose your microphone and speakers. Test the signal before talking.",
       "Record a draft, then review its transcription. This transcript is synthetic.",
       "Send reviewed text to AURA. Conversation cannot approve an operation."
     ],
     "fr": [
-      "AURA utilise le microphone et la sortie audio par défaut du système.",
+      "Dans Périphériques audio, détectez puis choisissez votre micro et vos haut-parleurs. Testez le signal avant de parler.",
       "Enregistrez puis relisez la transcription. Ici, elle est simulée.",
       "Envoyez le texte relu à AURA. La conversation ne valide aucune opération."
     ]

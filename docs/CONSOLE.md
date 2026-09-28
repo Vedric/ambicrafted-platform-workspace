@@ -118,21 +118,47 @@ an expired session.
 
 ## Microphone, sound and walkthroughs
 
-AURA uses the operating system's default input and output. Select **Record** or
-**Start conversation**, allow the browser's microphone permission, then speak.
-In **Record** mode, select **Finish recording**, review the text and **Send**.
-For a hardware check, expand **Check microphone & sound**, record up to eight
-seconds and choose **Listen to the sample**. The meter shows captured signal;
-this diagnostic sample stays in a browser blob, is never uploaded, and is cleared
-on Stop, Escape, navigation, hiding the tab or closing the diagnostic. A visible
-error distinguishes permission denial and playback failure. Check OS microphone
-privacy, hardware mute, system default input/output and tab volume if needed.
+AURA opens with system defaults. **Audio devices** is available in the vertical
+AURA panel and as an expandable section on Welcome, including before sign-in.
+
+1. Select **Detect devices** and allow microphone access in the browser. This
+   briefly opens and immediately releases the default input to obtain device
+   names; it records nothing. No microphone opens simply by visiting the page.
+2. Choose **Microphone input**: select the physical microphone you intend to use,
+   rather than an unused virtual input. Choices persist in this browser only.
+3. Expand **Check microphone & sound**, select **Test microphone**, speak, stop,
+   then **Listen to the sample**. Watch the meter. Silence means the selected
+   capture path supplied no useful signal; check hardware mute and OS privacy.
+   If a virtual input clips or stays silent, disable **Voice processing** and
+   repeat the check. This changes echo cancellation, noise suppression and gain
+   control; it cannot override OS or browser permission.
+4. Choose **Speaker output** and **Test speakers**. When offered by the browser,
+   **Authorize speakers** opens its output picker. Unsupported browsers explain
+   how to return to **System default** and select the output in the OS. Check
+   tab volume and hardware volume if the tone is inaudible.
+5. Select **Record**, then **Finish recording**, review the transcript and
+   **Send**. **Start conversation** instead explicitly enables successive turns.
+
+Input changes are locked during capture. A saved disconnected device stays
+visible as unavailable; select a replacement or System default explicitly.
+Reconnecting devices refreshes the list. Browser permission resets can rotate
+device identifiers, so re-detect after changing site permissions. A selected
+output applies to AURA, Welcome, diagnostic replay, guide videos and background
+music. Playback errors pause the player and provide recovery guidance.
+
+The diagnostic lasts at most eight seconds and stays in a browser blob; it is
+never uploaded. Stop, Escape, navigation, hiding the tab or closing the diagnostic
+clears it. Selecting another input also clears the old sample. French labels
+include **Périphériques audio**, **Détecter les périphériques**, **Entrée microphone**,
+**Sortie audio**, **Tester le microphone** and **Écouter l’enregistrement**.
 
 The connected zero-gain analyser keeps signal processing active without feeding
 the microphone back into the speakers. An activated AudioContext is retained
-between hands-free turns and closed when the conversation ends. Native output
-uses the system default without calling the optional speaker-selection API.
-Browsers can still require a click before sound; the UI exposes playback controls.
+between hands-free turns and closed when the conversation ends. System-default
+playback does not require an optional output-selection API. Explicit selection
+uses the browser's supported API, subject to its permissions. Browsers can still
+require a click before sound; the UI exposes playback controls. See
+[browser routing decisions and references](adr/0027-browser-audio-routing.md).
 
 **User guide** serves six H.264/AAC MP4s with local narration and WebVTT captions.
 Metadata loads before Play; native controls support volume and seeking. Playback

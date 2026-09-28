@@ -3,6 +3,13 @@ import { Mic, Play, Square } from "lucide-react";
 import { useAudioFocus } from "./audio-focus";
 import { t, useI18n } from "./i18n";
 import { waveform } from "./audio-signal";
+import {
+  microphoneConstraints,
+  microphoneError,
+  playWithAudioOutput,
+  useAudioOutput,
+  useAudioPreferences,
+} from "./audio-devices";
 
 /** A browser-only input/output check. Its short sample never reaches the API. */
 export function MicrophoneCheck({
@@ -13,6 +20,7 @@ export function MicrophoneCheck({
   onActiveChange: (active: boolean) => void;
 }) {
   useI18n();
+  const { inputId, processing } = useAudioPreferences();
   const [phase, setPhase] = useState<
     "idle" | "permission" | "recording" | "ready" | "playing"
   >("idle");
@@ -30,6 +38,11 @@ export function MicrophoneCheck({
   const player = useRef<HTMLAudioElement | null>(null);
   const callback = useRef(onActiveChange);
   callback.current = onActiveChange;
+  useAudioOutput(player, (cause) => {
+    reset();
+    setPhase("idle");
+    setError(cause.message);
+  });
   useAudioFocus(
     phase === "permission" || phase === "recording"
       ? "microphone"
@@ -78,6 +91,12 @@ export function MicrophoneCheck({
       setPhase("idle");
     }
   }
+  useEffect(() => {
+    reset();
+    setPhase("idle");
+    setInput("");
+    setError("");
+  }, [inputId, processing]);
   async function start() {
     reset();
     const current = generation.current;
@@ -98,15 +117,30 @@ export function MicrophoneCheck({
       const audio = new AudioContext();
       context.current = audio;
       void audio.resume().catch(() => {});
-      const media = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: false,
-      });
+      const media = await navigator.mediaDevices.getUserMedia(
+        microphoneConstraints(),
+      );
       if (current !== generation.current) {
         media.getTracks().forEach((track) => track.stop());
         return;
       }
       stream.current = media;
+      media.getAudioTracks().forEach((track) =>
+        track.addEventListener?.(
+          "ended",
+          () => {
+            if (current !== generation.current) return;
+            reset();
+            setPhase("idle");
+            setError(
+              t(
+                "The microphone was disconnected. Reconnect it or choose another input, then record again.",
+              ),
+            );
+          },
+          { once: true },
+        ),
+      );
       setInput(
         media.getAudioTracks()[0]?.label || t("System default microphone"),
       );
@@ -174,15 +208,7 @@ export function MicrophoneCheck({
       if (current !== generation.current) return;
       reset();
       setPhase("idle");
-      setError(
-        cause instanceof DOMException && cause.name === "NotAllowedError"
-          ? t(
-              "Microphone access was denied. Allow access in your browser’s site settings.",
-            )
-          : t(
-              "Check your system microphone, browser permission and localhost connection, then try again.",
-            ),
-      );
+      setError(microphoneError(cause));
     }
   }
   async function play() {
@@ -211,9 +237,11 @@ export function MicrophoneCheck({
     };
     audio.onerror = failed;
     try {
-      await audio.play();
-    } catch {
+      await playWithAudioOutput(audio, () => current === generation.current);
+    } catch (cause) {
       failed();
+      if (current === generation.current && cause instanceof Error)
+        setError(cause.message);
     }
   }
   useEffect(() => {

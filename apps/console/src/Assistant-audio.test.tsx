@@ -11,6 +11,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Assistant from "./Assistant";
 import { MicrophoneCheck } from "./MicrophoneCheck";
+import { saveAudioPreferences } from "./audio-devices";
 import type { SignalReader } from "./audio-signal";
 import { setLanguage } from "./i18n";
 
@@ -271,6 +272,22 @@ async function spokenTurn() {
 }
 
 describe("manual speech resources and language", () => {
+  it("records from an explicitly selected microphone with processing disabled", async () => {
+    saveAudioPreferences({ inputId: "usb-microphone", processing: false });
+    await show();
+    await click("Record");
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
+      audio: {
+        deviceId: { exact: "usb-microphone" },
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+      video: false,
+    });
+    await click("Stop recording");
+    expect(calls("/voix/transcrire")).toHaveLength(1);
+  });
   it("resumes Web Audio during the click, before microphone permission resolves", async () => {
     suspendedInitially = true;
     let allow!: (value: MediaStream) => void;
@@ -990,6 +1007,39 @@ describe("local microphone and sound check", () => {
     ).toBeEnabled();
     await click("Test microphone");
     expect(screen.getByRole("button", { name: "Stop test" })).toBeEnabled();
+  });
+  it("ends diagnostic capture when the microphone disconnects", async () => {
+    const audioTrack = Object.assign(new EventTarget(), track);
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValueOnce({
+      getTracks: () => [audioTrack],
+      getAudioTracks: () => [audioTrack],
+    } as unknown as MediaStream);
+    const { active } = await diagnostic();
+    await click("Test microphone");
+    act(() => audioTrack.dispatchEvent(new Event("ended")));
+    await flush();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "microphone was disconnected",
+    );
+    expect(recorders[0].state).toBe("inactive");
+    expect(contexts[0].close).toHaveBeenCalledOnce();
+    expect(active).toHaveBeenLastCalledWith(false);
+    expect(mocks.api).not.toHaveBeenCalled();
+  });
+  it("discards an old diagnostic sample when the input choice changes", async () => {
+    await diagnostic();
+    await click("Test microphone");
+    await click("Stop test");
+    expect(
+      screen.getByRole("button", { name: "Listen to the sample" }),
+    ).toBeEnabled();
+    act(() => saveAudioPreferences({ inputId: "replacement" }));
+    await flush();
+    expect(
+      screen.queryByRole("button", { name: "Listen to the sample" }),
+    ).not.toBeInTheDocument();
+    expect(revoke).toHaveBeenCalledWith("blob:synthetic-1");
+    expect(mocks.api).not.toHaveBeenCalled();
   });
   it("releases a late permission grant after cancel", async () => {
     let allow!: (value: MediaStream) => void;

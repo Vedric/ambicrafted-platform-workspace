@@ -1,0 +1,122 @@
+.audio-devices {
+  width: 100%;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--mint) 7%, var(--panel)),
+    var(--panel)
+  );
+  text-align: left;
+}
+.welcome-device-settings {
+  margin-top: 18px;
+  text-align: left;
+}
+.welcome-device-settings > summary {
+  padding: 12px 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+.audio-device-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--mint);
+  flex-wrap: wrap;
+}
+.audio-device-heading h3 {
+  font-size: 1.05rem;
+  color: var(--text);
+  margin: 0;
+}
+.audio-device-heading > span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.audio-devices p {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  margin: 12px 0;
+}
+.audio-device-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin: 18px 0;
+}
+.audio-device-grid label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  color: var(--text);
+}
+.audio-device-grid label > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.9rem;
+}
+.audio-device-grid svg {
+  color: var(--mint);
+}
+.audio-device-grid select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 46px;
+  padding: 10px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+}
+.audio-device-grid select:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+.audio-device-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.audio-device-actions .btn {
+  min-height: 44px;
+  flex: 1 1 140px;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+.audio-device-notice {
+  padding: 10px 12px;
+  border-left: 2px solid var(--mint);
+  background: var(--bg);
+  border-radius: 0 8px 8px 0;
+}
+.audio-processing {
+  margin-top: 18px;
+  font-size: 0.9rem;
+}
+.audio-devices .microphone-check {
+  margin-top: 18px;
+}
+.audio-devices .hint {
+  font-size: 0.8rem;
+}
+@media (min-width: 650px) and (max-width: 1200px) {
+  .audio-device-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .audio-devices {
+    padding: 16px;
+  }
+}

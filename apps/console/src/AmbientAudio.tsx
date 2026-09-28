@@ -14,6 +14,7 @@ import {
 } from "./audio-focus";
 import { t, useI18n } from "./i18n";
 import "./ambient-audio.css";
+import { playWithAudioOutput, useAudioOutput } from "./audio-devices";
 
 const KEY = "ambicrafted-ambient";
 const MAX_VOLUME = 0.22;
@@ -55,6 +56,11 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
   const player = useRef<HTMLAudioElement | null>(null);
   const playGeneration = useRef(0);
   const fade = useRef<ReturnType<typeof setInterval> | null>(null);
+  useAudioOutput(player, () => {
+    playGeneration.current++;
+    stopFade();
+    setState("error");
+  });
   const stopFade = () => {
     if (fade.current !== null) clearInterval(fade.current);
     fade.current = null;
@@ -97,8 +103,7 @@ export function AmbientAudioProvider({ children }: { children: ReactNode }) {
     }
     const generation = ++playGeneration.current;
     syncVolume();
-    void audio
-      .play()
+    void playWithAudioOutput(audio, () => generation === playGeneration.current)
       .then(() => {
         if (generation !== playGeneration.current) return;
         setState("playing");

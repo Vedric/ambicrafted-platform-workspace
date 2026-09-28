@@ -1,4 +1,38 @@
 export const experienceFr = {
+  "Open Audio devices, detect and select your microphone and speakers, then test the signal and playback before starting a conversation.":
+    "Ouvrez Périphériques audio, détectez et choisissez votre microphone et votre sortie audio, puis testez le signal et la lecture avant de commencer une conversation.",
+  "This browser": "Ce navigateur",
+  "Choose your microphone and speakers, then check the signal before talking to AURA.":
+    "Choisissez votre microphone et votre sortie audio, puis vérifiez le signal avant de parler à AURA.",
+  "Microphone input": "Entrée microphone",
+  "Speaker output": "Sortie audio",
+  "System default": "Par défaut du système",
+  "Saved microphone unavailable": "Microphone enregistré indisponible",
+  "Saved speaker unavailable": "Sortie enregistrée indisponible",
+  "Microphone {number}": "Microphone {number}",
+  "Speaker {number}": "Sortie audio {number}",
+  "A saved device is disconnected or not yet authorized. Detect devices or select System default.":
+    "Un périphérique enregistré est déconnecté ou pas encore autorisé. Détectez les périphériques ou sélectionnez celui par défaut du système.",
+  "Detect devices": "Détecter les périphériques",
+  "Test speakers": "Tester la sortie audio",
+  "Authorize speakers": "Autoriser une sortie audio",
+  "Cancel audio setup": "Annuler le test audio",
+  "Use system output": "Utiliser la sortie du système",
+  "Waiting for device permission…":
+    "En attente de l’autorisation du navigateur…",
+  "Voice processing": "Traitement de la voix",
+  "Reduce echo and background noise. If a virtual microphone sounds silent or clipped, disable this and test again.":
+    "Réduit l’écho et le bruit de fond. Si un microphone virtuel est silencieux ou coupe la voix, désactivez ce traitement et refaites le test.",
+  "Device names appear after microphone permission. Your selection stays in this browser and also applies to greetings, videos and music.":
+    "Les noms apparaissent après autorisation du microphone. Votre choix reste dans ce navigateur et s’applique aussi à l’accueil, aux vidéos et à la musique.",
+  "The selected microphone is unavailable. Connect it or choose another input in Audio devices.":
+    "Le microphone choisi est indisponible. Branchez-le ou choisissez une autre entrée dans Périphériques audio.",
+  "This browser cannot select speakers. Choose System default and select the output in your operating system.":
+    "Ce navigateur ne permet pas de choisir une sortie audio. Utilisez celle par défaut et sélectionnez-la dans les paramètres de votre système.",
+  "The selected output is unavailable or not permitted. Choose another speaker or authorize it in Audio devices.":
+    "La sortie choisie est indisponible ou non autorisée. Choisissez-en une autre ou autorisez-la dans Périphériques audio.",
+  "Speaker access was not granted. Choose System default or authorize the output again.":
+    "La sortie audio n’a pas été autorisée. Choisissez celle par défaut ou accordez de nouveau l’accès.",
   "Check microphone & sound": "Vérifier le microphone et le son",
   "Record up to 8 seconds, then listen back. This test stays in your browser.":
     "Enregistrez jusqu’à 8 secondes, puis réécoutez-vous. Ce test reste dans votre navigateur.",

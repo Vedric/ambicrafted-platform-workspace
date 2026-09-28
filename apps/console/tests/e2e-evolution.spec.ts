@@ -5,6 +5,11 @@ import { ambientState, observeAudio } from "./audio-observer";
 declare global {
   interface Window {
     __auraSynthetic: { starts: number; stops: number; gains: GainNode[] };
+    __audioDevices: {
+      removed: boolean;
+      denied: boolean;
+      captures: MediaStreamConstraints[];
+    };
   }
 }
 
@@ -13,6 +18,278 @@ test.beforeEach(({ page }) => {
   const errors: string[] = [];
   browserErrors.set(page, errors);
   page.on("pageerror", (error) => errors.push(error.message));
+});
+
+async function selectableDevices(page: Page) {
+  await syntheticSpeech(page);
+  await observeAudio(page);
+  await page.addInitScript(() => {
+    window.__audioDevices = { removed: false, denied: false, captures: [] };
+    const capture = navigator.mediaDevices.getUserMedia.bind(
+      navigator.mediaDevices,
+    );
+    Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+      configurable: true,
+      value: (constraints: MediaStreamConstraints) => {
+        window.__audioDevices.captures.push(constraints);
+        if (window.__audioDevices.denied)
+          return Promise.reject(
+            new DOMException("Synthetic permission denial", "NotAllowedError"),
+          );
+        return capture(constraints);
+      },
+    });
+    Object.defineProperty(navigator.mediaDevices, "enumerateDevices", {
+      configurable: true,
+      value: async () => [
+        ...(window.__audioDevices.removed
+          ? []
+          : [
+              {
+                kind: "audioinput",
+                deviceId: "usb-mic",
+                label: "Synthetic USB microphone",
+              },
+            ]),
+        {
+          kind: "audioinput",
+          deviceId: "camera-mic",
+          label: "Synthetic camera microphone",
+        },
+        {
+          kind: "audiooutput",
+          deviceId: "headset",
+          label: "Synthetic headset",
+        },
+        {
+          kind: "audiooutput",
+          deviceId: "display",
+          label: "Synthetic display speakers",
+        },
+      ],
+    });
+    // Virtual IDs exercise routing; actual decoding/playback uses the native
+    // default sink. These tests do not certify physical peripheral switching.
+    const native = HTMLMediaElement.prototype.setSinkId;
+    const routed = new WeakMap<HTMLMediaElement, string>();
+    Object.defineProperty(HTMLMediaElement.prototype, "sinkId", {
+      configurable: true,
+      get() {
+        return routed.get(this) || "";
+      },
+    });
+    HTMLMediaElement.prototype.setSinkId = async function (id) {
+      if (native) await native.call(this, "");
+      routed.set(this, id);
+    };
+  });
+}
+
+for (const language of ["en", "fr"] as const) {
+  test(`audio device choices persist and route real capture/playback (${language})`, async ({
+    page,
+  }) => {
+    await selectableDevices(page);
+    await login(page);
+    await page.evaluate(
+      (lang) => localStorage.setItem("ambicrafted-language", lang),
+      language,
+    );
+    await page.goto("/assistant");
+    const input = page.getByLabel(
+      language === "fr" ? "Entrée microphone" : "Microphone input",
+      { exact: true },
+    );
+    const output = page.getByLabel(
+      language === "fr" ? "Sortie audio" : "Speaker output",
+      { exact: true },
+    );
+    await input.selectOption("usb-mic");
+    await output.selectOption("headset");
+    await page.reload();
+    await expect(input).toHaveValue("usb-mic");
+    await expect(output).toHaveValue("headset");
+    await page
+      .getByText(
+        language === "fr"
+          ? "Vérifier le microphone et le son"
+          : "Check microphone & sound",
+        { exact: true },
+      )
+      .click();
+    await page
+      .getByRole("button", {
+        name: language === "fr" ? "Tester le microphone" : "Test microphone",
+        exact: true,
+      })
+      .click();
+    await expect(page.getByRole("meter")).toHaveAttribute("value", /0\.[1-9]/);
+    expect(
+      await page.evaluate(() => window.__audioDevices.captures.at(-1)?.audio),
+    ).toMatchObject({ deviceId: { exact: "usb-mic" } });
+    await expect(input).toBeDisabled();
+    await page.waitForTimeout(600);
+    await page
+      .getByRole("button", {
+        name: language === "fr" ? "Arrêter le test" : "Stop test",
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole("button", {
+        name:
+          language === "fr"
+            ? "Écouter l’enregistrement"
+            : "Listen to the sample",
+        exact: true,
+      })
+      .click();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            window.__nativeAudio.find((a) => a.src.startsWith("blob:"))
+              ?.currentTime,
+        ),
+      )
+      .toBeGreaterThan(0.1);
+    expect(
+      await page.evaluate(
+        () =>
+          window.__nativeAudio.find((a) => a.src.startsWith("blob:"))?.sinkId,
+      ),
+    ).toBe("headset");
+    await page.keyboard.press("Escape");
+    await accessible(page);
+    const layout = await page.locator(".aura-stage").evaluate((stage) => {
+      const core = stage.querySelector(".neural-core")!.getBoundingClientRect();
+      const title = stage
+        .querySelector(".aura-identity")!
+        .getBoundingClientRect();
+      return {
+        vertical: title.top >= core.bottom - 1,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      };
+    });
+    expect(layout).toEqual({ vertical: true, overflow: false });
+  });
+}
+
+test("audio discovery handles denied permission, removal and an explicit replacement", async ({
+  page,
+}) => {
+  await selectableDevices(page);
+  await login(page);
+  await page.goto("/assistant");
+  await page.evaluate(() => {
+    window.__audioDevices.denied = true;
+  });
+  await page.getByRole("button", { name: "Detect devices" }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Microphone access was denied",
+  );
+  await page.evaluate(() => {
+    window.__audioDevices.denied = false;
+  });
+  await page.getByRole("button", { name: "Detect devices" }).click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__auraSynthetic.stops)).toBe(1);
+  await page.getByLabel("Microphone input").selectOption("usb-mic");
+  await page.evaluate(() => {
+    window.__audioDevices.removed = true;
+    navigator.mediaDevices.dispatchEvent(new Event("devicechange"));
+  });
+  await expect(page.getByLabel("Microphone input")).toContainText(
+    "Saved microphone unavailable",
+  );
+  await page.getByLabel("Microphone input").selectOption("camera-mic");
+  await page.getByRole("button", { name: "Record", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Finish recording", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => window.__audioDevices.captures.at(-1)?.audio),
+  ).toMatchObject({ deviceId: { exact: "camera-mic" } });
+  await page.keyboard.press("Escape");
+});
+
+test("welcome, music and guides share the chosen output without recording", async ({
+  page,
+}) => {
+  await selectableDevices(page);
+  await page.addInitScript(() =>
+    localStorage.setItem("ambicrafted-welcome-audio", "off"),
+  );
+  await page.goto("/welcome");
+  await page.locator(".welcome-device-settings > summary").click();
+  await page.getByLabel("Speaker output").selectOption("display");
+  await page.getByRole("button", { name: "Test speakers" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          window.__nativeAudio.find((a) => a.src.endsWith("speaker-check.wav"))
+            ?.currentTime,
+      ),
+    )
+    .toBeGreaterThan(0.1);
+  expect(
+    await page.evaluate(
+      () =>
+        window.__nativeAudio.find((a) => a.src.endsWith("speaker-check.wav"))
+          ?.sinkId,
+    ),
+  ).toBe("display");
+  expect(await page.evaluate(() => window.__audioDevices.captures)).toEqual([]);
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", { name: "Play ambient music", exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          window.__nativeAudio.find((a) => a.src.endsWith("orbital-drift.mp3"))
+            ?.sinkId,
+      ),
+    )
+    .toBe("display");
+  await page
+    .getByRole("button", { name: "Listen to my welcome", exact: true })
+    .click();
+  await expect(
+    page.getByText("AURA is speaking", { exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          window.__nativeAudio.find((a) => a.src.includes("welcome-en"))
+            ?.sinkId,
+      ),
+    )
+    .toBe("display");
+  await page.getByLabel("Speaker output").selectOption("headset");
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.__nativeAudio
+          .filter((a) => !a.paused)
+          .every((a) => a.sinkId === "headset"),
+      ),
+    )
+    .toBe(true);
+  await page.keyboard.press("Escape");
+  await login(page);
+  await page.goto("/guide");
+  const video = page.locator("video");
+  await expect
+    .poll(() => video.evaluate((v) => (v as HTMLVideoElement).sinkId))
+    .toBe("headset");
+  await video.evaluate((v) => (v as HTMLVideoElement).play());
+  await expect
+    .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))
+    .toBeGreaterThan(0.1);
 });
 test.afterEach(({ page }) => expect(browserErrors.get(page)).toEqual([]));
 

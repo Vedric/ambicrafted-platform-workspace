@@ -44,3 +44,5 @@ pinned local speech runtime and voice styles as the welcome assets above.
 `../guides/provenance.json` records the caption text, audio/video codecs,
 durations and SHA-256 hashes. The recordings show synthetic UI examples.
 No microphone recording, customer data or third-party soundtrack is included.
+
+`speaker-check.wav` is an original one-second two-tone output test generated mathematically (440/660 Hz, 24 kHz PCM). No samples or third-party assets; dedicated under CC0. It plays only on an explicit Test speakers action.

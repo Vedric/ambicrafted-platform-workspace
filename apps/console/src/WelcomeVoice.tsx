@@ -1,4 +1,6 @@
 import { useAudioFocus } from "./audio-focus";
+import { AudioDevices } from "./AudioDevices";
+import { playWithAudioOutput, useAudioOutput } from "./audio-devices";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AudioLines, LoaderCircle, Play, Square } from "lucide-react";
@@ -36,6 +38,8 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
   const latestWatch = useRef(watch.data);
   latestWatch.current = watch.data;
   const [phase, setPhase] = useState<Phase>("idle");
+  const [configuringAudio, setConfiguringAudio] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
   useAudioFocus(phase === "loading" || phase === "speaking" ? "speech" : null);
   const [message, setMessage] = useState<string | null>(null);
   const [transcript, setTranscript] = useState("");
@@ -47,6 +51,11 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
     }
   });
   const player = useRef<HTMLAudioElement | null>(null);
+  useAudioOutput(player, (cause) => {
+    stop();
+    setPhase("error");
+    setMessage(cause.message);
+  });
   const request = useRef<AbortController | null>(null);
   const signal = useRef<SignalReader | null>(null);
   const objectUrl = useRef<string | null>(null);
@@ -160,7 +169,7 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
           /* Playback itself reports failures. */
         });
       if (generation.current !== current) return;
-      await audio.play();
+      await playWithAudioOutput(audio, () => generation.current === current);
     } catch (error) {
       if (generation.current !== current) return;
       const blocked =
@@ -239,6 +248,7 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
         <div className="welcome-audio-actions">
           <button
             className="btn primary"
+            disabled={configuringAudio}
             onClick={() => (busy ? stop() : void play("greeting"))}
           >
             {phase === "loading" ? (
@@ -253,7 +263,7 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
           {connected && (
             <button
               className="btn"
-              disabled={busy || overview.isPending}
+              disabled={busy || configuringAudio || overview.isPending}
               onClick={() => void play("briefing")}
             >
               <AudioLines size={17} />
@@ -263,7 +273,7 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
           {watch.data?.briefings?.[language] && !watch.data.stale && (
             <button
               className="btn"
-              disabled={busy}
+              disabled={busy || configuringAudio}
               onClick={() => void play("watch")}
             >
               <AudioLines size={17} />
@@ -300,9 +310,18 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
           />
           {t("Welcome me on arrival")}
         </label>
-        <p className="hint">
-          {t("AURA uses your system’s default microphone and speakers.")}
-        </p>
+        <details
+          className="welcome-device-settings"
+          onToggle={(event) => setDevicesOpen(event.currentTarget.open)}
+        >
+          <summary>{t("Audio devices")}</summary>
+          {devicesOpen && (
+            <AudioDevices
+              disabled={busy}
+              onActiveChange={setConfiguringAudio}
+            />
+          )}
+        </details>
         {transcript && (
           <details className="welcome-transcript">
             <summary>{t("Transcript")}</summary>

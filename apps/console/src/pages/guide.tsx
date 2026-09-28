@@ -15,6 +15,11 @@ import {
 import { t, useI18n, type MessageKey } from "../i18n";
 import { Titre } from "../ui";
 import { useAudioFocus } from "../audio-focus";
+import {
+  audioPreferences,
+  playWithAudioOutput,
+  useAudioOutput,
+} from "../audio-devices";
 
 export const TRAINING_EXAMPLE =
   "Training incident: the gateway returns HTTP 504 for 18% of requests since 14:30 UTC. The upstream responds in 120 ms when queried locally; the gateway times out at 5 seconds. A configuration change was applied at 14:20 UTC. No restart or configuration change is authorised. Find the relevant runbook, distinguish facts from hypotheses, quote the exact passages and list the evidence still needed." as const;
@@ -48,7 +53,7 @@ const lessons = [
     steps: [
       [
         "Check your microphone",
-        "AURA uses the system default input and output. Allow microphone access when recording, and check that the signal moves when you speak.",
+        "Open Audio devices, detect and select your microphone and speakers, then test the signal and playback before starting a conversation.",
         "/assistant",
       ],
       [
@@ -325,6 +330,8 @@ function NarratedWalkthrough({
   const player = useRef<HTMLVideoElement>(null);
   const [failed, setFailed] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [outputError, setOutputError] = useState("");
+  useAudioOutput(player, (cause) => setOutputError(cause.message));
   const src = `/guides/${lesson.id}-${language}.mp4`;
   useAudioFocus(playing ? "speech" : null);
   useEffect(() => {
@@ -355,7 +362,19 @@ function NarratedWalkthrough({
         preload="metadata"
         poster={`/guides/${lesson.id}-${language}.jpg`}
         aria-label={t(lesson.title)}
-        onPlay={() => setPlaying(true)}
+        onPlay={(event) => {
+          const video = event.currentTarget;
+          if ((video.sinkId || "") !== audioPreferences().outputId) {
+            video.pause();
+            void playWithAudioOutput(
+              video,
+              () => player.current === video && !document.hidden,
+            ).catch((cause: Error) => setOutputError(cause.message));
+          } else {
+            setPlaying(true);
+            setOutputError("");
+          }
+        }}
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
         onError={() => {
@@ -371,6 +390,7 @@ function NarratedWalkthrough({
           label={language === "fr" ? "Français" : "English"}
         />
       </video>
+      {outputError && <p role="alert">{outputError}</p>}
       {failed && (
         <div role="alert">
           <p>
