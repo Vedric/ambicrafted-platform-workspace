@@ -64,6 +64,10 @@ input, the capture cap, three stalled stages, late results, actual ASGI disconne
 strict spoken-mode validation and history idempotency. Native Playwright tests also
 cover microphone/speaker selection, recorded sample playback, hands-free turn-taking,
 uncertain network completion followed by retry, paused/reduced motion and fades.
+CI rejects flaky Playwright results even when their retry succeeds. Animation
+checks wait for native pending pause operations and compare document coordinates
+so scrolling itself is not mistaken for layout movement. Synthetic audio fixtures
+isolate model preparation; API tests separately enforce its real rate limit.
 
 Local rendering measurements covered 1440/390-pixel widths, both themes, and normal
 or 4× CPU throttling over six-second repeated scrolls: p95 frame time 16.7–16.8 ms,

@@ -315,3 +315,20 @@ def test_warmup_failure_is_sanitized_and_retryable(client, bearer, application, 
     assert not application.state.moteur.inference.locked()
     application.state.moteur.creer("Incident", "Synthetic", "test")
     assert client.post("/api/assistant/preparer", headers=bearer, json={}).status_code == 409
+
+
+def test_warmup_rate_limit_does_not_start_extra_inference(client, bearer, application, monkeypatch):
+    import plateforme.app as module
+
+    calls = 0
+
+    async def warm(p):
+        nonlocal calls
+        calls += 1
+
+    monkeypatch.setattr(module, "preparer_dialogue", warm)
+    for _ in range(12):
+        assert client.post("/api/assistant/preparer", headers=bearer, json={}).status_code == 200
+    assert client.post("/api/assistant/preparer", headers=bearer, json={}).status_code == 429
+    assert calls == 12
+    assert not application.state.moteur.inference.locked()

@@ -28,7 +28,14 @@ async function open(page: Page, route: string) {
 }
 
 function snapshot(core: Locator) {
-  return core.evaluate((element) => {
+  return core.evaluate(async (element) => {
+    // A CSS pause is pending until the next animation frame. Its playState can
+    // already be "paused" while the hold time has not yet been committed.
+    await Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.ready),
+    );
     const style = (selector: string) =>
       getComputedStyle(element.querySelector(selector)!);
     return {
@@ -135,14 +142,15 @@ for (const [route, lower, upper] of [
             target: this,
             direction: this.dataset.revealDirection || "",
             before: Number(getComputedStyle(this).opacity),
-            y: this.getBoundingClientRect().y,
+            // Scrolling changes viewport coordinates, not document geometry.
+            y: this.getBoundingClientRect().y + window.scrollY,
           };
           window.__auraFades.push(entry);
           window.setTimeout(
             () =>
               Object.assign(entry, {
                 after: Number(getComputedStyle(this).opacity),
-                endY: this.getBoundingClientRect().y,
+                endY: this.getBoundingClientRect().y + window.scrollY,
               }),
             850,
           );

@@ -397,6 +397,12 @@ async function syntheticSpeech(page: Page) {
       },
     });
   });
+  // Keep this synthetic audio fixture independent from preparation requests in
+  // preceding tests sharing the API's rate-limit window. Backend tests cover
+  // the real preparation endpoint; the busy/retry case overrides this route.
+  await page.route("**/api/assistant/preparer", (route) =>
+    route.fulfill({ json: { pret: true, local: true } }),
+  );
   await page.route("**/api/voix/statut?*", (route) =>
     route.fulfill({
       json: {
