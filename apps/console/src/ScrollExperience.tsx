@@ -78,16 +78,13 @@ export function ScrollExperience({ routeKey }: { routeKey: string }) {
           cancel(element);
           element.dataset.revealState = "entering";
           element.dataset.revealDirection = direction > 0 ? "down" : "up";
+          // Keep observed geometry stable. Translating a card across the
+          // viewport edge can retrigger its own observer indefinitely and make
+          // controls jitter, especially below the fold on mobile.
           const animation = element.animate(
-            [
-              {
-                opacity: 0.12,
-                transform: "translateY(" + direction * 28 + "px)",
-              },
-              { opacity: 1, transform: "translateY(0)" },
-            ],
+            [{ opacity: 0.12 }, { opacity: 1 }],
             {
-              duration: 720,
+              duration: 520,
               delay: Math.min(stagger++, 5) * 55,
               fill: "backwards",
               easing: "cubic-bezier(.16,1,.3,1)",

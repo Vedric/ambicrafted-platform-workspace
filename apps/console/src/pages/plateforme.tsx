@@ -1,5 +1,5 @@
 import { t, useI18n, number, countLabel } from "../i18n";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -771,6 +771,12 @@ export function Parametres() {
         budget_tokens_total?: number | null;
       }>("/parametres"),
   });
+  useEffect(() => {
+    if (location.hash === "#browser-access")
+      document
+        .getElementById("browser-access")
+        ?.scrollIntoView({ block: "center" });
+  }, [q.isSuccess]);
   const [mot, setMot] = useState(""),
     [confirmation, setConfirmation] = useState("");
   const client = useQueryClient();
@@ -839,7 +845,7 @@ export function Parametres() {
             )}
           </p>
         </section>
-        <section className="panel settings-panel">
+        <section className="panel settings-panel" id="browser-access">
           <h2>
             <ShieldCheck size={19} /> {t("Console password")}
           </h2>

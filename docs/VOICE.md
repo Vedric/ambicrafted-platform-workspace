@@ -499,3 +499,51 @@ subscription, tracker or network stream is involved.
 Playwright verifies real MP3/WAV playback, welcome attenuation, recording silence
 and stop persistence in desktop and mobile Chromium. Physical speaker levels and
 Safari/Firefox playback are not certified by Chromium emulation.
+
+
+## Browser recovery and narrated guides (0.4.1 console / 0.3.1 voice)
+
+Language choices are **English voice** and **French voice**; the internal aliases
+remain unchanged. The desktop AURA deck runs horizontally, with an optional
+heartbeat accent. Reduced motion, Pause animations, offscreen scenes and hidden
+tabs suspend decorative activity; measured input still drives signal feedback.
+
+The browser microphone analyser now feeds a zero-gain destination to keep the
+audio graph active without audible microphone feedback. The AudioContext activated
+by the initial click is reused between hands-free turns, then closed on completion,
+error or cancellation. Native output follows the system default without `setSinkId`.
+**Check microphone & sound** captures at most eight seconds for local replay, with
+no API upload. It releases tracks and object URLs on cancellation/unmount and
+handles denied permission or blocked playback explicitly. Physical device privacy
+and OS/browser volume cannot be changed by the web application.
+
+The phonemizer is initialized once per process and serialized across voice switches.
+eSpeak owns native global state: repeatedly initializing it during multilingual
+synthesis caused native warnings and a stalled guide build. A bounded subprocess
+regression alternates French and English from concurrent callers and requires
+stable phonemes with no native stderr output.
+
+Six narrated guides now use H.264 video and AAC audio in MP4. The earlier WebMs
+contained only video, so moving playback did not prove the presence of sound.
+Automated checks now decode each audio track, verify nonzero RMS and asset hashes,
+and check actual browser audio decoding alongside video progression. Narration
+uses only `scripts/guide-script.json`, generated locally under a 130-second limit
+per caption. To regenerate with the disposable preview on 8789:
+
+```sh
+uv run --locked --project apps/voice python apps/console/scripts/narrate-guides.py prepare /absolute/private/guide-evidence
+cd apps/console
+node scripts/record-guides.mjs /absolute/private/session.json /absolute/private/guide-evidence
+cd ../..
+uv run --locked --project apps/voice python apps/console/scripts/narrate-guides.py mux /absolute/private/guide-evidence
+```
+
+The session file contains only the disposable preview API key; it is never copied
+into public assets. Keep the intermediate WAV/WebM directory private and publish
+only reviewed MP4s, posters, captions and provenance. Audio licensing is recorded
+in `apps/console/public/audio/NOTICE.md`.
+
+Browser behavior follows [MDN Web Audio activation guidance](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Best_practices)
+and [autoplay handling](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay).
+These describe browser constraints; passing automated tests does not verify a
+physical Windows microphone or speaker.

@@ -47,3 +47,36 @@ def test_phoneme_inconnu_ne_disparait_pas_silencieusement(monkeypatch):
 def test_phrase_vide_ne_produit_pas_audio_silencieux():
     with pytest.raises(ErreurVoix):
         phonemiser("   ", "en", {" ": 1})
+
+
+def test_alternance_repetee_des_langues_ne_reinitialise_pas_espeak():
+    """A native deadlock must fail within a deadline, never hang the suite."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            """
+from concurrent.futures import ThreadPoolExecutor
+from voix_locale.synthese import phonemiser
+vocab = {chr(i): i for i in range(65536)}
+phrases = {"fr": "Bonjour, comment allez-vous ?", "en": "Hello, how are you today?"}
+def say(language):
+    return phonemiser(phrases[language], language, vocab)
+expected = {language: say(language) for language in phrases}
+assert expected['fr'] != expected['en']
+languages = ['fr', 'en'] * 12
+with ThreadPoolExecutor(max_workers=4) as pool:
+    actual = list(pool.map(say, languages))
+assert all(value == expected[language] for value, language in zip(actual, languages))
+""",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=20,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == ""

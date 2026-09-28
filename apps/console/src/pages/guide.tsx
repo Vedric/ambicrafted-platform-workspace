@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { t, useI18n, type MessageKey } from "../i18n";
 import { Titre } from "../ui";
+import { useAudioFocus } from "../audio-focus";
 
 export const TRAINING_EXAMPLE =
   "Training incident: the gateway returns HTTP 504 for 18% of requests since 14:30 UTC. The upstream responds in 120 ms when queried locally; the gateway times out at 5 seconds. A configuration change was applied at 14:20 UTC. No restart or configuration change is authorised. Find the relevant runbook, distinguish facts from hypotheses, quote the exact passages and list the evidence still needed." as const;
@@ -150,27 +151,14 @@ export function UserGuide() {
             <h2>{t("Watch the walkthrough")}</h2>
             <span className="tag">{language === "fr" ? "FR" : "EN"}</span>
           </div>
-          <video
+          <NarratedWalkthrough
             key={lesson.id + language}
-            controls
-            playsInline
-            preload="none"
-            poster={`/guides/${lesson.id}-${language}.jpg`}
-            aria-label={t(lesson.title)}
-          >
-            <source
-              src={`/guides/${lesson.id}-${language}.webm`}
-              type="video/webm"
-            />
-            <track
-              default
-              kind="captions"
-              src={`/guides/${lesson.id}-${language}.vtt`}
-              srcLang={language}
-              label={language === "fr" ? "Français" : "English"}
-            />
-          </video>
-          <p className="hint">{t("Interface recording · synthetic example")}</p>
+            lesson={lesson}
+            language={language}
+          />
+          <p className="hint">
+            {t("Narrated walkthrough · captions available")}
+          </p>
           <p className="hint">
             {t(
               "A demonstration uses deterministic synthetic responses to explain the interface. It does not certify model accuracy.",
@@ -323,6 +311,90 @@ export function UserGuide() {
           ))}
         </section>
       </div>
+    </>
+  );
+}
+
+function NarratedWalkthrough({
+  lesson,
+  language,
+}: {
+  lesson: (typeof lessons)[number];
+  language: string;
+}) {
+  const player = useRef<HTMLVideoElement>(null);
+  const [failed, setFailed] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const src = `/guides/${lesson.id}-${language}.mp4`;
+  useAudioFocus(playing ? "speech" : null);
+  useEffect(() => {
+    const video = player.current;
+    // A cached/fast failure can precede React's listener attachment while a
+    // lazy route is being committed. Reflect the native error after mounting.
+    if (video?.error) setFailed(true);
+    const pause = () => {
+      if (document.hidden) video?.pause();
+    };
+    document.addEventListener("visibilitychange", pause);
+    return () => {
+      document.removeEventListener("visibilitychange", pause);
+      if (video) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      }
+    };
+  }, []);
+  return (
+    <>
+      <video
+        ref={player}
+        src={src}
+        controls
+        playsInline
+        preload="metadata"
+        poster={`/guides/${lesson.id}-${language}.jpg`}
+        aria-label={t(lesson.title)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        onError={() => {
+          setFailed(true);
+          setPlaying(false);
+        }}
+      >
+        <track
+          default
+          kind="captions"
+          src={`/guides/${lesson.id}-${language}.vtt`}
+          srcLang={language}
+          label={language === "fr" ? "Français" : "English"}
+        />
+      </video>
+      {failed && (
+        <div role="alert">
+          <p>
+            {t("Video unavailable. Reload it or follow the steps alongside.")}
+          </p>
+          <button
+            className="btn"
+            onClick={() => {
+              setFailed(false);
+              player.current?.load();
+            }}
+          >
+            {t("Reload video")}
+          </button>{" "}
+          <a
+            className="text-button"
+            href={src}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t("Open video")}
+          </a>
+        </div>
+      )}
     </>
   );
 }

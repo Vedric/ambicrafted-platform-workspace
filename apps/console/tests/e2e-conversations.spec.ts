@@ -16,13 +16,11 @@ test("saved dialogue retains source selection, history and drafts, then deletes 
   await login(page);
   const title = `Synthetic context ${test.info().project.name}`;
   const input = page.getByLabel("Your message");
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: "latency.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from("service,p95_ms\nsynthetic,125\n"),
-    });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "latency.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("service,p95_ms\nsynthetic,125\n"),
+  });
   await expect(
     page.getByRole("checkbox", { name: "latency.csv" }),
   ).toBeChecked();
@@ -75,7 +73,7 @@ test("saved dialogue retains source selection, history and drafts, then deletes 
   await expect(page.getByText("No saved conversations found.")).toBeVisible();
 });
 
-test("all six guide videos load and advance native playback", async ({
+test("all six narrated guides decode audio and advance native playback", async ({
   page,
 }) => {
   await login(page);
@@ -85,7 +83,7 @@ test("all six guide videos load and advance native playback", async ({
         async ({ language, topic }) => {
           const video = document.createElement("video");
           video.muted = true;
-          video.src = `/guides/${topic}-${language}.webm`;
+          video.src = `/guides/${topic}-${language}.mp4`;
           document.body.append(video);
           try {
             await video.play();
@@ -105,6 +103,11 @@ test("all six guide videos load and advance native playback", async ({
               duration: video.duration,
               time: video.currentTime,
               width: video.videoWidth,
+              audioBytes: (
+                video as HTMLVideoElement & {
+                  webkitAudioDecodedByteCount: number;
+                }
+              ).webkitAudioDecodedByteCount,
             };
           } finally {
             video.pause();
@@ -118,6 +121,31 @@ test("all six guide videos load and advance native playback", async ({
       expect(result.duration).toBeGreaterThan(5);
       expect(result.time).toBeGreaterThan(0);
       expect(result.width).toBeGreaterThan(300);
+      expect(result.audioBytes).toBeGreaterThan(0);
     }
   }
+});
+
+test("guide playback failure offers a working retry and stops when changing lessons", async ({
+  page,
+}) => {
+  await login(page);
+  await page.route("**/guides/first-steps-en.mp4", (route) => route.abort());
+  await page.goto("/guide");
+  await expect(page.getByRole("alert")).toContainText("Video unavailable");
+  await page.unroute("**/guides/first-steps-en.mp4");
+  await page.getByRole("button", { name: "Reload video" }).click();
+  const video = page.locator("video");
+  await expect
+    .poll(() => video.evaluate((v) => (v as HTMLVideoElement).readyState))
+    .toBeGreaterThan(1);
+  await video.evaluate((v) => (v as HTMLVideoElement).play());
+  await expect
+    .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))
+    .toBeGreaterThan(0.1);
+  await page.getByRole("button", { name: /Talk with AURA/ }).click();
+  await expect(video).toHaveAttribute("src", "/guides/voice-en.mp4");
+  expect(await video.evaluate((v) => (v as HTMLVideoElement).paused)).toBe(
+    true,
+  );
 });

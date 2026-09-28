@@ -1,0 +1,38 @@
+{
+  "first-steps": {
+    "en": [
+      "Welcome to your private workspace. Choose your language and theme.",
+      "Check Readiness before starting a mission.",
+      "Choose a mission and describe observed facts."
+    ],
+    "fr": [
+      "Bienvenue dans votre espace privé. Choisissez la langue et le thème.",
+      "Vérifiez la préparation avant une mission.",
+      "Choisissez une mission et décrivez les faits observés."
+    ]
+  },
+  "voice": {
+    "en": [
+      "AURA follows your system’s default microphone and speakers.",
+      "Record a draft, then review its transcription. This transcript is synthetic.",
+      "Send reviewed text to AURA. Conversation cannot approve an operation."
+    ],
+    "fr": [
+      "AURA utilise le microphone et la sortie audio par défaut du système.",
+      "Enregistrez puis relisez la transcription. Ici, elle est simulée.",
+      "Envoyez le texte relu à AURA. La conversation ne valide aucune opération."
+    ]
+  },
+  "investigation": {
+    "en": [
+      "Describe a synthetic incident and submit a supervised analysis.",
+      "Read the proposal and inspect its sources before deciding.",
+      "Your decision is recorded. Approval does not execute remediation."
+    ],
+    "fr": [
+      "Décrivez un incident fictif et lancez une analyse supervisée.",
+      "Lisez la proposition et ses sources avant de décider.",
+      "Votre décision est enregistrée. Elle ne lance aucune remédiation."
+    ]
+  }
+}

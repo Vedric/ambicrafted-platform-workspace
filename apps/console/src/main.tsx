@@ -10,6 +10,7 @@ import "./style.css";
 import "./premium.css";
 import App from "./App";
 import "./experience.css";
+import "./aura-workspace.css";
 
 const client = new QueryClient({
   defaultOptions: {

@@ -14,8 +14,11 @@
       "file": "assistant-dark.png",
       "route": "/assistant",
       "theme": "dark",
-      "sha256": "6b78db3fd108138d12504d7203400f2886e1a56f6d0a9cb1373d1f96aa658861",
-      "bytes": 780680
+      "sha256": "38177b67af2ea92adad9938cfbcd2a12869a430848309a8893b9a4635b79751b",
+      "bytes": 685359,
+      "revision": "0.4.1 browser/media recovery",
+      "annotations": "None; direct browser capture",
+      "data": "Empty synthetic workspace; voice readiness is an explicit demo fixture."
     },
     {
       "file": "workspace-dark.png",
@@ -49,8 +52,11 @@
       "file": "assistant-light.png",
       "route": "/assistant",
       "theme": "light",
-      "sha256": "9b1ed8fb6d73f36a934f399f903473600d55e36890611389c22489552821232a",
-      "bytes": 753433
+      "sha256": "817badbfbf60db9b96b62ddb477bb63e329ce32c7421e6d72d9bcb9b4098d6dd",
+      "bytes": 650584,
+      "revision": "0.4.1 browser/media recovery",
+      "annotations": "None; direct browser capture",
+      "data": "Empty synthetic workspace; voice readiness is an explicit demo fixture."
     },
     {
       "file": "workspace-light.png",

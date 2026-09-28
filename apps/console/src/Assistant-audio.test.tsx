@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Assistant from "./Assistant";
+import { MicrophoneCheck } from "./MicrophoneCheck";
 import type { SignalReader } from "./audio-signal";
 import { setLanguage } from "./i18n";
 
@@ -47,8 +48,13 @@ let recorders: Recorder[];
 let contexts: MicrophoneContext[];
 let players: Player[];
 let playError: Error | null;
-const track = { stop: vi.fn() };
-const stream = { getTracks: () => [track] };
+const track = {
+  stop: vi.fn(),
+  enabled: true,
+  muted: false,
+  label: "Synthetic default microphone",
+};
+const stream = { getTracks: () => [track], getAudioTracks: () => [track] };
 const revoke = vi.fn();
 const originalMedia = Object.getOwnPropertyDescriptor(
   navigator,
@@ -83,7 +89,10 @@ class MicrophoneContext {
   state = suspendedInitially ? "suspended" : "running";
   destination = {};
   source = { connect: vi.fn(), disconnect: vi.fn() };
+  gain = { gain: { value: 1 }, connect: vi.fn(), disconnect: vi.fn() };
+  createGain = vi.fn(() => this.gain);
   analyser = {
+    connect: vi.fn(),
     fftSize: 1024,
     disconnect: vi.fn(),
     getFloatTimeDomainData: vi.fn((values: Float32Array) =>
@@ -113,6 +122,9 @@ class Player {
   constructor(public src: string) {
     players.push(this);
   }
+  setSinkId = vi.fn(async () => {
+    throw new DOMException("Output selection blocked", "SecurityError");
+  });
   play = vi.fn(async () => {
     if (playError) throw playError;
     this.paused = false;
@@ -385,6 +397,11 @@ describe("manual speech resources and language", () => {
       contexts[0].analyser,
     );
     expect(contexts[0].source.connect).toHaveBeenCalledTimes(1);
+    expect(contexts[0].gain.gain.value).toBe(0);
+    expect(contexts[0].analyser.connect).toHaveBeenCalledWith(contexts[0].gain);
+    expect(contexts[0].gain.connect).toHaveBeenCalledWith(
+      contexts[0].destination,
+    );
     expect(reader()?.()?.level).toBeGreaterThan(0);
     await click("Stop recording");
     expect(screen.getByLabelText("Your message")).toHaveValue(
@@ -734,10 +751,11 @@ describe("explicit bounded hands-free conversation", () => {
     expect(screen.getByLabelText("Read replies automatically")).toBeDisabled();
     await spokenTurn();
     expect(calls("/assistant/dialogue")).toHaveLength(1);
-    expect(contexts[0].close).toHaveBeenCalledOnce();
+    expect(contexts[0].close).not.toHaveBeenCalled();
     await finishPlayback();
     await advance(600);
     expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
+    expect(contexts).toHaveLength(1); // Preserve the user-activated audio context across turns.
     await spokenTurn();
     expect(calls("/assistant/dialogue")[1][2].messages).toEqual([
       { role: "user", content: "A synthetic question." },
@@ -835,8 +853,11 @@ describe("explicit bounded hands-free conversation", () => {
     await advance(90000);
     expect(recorders[0].state).toBe("inactive");
     expect(calls("/voix/transcrire")).toHaveLength(1);
-    expect(contexts[0].close).toHaveBeenCalledOnce();
+    expect(track.stop).toHaveBeenCalled();
+    expect(contexts[0].close).not.toHaveBeenCalled();
     expect(screen.getByRole("status")).toHaveTextContent("Speaking");
+    await click("End conversation");
+    expect(contexts[0].close).toHaveBeenCalledOnce();
   });
   it("ends after twenty turns without reopening the microphone", async () => {
     await show();
@@ -911,4 +932,86 @@ describe("explicit bounded hands-free conversation", () => {
       expect(vi.getTimerCount()).toBe(0);
     },
   );
+});
+
+describe("local microphone and sound check", () => {
+  async function diagnostic() {
+    const active = vi.fn();
+    const view = render(
+      <MicrophoneCheck disabled={false} onActiveChange={active} />,
+    );
+    fireEvent.click(screen.getByText("Check microphone & sound"));
+    await flush();
+    return { ...view, active };
+  }
+  it("records a bounded local sample and replays on the default output without sending audio", async () => {
+    vi.useFakeTimers();
+    const { active, unmount } = await diagnostic();
+    await click("Test microphone");
+    await advance(8100);
+    expect(track.stop).toHaveBeenCalledOnce();
+    expect(contexts[0].close).toHaveBeenCalledOnce();
+    expect(contexts[0].gain.gain.value).toBe(0);
+    expect(
+      screen.getByRole("button", { name: "Listen to the sample" }),
+    ).toBeEnabled();
+    expect(mocks.api).not.toHaveBeenCalled();
+    await click("Listen to the sample");
+    expect(players[0].paused).toBe(false);
+    expect(players[0].setSinkId).not.toHaveBeenCalled();
+    expect(active).toHaveBeenLastCalledWith(true);
+    await click("Stop test");
+    expect(players[0].paused).toBe(true);
+    expect(revoke).toHaveBeenCalledWith("blob:synthetic-1");
+    expect(active).toHaveBeenLastCalledWith(false);
+    unmount();
+  });
+  it("shows permission denial and permits retry", async () => {
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(
+      new DOMException("denied", "NotAllowedError"),
+    );
+    await diagnostic();
+    await click("Test microphone");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Microphone access was denied",
+    );
+    expect(
+      screen.getByRole("button", { name: "Test microphone" }),
+    ).toBeEnabled();
+    await click("Test microphone");
+    expect(screen.getByRole("button", { name: "Stop test" })).toBeEnabled();
+  });
+  it("releases a late permission grant after cancel", async () => {
+    let allow!: (value: MediaStream) => void;
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValueOnce(
+      new Promise((resolve) => {
+        allow = resolve;
+      }),
+    );
+    await diagnostic();
+    await click("Test microphone");
+    await click("Stop test");
+    await act(async () => allow(stream as unknown as MediaStream));
+    expect(track.stop).toHaveBeenCalledOnce();
+    expect(recorders).toHaveLength(0);
+    expect(contexts[0].close).toHaveBeenCalledOnce();
+  });
+  it("reports blocked playback and stops capture on Escape", async () => {
+    await diagnostic();
+    await click("Test microphone");
+    await click("Stop test");
+    playError = new DOMException("blocked", "NotAllowedError");
+    await click("Listen to the sample");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Check your system speakers",
+    );
+    await click("Test microphone");
+    fireEvent.keyDown(window, { key: "Escape" });
+    await flush();
+    expect(recorders.every((r) => r.state === "inactive")).toBe(true);
+    expect(contexts.every((c) => c.state === "closed")).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Test microphone" }),
+    ).toBeEnabled();
+  });
 });

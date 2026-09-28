@@ -39,3 +39,12 @@ Vitest unit tests cover fetch/CSRF/error handling, diagnostic-shape validation,
 public authentication states and inert rendering of hostile Markdown. Browser
 reports, traces and failure screenshots are local test artifacts. Do not commit
 them or reuse real incident content in these fixtures.
+
+
+Browser/media recovery regressions cover password sign-in from `/welcome` in
+English and French, authenticated password setup after CLI entry, an eight-second
+local microphone diagnostic without API upload, real encoded sample replay,
+narrated H.264/AAC playback for every guide, and retry after a failed media load.
+`apps/voice/tests/test_guides.py` additionally checks audio codecs, RMS, hashes
+and caption alignment. Browser microphones are synthetic test signals; physical
+hardware permission and listening acceptance remain an operator check.

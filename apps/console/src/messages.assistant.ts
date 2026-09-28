@@ -32,8 +32,8 @@ export const assistantFr = {
     "Conversation suspendue : aucune parole détectée. Vérifiez votre microphone ou utilisez Enregistrer.",
   "Ctrl / ⌘ + Enter to send": "Ctrl / ⌘ + Entrée pour envoyer",
   "End conversation": "Terminer la conversation",
-  "English · female voice": "Anglais · voix féminine",
-  "French · female voice": "Français · voix féminine",
+  "English voice": "Anglais",
+  "French voice": "Français",
   "Hands-free mode sends speech after a pause and reads replies aloud. Up to 20 turns.":
     "Le mode mains libres envoie vos paroles après une pause et lit les réponses à voix haute. Jusqu’à 20 échanges.",
   "How do I back up my platform?": "Comment sauvegarder ma plateforme ?",

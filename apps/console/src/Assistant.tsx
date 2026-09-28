@@ -1,3 +1,4 @@
+import { MicrophoneCheck } from "./MicrophoneCheck";
 import { useAudioFocus } from "./audio-focus";
 import { texteOral } from "./spoken-text";
 export { texteOral } from "./spoken-text";
@@ -33,7 +34,6 @@ import {
   waveform,
   type SignalReader,
 } from "./audio-signal";
-import { applyAudioOutput } from "./audio-devices";
 import { api, audioLocal } from "./api";
 import { Erreur, Markdown, Titre, useToast } from "./ui";
 import "./voice-controls.css";
@@ -157,6 +157,7 @@ export default function Assistant({
   const automaticSpeech = useRef(false);
   const [langue, setLangue] = useState<"en" | "fr">(getLanguage);
   const [microLevel, setMicroLevel] = useState(0);
+  const [checkingAudio, setCheckingAudio] = useState(false);
   const [captureNote, setCaptureNote] = useState<MessageKey | null>(null);
   const [monitorBlocked, setMonitorBlocked] = useState(false);
   const [reviewReady, setReviewReady] = useState(false);
@@ -175,6 +176,7 @@ export default function Assistant({
   const microphoneContext = useRef<AudioContext | null>(null);
   const microphoneSource = useRef<MediaStreamAudioSourceNode | null>(null);
   const microphoneAnalyser = useRef<AnalyserNode | null>(null);
+  const microphoneSink = useRef<GainNode | null>(null);
   const [voix, setVoix] = useState<EtatVoix | null>(null);
   const [erreurVoix, setErreurVoix] = useState(false);
   const [erreur, setErreur] = useState<Error | null>(null);
@@ -191,7 +193,8 @@ export default function Assistant({
   const envoiEnCours = useRef<{ texte: string; avant: Message[] } | null>(null);
   const actuel = (numero: number) =>
     vivant.current && numero === generation.current;
-  const occupe = externalBusy || (phase !== "repos" && phase !== "lecture");
+  const occupe =
+    checkingAudio || externalBusy || (phase !== "repos" && phase !== "lecture");
   const microDisponible =
     typeof MediaRecorder !== "undefined" &&
     !!navigator.mediaDevices?.getUserMedia;
@@ -201,14 +204,18 @@ export default function Assistant({
     if (vivant.current) setHandsFree(false);
     if (nextTurn.current) clearTimeout(nextTurn.current);
     nextTurn.current = null;
+    if (!flux.current) releaseMicrophoneSignal();
   }
 
-  function releaseMicrophoneSignal() {
+  function releaseMicrophoneSignal(closeContext = true) {
     signal.current = null;
     microphoneSource.current?.disconnect();
     microphoneAnalyser.current?.disconnect();
+    microphoneSink.current?.disconnect();
+    microphoneSink.current = null;
     microphoneSource.current = null;
     microphoneAnalyser.current = null;
+    if (!closeContext) return;
     const context = microphoneContext.current;
     microphoneContext.current = null;
     if (context && context.state !== "closed")
@@ -220,7 +227,7 @@ export default function Assistant({
       if (!window.AudioContext) return;
       // Called synchronously from Record/Start, before awaiting microphone
       // permission. Resume requires user activation in some browsers.
-      const context = new AudioContext();
+      const context = microphoneContext.current ?? new AudioContext();
       microphoneContext.current = context;
       if (context.state === "suspended") void context.resume().catch(() => {});
     } catch {
@@ -237,7 +244,14 @@ export default function Assistant({
       microphoneSource.current = source;
       microphoneAnalyser.current = analyser;
       analyser.fftSize = 1024;
-      source.connect(analyser); // Never connect the microphone to the speakers.
+      source.connect(analyser);
+      // A connected, zero-gain output keeps the analyser graph processing on
+      // browsers that suspend unconsumed nodes. The microphone is never audible.
+      const sink = context.createGain();
+      sink.gain.value = 0;
+      analyser.connect(sink);
+      sink.connect(context.destination);
+      microphoneSink.current = sink;
       const samples = new Float32Array(analyser.fftSize);
       signal.current = () => {
         if (context.state !== "running") return null;
@@ -258,7 +272,7 @@ export default function Assistant({
     flux.current?.getTracks().forEach((piste) => piste.stop());
     flux.current = null;
     enregistreur.current = null;
-    releaseMicrophoneSignal();
+    releaseMicrophoneSignal(!handsFreeRef.current);
   }
 
   function couperSon() {
@@ -281,6 +295,7 @@ export default function Assistant({
     requete.current?.abort();
     requete.current = null;
     couperMicro();
+    if (!preserveConversation) releaseMicrophoneSignal();
     couperSon();
     if (vivant.current) {
       setPhase("repos");
@@ -405,7 +420,6 @@ export default function Assistant({
           setErreur(new Error(t("Your browser could not play this audio.")));
         }
       };
-      await applyAudioOutput(son);
       if (!actuel(numero)) return;
       await son.play();
       if (actuel(numero)) setPhase("lecture");
@@ -967,8 +981,8 @@ export default function Assistant({
                 setLangue(event.target.value as "en" | "fr");
               }}
             >
-              <option value="en">{t("English · female voice")}</option>
-              <option value="fr">{t("French · female voice")}</option>
+              <option value="en">{t("English voice")}</option>
+              <option value="fr">{t("French voice")}</option>
             </select>
             <div className="voice-state">
               <span>{t("Voice engine")}</span>
@@ -988,6 +1002,10 @@ export default function Assistant({
           <p className="hint">
             {t("AURA uses your system’s default microphone and speakers.")}
           </p>
+          <MicrophoneCheck
+            disabled={externalBusy || phase !== "repos" || handsFree}
+            onActiveChange={setCheckingAudio}
+          />
         </section>
         <div className="chat-layout">
           <section
@@ -1263,9 +1281,7 @@ export default function Assistant({
               <div className="voice-state">
                 <span>{t("Voice")}</span>
                 <strong>
-                  {langue === "en"
-                    ? t("English · female voice")
-                    : t("French · female voice")}
+                  {langue === "en" ? t("English voice") : t("French voice")}
                 </strong>
               </div>
               <div className="voice-state">

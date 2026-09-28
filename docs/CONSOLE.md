@@ -42,8 +42,8 @@ they are not model response times or an availability SLO.
 **Architecture** explains the investigation, voice, knowledge and telemetry paths.
 Select a path and a component to inspect its purpose and boundaries. Animated
 connections illustrate the documented design; service-health labels use live probes.
-Scroll accents work in either direction and stop with motion preferences, hidden
-tabs or keyboard focus. They do not gate access to content.
+Scroll fades work in either direction without moving interactive controls. They stop
+with motion preferences, hidden tabs or keyboard focus. They do not gate access to content.
 
 ## Install and start
 
@@ -99,6 +99,48 @@ server stores a scrypt hash and revokes existing sessions after a change. For
 automation, `mot-de-passe --stdin` accepts the password from a protected input
 stream. Never put a password or an API key directly in command arguments.
 Then open `http://127.0.0.1:8787` and use the login form. Sessions last 12 hours.
+
+## Recover direct browser access
+
+After the first `./plateforme ouvrir`, select **Set up browser access** in the
+banner, or **Settings → Console password**. Choose and confirm a 14–128 character
+password. Saving it revokes old sessions and returns to sign-in. Thereafter,
+open the same loopback address and sign in from Welcome; successful password
+entry immediately opens the workspace. The CLI continues to use its private API
+key or one-use ticket. No password is generated or exposed by the frontend.
+
+If Welcome shows **Set up browser access** rather than a password form, no password
+has been configured for this platform state. If a previously open session has
+expired, run `./plateforme ouvrir` once to access the authenticated setup. Use the
+same browser hostname consistently: `localhost` and `127.0.0.1` have separate
+cookies and microphone permissions. Authentication is never disabled to recover
+an expired session.
+
+## Microphone, sound and walkthroughs
+
+AURA uses the operating system's default input and output. Select **Record** or
+**Start conversation**, allow the browser's microphone permission, then speak.
+In **Record** mode, select **Finish recording**, review the text and **Send**.
+For a hardware check, expand **Check microphone & sound**, record up to eight
+seconds and choose **Listen to the sample**. The meter shows captured signal;
+this diagnostic sample stays in a browser blob, is never uploaded, and is cleared
+on Stop, Escape, navigation, hiding the tab or closing the diagnostic. A visible
+error distinguishes permission denial and playback failure. Check OS microphone
+privacy, hardware mute, system default input/output and tab volume if needed.
+
+The connected zero-gain analyser keeps signal processing active without feeding
+the microphone back into the speakers. An activated AudioContext is retained
+between hands-free turns and closed when the conversation ends. Native output
+uses the system default without calling the optional speaker-selection API.
+Browsers can still require a click before sound; the UI exposes playback controls.
+
+**User guide** serves six H.264/AAC MP4s with local narration and WebVTT captions.
+Metadata loads before Play; native controls support volume and seeking. Playback
+pauses when leaving the page, changing the lesson/language or hiding the tab.
+An error offers **Reload video**, **Open video** and the written steps. The guide
+uses synthetic demonstrations, not recorded customer sessions. Caption durations,
+audio tracks, hashes and narration text are recorded in
+`apps/console/public/guides/provenance.json`.
 
 ## First operator session
 

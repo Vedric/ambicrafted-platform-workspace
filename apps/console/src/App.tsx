@@ -430,15 +430,31 @@ export default function App() {
                 </div>
               ) : session.data?.connecte &&
                 currentRoute.pathname !== "/welcome" ? (
-                <Cadre
-                  theme={theme}
-                  changerTheme={() =>
-                    setTheme(theme === "dark" ? "light" : "dark")
-                  }
-                  animations={animations}
-                  motionEnabled={motionEnabled}
-                  changerAnimations={() => setAnimations((value) => !value)}
-                />
+                <>
+                  {!session.data.mot_de_passe && (
+                    <div className="browser-access-notice" role="status">
+                      <LockKeyhole size={18} aria-hidden="true" />
+                      <span>
+                        {t("Keep browser access after this session ends.")}
+                      </span>
+                      <Link
+                        to="/parametres#browser-access"
+                        className="text-button"
+                      >
+                        {t("Set up browser access")} <ArrowRight size={16} />
+                      </Link>
+                    </div>
+                  )}
+                  <Cadre
+                    theme={theme}
+                    changerTheme={() =>
+                      setTheme(theme === "dark" ? "light" : "dark")
+                    }
+                    animations={animations}
+                    motionEnabled={motionEnabled}
+                    changerAnimations={() => setAnimations((value) => !value)}
+                  />
+                </>
               ) : (
                 <AccueilPublic
                   connecte={session.data?.connecte || false}
@@ -522,14 +538,18 @@ function AccueilPublic({
   useEffect(() => {
     document.title = "Ambicrafted · " + t("AGENTIC WORKSPACE");
   }, [language]);
+  const navigate = useNavigate();
   const [mot, setMot] = useState("");
   const [instructions, setInstructions] = useState(false);
   const client = useQueryClient();
   const connexion = useMutation({
     mutationFn: () => api("/auth/connexion", "POST", { mot_de_passe: mot }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setMot("");
-      client.invalidateQueries({ queryKey: ["session"] });
+      const session = await api<Session>("/auth");
+      definirCsrf(session.csrf);
+      client.setQueryData(["session"], session);
+      navigate("/", { replace: true });
     },
   });
   return (
@@ -620,6 +640,7 @@ function AccueilPublic({
                       maxLength={128}
                     />
                     <button
+                      type="submit"
                       className="btn primary"
                       disabled={connexion.isPending}
                     >
@@ -634,8 +655,12 @@ function AccueilPublic({
                 </form>
               ) : (
                 <>
-                  <strong>{t("Your workspace, one command away.")}</strong>
-                  <p>{t("Open a secure session from your terminal.")}</p>
+                  <strong>{t("Set up browser access")}</strong>
+                  <p>
+                    {t(
+                      "Open your workspace once from the CLI, then choose a password in Settings. After that, sign in directly here.",
+                    )}
+                  </p>
                   <div className="command-line">
                     <SquareTerminal size={18} />
                     <code>./plateforme ouvrir</code>

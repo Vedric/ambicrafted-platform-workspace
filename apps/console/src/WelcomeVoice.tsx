@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { AudioLines, LoaderCircle, Play, Square } from "lucide-react";
 import { api, audioLocal, type Vue } from "./api";
 import { t, useI18n } from "./i18n";
-import { applyAudioOutput } from "./audio-devices";
 import { pcmSignal, type SignalReader } from "./audio-signal";
 import { NeuralCore } from "./NeuralCore";
 import { useTechWatch } from "./TechWatch";
@@ -160,7 +159,6 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
         .catch(() => {
           /* Playback itself reports failures. */
         });
-      await applyAudioOutput(audio);
       if (generation.current !== current) return;
       await audio.play();
     } catch (error) {

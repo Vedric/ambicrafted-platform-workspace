@@ -46,44 +46,13 @@ const only = process.argv[4];
 const results = only
   ? JSON.parse(await readFile(join(evidence, "recordings.json"), "utf8"))
   : [];
-const clips = {
-  "first-steps": {
-    en: [
-      "Welcome to your private workspace. Choose your language and theme.",
-      "Check Readiness before starting a mission.",
-      "Choose a mission and describe observed facts.",
-    ],
-    fr: [
-      "Bienvenue dans votre espace privé. Choisissez la langue et le thème.",
-      "Vérifiez la préparation avant une mission.",
-      "Choisissez une mission et décrivez les faits observés.",
-    ],
-  },
-  voice: {
-    en: [
-      "AURA follows your system’s default microphone and speakers.",
-      "Record a draft, then review its transcription. This transcript is synthetic.",
-      "Send reviewed text to AURA. Conversation cannot approve an operation.",
-    ],
-    fr: [
-      "AURA utilise le microphone et la sortie audio par défaut du système.",
-      "Enregistrez puis relisez la transcription. Ici, elle est simulée.",
-      "Envoyez le texte relu à AURA. La conversation ne valide aucune opération.",
-    ],
-  },
-  investigation: {
-    en: [
-      "Describe a synthetic incident and submit a supervised analysis.",
-      "Read the proposal and inspect its sources before deciding.",
-      "Your decision is recorded. Approval does not execute remediation.",
-    ],
-    fr: [
-      "Décrivez un incident fictif et lancez une analyse supervisée.",
-      "Lisez la proposition et ses sources avant de décider.",
-      "Votre décision est enregistrée. Elle ne lance aucune remédiation.",
-    ],
-  },
-};
+const clips = JSON.parse(
+  await readFile(new URL("./guide-script.json", import.meta.url), "utf8"),
+);
+const narration = JSON.parse(
+  await readFile(join(evidence, "narration.json"), "utf8"),
+);
+
 const stamp = (seconds) =>
   new Date(Math.round(seconds * 1000)).toISOString().slice(11, 23);
 try {
@@ -123,7 +92,13 @@ try {
         await page.evaluate(() => document.fonts.ready);
         await page.waitForTimeout(1100);
       };
-      const pause = () => page.waitForTimeout(2400); // Reading time in an exported tutorial, not a test retry.
+      const pause = () => {
+        const index = cues.length - 1;
+        const target = narration[`${lesson}-${language}`][index].duration + 0.8;
+        const elapsed =
+          (performance.now() - started) / 1000 - cues[index].start;
+        return page.waitForTimeout(Math.max(1800, (target - elapsed) * 1000));
+      };
       if (lesson === "first-steps") {
         cue(0);
         await go("/welcome");
@@ -257,7 +232,7 @@ try {
       const duration = (performance.now() - started) / 1000;
       const video = page.video();
       await context.close();
-      await video.saveAs(join(output, `${lesson}-${language}.webm`));
+      await video.saveAs(join(evidence, `${lesson}-${language}.webm`));
       await writeFile(
         join(output, `${lesson}-${language}.vtt`),
         "WEBVTT\n\n" +
@@ -272,7 +247,9 @@ try {
         throw Error(
           "Browser exception during " + lesson + ": " + errors.join("; "),
         );
-      const bytes = await readFile(join(output, `${lesson}-${language}.webm`));
+      const bytes = await readFile(
+        join(evidence, `${lesson}-${language}.webm`),
+      );
       const previous = results.findIndex(
         (item) => item.lesson === lesson && item.language === language,
       );
@@ -284,6 +261,7 @@ try {
         bytes: bytes.length,
         sha256: createHash("sha256").update(bytes).digest("hex"),
         page_errors: errors,
+        cues,
       });
       await writeFile(
         join(evidence, "recordings.json"),

@@ -67,15 +67,19 @@ async function creerAnalyse(
 
 async function sansDefautsA11y(page: Page) {
   // Inspect the settled UI, not an intermediate opacity/color in its entrance transition.
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    const finies = document
+  await page.evaluate(() => document.fonts.ready);
+  // Poll current native state: replaced transition promises can stay pending
+  // even when the associated animation has reached its finished state.
+  await page.waitForFunction(() =>
+    document
       .getAnimations()
-      .filter((animation) =>
-        Number.isFinite(animation.effect?.getComputedTiming().endTime),
-      );
-    await Promise.allSettled(finies.map((animation) => animation.finished));
-  });
+      .every(
+        (animation) =>
+          !Number.isFinite(animation.effect?.getComputedTiming().endTime) ||
+          animation.playState === "finished" ||
+          animation.playState === "idle",
+      ),
+  );
   const contenu = page.locator("#contenu > div");
   if (await contenu.count()) {
     await expect
@@ -124,7 +128,17 @@ test("private landing, refused login, keyboard entry and accessible layout", asy
   }
   await page.setViewportSize(viewport);
   const scene = page.locator(".neural-core").first();
-  const runningOrbitAnimations = () => scene.evaluate((element) => element.getAnimations({ subtree: true }).filter((animation) => animation.playState === "running" && animation.effect?.getComputedTiming().endTime === Infinity).length);
+  const runningOrbitAnimations = () =>
+    scene.evaluate(
+      (element) =>
+        element
+          .getAnimations({ subtree: true })
+          .filter(
+            (animation) =>
+              animation.playState === "running" &&
+              animation.effect?.getComputedTiming().endTime === Infinity,
+          ).length,
+    );
   await scene.scrollIntoViewIfNeeded();
   await expect.poll(runningOrbitAnimations).toBeGreaterThan(0);
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -552,7 +566,9 @@ test("assistant remains accessible in both themes when voice is unavailable", as
   const message = "How should I investigate this synthetic incident?";
   await page.getByLabel("Your message").fill(message);
   const requete = page.waitForRequest(
-    (r) => /\/api\/conversations\/[^/]+\/messages$/.test(r.url()) && r.method() === "POST",
+    (r) =>
+      /\/api\/conversations\/[^/]+\/messages$/.test(r.url()) &&
+      r.method() === "POST",
   );
   await page.getByLabel("Your message").press("Control+Enter");
   expect((await requete).postDataJSON()).toMatchObject({

@@ -1,4 +1,31 @@
 export const experienceFr = {
+  "Check microphone & sound": "Vérifier le microphone et le son",
+  "Record up to 8 seconds, then listen back. This test stays in your browser.":
+    "Enregistrez jusqu’à 8 secondes, puis réécoutez-vous. Ce test reste dans votre navigateur.",
+  "System default microphone": "Microphone par défaut du système",
+  "Test input level": "Niveau du signal de test",
+  "Stop test": "Arrêter le test",
+  "Test microphone": "Tester le microphone",
+  "Listen to the sample": "Écouter l’enregistrement",
+  "Microphone test failed. Try a shorter recording.":
+    "Le test du microphone a échoué. Essayez un enregistrement plus court.",
+  "Check your system microphone, browser permission and localhost connection, then try again.":
+    "Vérifiez le microphone du système, l’autorisation du navigateur et la connexion sur localhost, puis réessayez.",
+  "Check your system speakers and tab volume, then replay the sample.":
+    "Vérifiez la sortie audio du système et le volume de l’onglet, puis réécoutez l’enregistrement.",
+  "Narrated walkthrough · captions available":
+    "Démonstration commentée · sous-titres disponibles",
+  "Video unavailable. Reload it or follow the steps alongside.":
+    "Vidéo indisponible. Rechargez-la ou suivez les étapes à côté.",
+  "Reload video": "Recharger la vidéo",
+  "Open video": "Ouvrir la vidéo",
+
+  "Set up browser access": "Configurer l’accès depuis le navigateur",
+  "Keep browser access after this session ends.":
+    "Gardez l’accès depuis le navigateur après la fin de cette session.",
+  "Open your workspace once from the CLI, then choose a password in Settings. After that, sign in directly here.":
+    "Ouvrez votre espace une première fois depuis le CLI, puis choisissez un mot de passe dans Paramètres. Vous pourrez ensuite vous connecter directement ici.",
+
   "Pause ambient music": "Couper la musique d’ambiance",
   "Play ambient music": "Écouter la musique d’ambiance",
   "Background level": "Volume d’ambiance",
@@ -83,7 +110,7 @@ export const experienceFr = {
     "Sept vues relient exécutions conservées, temps de traitement, validations, services et connaissances. Chaque graphique précise son périmètre.",
   "A voice that feels personal": "Un accueil qui vous ressemble",
   "Speak with AURA in French or English using your system’s default microphone and speakers.":
-    "Choisissez votre microphone et votre sortie audio, vérifiez votre signal, puis échangez avec AURA en français ou en anglais.",
+    "Échangez avec AURA en français ou en anglais avec le microphone et la sortie audio par défaut de votre système.",
   "One gateway for your tools": "Une passerelle pour vos outils",
   "Discover the local MCP gateway and follow the path from your request to sourced evidence and a human decision.":
     "Découvrez la passerelle MCP locale et le parcours qui relie votre demande aux sources puis à une décision humaine.",

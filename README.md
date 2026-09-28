@@ -11,7 +11,7 @@ features, measured acceptance checks and remaining production conditions.
 Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
-Console/control **0.4.0**, local speech runtime **0.3.0**.
+Console **0.4.1**, control API **0.4.0**, local speech runtime **0.3.1**.
 See the [0.4.0 delivery report](docs/RELEASE-0.4.0.md) for exact qualification and
 remaining conditions. This is a private, single-operator workspace; it is not a
 multi-tenant commercial service or a zero-vulnerability certification.
@@ -44,6 +44,7 @@ The target remains one trusted operator on this workstation.
 
 These are actual browser captures with annotated arrows and **synthetic demo data**.
 [Workspace and KPI view](docs/media/workspace-dark.png) ·
+[AURA horizontal workspace](docs/media/assistant-dark.png) ·
 [Architecture and trust boundaries](docs/media/architecture-light.png) ·
 [Appearance settings](docs/media/settings-light.png).
 Capture hashes and provenance are recorded in [docs/media/provenance.json](docs/media/provenance.json).
@@ -64,11 +65,21 @@ cd ../..
 ./plateforme ouvrir
 ```
 
-`ouvrir` uses an expiring one-use ticket and never prints credentials. Alternatively,
-configure a password with `./plateforme mot-de-passe`. Both UI and CLI use the same
+`ouvrir` uses an expiring one-use ticket and never prints credentials. For future
+entry directly from the welcome page, choose a password in **Settings → Console
+password** after this first login, or run `./plateforme mot-de-passe`. Password
+sign-in takes you straight to the workspace. Without a configured password, an
+expired browser session needs another one-use CLI entry; CLI access remains available. Both UI and CLI use the same
 authenticated control API; `./plateforme --help` documents every command.
 
-AURA offers female synthetic English and French voices, with local CPU speech
+AURA has a horizontal desktop control area with a gentle heartbeat accent,
+responsive layouts and plain **English voice / French voice** choices. If capture
+or playback fails, open **Check microphone & sound**: record up to eight seconds
+and listen back locally. This diagnostic sends no recording to the API.
+**User guide** contains six narrated MP4 walkthroughs with English/French captions.
+See the [browser and media recovery report](docs/RELEASE-0.4.1.md).
+
+AURA offers synthetic English and French voices, with local CPU speech
 recognition and playback. Manual recording lets you review the transcription.
 An explicitly started hands-free conversation sends speech after a pause, reads
 the reply and then listens for the next turn. Stop, Escape, hiding the tab or

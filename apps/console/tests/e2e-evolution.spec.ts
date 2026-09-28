@@ -33,17 +33,17 @@ async function login(page: Page) {
 }
 
 async function accessible(page: Page) {
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    await Promise.allSettled(
-      document
-        .getAnimations()
-        .filter((animation) =>
-          Number.isFinite(animation.effect?.getComputedTiming().endTime),
-        )
-        .map((animation) => animation.finished),
-    );
-  });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every(
+        (animation) =>
+          !Number.isFinite(animation.effect?.getComputedTiming().endTime) ||
+          animation.playState === "finished" ||
+          animation.playState === "idle",
+      ),
+  );
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
@@ -284,8 +284,12 @@ test("AURA measures a real synthetic microphone, supports motion pause and revie
     page.getByRole("button", { name: "Record", exact: true }),
   ).toBeEnabled();
   expect(await page.evaluate(() => window.__auraSynthetic.starts)).toBe(0);
-  await page.getByRole("button", { name: "Play ambient music", exact: true }).click();
-  await expect.poll(async () => (await ambientState(page))?.time).toBeGreaterThan(.1);
+  await page
+    .getByRole("button", { name: "Play ambient music", exact: true })
+    .click();
+  await expect
+    .poll(async () => (await ambientState(page))?.time)
+    .toBeGreaterThan(0.1);
   await page.getByRole("button", { name: "Record", exact: true }).click();
   await expect.poll(async () => (await ambientState(page))?.volume).toBe(0);
   const core = page.locator(".aura-stage .neural-core");
@@ -321,7 +325,9 @@ test("AURA measures a real synthetic microphone, supports motion pause and revie
   await page.getByRole("button", { name: "Listen", exact: true }).click();
   await core.scrollIntoViewIfNeeded();
   await expect(page.locator(".chat-status")).toContainText("Speaking");
-  await expect.poll(async () => (await ambientState(page))?.volume).toBeLessThan(.01);
+  await expect
+    .poll(async () => (await ambientState(page))?.volume)
+    .toBeLessThan(0.01);
   await expect(core).toHaveAttribute("data-signal", "measured");
   await expect
     .poll(() =>
@@ -370,4 +376,46 @@ test("AURA hands-free speech advances after silence and stops on Escape", async 
   await page.waitForTimeout(1000);
   expect(await page.evaluate(() => window.__auraSynthetic.starts)).toBe(2);
   expect(transcripts).toHaveLength(1);
+});
+
+test("local microphone check measures capture and plays a real encoded sample without uploading", async ({
+  page,
+}) => {
+  await syntheticSpeech(page);
+  await observeAudio(page);
+  await login(page);
+  await page.goto("/assistant");
+  const uploads: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      uploads.push(new URL(request.url()).pathname);
+  });
+  await page.getByText("Check microphone & sound", { exact: true }).click();
+  await page
+    .getByRole("button", { name: "Test microphone", exact: true })
+    .click();
+  await expect(
+    page.getByRole("meter", { name: "Test input level" }),
+  ).toHaveAttribute("value", /0\.[1-9]/);
+  await expect(
+    page.getByRole("button", { name: "Record", exact: true }),
+  ).toBeDisabled();
+  await page.waitForTimeout(800);
+  await page.getByRole("button", { name: "Stop test", exact: true }).click();
+  await page.getByRole("button", { name: "Listen to the sample" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          window.__nativeAudio.find((a) => a.src.startsWith("blob:"))
+            ?.currentTime,
+      ),
+    )
+    .toBeGreaterThan(0.1);
+  expect(await page.evaluate(() => window.__auraSynthetic.stops)).toBe(1);
+  expect(uploads).toEqual([]);
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Record", exact: true }),
+  ).toBeEnabled();
 });

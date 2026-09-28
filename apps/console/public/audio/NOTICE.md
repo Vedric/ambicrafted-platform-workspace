@@ -35,3 +35,12 @@ uv run --locked --project apps/voice python apps/console/scripts/generate-ambien
 `ambient-provenance.json` records the asset hash, duration and decoded signal levels.
 Playback starts with an explicit choice; browser autoplay policy can require a new
 click after reload. The score is deliberately limited to a low background level.
+
+
+## Narrated user guides
+
+The English/French narration in `../guides/*.mp4` is generated with the same
+pinned local speech runtime and voice styles as the welcome assets above.
+`../guides/provenance.json` records the caption text, audio/video codecs,
+durations and SHA-256 hashes. The recordings show synthetic UI examples.
+No microphone recording, customer data or third-party soundtrack is included.

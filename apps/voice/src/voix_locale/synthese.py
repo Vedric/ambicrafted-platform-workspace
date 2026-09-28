@@ -1,9 +1,17 @@
 """Bounded offline multilingual synthesis with one stable speaker per language."""
 
+from __future__ import annotations
+
 import json
 import re
 from collections.abc import Iterator
+from functools import cache
 from pathlib import Path
+from threading import Lock
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from piper.phonemize_espeak import EspeakPhonemizer
 
 from .fichiers import ErreurVoix, ouvrir_prive
 from .prononciation import preparer_parole
@@ -25,10 +33,25 @@ def decouper(phonemes: str) -> Iterator[str]:
         yield reste
 
 
-def phonemiser(texte: str, langue: str, vocabulaire: dict[str, int]) -> list[str]:
+# eSpeak owns process-global native state. Reinitializing it or switching voices
+# concurrently can corrupt that state. Serialize a single instance per process.
+_PHONEMES_LOCK = Lock()
+
+
+@cache
+def _phonemiseur() -> EspeakPhonemizer:
     from piper.phonemize_espeak import EspeakPhonemizer
 
-    moteur = EspeakPhonemizer()
+    return EspeakPhonemizer()
+
+
+def phonemiser(texte: str, langue: str, vocabulaire: dict[str, int]) -> list[str]:
+    with _PHONEMES_LOCK:
+        return _phonemiser(texte, langue, vocabulaire)
+
+
+def _phonemiser(texte: str, langue: str, vocabulaire: dict[str, int]) -> list[str]:
+    moteur = _phonemiseur()
     oral = preparer_parole(texte, langue, vocabulaire)
     phrases: list[str] = []
     jointure = False

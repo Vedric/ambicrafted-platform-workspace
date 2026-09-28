@@ -1,55 +1,265 @@
 {
-  "source": "Playwright capture of the local application served by tests/server.py",
-  "data": "Synthetic disposable data; model inference and voice recognition are deterministic fixtures. No customer data.",
-  "browser": "Chromium",
+  "source": "Playwright recording of the actual disposable UI, with local AURA narration aligned to caption cues",
+  "data": "Synthetic demonstration; analysis and transcription responses in the recorded tutorial are fixtures. No client data.",
+  "audio_notice": "../audio/NOTICE.md",
   "clips": [
     {
       "lesson": "first-steps",
       "language": "en",
-      "duration_seconds": 11.88,
-      "bytes": 1340140,
-      "sha256": "7303381a17fba9e72a09ec6652c6ae06f72847c6b6279602737e2331d4ad7595",
-      "page_errors": []
+      "duration_seconds": 12.9,
+      "bytes": 1430716,
+      "sha256": "9e0e7ff0989d327a596aaf787c539b1133769f79136ba4284835526e7a43b281",
+      "page_errors": [],
+      "cues": [
+        {
+          "start": 1.4981999999918117e-05,
+          "text": "Welcome to your private workspace. Choose your language and theme."
+        },
+        {
+          "start": 5.424693944,
+          "text": "Check Readiness before starting a mission."
+        },
+        {
+          "start": 8.900404373999999,
+          "text": "Choose a mission and describe observed facts."
+        }
+      ],
+      "file": "first-steps-en.mp4",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.060993,
+      "narration": [
+        {
+          "file": "first-steps-en-0.wav",
+          "text": "Welcome to your private workspace. Choose your language and theme.",
+          "duration": 4.625
+        },
+        {
+          "file": "first-steps-en-1.wav",
+          "text": "Check Readiness before starting a mission.",
+          "duration": 2.675
+        },
+        {
+          "file": "first-steps-en-2.wav",
+          "text": "Choose a mission and describe observed facts.",
+          "duration": 3.15
+        }
+      ]
     },
     {
       "lesson": "voice",
       "language": "en",
-      "duration_seconds": 10.85,
-      "bytes": 1192076,
-      "sha256": "f92d4df4f215df31f8dd9759b0cc6da36fa8f87347ee6893e98f8412517708b0",
-      "page_errors": []
+      "duration_seconds": 17.62,
+      "bytes": 1262670,
+      "sha256": "88fd72e61b9c6c6a75073c07ad62fb2e48cc296beca1ca8106a5fd95b245b6e6",
+      "page_errors": [],
+      "cues": [
+        {
+          "start": 0.00217232999999942,
+          "text": "AURA follows your system’s default microphone and speakers."
+        },
+        {
+          "start": 4.976988111999999,
+          "text": "Record a draft, then review its transcription. This transcript is synthetic."
+        },
+        {
+          "start": 11.227846540999998,
+          "text": "Send reviewed text to AURA. Conversation cannot approve an operation."
+        }
+      ],
+      "file": "voice-en.mp4",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.064286,
+      "narration": [
+        {
+          "file": "voice-en-0.wav",
+          "text": "AURA follows your system’s default microphone and speakers.",
+          "duration": 4.175
+        },
+        {
+          "file": "voice-en-1.wav",
+          "text": "Record a draft, then review its transcription. This transcript is synthetic.",
+          "duration": 5.45
+        },
+        {
+          "file": "voice-en-2.wav",
+          "text": "Send reviewed text to AURA. Conversation cannot approve an operation.",
+          "duration": 5.55
+        }
+      ]
     },
     {
       "lesson": "investigation",
       "language": "en",
-      "duration_seconds": 13.08,
-      "bytes": 1098085,
-      "sha256": "4286a9d3a8ace0408c1c764e8b05220563af6740ba5dce86700e28a1c3e3a77e",
-      "page_errors": []
+      "duration_seconds": 18.64,
+      "bytes": 1136809,
+      "sha256": "127ff21279000d5df6f99f17c3767b89295dc5da6d9b9679f2d39e01b640c4ae",
+      "page_errors": [],
+      "cues": [
+        {
+          "start": 6.654000004346017e-06,
+          "text": "Describe a synthetic incident and submit a supervised analysis."
+        },
+        {
+          "start": 5.584887367000003,
+          "text": "Read the proposal and inspect its sources before deciding."
+        },
+        {
+          "start": 10.560636408999999,
+          "text": "Your decision is recorded. Approval does not execute remediation."
+        }
+      ],
+      "file": "investigation-en.mp4",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.059203,
+      "narration": [
+        {
+          "file": "investigation-en-0.wav",
+          "text": "Describe a synthetic incident and submit a supervised analysis.",
+          "duration": 4.75
+        },
+        {
+          "file": "investigation-en-1.wav",
+          "text": "Read the proposal and inspect its sources before deciding.",
+          "duration": 4.175
+        },
+        {
+          "file": "investigation-en-2.wav",
+          "text": "Your decision is recorded. Approval does not execute remediation.",
+          "duration": 5.425
+        }
+      ]
     },
     {
       "lesson": "first-steps",
       "language": "fr",
-      "duration_seconds": 11.7,
-      "bytes": 1181635,
-      "sha256": "bc37c38abe729ac7d75af3ad496fdfd5a65f474940f2bf6e7196cb00ff4c8a96",
-      "page_errors": []
+      "duration_seconds": 13.67,
+      "bytes": 1636353,
+      "sha256": "43eb6f83bea3188dac3727c2c03d496050ed2579e534677ecbcbfb718f10a03b",
+      "page_errors": [],
+      "cues": [
+        {
+          "start": 1.1048000000300817e-05,
+          "text": "Bienvenue dans votre espace privé. Choisissez la langue et le thème."
+        },
+        {
+          "start": 5.400484476999998,
+          "text": "Vérifiez la préparation avant une mission."
+        },
+        {
+          "start": 9.226160448000002,
+          "text": "Choisissez une mission et décrivez les faits observés."
+        }
+      ],
+      "file": "first-steps-fr.mp4",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.093679,
+      "narration": [
+        {
+          "file": "first-steps-fr-0.wav",
+          "text": "Bienvenue dans votre espace privé. Choisissez la langue et le thème.",
+          "duration": 4.6
+        },
+        {
+          "file": "first-steps-fr-1.wav",
+          "text": "Vérifiez la préparation avant une mission.",
+          "duration": 3.025
+        },
+        {
+          "file": "first-steps-fr-2.wav",
+          "text": "Choisissez une mission et décrivez les faits observés.",
+          "duration": 3.6
+        }
+      ]
     },
     {
       "lesson": "voice",
       "language": "fr",
-      "duration_seconds": 10.85,
-      "bytes": 1208400,
-      "sha256": "be4e96fb755e8e8ba45dce7480be37f963ecac11b1839dbf3e5cf785ed5eb774",
-      "page_errors": []
+      "duration_seconds": 17.85,
+      "bytes": 1445293,
+      "sha256": "728a687cb19fcb17b3186064720c87e5a3439ea9ac98fd700cf906e5b1394591",
+      "page_errors": [],
+      "cues": [
+        {
+          "start": 0.0016351740000100107,
+          "text": "AURA utilise le microphone et la sortie audio par défaut du système."
+        },
+        {
+          "start": 5.502106743000011,
+          "text": "Enregistrez puis relisez la transcription. Ici, elle est simulée."
+        },
+        {
+          "start": 11.15239804,
+          "text": "Envoyez le texte relu à AURA. La conversation ne valide aucune opération."
+        }
+      ],
+      "file": "voice-fr.mp4",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.095793,
+      "narration": [
+        {
+          "file": "voice-fr-0.wav",
+          "text": "AURA utilise le microphone et la sortie audio par défaut du système.",
+          "duration": 4.7
+        },
+        {
+          "file": "voice-fr-1.wav",
+          "text": "Enregistrez puis relisez la transcription. Ici, elle est simulée.",
+          "duration": 4.85
+        },
+        {
+          "file": "voice-fr-2.wav",
+          "text": "Envoyez le texte relu à AURA. La conversation ne valide aucune opération.",
+          "duration": 5.85
+        }
+      ]
     },
     {
       "lesson": "investigation",
       "language": "fr",
-      "duration_seconds": 13.12,
-      "bytes": 1036083,
-      "sha256": "c6e098c5433e13e8cf524282126adeb911221641748e1c262031023de3fe8368",
-      "page_errors": []
+      "duration_seconds": 17.14,
+      "bytes": 1228449,
+      "sha256": "2ee20dfdd5b9e6e112b835ea1b96629e4c41074b3d07112a794e6996edefce26",
+      "page_errors": [],
+      "cues": [
+        {
+          "start": 9.416999993845821e-06,
+          "text": "Décrivez un incident fictif et lancez une analyse supervisée."
+        },
+        {
+          "start": 5.231343124000007,
+          "text": "Lisez la proposition et ses sources avant de décider."
+        },
+        {
+          "start": 9.656660913,
+          "text": "Votre décision est enregistrée. Elle ne lance aucune remédiation."
+        }
+      ],
+      "file": "investigation-fr.mp4",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.087025,
+      "narration": [
+        {
+          "file": "investigation-fr-0.wav",
+          "text": "Décrivez un incident fictif et lancez une analyse supervisée.",
+          "duration": 4.4
+        },
+        {
+          "file": "investigation-fr-1.wav",
+          "text": "Lisez la proposition et ses sources avant de décider.",
+          "duration": 3.625
+        },
+        {
+          "file": "investigation-fr-2.wav",
+          "text": "Votre décision est enregistrée. Elle ne lance aucune remédiation.",
+          "duration": 4.825
+        }
+      ]
     }
   ]
 }
