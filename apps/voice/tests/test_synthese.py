@@ -79,4 +79,6 @@ assert all(value == expected[language] for value, language in zip(actual, langua
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert result.stderr == ""
+    # ONNX device discovery can warn about a virtual PCI path on hosted runners.
+    # The regression concerns eSpeak corruption, not unrelated hardware notices.
+    assert "Invalid instruction" not in result.stderr

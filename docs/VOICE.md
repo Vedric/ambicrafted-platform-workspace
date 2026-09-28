@@ -521,7 +521,8 @@ The phonemizer is initialized once per process and serialized across voice switc
 eSpeak owns native global state: repeatedly initializing it during multilingual
 synthesis caused native warnings and a stalled guide build. A bounded subprocess
 regression alternates French and English from concurrent callers and requires
-stable phonemes with no native stderr output.
+stable phonemes without eSpeak corruption diagnostics. Unrelated ONNX hardware
+discovery warnings on hosted runners do not fail this phonemization assertion.
 
 Six narrated guides now use H.264 video and AAC audio in MP4. The earlier WebMs
 contained only video, so moving playback did not prove the presence of sound.
