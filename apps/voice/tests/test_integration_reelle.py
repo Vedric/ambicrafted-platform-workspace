@@ -147,6 +147,28 @@ def test_contexte_preserve_confidentialite_et_negation(tmp_path):
 
 
 @pytest.mark.parametrize(
+    "format,extension,codec",
+    [("wav", "wav", ""), ("webm", "webm", "libopus"), ("ogg", "ogg", "libopus")],
+)
+def test_donnees_francaises_preservees_sur_signal_fige(tmp_path, format, extension, codec):
+    donnees = (Path(__file__).parent / "fixtures" / "french-data.wav").read_bytes()
+    assert hashlib.sha256(donnees).hexdigest() == (
+        "3c39010ed1828a67201940dfd273be324f7b86c57f3d34882c8381f93aabb4f7"
+    )
+    wav = tmp_path / "donnees.wav"
+    wav.write_bytes(donnees)
+    wav.chmod(0o600)
+    path = wav
+    if codec:
+        path = tmp_path / ("navigateur." + extension)
+        encoder(wav, path, format, codec)
+    texte = transcrire(path, "fr")["texte"].casefold()
+    for mot in ("bonjour", "assistante locale", "plateforme", "vos données", "alerte"):
+        assert mot in texte
+    assert "vous donner" not in texte
+
+
+@pytest.mark.parametrize(
     "fixture,mots",
     [
         ("english-onset", ("hello", "local assistant", "platform", "data", "alert")),

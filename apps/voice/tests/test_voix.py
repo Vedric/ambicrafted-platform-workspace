@@ -150,7 +150,10 @@ else:
 
 
 @pytest.mark.parametrize("secondes", [0.2, 90])
-def test_contexte_acoustique_preserve_signal_bornes_et_duree(tmp_path, monkeypatch, secondes):
+@pytest.mark.parametrize("langue", ["en", "fr"])
+def test_contexte_acoustique_preserve_signal_bornes_et_duree(
+    tmp_path, monkeypatch, secondes, langue
+):
     from types import SimpleNamespace
 
     import faster_whisper
@@ -168,7 +171,7 @@ def test_contexte_acoustique_preserve_signal_bornes_et_duree(tmp_path, monkeypat
     class Reconnaissance:
         def __init__(self, *_args, **options):
             assert options["device"] == "cpu"
-            assert options["compute_type"] == "int8"
+            assert options["compute_type"] == ("float32" if langue == "fr" else "int8")
             assert options["cpu_threads"] == 4
             assert options["local_files_only"] is True
 
@@ -186,7 +189,7 @@ def test_contexte_acoustique_preserve_signal_bornes_et_duree(tmp_path, monkeypat
 
     monkeypatch.setattr(faster_whisper, "WhisperModel", Reconnaissance)
     monkeypatch.setattr(moteur, "verifier_modele", lambda _alias: tmp_path)
-    resultat = moteur.transcrire(path)
+    resultat = moteur.transcrire(path, langue)
     assert resultat["duree_s"] == secondes
     assert resultat["texte"] == "A synthetic result."
 

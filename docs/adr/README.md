@@ -37,10 +37,11 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0024](0024-veille-technologique-publique.md) | Cached public technology watch | Accepted for local private scope | 2026-09-27 | Fixed public feeds, local bilingual summaries, dated sources and a 72-hour refresh cycle. |
 
 | [0025](0025-voix-conversationnelle-et-ambiance.md) | Conversational voice and subordinate ambient audio | Accepted | 2026-09-27 | Multilingual local synthesis, technical phonemes, an original score and explicit audio priority. |
+| [0026](0026-precision-reconnaissance-francaise.md) | French recognition precision | Accepted | 2026-09-28 | Preserve French words with float32 inference and fixed cross-CPU regression audio. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0025, then the current README and security document;
+- **Current behavior**: 0009–0026, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [MCP gateway](../MCP-GATEWAY.md), [voice](../VOICE.md) and

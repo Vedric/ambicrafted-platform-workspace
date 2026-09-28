@@ -91,7 +91,10 @@ def transcrire(path: Path, langue: str = "en") -> dict:
     model = WhisperModel(
         str(dossier),
         device="cpu",
-        compute_type="int8",
+        # French INT8 recognition changes words on the fixed regression signal
+        # under AVX2/hosted Intel dispatch. Preserve FP32 activations for French;
+        # the independently qualified English path retains its faster INT8 mode.
+        compute_type="float32" if langue == "fr" else "int8",
         cpu_threads=4,
         num_workers=1,
         local_files_only=True,

@@ -9,8 +9,10 @@ uses CPU inference with four threads per process, leaving the GPU available to
 the SRE agent. The speech engine neither decides on actions nor executes tools.
 The control API owns authentication, concurrency, conversation and approval.
 
-Recognition uses INT8 computation with the oneDNN CPU backend on the supported
-x86-64 Linux runtime. The engine sets `CT2_USE_MKL=0` in `hors_ligne()` before
+English recognition uses INT8 computation; French uses float32 after an observed
+cross-CPU lexical regression ([ADR 0026](adr/0026-precision-reconnaissance-francaise.md)).
+Both use the oneDNN CPU backend on the supported x86-64 Linux runtime.
+The engine sets `CT2_USE_MKL=0` in `hors_ligne()` before
 importing faster-whisper/CTranslate2, including when an inherited environment
 requests MKL. This makes the selected backend independent of the CPU vendor.
 Use the supplied fresh CLI subprocess: importing and initializing CTranslate2

@@ -37,3 +37,18 @@ remain intact. It is not a microphone or population-level accuracy benchmark.
 
 - WAV: mono signed 16-bit PCM, 22,050 Hz, 266,284 bytes.
 - SHA-256: `ef59eaaa990183185e48cb95cfab730898a1c57943e1e6821f3acbe7f5002c85`.
+
+`french-data.wav` preserves the synthetic text:
+
+> Bonjour, je suis votre assistante locale. La plateforme protège vos données. Voulez-vous analyser une alerte ?
+
+It was generated on 2026-09-28 from commit `01050ff9` using the pinned
+`voix-feminine-fr` alias. It contains no microphone or customer data. Licensing
+and model provenance are in `docs/VOICE.md`. INT8 recognition under AVX2 turns
+“vos données” into “vous donner”; beams of 5, 10 and 20 all reproduced the error.
+Float32 inference restores the expected words with the original ten-candidate
+beam. The same error was observed in hosted Intel CI. Tests preserve the signal
+and assert the phrase in WAV, WebM/Opus and Ogg/Opus without rewriting transcripts.
+
+- WAV: mono signed 16-bit PCM, 24,000 Hz.
+- SHA-256: `3c39010ed1828a67201940dfd273be324f7b86c57f3d34882c8381f93aabb4f7`.

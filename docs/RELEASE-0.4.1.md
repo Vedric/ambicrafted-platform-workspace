@@ -29,11 +29,15 @@ retains the production boundaries in [the 0.4 assessment](RELEASE-0.4.0.md).
   across language switches. This removes the repeated native initialization
   observed during guide generation. Narration generation also has a per-caption
   process deadline.
+- French recognition uses float32 inference. Hosted Intel and local AVX2 INT8
+  inference misrecognized “vos données” as “vous donner” on a preserved synthetic
+  recording. The lexical assertions remain unchanged; the frozen WAV and its
+  Opus variants now guard this case alongside the English regressions.
 
 ## Verification
 
-The targeted qualification includes 222 UI unit tests, 79 speech/asset tests and
-18 real-model speech tests under network isolation. Six guide assets are checked
+The targeted qualification includes 222 UI unit tests, 81 speech/asset tests and
+21 real-model speech tests under network isolation. Six guide assets are checked
 for exact hashes, expected codecs, decoded audio energy and caption alignment.
 The browser suite covers 60 desktop/mobile Chromium scenarios including login,
 CLI ticket entry, session expiration, microphone capture/replay, hands-free turns,
@@ -42,7 +46,10 @@ video retry and navigation, both themes, reduced motion and accessibility scans.
 An additional browser run against the real local API used synthetic WAV input
 through Chromium's actual MediaRecorder, then local recognition, a generated
 reply and native WAV playback. English recognition/dialogue/playback-start took
-7.156 / 0.859 / 1.339 seconds in one run; French took 2.857 / 0.847 / 1.730 seconds.
+7.156 / 0.859 / 1.339 seconds in one run; French took 2.857 / 0.847 / 1.730 seconds
+before the final precision correction. A separate fixed French signal under
+AVX2 took 2.557 seconds in INT8 and 3.573 seconds in float32, trading some speed
+for correct recognition of that phrase.
 These are individual observations, not latency guarantees or listening scores.
 Only the loopback origin was contacted and no browser page exception occurred.
 Synthetic conversations created by the checks are removed afterward.
