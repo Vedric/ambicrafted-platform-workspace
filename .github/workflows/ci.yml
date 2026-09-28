@@ -101,7 +101,19 @@ jobs:
         run: |
           sudo --preserve-env=VOICE_STATE_DIR,VOICE_TEST_REAL unshare --net -- \
             setpriv --reuid="$(id -u)" --regid="$(id -g)" --init-groups \
-            "$PWD/.venv/bin/python" -m pytest -q tests/test_integration_reelle.py
+            "$PWD/.venv/bin/python" -m pytest -q tests/test_integration_reelle.py \
+              --basetemp="${{ runner.temp }}/speech-synthetic-tests"
+      - name: Synthetic speech failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: speech-synthetic-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/speech-synthetic-tests/**/*.wav
+            ${{ runner.temp }}/speech-synthetic-tests/**/*.webm
+            ${{ runner.temp }}/speech-synthetic-tests/**/*.ogg
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Régressions anglaises figées sous AVX2 sans réseau
         env:
           VOICE_STATE_DIR: ${{ runner.temp }}/ambicrafted-speech-models
