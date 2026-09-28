@@ -132,33 +132,47 @@ for (const [route, lower, upper] of [
   test(`actual page fades remain visible in both scroll directions on ${route}`, async ({
     page,
   }) => {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Emulation.setCPUThrottlingRate", { rate: 4 });
     await page.addInitScript(() => {
       window.__auraFades = [];
       const native = HTMLElement.prototype.animate;
       HTMLElement.prototype.animate = function (frames, options) {
         const animation = native.call(this, frames, options);
         if (typeof options === "object" && options.duration === 520) {
-          const entry = {
+          const entry: Window["__auraFades"][number] = {
             target: this,
             direction: this.dataset.revealDirection || "",
-            before: Number(getComputedStyle(this).opacity),
-            // Scrolling changes viewport coordinates, not document geometry.
-            y: this.getBoundingClientRect().y + window.scrollY,
+            before: Infinity,
+            y: Infinity,
           };
           window.__auraFades.push(entry);
-          window.setTimeout(
-            () =>
+          // The native timeline starts after a rendering opportunity, then
+          // applies its stagger. A wall-clock sample at 850 ms can still catch
+          // the last frame on a busy runner. Observe actual lifecycle promises.
+          void animation.ready
+            .then(() => {
+              entry.before = Number(getComputedStyle(this).opacity);
+              entry.y = this.getBoundingClientRect().y + window.scrollY;
+            })
+            .catch(() => {});
+          void animation.finished
+            .then(() =>
               Object.assign(entry, {
                 after: Number(getComputedStyle(this).opacity),
+                // Scroll changes viewport coordinates, not document geometry.
                 endY: this.getBoundingClientRect().y + window.scrollY,
               }),
-            850,
-          );
+            )
+            .catch(() => {});
         }
         return animation;
       };
     });
     await open(page, route);
+    await expect(page.locator(upper).first()).toBeVisible();
+    if (route === "/welcome")
+      await expect(page.locator("#connexion-privee")).toBeAttached();
     await page.evaluate(() => document.fonts.ready);
     const faded = (selector: string, direction: string) =>
       page.evaluate(
@@ -174,7 +188,23 @@ for (const [route, lower, upper] of [
         { selector, direction },
       );
     await page.locator(lower).first().scrollIntoViewIfNeeded();
-    await expect.poll(() => faded(lower, "down")).toBe(true);
+    try {
+      await expect.poll(() => faded(lower, "down")).toBe(true);
+    } catch (error) {
+      console.log(
+        await page.evaluate(
+          (selector) =>
+            window.__auraFades
+              .filter((entry) => entry.target.matches(selector))
+              .map(({ target, ...entry }) => ({
+                ...entry,
+                connected: target.isConnected,
+              })),
+          lower,
+        ),
+      );
+      throw error;
+    }
     await page.evaluate(() =>
       scrollTo({
         top: document.documentElement.scrollHeight,
