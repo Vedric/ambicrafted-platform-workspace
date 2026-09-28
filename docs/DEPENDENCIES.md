@@ -2,7 +2,8 @@
 
 The current seven-image inventory and promoted derivatives are documented in
 [the 27 September refinement](SECURITY-REFINEMENT-2026-09-27.md): 0 CRITICAL,
-53 HIGH. Console/control are version 0.4.0, speech runtime 0.3.0.
+53 HIGH. Current application versions: console 0.4.4, control API 0.4.1,
+speech runtime 0.3.1.
 The HIGH/CRITICAL gate remains failed; the older figures below are historical.
 
 Six production image versions were pinned in the initial review. PostgreSQL and Qdrant are narrow
@@ -52,7 +53,7 @@ publication remain blocked by the documented remediation and architecture work.
 All four Python projects use committed uv locks. CI audits their runtime
 requirements with pip-audit 2.10.1; local package sources are excluded from the
 public dependency lookup. Standalone maintenance scripts have their own locks.
-React/Vite and promptfoo use npm locks, Node 22.22.0 and npm 11.10.0. The verified
+React/Vite and promptfoo use npm locks, Node 22.23.3 and npm 11.10.0. The verified
 runtime Python and npm audits reported zero known advisories at this snapshot.
 This does not cover the container findings above or unknown vulnerabilities.
 
@@ -62,7 +63,27 @@ lookups; changes require a rebuild and qualification. The separate manual/weekly
 image-security workflow retains full reports and fails on critical/high findings.
 Functional CI passing is therefore not a container security sign-off.
 
-Image reports and checksums are outside Git at
+## Evaluation dependency correction — 2026-09-29
+
+During console release qualification, npm audit reported three vulnerable
+transitive packages in `evals` (one high, two moderate). Exact overrides and the
+lock now select the compatible corrective releases below; other dependency
+versions are retained. The application gateway/provider aliases are unchanged.
+
+| Package | Previous → corrected | Official advisories |
+| --- | --- | --- |
+| fast-uri | 3.1.6 → 3.1.7 | [Port authority injection](https://github.com/advisories/GHSA-qw65-cvwx-89v3), [bracket host confusion](https://github.com/advisories/GHSA-58mr-gqgx-xq4g) |
+| ip-address | 10.5.0 → 10.5.1 | [Link-local classification](https://github.com/advisories/GHSA-rpw4-54j3-4h4q), [local-use NAT64 classification](https://github.com/advisories/GHSA-2vr4-cq9g-pvrc) |
+| undici (6.x SDK dependency) | 6.28.0 → 6.28.1 | [WebSocket decompression denial of service](https://github.com/advisories/GHSA-3wwx-pv8p-q78v) |
+
+The 6.x-only undici override does not downgrade the separately installed 7.x/8.x
+branches. `npm ci --ignore-scripts`, configuration/security tests and
+`npm audit --audit-level=moderate` validate the locked tree. Pure local regression
+cases exercise authority injection rejection and IPv6 classifications; they send
+no network traffic. The advisory fixes do not constitute a proof that every
+consumer applies SSRF policy correctly, or remediate the container findings above.
+
+Historical image reports and checksums are outside Git at
 `/home/vedric/platform/finalisation-2026-09-26/console/security/`.
 
 ## Application update — 2026-09-27

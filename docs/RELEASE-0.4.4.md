@@ -26,6 +26,11 @@ synchronize between same-origin tabs. Hidden tabs and offscreen AURA still pause
 No browser profile or Windows preference is edited. The guide is updated in both
 languages; controls also appear in the public guide.
 
+The release also pins corrective versions of three evaluation dependencies
+flagged by the release audit: `fast-uri` 3.1.7, `ip-address` 10.5.1 and the SDK's
+6.x `undici` 6.28.1. Pure local security regressions check URI authority injection
+and IPv6 classification. See [dependency evidence and advisories](DEPENDENCIES.md#evaluation-dependency-correction--2026-09-29).
+
 ## Verification
 
 Unit regression coverage includes preference migration, live device changes,

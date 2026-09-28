@@ -19,5 +19,10 @@
   "devDependencies": {
     "promptfoo": "0.123.1",
     "yaml": "2.9.1"
+  },
+  "overrides": {
+    "fast-uri": "3.1.7",
+    "ip-address": "10.5.1",
+    "undici@^6.0.0": "6.28.1"
   }
 }
