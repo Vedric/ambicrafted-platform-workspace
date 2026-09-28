@@ -177,7 +177,22 @@ async def test_appel_concurrent_borne_et_annulation_propagee(lanceur, tmp_path):
 async def test_sigterm_ferme_aussi_les_deux_sous_processus(lanceur, tmp_path):
     async with lanceur():
         os.kill(int((tmp_path / "gateway.pid").read_text()), signal.SIGTERM)
-        await asyncio.sleep(0.25)
+        # Observe signal-driven shutdown while the client's transport stays open.
+        # A fixed sleep races its teardown/kill deadline against the gateway's
+        # own child cleanup on slower runners and tests two shutdowns at once.
+        limite = asyncio.get_running_loop().time() + 10
+        while True:
+            vivants = []
+            for fichier in tmp_path.glob("*.pid"):
+                try:
+                    os.kill(int(fichier.read_text()), 0)
+                except ProcessLookupError:
+                    continue
+                vivants.append(fichier.stem)
+            if not vivants:
+                break
+            assert asyncio.get_running_loop().time() < limite, f"MCP survivors: {vivants}"
+            await asyncio.sleep(0.02)
 
 
 @pytest.mark.asyncio

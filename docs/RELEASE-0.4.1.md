@@ -42,6 +42,9 @@ for exact hashes, expected codecs, decoded audio energy and caption alignment.
 The browser suite covers 60 desktop/mobile Chromium scenarios including login,
 CLI ticket entry, session expiration, microphone capture/replay, hands-free turns,
 video retry and navigation, both themes, reduced motion and accessibility scans.
+The MCP SIGTERM test observes the gateway and both child processes exiting before
+closing the client transport, with a ten-second failure deadline. This prevents
+the client's own shutdown from racing the signal-driven cleanup in hosted CI.
 
 An additional browser run against the real local API used synthetic WAV input
 through Chromium's actual MediaRecorder, then local recognition, a generated
