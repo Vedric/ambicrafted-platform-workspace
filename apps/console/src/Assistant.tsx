@@ -283,6 +283,7 @@ export default function Assistant({
       lecteur.current.onerror = null;
       lecteur.current.pause();
       lecteur.current.removeAttribute("src");
+      lecteur.current.load();
     }
     lecteur.current = null;
     if (urlAudio.current) URL.revokeObjectURL(urlAudio.current);

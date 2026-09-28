@@ -133,6 +133,7 @@ class Player {
     this.paused = true;
   });
   removeAttribute = vi.fn();
+  load = vi.fn();
 }
 function pcmBlob() {
   const buffer = new ArrayBuffer(16044);
@@ -641,6 +642,7 @@ describe("native PCM playback", () => {
     await click("Stop playback");
     expect(audio.pause).toHaveBeenCalledOnce();
     expect(audio.removeAttribute).toHaveBeenCalledWith("src");
+    expect(audio.load).toHaveBeenCalledOnce();
     expect(revoke).toHaveBeenCalledWith("blob:synthetic-1");
     expect(audio.onended).toBeNull();
     await click("Listen");
@@ -960,7 +962,15 @@ describe("local microphone and sound check", () => {
     expect(players[0].paused).toBe(false);
     expect(players[0].setSinkId).not.toHaveBeenCalled();
     expect(active).toHaveBeenLastCalledWith(true);
+    act(() => players[0].onended?.());
+    await click("Listen to the sample");
+    expect(players[0].load).toHaveBeenCalledOnce();
+    expect(players[0].onerror).toBeNull();
+    expect(players[1].paused).toBe(false);
     await click("Stop test");
+    expect(players[1].load).toHaveBeenCalledOnce();
+    expect(players[1].onended).toBeNull();
+    expect(players[1].onerror).toBeNull();
     expect(players[0].paused).toBe(true);
     expect(revoke).toHaveBeenCalledWith("blob:synthetic-1");
     expect(active).toHaveBeenLastCalledWith(false);

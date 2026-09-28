@@ -45,6 +45,16 @@ export function MicrophoneCheck({
     if (context.current) void context.current.close().catch(() => {});
     context.current = null;
   }
+  function releasePlayback() {
+    if (player.current) {
+      player.current.onended = null;
+      player.current.onerror = null;
+      player.current.pause();
+      player.current.removeAttribute("src");
+      player.current.load();
+    }
+    player.current = null;
+  }
   function reset() {
     generation.current++;
     const recording = recorder.current;
@@ -52,15 +62,11 @@ export function MicrophoneCheck({
     if (recording) {
       recording.onstop = null;
       recording.ondataavailable = null;
+      recording.onerror = null;
       if (recording.state === "recording") recording.stop();
     }
     releaseInput();
-    if (player.current) {
-      player.current.onended = null;
-      player.current.pause();
-      player.current.removeAttribute("src");
-    }
-    player.current = null;
+    releasePlayback();
     if (sample.current) URL.revokeObjectURL(sample.current);
     sample.current = null;
     callback.current(false);
@@ -181,7 +187,8 @@ export function MicrophoneCheck({
   }
   async function play() {
     if (!sample.current) return;
-    const current = generation.current;
+    const current = ++generation.current;
+    releasePlayback();
     const audio = new Audio(sample.current);
     player.current = audio;
     callback.current(true);

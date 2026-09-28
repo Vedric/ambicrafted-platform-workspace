@@ -273,6 +273,7 @@ describe("private assistant conversation", () => {
       play = vi.fn().mockResolvedValue(undefined);
       pause = pause;
       removeAttribute = vi.fn();
+      load = vi.fn();
       onended = null;
       onerror = null;
     }

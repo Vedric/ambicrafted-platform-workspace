@@ -18,10 +18,6 @@ vi.mock("./api", async (original) => ({
   api: vi.fn(),
   audioLocal: vi.fn(),
 }));
-vi.mock("./audio-devices", () => ({
-  useAudioDevices: () => ({ outputId: "default" }),
-  applyAudioOutput: vi.fn(async () => {}),
-}));
 vi.mock("./NeuralCore", () => ({
   NeuralCore: () => <div aria-hidden="true" />,
 }));
