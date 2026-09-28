@@ -5,13 +5,18 @@ async function open(page: Page, legacy = "enabled", route = "/welcome") {
     localStorage.setItem("ambicrafted-welcome-audio", "off");
     localStorage.setItem("ambicrafted-motion", value);
   }, legacy);
-  if (route === "/welcome") return page.goto(route);
+  // Motion readiness is asserted through real controls, clocks and opacity
+  // below. Firefox can leave window.load pending after the UI has rendered.
+  if (route === "/welcome")
+    return page.goto(route, { waitUntil: "domcontentloaded" });
   const response = await page.request.post("/api/auth/ticket", {
     headers: { Authorization: "Bearer " + process.env.PLATFORM_E2E_KEY },
     data: {},
   });
   expect(response.ok()).toBe(true);
-  await page.goto(route + "#session=" + (await response.json()).ticket);
+  await page.goto(route + "#session=" + (await response.json()).ticket, {
+    waitUntil: "domcontentloaded",
+  });
 }
 
 async function coreState(page: Page) {
@@ -101,7 +106,7 @@ test("the actual motion state is visible and Enable overrides device reduction a
   await expect(
     page.getByRole("button", { name: "Pause animations", exact: true }),
   ).toHaveText("Motion on");
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
   await core.scrollIntoViewIfNeeded();
   await expect(page.locator("html")).toHaveAttribute(
     "data-motion-mode",
@@ -113,7 +118,7 @@ test("the actual motion state is visible and Enable overrides device reduction a
   await page
     .getByRole("button", { name: "Pause animations", exact: true })
     .click();
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
   await expect(enable).toHaveText("Motion off");
   await expect.poll(async () => (await coreState(page)).running).toBe(0);
   expect(errors).toEqual([]);
@@ -165,7 +170,7 @@ test("a previous pause is recoverable and the choice reaches other open tabs", a
     page.getByRole("button", { name: "Enable animations", exact: true }),
   ).toHaveText("Motion off");
   const other = await context.newPage();
-  await other.goto("/welcome");
+  await other.goto("/welcome", { waitUntil: "domcontentloaded" });
   await expect(other.locator("html")).toHaveAttribute("data-motion", "paused");
   await page
     .getByRole("button", { name: "Enable animations", exact: true })
