@@ -216,6 +216,13 @@ class Dashboard:
                 "text": {"valueSize": 36, "titleSize": 14},
             }
         elif kind == "state-timeline":
+            # Timeline bands use numeric thresholds even when a value mapping
+            # supplies a label/color. Missing telemetry (-1) must stay neutral.
+            defaults["thresholds"]["steps"] = [
+                {"color": "#8b99ad", "value": None},
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1},
+            ]
             defaults["mappings"] = [
                 {
                     "type": "value",
@@ -764,7 +771,9 @@ def main():
         for make in (overview, agentic, infrastructure):
             dashboard = make(lang)
             if dashboard.uid in identifiers or dashboard.data["title"] in titles:
-                raise SystemExit("Grafana provisioning requires unique dashboard UIDs and titles")
+                raise SystemExit(
+                    "Grafana provisioning requires unique dashboard UIDs and titles"
+                )
             identifiers.add(dashboard.uid)
             titles.add(dashboard.data["title"])
             filename = (

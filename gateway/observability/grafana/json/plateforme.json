@@ -498,8 +498,12 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "#8b99ad",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
               },
               {
                 "color": "green",
@@ -597,8 +601,12 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "#8b99ad",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
               },
               {
                 "color": "green",
