@@ -162,6 +162,33 @@ def test_backup_collection_does_not_treat_missing_manifest_as_success(tmp_path):
     assert "ambicrafted_backup_last_completed_timestamp_seconds{}" not in values
 
 
+def test_gpu_probe_uses_wsl_utility_without_shell_path(tmp_path, monkeypatch):
+    from prometheus_client import generate_latest
+
+    from plateforme import collecteur
+
+    executable = tmp_path / "nvidia-smi"
+    executable.write_text("synthetic utility")
+    executable.chmod(0o700)
+    monkeypatch.setattr(collecteur, "WSL_NVIDIA_SMI", executable)
+    monkeypatch.setattr(collecteur.shutil, "which", lambda _: None)
+
+    def run(command, **kwargs):
+        assert command[0] == str(executable)
+        assert command[-1] == "--format=csv,noheader,nounits"
+        assert kwargs["timeout"] == 3
+        return collecteur.subprocess.CompletedProcess(command, 0, "0, 25, 100, 1000, 42, N/A\n")
+
+    monkeypatch.setattr(collecteur.subprocess, "run", run)
+    registry = CollectorRegistry()
+    collecteur.gpu(registry)
+    values = samples(generate_latest(registry).decode())
+    assert values["ambicrafted_gpu_probe_success{}"] == 1
+    assert values["ambicrafted_gpu_utilization_ratio{'gpu': '0'}"] == 0.25
+    assert values["ambicrafted_gpu_memory_used_bytes{'gpu': '0'}"] == 100 * 2**20
+    assert not any(name.startswith("ambicrafted_gpu_power_watts{") for name in values)
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure", ["status", "html", "namespace", "oversize", "timeout"])
 async def test_collection_failure_replaces_old_api_snapshot(
@@ -245,9 +272,15 @@ def test_collector_install_preserves_unmanaged_units_and_quotes_paths(
     unit.parent.mkdir(parents=True)
     unit.write_text("Unmanaged unit\n")
     commands = []
-    monkeypatch.setattr(
-        collecteur.subprocess, "run", lambda command, **kwargs: commands.append(command)
-    )
+
+    def systemctl(command, **kwargs):
+        commands.append(command)
+        code = 1 if command[2] == "reset-failed" else 0
+        if code and kwargs["check"]:
+            raise collecteur.subprocess.CalledProcessError(code, command)
+        return collecteur.subprocess.CompletedProcess(command, code)
+
+    monkeypatch.setattr(collecteur.subprocess, "run", systemctl)
     with pytest.raises(ErreurCLI):
         collecteur.installer(parametres)
     assert unit.read_text() == "Unmanaged unit\n" and commands == []

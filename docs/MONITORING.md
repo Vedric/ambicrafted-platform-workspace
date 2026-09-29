@@ -22,13 +22,16 @@ Build and configure the console/API through the normal installation first, then:
 ```sh
 ./plateforme observabilite installer
 docker compose --project-directory gateway up -d --build platform-metrics
-docker compose --project-directory gateway up -d prometheus grafana
+docker compose --project-directory gateway up -d --no-deps --force-recreate prometheus grafana
 systemctl --user status ambicrafted-metrics.timer --no-pager
 ```
 
 On a checkout with a changed Grafana Dockerfile, include `--build` when updating
 Grafana. Follow the backup and qualification steps in [Operations](OPERATIONS.md)
 before upgrading existing services. These commands touch the named services only.
+Recreating Prometheus refreshes its file bind mounts and reloads the changed scrape
+configuration/rules; a plain `up -d` can leave the existing process/configuration
+running. Named data volumes are retained.
 The installer preserves unrelated systemd units and refuses to replace an
 unmanaged unit with the same name. Linux user-systemd is required for scheduling.
 

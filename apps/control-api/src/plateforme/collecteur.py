@@ -21,6 +21,8 @@ from prometheus_client.parser import text_string_to_metric_families
 
 from .config import Parametres
 
+WSL_NVIDIA_SMI = Path("/usr/lib/wsl/lib/nvidia-smi")
+
 
 class CPU:
     def collect(self):
@@ -82,6 +84,10 @@ def machine(registry, root: Path):
 
 def gpu(registry):
     binary = shutil.which("nvidia-smi")
+    # User-systemd does not inherit the interactive WSL PATH. Use the fixed
+    # OS-provided utility when available; never install a Linux driver in WSL.
+    if not binary and WSL_NVIDIA_SMI.is_file() and os.access(WSL_NVIDIA_SMI, os.X_OK):
+        binary = str(WSL_NVIDIA_SMI)
     if not binary:
         gauge(registry, "gpu_probe_success", "NVIDIA numeric probe available and parsed.", 0)
         return
@@ -348,7 +354,12 @@ WantedBy=timers.target
         ["systemctl", "--user", "start", "ambicrafted-metrics.service"],
     ):
         try:
-            subprocess.run(command, check=True, capture_output=True, timeout=35)
+            # A fresh user manager reports "not loaded" for reset-failed before
+            # the first timer start. Nothing needs resetting in that case.
+            # Enable/start still fail closed if the manager or unit is broken.
+            subprocess.run(
+                command, check=command[2] != "reset-failed", capture_output=True, timeout=35
+            )
         except OSError, subprocess.SubprocessError:
             raise ErreurCLI(
                 "Vérifier ambicrafted-metrics.timer et son service utilisateur."
