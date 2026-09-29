@@ -398,7 +398,9 @@ for line in sys.stdin:
         )
         assert premier["pid"] == suivant["pid"] and suivant["langue"] == "en"
         ancien = voix.processus
-        voix.derniere_utilisation = 0
+        # A newly booted CI runner can have less than 240 s of monotonic uptime.
+        # Expire relative to the actual last request, not to the clock's epoch.
+        voix.derniere_utilisation -= 241
         dernier = await voix.executer(["transcrire", "--langue", "fr", "/unused"])
         assert dernier["pid"] != premier["pid"] and ancien.returncode is not None
         actif = voix.processus

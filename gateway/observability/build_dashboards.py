@@ -22,7 +22,9 @@ class Dashboard:
         self.uid = uid + ("-fr" if lang == "fr" else "")
         self.data = {
             "uid": self.uid,
-            "title": "Ambicrafted · " + self.t(title),
+            # Grafana requires unique titles within the provisioning folder,
+            # including words such as Infrastructure shared by both languages.
+            "title": "Ambicrafted · " + self.t(title) + " · " + lang.upper(),
             "schemaVersion": 39,
             "version": 2,
             "editable": False,
@@ -757,9 +759,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
+    titles, identifiers = set(), set()
     for lang in ("en", "fr"):
         for make in (overview, agentic, infrastructure):
             dashboard = make(lang)
+            if dashboard.uid in identifiers or dashboard.data["title"] in titles:
+                raise SystemExit("Grafana provisioning requires unique dashboard UIDs and titles")
+            identifiers.add(dashboard.uid)
+            titles.add(dashboard.data["title"])
             filename = (
                 "plateforme.json"
                 if dashboard.uid == "plateforme-sre"
