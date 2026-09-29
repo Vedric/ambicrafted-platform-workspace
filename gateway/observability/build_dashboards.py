@@ -103,6 +103,12 @@ class Dashboard:
             "Collector": "Collecteur",
             "API collection": "Collecte API",
             "Snapshot": "Instantané",
+            "Bytes available": "Octets disponibles",
+            "Control API": "API de contrôle",
+            "Inodes available": "Inodes disponibles",
+            "Last completed local backup": "Dernière sauvegarde locale terminée",
+            "Load / CPUs": "Charge / CPU",
+            "Saved messages": "Messages enregistrés",
         }
         return translations.get(value, value) if self.lang == "fr" else value
 
@@ -199,7 +205,8 @@ class Dashboard:
         elif kind == "stat":
             defaults["color"] = {
                 "mode": "thresholds" if thresholds else "fixed",
-                "fixedColor": "cyan",
+                # Readable large numerals on native light and dark panel surfaces.
+                "fixedColor": "#3d83b3",
             }
             options = {
                 "reduceOptions": {

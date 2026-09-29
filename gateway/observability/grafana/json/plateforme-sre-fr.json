@@ -129,7 +129,7 @@
           ],
           "color": {
             "mode": "thresholds",
-            "fixedColor": "cyan"
+            "fixedColor": "#3d83b3"
           },
           "decimals": 1,
           "thresholds": {
@@ -215,7 +215,7 @@
           ],
           "color": {
             "mode": "thresholds",
-            "fixedColor": "cyan"
+            "fixedColor": "#3d83b3"
           },
           "decimals": 1,
           "thresholds": {
@@ -305,7 +305,7 @@
           ],
           "color": {
             "mode": "fixed",
-            "fixedColor": "cyan"
+            "fixedColor": "#3d83b3"
           },
           "decimals": 1,
           "thresholds": {
@@ -387,7 +387,7 @@
           ],
           "color": {
             "mode": "fixed",
-            "fixedColor": "cyan"
+            "fixedColor": "#3d83b3"
           },
           "decimals": 1,
           "thresholds": {
@@ -551,7 +551,7 @@
         {
           "refId": "B",
           "expr": "ambicrafted_control_api_scrape_success and on() (max(ambicrafted:telemetry_fresh) == 1)",
-          "legendFormat": "Control API",
+          "legendFormat": "API de contrôle",
           "editorMode": "code",
           "range": true,
           "instant": false,
@@ -1160,7 +1160,7 @@
         {
           "refId": "A",
           "expr": "time() - ambicrafted_backup_last_completed_timestamp_seconds and on() (max(ambicrafted:telemetry_fresh) == 1)",
-          "legendFormat": "Last completed local backup",
+          "legendFormat": "Dernière sauvegarde locale terminée",
           "editorMode": "code",
           "range": true,
           "instant": false,
@@ -1299,7 +1299,7 @@
           ],
           "color": {
             "mode": "thresholds",
-            "fixedColor": "cyan"
+            "fixedColor": "#3d83b3"
           },
           "decimals": 1,
           "thresholds": {

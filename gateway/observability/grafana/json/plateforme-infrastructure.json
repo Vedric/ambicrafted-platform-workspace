@@ -129,7 +129,7 @@
           ],
           "color": {
             "mode": "fixed",
-            "fixedColor": "cyan"
+            "fixedColor": "#3d83b3"
           },
           "decimals": 1,
           "thresholds": {
@@ -211,7 +211,7 @@
           ],
           "color": {
             "mode": "fixed",
-            "fixedColor": "cyan"
+            "fixedColor": "#3d83b3"
           },
           "decimals": 1,
           "thresholds": {
@@ -293,7 +293,7 @@
           ],
           "color": {
             "mode": "fixed",
-            "fixedColor": "cyan"
+            "fixedColor": "#3d83b3"
           },
           "decimals": 1,
           "thresholds": {
@@ -375,7 +375,7 @@
           ],
           "color": {
             "mode": "fixed",
-            "fixedColor": "cyan"
+            "fixedColor": "#3d83b3"
           },
           "decimals": 1,
           "thresholds": {
