@@ -2214,7 +2214,6 @@ dialog::backdrop {
     display: block;
     position: relative;
     inset: auto;
-    width: min(100%, 420px);
     height: auto;
     opacity: 1;
     width: min(82%, 360px);

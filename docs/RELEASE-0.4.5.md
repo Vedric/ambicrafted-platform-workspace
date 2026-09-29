@@ -4,6 +4,12 @@ Console **0.4.5**, control API **0.4.2**, speech runtime **0.3.2**.
 This remains a release candidate for a private, single-operator workstation.
 It is not a zero-defect or commercial production certification.
 
+The `v0.4.5-rc.2` follow-up removes one overridden mobile CSS width declaration
+identified in automated review. Its effective layout is unchanged. The original
+RC1 tag remains immutable. The review's Python syntax findings do not apply:
+the control API requires Python 3.14, which supports the
+[PEP 758 exception syntax](https://docs.python.org/3.14/whatsnew/3.14.html#pep-758-allow-except-and-except-expressions-without-brackets).
+
 ## Delivered behavior
 
 AURA reuses a private local speech worker between turns. Model hashes and
