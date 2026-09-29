@@ -181,7 +181,7 @@ describe("scroll accents and operator control", () => {
         <main className="page-scene">
           <section className="aura-stage panel">
             <div>Core</div>
-            <section className="audio-devices">Microphone setup</section>
+            <section className="microphone-check">Microphone check</section>
           </section>
         </main>
       </MotionPreference.Provider>,
@@ -193,7 +193,7 @@ describe("scroll accents and operator control", () => {
     expect(
       observer().observed.has(container.querySelector(".welcome-voice")!),
     ).toBe(false);
-    const setup = container.querySelector<HTMLElement>(".audio-devices")!;
+    const setup = container.querySelector<HTMLElement>(".microphone-check")!;
     observer().show(setup);
     expect(animations[0].element).toBe(setup);
     observer().show(setup, false);

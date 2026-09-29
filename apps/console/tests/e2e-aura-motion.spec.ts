@@ -131,7 +131,7 @@ test("full-motion AURA still suspends offscreen and resumes when visible again",
 
 for (const [route, lower, upper] of [
   ["/welcome", ".landing-guide-link", ".landing-copy h1"],
-  ["/assistant", ".audio-devices", ".aura-identity"],
+  ["/assistant", ".microphone-check", ".aura-identity"],
   ["/guide", ".guide-faq > details", ".page-title"],
   ["/parametres", "#cli-settings", ".page-title"],
 ]) {
