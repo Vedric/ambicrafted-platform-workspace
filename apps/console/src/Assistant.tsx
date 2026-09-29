@@ -1,4 +1,4 @@
-import { AudioDevices } from "./AudioDevices";
+import { MicrophoneCheck } from "./MicrophoneCheck";
 import {
   microphoneConstraints,
   microphoneError,
@@ -1085,7 +1085,7 @@ export default function Assistant({
               <strong>{phase === "micro" ? t("Recording") : t("Off")}</strong>
             </div>
           </div>
-          <AudioDevices
+          <MicrophoneCheck
             disabled={externalBusy || phase !== "repos" || handsFree}
             onActiveChange={setCheckingAudio}
           />

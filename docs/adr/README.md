@@ -70,3 +70,6 @@ observed is written as a prediction, not as a result.
 - [0028 — Conversation responsiveness and continuous motion](0028-reactivite-conversation-et-mouvement.md): bounded spoken turns, local preparation, cancellation and visible motion.
 
 - [0029 — Explicit motion preferences](0029-preferences-mouvement-explicites.md): truthful motion controls, explicit override and shared CSS/React state.
+
+- [0030 — Private operational telemetry](0030-observabilite-privee.md): aggregate collection, bilingual Grafana views and freshness-aware alerts.
+- [0031 — Warm local voice and system defaults](0031-moteur-vocal-resident.md): bounded resident speech worker; supersedes audio routing in ADR 0027.

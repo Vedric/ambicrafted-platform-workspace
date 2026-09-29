@@ -1,72 +1,24 @@
-import { useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { t } from "./i18n";
 
 export const AUDIO_DEVICE_KEY = "ambicrafted-audio-routing-v1";
-const EVENT = "ambicrafted-audio-routing";
-type Preferences = { inputId: string; outputId: string; processing: boolean };
-const defaults: Preferences = { inputId: "", outputId: "", processing: true };
-let snapshot = defaults;
-let previous: string | null | undefined;
-let memory = defaults;
-let sessionOnly = false;
-
-/** Device IDs stay in this browser; never send them to the API or logs. */
-export function audioPreferences(): Preferences {
-  if (sessionOnly) return memory;
-  let raw: string | null;
+const defaults = Object.freeze({ inputId: "", outputId: "", processing: true });
+/** Retired explicit routing must never override the operating system's defaults. */
+export function audioPreferences() {
   try {
-    raw = localStorage.getItem(AUDIO_DEVICE_KEY);
+    localStorage.removeItem(AUDIO_DEVICE_KEY);
   } catch {
-    return memory;
+    /* Storage may be blocked. */
   }
-  if (raw === previous) return snapshot;
-  previous = raw;
-  try {
-    const value = JSON.parse(raw || "null");
-    const id = (v: unknown) =>
-      typeof v === "string" && v.length <= 1024 ? v : "";
-    snapshot =
-      value && typeof value === "object"
-        ? {
-            inputId: id(value.inputId),
-            outputId: id(value.outputId),
-            processing: value.processing !== false,
-          }
-        : defaults;
-  } catch {
-    snapshot = defaults;
-  }
-  return snapshot;
-}
-export function saveAudioPreferences(change: Partial<Preferences>) {
-  memory = { ...audioPreferences(), ...change };
-  try {
-    localStorage.setItem(AUDIO_DEVICE_KEY, JSON.stringify(memory));
-    sessionOnly = false;
-  } catch {
-    sessionOnly = true;
-  }
-  window.dispatchEvent(new Event(EVENT));
-}
-function subscribe(notify: () => void) {
-  const changed = (event: StorageEvent) => {
-    if (event.key === AUDIO_DEVICE_KEY || event.key === null) notify();
-  };
-  window.addEventListener(EVENT, notify);
-  window.addEventListener("storage", changed);
-  return () => {
-    window.removeEventListener(EVENT, notify);
-    window.removeEventListener("storage", changed);
-  };
+  return defaults;
 }
 export function useAudioPreferences() {
-  return useSyncExternalStore(subscribe, audioPreferences);
+  return audioPreferences();
 }
 export function microphoneConstraints(): MediaStreamConstraints {
-  const { inputId, processing } = audioPreferences();
+  const { processing } = audioPreferences();
   return {
     audio: {
-      ...(inputId ? { deviceId: { exact: inputId } } : {}),
       echoCancellation: processing,
       noiseSuppression: processing,
       autoGainControl: processing,
@@ -85,7 +37,7 @@ export function microphoneError(cause: unknown): string {
     return t("The microphone is unavailable or in use by another application.");
   if (name === "OverconstrainedError" || name === "NotFoundError")
     return t(
-      "The selected microphone is unavailable. Connect it or choose another input in Audio devices.",
+      "Check your system microphone, browser permission and localhost connection, then try again.",
     );
   if (name === "SecurityError")
     return t(
@@ -94,9 +46,6 @@ export function microphoneError(cause: unknown): string {
   return t(
     "Check your system microphone, browser permission and localhost connection, then try again.",
   );
-}
-export function outputSelectionSupported() {
-  return typeof HTMLMediaElement.prototype.setSinkId === "function";
 }
 const queues = new WeakMap<HTMLMediaElement, Promise<void>>();
 export function applyAudioOutput(media: HTMLMediaElement): Promise<void> {
@@ -118,7 +67,7 @@ export function applyAudioOutput(media: HTMLMediaElement): Promise<void> {
       } catch {
         throw new Error(
           t(
-            "The selected output is unavailable or not permitted. Choose another speaker or authorize it in Audio devices.",
+            "Check your system microphone, browser permission and localhost connection, then try again.",
           ),
         );
       }
@@ -145,7 +94,7 @@ export function playWithAudioOutput(
     playWithAudioOutput(media, current),
   );
 }
-/** Also route players that are already playing when the selection changes. */
+/** Ensure an existing player uses the system output. */
 export function useAudioOutput(
   ref: RefObject<HTMLMediaElement | null>,
   failed: (error: Error) => void,

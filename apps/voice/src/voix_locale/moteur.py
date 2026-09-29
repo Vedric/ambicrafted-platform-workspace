@@ -2,6 +2,7 @@
 
 import os
 import wave
+from functools import lru_cache
 from pathlib import Path
 
 from .fichiers import ErreurVoix, dossier_prive, manifeste, ouvrir_prive, verifier_modele
@@ -65,11 +66,26 @@ def decoder_audio(path: Path):
     return resultat
 
 
+@lru_cache(maxsize=2)
+def modele_reconnaissance(dossier: Path, langue: str):
+    """Keep at most two verified recognition models in the private worker."""
+    hors_ligne()
+    from faster_whisper import WhisperModel
+
+    return WhisperModel(
+        str(dossier),
+        device="cpu",
+        compute_type="float32" if langue == "fr" else "int8",
+        cpu_threads=4,
+        num_workers=1,
+        local_files_only=True,
+    )
+
+
 def transcrire(path: Path, langue: str = "en") -> dict:
     langue = valider_langue(langue)
     hors_ligne()
     import numpy as np
-    from faster_whisper import WhisperModel
 
     audio = decoder_audio(path)
     # Preserve a quiet acoustic context before an onset at sample zero. Without it,
@@ -88,17 +104,9 @@ def transcrire(path: Path, langue: str = "en") -> dict:
         else alias
     )
     dossier = verifier_modele(alias_modele)
-    model = WhisperModel(
-        str(dossier),
-        device="cpu",
-        # French INT8 recognition changes words on the fixed regression signal
-        # under AVX2/hosted Intel dispatch. Preserve FP32 activations for French;
-        # the independently qualified English path retains its faster INT8 mode.
-        compute_type="float32" if langue == "fr" else "int8",
-        cpu_threads=4,
-        num_workers=1,
-        local_files_only=True,
-    )
+    # Recheck pinned hashes on every request, even when native weights are warm.
+    # French retains FP32; independently qualified English retains INT8.
+    model = modele_reconnaissance(dossier, langue)
     segments, _ = model.transcribe(
         audio_inference,
         language=langue,

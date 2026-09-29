@@ -1,5 +1,4 @@
 import { useAudioFocus } from "./audio-focus";
-import { AudioDevices } from "./AudioDevices";
 import { playWithAudioOutput, useAudioOutput } from "./audio-devices";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -38,8 +37,6 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
   const latestWatch = useRef(watch.data);
   latestWatch.current = watch.data;
   const [phase, setPhase] = useState<Phase>("idle");
-  const [configuringAudio, setConfiguringAudio] = useState(false);
-  const [devicesOpen, setDevicesOpen] = useState(false);
   useAudioFocus(phase === "loading" || phase === "speaking" ? "speech" : null);
   const [message, setMessage] = useState<string | null>(null);
   const [transcript, setTranscript] = useState("");
@@ -248,7 +245,6 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
         <div className="welcome-audio-actions">
           <button
             className="btn primary"
-            disabled={configuringAudio}
             onClick={() => (busy ? stop() : void play("greeting"))}
           >
             {phase === "loading" ? (
@@ -263,7 +259,7 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
           {connected && (
             <button
               className="btn"
-              disabled={busy || configuringAudio || overview.isPending}
+              disabled={busy || overview.isPending}
               onClick={() => void play("briefing")}
             >
               <AudioLines size={17} />
@@ -273,7 +269,7 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
           {watch.data?.briefings?.[language] && !watch.data.stale && (
             <button
               className="btn"
-              disabled={busy || configuringAudio}
+              disabled={busy}
               onClick={() => void play("watch")}
             >
               <AudioLines size={17} />
@@ -310,18 +306,6 @@ export default function WelcomeVoice({ connected }: { connected: boolean }) {
           />
           {t("Welcome me on arrival")}
         </label>
-        <details
-          className="welcome-device-settings"
-          onToggle={(event) => setDevicesOpen(event.currentTarget.open)}
-        >
-          <summary>{t("Audio devices")}</summary>
-          {devicesOpen && (
-            <AudioDevices
-              disabled={busy}
-              onActiveChange={setConfiguringAudio}
-            />
-          )}
-        </details>
         {transcript && (
           <details className="welcome-transcript">
             <summary>{t("Transcript")}</summary>

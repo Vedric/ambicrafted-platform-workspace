@@ -121,7 +121,7 @@ def test_routage_sur_echantillons_decodes_et_alias_public_stable(
 def test_backend_fixe_avant_import_natif_meme_si_environnement_contradictoire():
     code = """import importlib.abc, os, sys
 from pathlib import Path
-from voix_locale.moteur import transcrire
+from voix_locale.moteur import modele_reconnaissance
 class InspecterImport(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         if fullname == 'faster_whisper':
@@ -130,7 +130,7 @@ class InspecterImport(importlib.abc.MetaPathFinder):
             raise RuntimeError('bootstrap-verified')
 sys.meta_path.insert(0, InspecterImport())
 try:
-    transcrire(Path('/unused-synthetic-audio.wav'))
+    modele_reconnaissance(Path('/unused-synthetic-model'), 'fr')
 except RuntimeError as error:
     assert str(error) == 'bootstrap-verified'
     print('verified')

@@ -1,3 +1,4 @@
+import { BrandMark } from "./BrandMark";
 import { AmbientAudioProvider, AmbientAudioControl } from "./AmbientAudio";
 import { t, useI18n, LanguageSelector, systemText } from "./i18n";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
@@ -44,7 +45,6 @@ import {
   ShieldCheck,
   SquareTerminal,
   Sun,
-  Triangle,
   Workflow,
   Wrench,
   X,
@@ -266,8 +266,7 @@ function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <div className="brand">
       <span className="brand-icon">
-        <Triangle size={23} />
-        <i />
+        <BrandMark />
       </span>
       {!compact && (
         <span>

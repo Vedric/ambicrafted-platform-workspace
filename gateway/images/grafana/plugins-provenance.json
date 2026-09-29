@@ -14,11 +14,11 @@
     },
     {
       "id": "opentsdb",
-      "version": "13.0.3",
-      "source": "https://grafana.com/api/plugins/opentsdb/versions/13.0.3/download?os=linux&arch=amd64",
-      "sha256": "34270f63a9516b9f83d2729d57dbd9558313a654f0ad10f9a59c1d3d027e3a32",
+      "version": "13.0.4",
+      "source": "https://grafana.com/api/plugins/opentsdb/versions/13.0.4/download?os=linux&arch=amd64",
+      "sha256": "5fbe65a810453d7edc40e968fb3e19f1114d17d82401c4806727eee5b2f7f612",
       "zip_root": "opentsdb",
-      "bytes": 9603135,
+      "bytes": 9602777,
       "signatureType": "grafana",
       "grafanaDependency": ">=12.3.0-0"
     },
@@ -61,6 +61,36 @@
       "bytes": 9638992,
       "signatureType": "grafana",
       "grafanaDependency": ">=12.3.0-0"
+    },
+    {
+      "id": "grafana-postgresql-datasource",
+      "version": "13.0.4",
+      "source": "https://grafana.com/api/plugins/grafana-postgresql-datasource/versions/13.0.4/download?os=linux&arch=amd64",
+      "sha256": "d34f44bd13213502de4394955fcc170d70fb822531c181bff0179f216c35a0e0",
+      "zip_root": "grafana-postgresql-datasource",
+      "bytes": 11753881,
+      "grafanaDependency": ">=12.3.0-0",
+      "signatureType": "grafana"
+    },
+    {
+      "id": "influxdb",
+      "version": "13.1.6",
+      "source": "https://grafana.com/api/plugins/influxdb/versions/13.1.6/download?os=linux&arch=amd64",
+      "sha256": "ebf559b2a3d2375efe7959568a132c16ebe1fe7c55bfaf2ce7643693d6b0bceb",
+      "zip_root": "influxdb",
+      "bytes": 11937793,
+      "grafanaDependency": ">=12.3.0-0",
+      "signatureType": "grafana"
+    },
+    {
+      "id": "jaeger",
+      "version": "13.0.4",
+      "source": "https://grafana.com/api/plugins/jaeger/versions/13.0.4/download?os=linux&arch=amd64",
+      "sha256": "2a2458a646e735715a47bddc02a0dbb86a0c88412bc7851f3fd7de212b0a7c14",
+      "zip_root": "jaeger",
+      "bytes": 9760236,
+      "grafanaDependency": ">=12.3.0-0",
+      "signatureType": "grafana"
     }
   ]
 }

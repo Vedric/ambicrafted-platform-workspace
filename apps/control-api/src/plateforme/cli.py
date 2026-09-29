@@ -279,12 +279,17 @@ def analyseur() -> argparse.ArgumentParser:
     commandes = p.add_subparsers(dest="commande", required=True)
     commandes.add_parser("servir", help="Démarrer la console et l'API sur 127.0.0.1.")
     commandes.add_parser("ouvrir", help="Ouvrir une session privée dans le navigateur local.")
+    monitoring = commandes.add_parser(
+        "observabilite", help="Installer ou exécuter la collecte privée."
+    )
+    monitoring.add_argument(
+        "action", nargs="?", choices=["afficher", "installer", "collecter"], default="afficher"
+    )
     commandes.add_parser("statut", aliases=["sante"], help="Afficher la santé réelle des services.")
     commandes.add_parser(
         "preparation", aliases=["doctor"], help="Diagnostiquer les capacités locales mesurées."
     )
     commandes.add_parser("vue-ensemble", help="Afficher les indicateurs de la plateforme.")
-    commandes.add_parser("observabilite", help="Afficher les cibles et le journal d'exploitation.")
     commandes.add_parser("parametres", help="Afficher les paramètres publics, sans secrets.")
     commandes.add_parser("veille", help="Consulter le bulletin technologique public mis en cache.")
     conversations = commandes.add_parser("conversations", help="Historique et dialogue AURA privé.")
@@ -513,6 +518,15 @@ WantedBy=default.target
 
 
 def executer(args: argparse.Namespace, p: Parametres) -> Any:
+    if args.commande == "observabilite" and args.action != "afficher":
+        import asyncio
+
+        from .collecteur import collect, installer
+
+        if args.action == "installer":
+            return installer(p)
+        asyncio.run(collect(p, p.racine / "gateway/observability/.textfile/platform.prom"))
+        return {"collected": True, "scope": "local-aggregate"}
     if args.commande == "memoire" and args.action == "installer":
         import asyncio
 

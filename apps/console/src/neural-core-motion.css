@@ -96,3 +96,25 @@
     opacity: 0.95;
   }
 }
+
+/* The emblem stays legible as its surrounding instrument breathes. */
+.brand-mark {
+  width: 100%;
+  height: 100%;
+}
+.brand-icon {
+  width: 46px;
+  height: 46px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+.brand-accent {
+  stroke: var(--amber);
+}
+.neural-core .core-lens {
+  stroke-width: 1.2;
+  color: #b8f3ff;
+}
+.neural-core .core-lens > circle:last-child {
+  stroke-width: 1.5;
+}

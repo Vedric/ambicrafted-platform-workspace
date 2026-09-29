@@ -378,3 +378,122 @@ def test_audio_abandonne_nettoye_sans_suivre_liens(parametres, tmp_path):
     assert not orphelin.exists()
     assert preserve.is_dir()
     assert (externe / "preuve").read_text() == "conserver"
+
+
+@pytest.mark.asyncio
+async def test_resident_reutilise_redemarre_puis_ferme(parametres):
+    executable_voix(
+        parametres,
+        """import sys,json,os
+for line in sys.stdin:
+    request = json.loads(line)
+    print(json.dumps({"id":request["id"],"resultat":{"pid":os.getpid(),"langue":request["langue"]}}),flush=True)
+""",
+    )
+    voix = Voix(parametres)
+    try:
+        premier = await voix.executer(["transcrire", "--langue", "fr", "/unused"])
+        suivant = await voix.executer(
+            ["parler", "--langue", "en", "--sortie", "/unused"], "Private"
+        )
+        assert premier["pid"] == suivant["pid"] and suivant["langue"] == "en"
+        ancien = voix.processus
+        voix.derniere_utilisation = 0
+        dernier = await voix.executer(["transcrire", "--langue", "fr", "/unused"])
+        assert dernier["pid"] != premier["pid"] and ancien.returncode is not None
+        actif = voix.processus
+    finally:
+        await voix.fermer()
+    assert voix.processus is None and actif.returncode is not None
+
+
+@pytest.mark.asyncio
+async def test_annulation_resident_tue_processus_et_autorise_nouvel_echange(parametres):
+    executable_voix(
+        parametres,
+        """import sys,json,time
+for line in sys.stdin:
+    request = json.loads(line)
+    if request.get("texte") == "wait":
+        time.sleep(60)
+    print(json.dumps({"id":request["id"],"resultat":{"texte":"Synthetic"}}),flush=True)
+""",
+    )
+    voix = Voix(parametres)
+    travail = asyncio.create_task(voix.parler("wait", "fr"))
+    async with asyncio.timeout(5):
+        while voix.processus is None:
+            await asyncio.sleep(0.01)
+        ancien = voix.processus
+        travail.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await travail
+        assert ancien.returncode is not None and voix.processus is None
+        assert not voix.verrou.locked() and not list(voix.temp.iterdir())
+        try:
+            resultat = await voix.transcrire(base64.b64encode(wav_synthetique()).decode(), "fr")
+            assert resultat["texte"] == "Synthetic"
+        finally:
+            await voix.fermer()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "sortie", ["{}", "[]", '{"resultat":[]}', '{"id":"wrong","resultat":{}}', "x" * 100_000]
+)
+async def test_resident_sortie_invalide_ne_pollue_pas_echange_suivant(parametres, sortie):
+    executable_voix(
+        parametres,
+        "import sys,time\nsys.stdin.readline()\nprint("
+        + repr(sortie)
+        + ",flush=True)\ntime.sleep(60)\n",
+    )
+    voix = Voix(parametres)
+    async with asyncio.timeout(5):
+        with pytest.raises(HTTPException) as erreur:
+            await voix.executer(["transcrire", "--langue", "fr", "/unused"])
+    assert erreur.value.status_code == 503 and voix.processus is None
+
+
+@pytest.mark.asyncio
+async def test_resident_erreur_traitement_conserve_contrat_422(parametres):
+    executable_voix(
+        parametres,
+        """import sys,json
+request=json.loads(sys.stdin.readline())
+print(json.dumps({"id":request["id"],"erreur":True}),flush=True)
+""",
+    )
+    voix = Voix(parametres)
+    with pytest.raises(HTTPException) as erreur:
+        await voix.transcrire("UklGRg==", "fr")
+    assert erreur.value.status_code == 422
+    assert voix.processus is None and not list(voix.temp.iterdir())
+
+
+@pytest.mark.asyncio
+async def test_annulation_pendant_creation_ne_laisse_pas_enfant_orphelin(parametres, monkeypatch):
+    executable_voix(parametres, "import sys,time\nsys.stdin.readline()\ntime.sleep(60)\n")
+    original = asyncio.create_subprocess_exec
+    started, release = asyncio.Event(), asyncio.Event()
+    children = []
+
+    async def delayed(*args, **kwargs):
+        process = await original(*args, **kwargs)
+        children.append(process)
+        started.set()
+        await release.wait()
+        return process
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", delayed)
+    voix = Voix(parametres)
+    task = asyncio.create_task(voix.parler("Synthetic", "fr"))
+    async with asyncio.timeout(5):
+        await started.wait()
+        task.cancel()
+        release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    assert children[0].returncode is not None
+    assert voix.processus is None and not voix.verrou.locked()
+    assert not list(voix.temp.iterdir())

@@ -24,6 +24,7 @@ from .depot import Conflit, Depot, Introuvable
 from .memoire import Memoire
 from .memoire import routes as memory_routes
 from .moteur import ACTIFS, OPERATIONS, Moteur
+from .observabilite import Mesures, MesuresHTTP, exposer
 from .preparation import Preparation
 from .securite import (
     COOKIE,
@@ -108,6 +109,7 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
                 watch.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await watch
+            await voix.fermer()
             await moteur.fermer()
 
     app = FastAPI(
@@ -119,6 +121,9 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
         openapi_url=None,
     )
     app.add_middleware(FrontiereHTTP, parametres=p)
+    mesures = Mesures()
+    app.add_middleware(MesuresHTTP, mesures=mesures)
+    app.state.mesures = mesures
     app.state.depot, app.state.auth, app.state.moteur = depot, auth, moteur
     app.state.voix = voix
     app.state.veille = veille
@@ -152,6 +157,14 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
     @app.get("/api/ping")
     async def ping():
         return {"statut": "disponible", "version": __version__}
+
+    @app.get("/api/metriques")
+    async def metriques(request: Request):
+        if auth.acteur(request) != "cli":
+            raise HTTPException(403, "Métriques réservées au collecteur local authentifié.")
+        health = await services.sante()
+        body = await asyncio.to_thread(exposer, mesures, depot, moteur, health)
+        return Response(body, media_type="text/plain; version=0.0.4; charset=utf-8")
 
     @app.get("/api/veille")
     async def technologie():

@@ -49,6 +49,14 @@ The provisioned data sources use `Plateforme Tempo` and `Plateforme Prometheus`
 with stable UIDs. Older sources named `Tempo` and `Prometheus` remain available
 so their generated UIDs and existing dashboards are preserved during upgrades.
 
+## Operational dashboards
+
+See [Monitoring](MONITORING.md) for the three bilingual Grafana dashboards,
+`./plateforme observabilite installer`, freshness rules and local alert recovery.
+The exporter has no host port or credential mount. The existing
+`./plateforme observabilite` summary remains compatible; `collecter` explicitly
+refreshes the aggregate snapshot. User-systemd schedules the collector.
+
 ## Backups and restore drills
 
 ```sh

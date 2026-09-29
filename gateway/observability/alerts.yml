@@ -1,4 +1,81 @@
 groups:
+  - name: ambicrafted-recording
+    rules:
+      - record: ambicrafted:telemetry_fresh
+        expr: (time() - ambicrafted_snapshot_timestamp_seconds{job="platform"} < bool 90) * on(job,instance) up{job="platform"}
+  - name: ambicrafted-operations
+    rules:
+      - alert: PlatformMetricsUnavailable
+        expr: up{job="platform"} == 0 or absent(up{job="platform"})
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "Platform metrics exporter is unavailable"
+          description: "Check the platform-metrics container and Prometheus target. No host port is required."
+          runbook_url: "http://localhost:8787/guide"
+      - alert: PlatformCollectorStale
+        expr: time() - ambicrafted_snapshot_timestamp_seconds{job="platform"} > 90 or absent(ambicrafted_snapshot_timestamp_seconds{job="platform"})
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "Platform metrics snapshot is missing or stale"
+          description: "Check ambicrafted-metrics.timer and its user service. Stale dashboards deliberately hide application gauges."
+      - alert: PlatformControlAPIUnavailable
+        expr: ambicrafted_control_api_scrape_success == 0 and on() (max(ambicrafted:telemetry_fresh) == 1)
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "Authenticated control-plane collection failed"
+          description: "Check the local console service, private collector configuration and API response; do not expose its port."
+      - alert: PlatformServiceUnhealthy
+        expr: ambicrafted_service_up == 0 and on() (max(ambicrafted:telemetry_fresh) == 1)
+        for: 3m
+        labels: {severity: warning}
+        annotations:
+          summary: "Local service {{ $labels.service }} is not responding"
+          description: "Use the local readiness checks and the service-specific runbook before taking action."
+      - alert: PlatformAPIErrorRate
+        expr: (sum(rate(ambicrafted_http_requests_total{outcome="server_error"}[10m])) / sum(rate(ambicrafted_http_requests_total[10m])) > 0.05) and (sum(increase(ambicrafted_http_requests_total[10m])) >= 20) and on() (max(ambicrafted:telemetry_fresh) == 1)
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "Sustained API server errors above 5 percent"
+          description: "At least 20 requests were observed. Inspect errors by capability; historical counters reset on API restart."
+      - alert: PlatformQueuePressure
+        expr: ambicrafted_queue_depth / ambicrafted_queue_capacity > 0.8 and on() (max(ambicrafted:telemetry_fresh) == 1)
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Execution queue above 80 percent for ten minutes"
+          description: "Inspect active analyses, model availability and explicit cancellations. Do not add parallel workers without qualification."
+      - alert: PlatformDiskLow
+        expr: ambicrafted_data_disk_available_bytes / ambicrafted_data_disk_size_bytes < 0.1 and on() (max(ambicrafted:telemetry_fresh) == 1)
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: "Platform filesystem has less than 10 percent free space"
+          description: "Review platform retention and backups. Never run global Docker cleanup on this shared workstation."
+      - alert: PlatformMemoryPressure
+        expr: ambicrafted_host_memory_memavailable_bytes / ambicrafted_host_memory_memtotal_bytes < 0.1 and on() (max(ambicrafted:telemetry_fresh) == 1)
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Linux/WSL available memory below 10 percent"
+          description: "Inspect local resource use. These metrics cover the VM, not all Windows host memory."
+      - alert: PlatformBackupOverdue
+        expr: (time() - ambicrafted_backup_last_completed_timestamp_seconds > 129600 or ambicrafted_backup_available == 0) and on() (max(ambicrafted:telemetry_fresh) == 1)
+        for: 1h
+        labels: {severity: warning}
+        annotations:
+          summary: "No completed local backup within 36 hours"
+          description: "Check platform-backup.timer, run a backup and verify restoration. A local manifest does not prove off-host protection."
+      - alert: PlatformGPUHot
+        expr: ambicrafted_gpu_temperature_celsius > 85 and on() (max(ambicrafted:telemetry_fresh) == 1)
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "GPU temperature above the 85 C warning threshold"
+          description: "Inspect workload and cooling. This operator warning is not a manufacturer thermal limit."
   - name: disponibilite-plateforme
     rules:
       - alert: ServicePlateformeIndisponible

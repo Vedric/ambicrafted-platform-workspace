@@ -1,6 +1,6 @@
 # A client mission, from intake to handover
 
-This guide describes the current platform, reviewed on **27 September 2026**.
+This guide describes the current platform, reviewed on **29 September 2026**.
 It supports a trusted operator investigating an incident with local models,
 reviewed runbooks and an explicit human approval step. It does not connect to
 a client's infrastructure, execute remediation, provide tenant isolation or
@@ -103,7 +103,7 @@ reduced-motion setting. These display preferences do not change the incident
 workflow or AURA's audio permissions.
 
 Review the current [dependency findings](DEPENDENCIES.md) and
-[current security assessment](SECURITY-REFINEMENT-2026-09-27.md) against the mission's
+[current security assessment](SECURITY-2026-09-29.md) against the mission's
 requirements. Functional health does not establish an absence of
 vulnerabilities. A new machine also needs its own synthetic inference,
 approval/refusal, microphone/playback if used, and backup restoration checks.

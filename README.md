@@ -11,8 +11,8 @@ features, measured acceptance checks and remaining production conditions.
 Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
-Console **0.4.4**, control API **0.4.1**, local speech runtime **0.3.1**.
-See the [0.4.0 delivery report](docs/RELEASE-0.4.0.md) for exact qualification and
+Console **0.4.5**, control API **0.4.2**, local speech runtime **0.3.2**.
+See the [0.4.5 delivery report](docs/RELEASE-0.4.5.md) for exact qualification and
 remaining conditions. This is a private, single-operator workspace; it is not a
 multi-tenant commercial service or a zero-vulnerability certification.
 
@@ -77,16 +77,19 @@ sign-in takes you straight to the workspace. Without a configured password, an
 expired browser session needs another one-use CLI entry; CLI access remains available. Both UI and CLI use the same
 authenticated control API; `./plateforme --help` documents every command.
 
-AURA has a vertical, centered instrument with a gentle heartbeat accent,
-responsive layouts and plain **English voice / French voice** choices. In
-**Audio devices**, select **Detect devices**, allow browser microphone access,
-then choose your input and output. **Test speakers** checks playback;
-**Check microphone & sound** records up to eight seconds and replays locally.
-This diagnostic sends no recording to the API. Device choices stay in this
-browser and apply to AURA, greetings, videos and music. Browsers without output
-selection use the system output; see [audio setup](docs/CONSOLE.md#microphone-sound-and-walkthroughs).
+AURA has a larger, centered vertical instrument, responsive layouts and plain
+**English voice / French voice** choices. Input and output follow the operating
+system defaults; old browser device selections are ignored. Change devices in
+your OS settings. **Check microphone & sound** records up to eight seconds and
+replays locally, without uploading the sample. Microphone access requires an
+explicit action and browser permission. See [audio setup](docs/CONSOLE.md#microphone-sound-and-walkthroughs).
 **User guide** contains six narrated MP4 walkthroughs with English/French captions.
-See the [conversation responsiveness and motion report](docs/RELEASE-0.4.3.md).
+AURA keeps its local speech models warm between exchanges, with an idle timeout
+and cancellation cleanup; see [voice operation](docs/VOICE.md).
+
+[Grafana monitoring](docs/MONITORING.md) offers three operational views in English
+and French, covering service health, agentic activity, voice latency, Linux/GPU
+resources and backup freshness. It distinguishes missing data from zero activity.
 AURA now breathes, pulses and rotates continuously while visible, including Welcome
 and Overview. Page entrances fade again in both scroll directions; reduced-motion
 and pause controls remain available. Before starting a spoken conversation, the
@@ -176,7 +179,9 @@ uv python install 3.14.7 3.13.15
 ```
 
 1. Review [gateway setup](gateway/README.md), prepare its private environment
-   from `gateway/.env.example`, and start the six services.
+   from `gateway/.env.example`, and start the six core services. The monitoring exporter uses the optional
+   `observability` profile; install its collector before starting it (see
+   [Monitoring](docs/MONITORING.md)).
 2. Provision the model from [models/](models/README.md). Verify model digests;
    model tags alone are mutable.
 3. Create the root environment and restricted key without printing it:

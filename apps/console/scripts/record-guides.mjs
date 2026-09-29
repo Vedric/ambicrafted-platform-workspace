@@ -145,15 +145,14 @@ try {
         cue(0);
         await go("/assistant");
         await page
-          .getByRole("button", {
-            name:
-              language === "fr"
-                ? "Détecter les périphériques"
-                : "Detect devices",
-            exact: true,
-          })
+          .getByText(
+            language === "fr"
+              ? "Vérifier le microphone et le son"
+              : "Check microphone & sound",
+            { exact: true },
+          )
           .click();
-        await page.locator(".audio-devices").scrollIntoViewIfNeeded();
+        await page.locator(".microphone-check").scrollIntoViewIfNeeded();
         await pause();
         cue(1);
         await page

@@ -173,7 +173,9 @@ on timeout or cancellation: a native library can delay Python signal handling.
 Use a private temporary directory for each request and remove both uploaded and
 generated audio in `finally`, including failures. Generated WAV responses must
 be `no-store`. Never place speech text in process arguments, URLs or audit logs.
-The speech engine deliberately creates no background service or autostart recording.
+The API starts one private speech worker on demand, reuses it between exchanges,
+and closes it after five idle minutes or API shutdown. There is no voice network
+listener, startup daemon or automatic microphone capture.
 The console stores conversation text and extracted source documents in private SQLite;
 raw transient microphone audio is not retained. See [conversations](CONVERSATIONS.md).
 
@@ -181,13 +183,27 @@ AURA uses Védric in both languages and French vous. Spoken text preserves sente
 and paragraph boundaries. The engine adds only the missing portion of a 180 ms
 sentence pause, preserving existing silence and phonemes. This does not train new
 voice weights. Input/output initially follow the operating system defaults.
-Console 0.4.2 adds explicit browser-local choices in **Audio devices**, on Welcome
-and in AURA. Choose and test the physical microphone, then the speakers. The
-optional processing switch helps diagnose virtual inputs affected by noise
-suppression. Output selection requires browser support; the default path remains
-available without it. Diagnostic recordings never leave the browser. Follow the
-[audio setup steps](CONSOLE.md#microphone-sound-and-walkthroughs) and
-[routing ADR](adr/0027-browser-audio-routing.md).
+The current console always uses OS defaults. Device selectors have been removed,
+and legacy saved identifiers are ignored. The browser-only microphone diagnostic
+remains available. Follow the [audio setup steps](CONSOLE.md#microphone-sound-and-walkthroughs).
+[ADR 0031](adr/0031-moteur-vocal-resident.md) supersedes the previous routing decision.
+
+The private worker retains at most two recognition models and one synthesis
+session; pinned hashes are rechecked on every operation. It preserves the same
+recognition, precision and pronunciation settings. JSON-line input/output sizes,
+per-operation deadlines, strict operations and process-group cancellation bound
+the transport. A failed or malformed response stops the worker; a later request
+starts a new one. Conversation results and transient microphone audio are not
+cached by this optimization. The standalone CLI retains one-shot behavior.
+
+On the local workstation, a fixed French sample took 5.61–5.85 s to transcribe
+through the previous one-shot bridge, versus 3.49–3.57 s on warmed resident turns.
+Its short spoken response took 1.84–1.98 s versus 0.67–0.70 s. English warmed
+measurements were 4.62–4.69 s for transcription and 0.54–0.61 s for synthesis.
+These are small synthetic measurements dated 2026-09-29, excluding recording,
+LLM generation and playback; they are not latency guarantees or quality scores.
+The first cold turn still loads the models, and idle expiry returns to cold startup.
+
 
 The platform backup includes the console database and per-analysis checkpoints,
 but excludes transient audio and downloadable voice model binaries. Model

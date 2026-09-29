@@ -7,77 +7,71 @@
       "file": "welcome-dark.png",
       "route": "/welcome",
       "theme": "dark",
-      "sha256": "a513fd969f1a44fac828142741533b60c7243d2bc7ddca79f53f11301c167bdd",
-      "bytes": 602043
+      "sha256": "2e2ea73302322789329080b7a4c0de27a8eec492aaa20cfada89971f7399a05e",
+      "bytes": 607567
     },
     {
       "file": "assistant-dark.png",
       "route": "/assistant",
       "theme": "dark",
-      "sha256": "df6aef16abb2abb181672bf4e89aa1229daaf80da231279ff1cf3edfa3db9e68",
-      "bytes": 925054,
-      "revision": "0.4.3 continuous AURA motion and prepared spoken conversations",
-      "annotations": "None; direct browser capture",
-      "data": "Empty disposable workspace; readiness from real local speech and inference. No operator history."
+      "sha256": "2e5d22844dd0010ce0019d4e246f007637a7ecec3a5ab1b8c865fe72f74da636",
+      "bytes": 800543
     },
     {
       "file": "workspace-dark.png",
       "route": "/",
       "theme": "dark",
-      "sha256": "18c6fe7f733b2d25f04e29ce4164d87eda16e517aa6a2d9835d34fa75409118c",
-      "bytes": 1214593
+      "sha256": "5e36d9141c0dc06c38c76738b2d04e6095ada6da96bba395f9cc81816068aac7",
+      "bytes": 1383204
     },
     {
       "file": "architecture-dark.png",
       "route": "/architecture",
       "theme": "dark",
-      "sha256": "59a2ea9612d8f0cae402afecbb9b18b55eb84ba5566111df36801a1e5bfa967b",
-      "bytes": 819680
+      "sha256": "8cfd9ff7d97a5955e9dd6d4051a3e9182e3ad1109bc2931b6e6a4e49cef72a1e",
+      "bytes": 822868
     },
     {
       "file": "settings-dark.png",
       "route": "/parametres",
       "theme": "dark",
-      "sha256": "7eb1d8d48054df1d7a64061d1166ac656faa788d627fc9e7e2c4d1fd5f376a48",
-      "bytes": 282362
+      "sha256": "081585e018dea2b2d111e8e437ada55c9e70d53c396c399f7b05edfa537b83ae",
+      "bytes": 289018
     },
     {
       "file": "welcome-light.png",
       "route": "/welcome",
       "theme": "light",
-      "sha256": "9b2e8ea0d1ba857c51bc8464ea7b907004707ad4ef80a63eee2ab8398115c8d0",
-      "bytes": 596843
+      "sha256": "b175254554b12b60e5bcaffadf9f1da8b38dc7d88b08d7ba104e44ab6e347c9a",
+      "bytes": 602980
     },
     {
       "file": "assistant-light.png",
       "route": "/assistant",
       "theme": "light",
-      "sha256": "dd0745fbb35f63299e96f5defc1fe9577ca9ae86ddb5b8f67a62541e36c9db23",
-      "bytes": 904356,
-      "revision": "0.4.3 continuous AURA motion and prepared spoken conversations",
-      "annotations": "None; direct browser capture",
-      "data": "Empty disposable workspace; readiness from real local speech and inference. No operator history."
+      "sha256": "3e64df2269eca26a84a47e6e67b23efef7d664b6421fc59eca5154678b8a7aeb",
+      "bytes": 772208
     },
     {
       "file": "workspace-light.png",
       "route": "/",
       "theme": "light",
-      "sha256": "d78292d5b6a863871061678a150929f6686a75ec1a82db3153baad9f7e22bee9",
-      "bytes": 1122099
+      "sha256": "12a99f1f6314c75eb1a274eefc3abfd1b21a7fa088621210c69a05e1967c4a28",
+      "bytes": 1291574
     },
     {
       "file": "architecture-light.png",
       "route": "/architecture",
       "theme": "light",
-      "sha256": "c3cd23b3a1a4a8e0527c93a0c88f99a0e09d257c286b6d8aa16b13e870ef77ac",
-      "bytes": 1166618
+      "sha256": "65630ccd385c0ac2d143bf5699360b0a22a16128dfdcba394bb7025831c12f09",
+      "bytes": 1167250
     },
     {
       "file": "settings-light.png",
       "route": "/parametres",
       "theme": "light",
-      "sha256": "6e9e53239a98cf09dd7050d48359311d4533d6a4d517a7fa3f4fb7110a7c9c32",
-      "bytes": 330262
+      "sha256": "724ac2e6f2a0445f2e8f77a3743609db9da861f17b7d416c7be10277130564f5",
+      "bytes": 336152
     }
   ]
 }

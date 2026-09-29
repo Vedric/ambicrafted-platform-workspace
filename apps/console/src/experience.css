@@ -123,6 +123,9 @@ textarea {
 [data-theme="light"] .hero-copy h2 span {
   color: #175bd4;
 }
+[data-theme="light"] .hero-actions .text-button {
+  color: var(--text);
+}
 [data-theme="light"] .hero-copy p,
 [data-theme="light"] .hero-foot {
   color: var(--muted);
@@ -853,9 +856,9 @@ textarea {
 }
 .guide-walkthrough {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr);
   gap: var(--space-gap);
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 24px;
 }
 .guide-video {
@@ -873,6 +876,7 @@ textarea {
   margin: 14px 0 0;
 }
 .guide-steps {
+  grid-auto-rows: 1fr;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -1245,6 +1249,7 @@ textarea {
     grid-template-columns: 1fr;
   }
   .guide-steps {
+    grid-auto-rows: 1fr;
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .guide-step {
@@ -1428,6 +1433,7 @@ textarea {
   .voice-aside,
   .guide-lessons,
   .guide-steps {
+    grid-auto-rows: 1fr;
     grid-template-columns: 1fr;
   }
   .guide-lesson {
@@ -1686,4 +1692,46 @@ textarea {
     justify-content: flex-end;
     gap: 6px;
   }
+}
+
+/* Dense, equal-height navigation to the three native operational dashboards. */
+.monitoring-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--space-gap);
+  margin-bottom: 24px;
+}
+.monitoring-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  margin: 0;
+  color: var(--text);
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+.monitoring-card > svg {
+  color: var(--mint);
+}
+.monitoring-card h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+.monitoring-card p {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.7;
+}
+.monitoring-card span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  color: var(--mint);
+}
+.monitoring-card:hover {
+  border-color: var(--mint);
+  transform: translateY(-3px);
 }

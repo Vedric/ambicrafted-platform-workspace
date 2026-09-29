@@ -1,10 +1,11 @@
 # Dependency review
 
-The current seven-image inventory and promoted derivatives are documented in
-[the 27 September refinement](SECURITY-REFINEMENT-2026-09-27.md): 0 CRITICAL,
-53 HIGH. Current application versions: console 0.4.4, control API 0.4.1,
-speech runtime 0.3.1.
-The HIGH/CRITICAL gate remains failed; the older figures below are historical.
+The current eight-image inventory and corrected derivatives are documented in
+[the 29 September assessment](SECURITY-2026-09-29.md): **0 CRITICAL, 50 HIGH**.
+Current application versions: console **0.4.5**, control API **0.4.2**,
+speech runtime **0.3.2**. The HIGH/CRITICAL gate remains failed.
+The [27 September review](SECURITY-REFINEMENT-2026-09-27.md) and figures below
+are historical snapshots, not the current image inventory.
 
 Six production image versions were pinned in the initial review. PostgreSQL and Qdrant are narrow
 local derivatives with immutable upstream bases and exact corrective versions;

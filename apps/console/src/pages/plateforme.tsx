@@ -385,7 +385,9 @@ export function SantePage() {
   );
 }
 export function Observabilite() {
-  useI18n();
+  const { language } = useI18n();
+  const dashboard = (uid: string) =>
+    `http://localhost:3000/d/${uid}${language === "fr" ? "-fr" : ""}`;
   const q = useQuery({
     queryKey: ["observabilite"],
     queryFn: () =>
@@ -411,13 +413,56 @@ export function Observabilite() {
       >
         <a
           className="btn primary"
-          href="http://localhost:3000/d/plateforme-sre"
+          href={dashboard("plateforme-sre")}
           target="_blank"
           rel="noopener noreferrer"
         >
           <Gauge size={17} /> {t("Open Grafana")} <ExternalLink size={14} />
         </a>
       </Titre>
+      <div className="monitoring-grid">
+        {[
+          {
+            uid: "plateforme-sre",
+            title: t("Mission control dashboard"),
+            text: t(
+              "Availability, collection freshness, queue pressure and backup age.",
+            ),
+            icon: Activity,
+          },
+          {
+            uid: "plateforme-agentic",
+            title: t("Agentic activity dashboard"),
+            text: t(
+              "Saved work, voice latency, measured SRE tokens and knowledge inventory.",
+            ),
+            icon: Bot,
+          },
+          {
+            uid: "plateforme-infrastructure",
+            title: t("Infrastructure dashboard"),
+            text: t(
+              "Linux resources, shared GPU usage and native service telemetry.",
+            ),
+            icon: Gauge,
+          },
+        ].map(({ uid, title, text, icon: Icon }) => (
+          <a
+            className="panel monitoring-card"
+            href={dashboard(uid)}
+            key={uid}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon size={26} aria-hidden="true" />
+            <h2>{title}</h2>
+            <p>{text}</p>
+            <span>
+              {t("Open Grafana")} <ArrowRight size={16} aria-hidden="true" />
+            </span>
+          </a>
+        ))}
+      </div>
       {q.isPending ? (
         <Chargement />
       ) : q.error ? (

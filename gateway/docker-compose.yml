@@ -88,7 +88,7 @@ services:
       retries: 3
 
   grafana:
-    image: ambicrafted/grafana:13.2.2-security.20260927
+    image: ambicrafted/grafana:13.2.2-security.20260929
     build:
       context: ./images/grafana
     container_name: grafana
@@ -98,6 +98,8 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD manquant}
       GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/plateforme.json
     volumes:
       - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
       - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
@@ -110,6 +112,30 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  platform-metrics:
+    profiles: [observability]
+    image: ambicrafted/platform-metrics:1.12.1-security.20260929
+    build:
+      context: ./images/platform-metrics
+    restart: unless-stopped
+    user: "65534:65534"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    command:
+      - --collector.disable-defaults
+      - --collector.textfile
+      - --collector.textfile.directory=/textfile
+      - --web.disable-exporter-metrics
+    volumes:
+      - type: bind
+        source: ./observability/.textfile
+        target: /textfile
+        read_only: true
+        bind:
+          create_host_path: false
+    # Internal Compose network only. No host port, socket, host filesystem or secret mount.
 
   qdrant:
     # Local security derivative; immutable base and exact package in Dockerfile.

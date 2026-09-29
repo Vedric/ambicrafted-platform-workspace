@@ -53,7 +53,7 @@ const lessons = [
     steps: [
       [
         "Check your microphone",
-        "Open Audio devices, detect and select your microphone and speakers, then test the signal and playback before starting a conversation.",
+        "AURA uses your system microphone and speakers. Check microphone & sound before starting a conversation; change devices in your operating system settings.",
         "/assistant",
       ],
       [

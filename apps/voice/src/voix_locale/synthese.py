@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Iterator
-from functools import cache
+from functools import cache, lru_cache
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING
@@ -85,23 +85,29 @@ def _phonemiser(texte: str, langue: str, vocabulaire: dict[str, int]) -> list[st
     return resultat
 
 
+@lru_cache(maxsize=1)
+def modele_synthese(chemin: Path):
+    import onnxruntime
+
+    options = onnxruntime.SessionOptions()
+    options.intra_op_num_threads = 4
+    options.inter_op_num_threads = 1
+    return onnxruntime.InferenceSession(
+        str(chemin),
+        sess_options=options,
+        providers=["CPUExecutionProvider"],
+    )
+
+
 def generer(texte: str, langue: str, dossier: Path, definition: dict) -> Iterator[bytes]:
     import numpy as np
-    import onnxruntime
 
     with ouvrir_prive(dossier / "phonemes.json", 64000) as fichier:
         vocabulaire = json.load(fichier)["vocab"]
     phrases = phonemiser(texte, langue, vocabulaire)
     with ouvrir_prive(dossier / definition["style"], 1024 * 1024) as fichier:
         styles = np.frombuffer(fichier.read(), dtype="<f4").reshape(-1, 1, 256)
-    options = onnxruntime.SessionOptions()
-    options.intra_op_num_threads = 4
-    options.inter_op_num_threads = 1
-    modele = onnxruntime.InferenceSession(
-        str(dossier / definition["entree"]),
-        sess_options=options,
-        providers=["CPUExecutionProvider"],
-    )
+    modele = modele_synthese(dossier / definition["entree"])
     for phrase in phrases:
         ids = [vocabulaire[p] for p in phrase]
         audio = modele.run(

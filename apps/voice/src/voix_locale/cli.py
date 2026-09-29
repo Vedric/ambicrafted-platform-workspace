@@ -87,6 +87,11 @@ def executer(argv: list[str] | None = None) -> dict:
 
 
 def main() -> None:
+    if sys.argv[1:] == ["resident"]:
+        from .resident import main as servir
+
+        servir()
+        return
     try:
         resultat = executer()
     except ErreurVoix as error:

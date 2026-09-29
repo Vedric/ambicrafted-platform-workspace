@@ -98,11 +98,11 @@ class ScannerTests(unittest.TestCase):
         self.assertEqual([target.service for target in targets], list(scanner.SERVICES))
         self.assertNotIn("synthetic-sensitive-marker", repr(targets))
 
-    def test_current_repository_compose_has_six_targets(self) -> None:
+    def test_current_repository_compose_has_seven_targets(self) -> None:
         targets = scanner.read_targets(
             Path(__file__).resolve().parents[1] / "gateway/docker-compose.yml"
         )
-        self.assertEqual(len(targets), 6)
+        self.assertEqual(len(targets), 7)
         self.assertEqual({t.service for t in targets}, set(scanner.SERVICES))
 
     def test_dedicated_memory_is_explicit_and_has_one_pinned_build(self) -> None:
@@ -138,7 +138,7 @@ class ScannerTests(unittest.TestCase):
             {Path(argv[-1]).name for argv in builds}, {"postgres", "qdrant"}
         )
         self.assertTrue(all(argv[2:4] == ["--pull", "--tag"] for argv in builds))
-        self.assertEqual(len(list(self.output.glob("trivy-*.json"))), 6)
+        self.assertEqual(len(list(self.output.glob("trivy-*.json"))), 7)
 
     def test_reject_ambiguous_unpinned_or_dynamic_compose_without_echo(self) -> None:
         replacement = f"example/litellm:1.0@sha256:{'a' * 64}"
@@ -187,16 +187,16 @@ class ScannerTests(unittest.TestCase):
             code, _ = self.invoke()
         self.assertEqual(code, 1)
         summary = json.loads((self.output / "summary.json").read_text())
-        self.assertEqual(len(summary["images"]), 6)
+        self.assertEqual(len(summary["images"]), 7)
         self.assertTrue(
             all(
                 result["counts"]["CRITICAL"] == 1 and result["counts"]["HIGH"] == 2
                 for result in summary["images"]
             )
         )
-        self.assertEqual(len(list(self.output.glob("trivy-*.json"))), 6)
+        self.assertEqual(len(list(self.output.glob("trivy-*.json"))), 7)
 
-    def test_scan_failure_continues_other_five_and_keeps_partial_report(self) -> None:
+    def test_scan_failure_continues_other_services_and_keeps_partial_report(self) -> None:
         def failing(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
             result = self.fake_command(argv, **kwargs)
             if argv[0] != "docker" and "litellm" in argv[-1]:
@@ -207,7 +207,7 @@ class ScannerTests(unittest.TestCase):
             code, _ = self.invoke()
         self.assertEqual(code, 2)
         self.assertEqual(
-            sum(call.args[0][0] != "docker" for call in run.call_args_list), 6
+            sum(call.args[0][0] != "docker" for call in run.call_args_list), 7
         )
         summary = json.loads((self.output / "summary.json").read_text())
         self.assertEqual(summary["images"][0]["error"], "Analyse : code 42")
@@ -232,9 +232,9 @@ class ScannerTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertEqual(
             sum(call.args[0][:2] == ["docker", "pull"] for call in run.call_args_list),
-            6,
+            7,
         )
-        self.assertEqual(len(list(self.output.glob("trivy-*.json"))), 5)
+        self.assertEqual(len(list(self.output.glob("trivy-*.json"))), 6)
         summary = json.loads((self.output / "summary.json").read_text())
         self.assertIsNone(summary["images"][0]["report"])
         self.assertEqual(summary["images"][0]["error"], "Préparation : code 1")

@@ -17,7 +17,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-SERVICES = ("litellm", "postgres", "tempo", "prometheus", "grafana", "qdrant")
+SERVICES = ("litellm", "postgres", "tempo", "prometheus", "grafana", "qdrant", "platform-metrics")
 SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN")
 IMAGE = re.compile(r"[a-z0-9][a-z0-9./_-]*:[A-Za-z0-9_.-]+(?:@sha256:[a-f0-9]{64})?")
 
@@ -127,7 +127,7 @@ def read_targets(compose: Path, *, memory: bool = False) -> list[Target]:
             )
         context = None
         if "build" in entry:
-            if service not in {"postgres", "qdrant", "tempo", "grafana", "neo4j"}:
+            if service not in {"postgres", "qdrant", "tempo", "grafana", "neo4j", "platform-metrics"}:
                 raise ValueError("Construction dérivée non prévue pour ce service.")
             if entry.get("context") != f"./images/{service}":
                 raise ValueError(

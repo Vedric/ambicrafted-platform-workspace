@@ -280,6 +280,9 @@ select:focus {
   border: 1px solid #3d697a;
   border-radius: 12px;
   min-height: 360px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: center;
   overflow: hidden;
   margin-bottom: 0;
 }
@@ -335,7 +338,7 @@ select:focus {
   margin-bottom: 24px;
 }
 .hero-copy h2 {
-  font-size: clamp(29px, 2.55vw, 44px);
+  font-size: clamp(30px, 3vw, 56px);
   line-height: 1.19;
   font-weight: 500;
   letter-spacing: -0.06em;
@@ -761,10 +764,12 @@ dialog::backdrop {
   transform-style: preserve-3d;
 }
 .small-orbit {
-  width: 325px;
-  height: 325px;
+  width: min(100%, 520px);
+  height: auto;
+  aspect-ratio: 1;
   align-self: center;
-  margin-right: 20px;
+  justify-self: center;
+  margin: 12px 0;
 }
 .neural-core {
   --signal: 0;
@@ -1902,9 +1907,8 @@ dialog::backdrop {
     height: 43vw;
   }
   .small-orbit {
-    width: 265px;
-    height: 265px;
-    margin-right: 10px;
+    width: min(100%, 420px);
+    height: auto;
   }
   .hero-copy {
     padding: 30px;
@@ -1937,8 +1941,8 @@ dialog::backdrop {
     font-size: 32px;
   }
   .small-orbit {
-    width: 220px;
-    height: 220px;
+    width: min(100%, 420px);
+    height: auto;
   }
   .hero-copy p br {
     display: none;
@@ -2084,9 +2088,8 @@ dialog::backdrop {
     font-size: 33px;
   }
   .small-orbit {
-    width: 230px;
-    height: 230px;
-    margin-right: 15px;
+    width: min(100%, 420px);
+    height: auto;
   }
   .mission-intro {
     grid-template-columns: 1fr;
@@ -2211,9 +2214,10 @@ dialog::backdrop {
     display: block;
     position: relative;
     inset: auto;
-    width: 220px;
-    height: 220px;
+    width: min(100%, 420px);
+    height: auto;
     opacity: 1;
+    width: min(82%, 360px);
     margin: 3px auto 8px;
   }
   .workspace-telemetry {

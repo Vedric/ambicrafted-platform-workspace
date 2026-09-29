@@ -86,7 +86,7 @@ async function selectableDevices(page: Page) {
 }
 
 for (const language of ["en", "fr"] as const) {
-  test(`audio device choices persist and route real capture/playback (${language})`, async ({
+  test(`system defaults ignore obsolete routing during real capture/playback (${language})`, async ({
     page,
   }) => {
     await selectableDevices(page);
@@ -96,19 +96,19 @@ for (const language of ["en", "fr"] as const) {
       language,
     );
     await page.goto("/assistant");
-    const input = page.getByLabel(
-      language === "fr" ? "Entrée microphone" : "Microphone input",
-      { exact: true },
+    await page.evaluate(() =>
+      localStorage.setItem(
+        "ambicrafted-audio-routing-v1",
+        JSON.stringify({ inputId: "usb-mic", outputId: "headset" }),
+      ),
     );
-    const output = page.getByLabel(
-      language === "fr" ? "Sortie audio" : "Speaker output",
-      { exact: true },
-    );
-    await input.selectOption("usb-mic");
-    await output.selectOption("headset");
     await page.reload();
-    await expect(input).toHaveValue("usb-mic");
-    await expect(output).toHaveValue("headset");
+    await expect(
+      page.getByLabel(
+        language === "fr" ? "Entrée microphone" : "Microphone input",
+        { exact: true },
+      ),
+    ).toHaveCount(0);
     await page
       .getByText(
         language === "fr"
@@ -126,8 +126,11 @@ for (const language of ["en", "fr"] as const) {
     await expect(page.getByRole("meter")).toHaveAttribute("value", /0\.[1-9]/);
     expect(
       await page.evaluate(() => window.__audioDevices.captures.at(-1)?.audio),
-    ).toMatchObject({ deviceId: { exact: "usb-mic" } });
-    await expect(input).toBeDisabled();
+    ).toEqual({
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    });
     await page.waitForTimeout(600);
     await page
       .getByRole("button", {
@@ -158,7 +161,7 @@ for (const language of ["en", "fr"] as const) {
         () =>
           window.__nativeAudio.find((a) => a.src.startsWith("blob:"))?.sinkId,
       ),
-    ).toBe("headset");
+    ).toBe("");
     await page.keyboard.press("Escape");
     await accessible(page);
     const layout = await page.locator(".aura-stage").evaluate((stage) => {
@@ -175,7 +178,7 @@ for (const language of ["en", "fr"] as const) {
   });
 }
 
-test("audio discovery handles denied permission, removal and an explicit replacement", async ({
+test("default microphone recovers after denied permission", async ({
   page,
 }) => {
   await selectableDevices(page);
@@ -184,36 +187,28 @@ test("audio discovery handles denied permission, removal and an explicit replace
   await page.evaluate(() => {
     window.__audioDevices.denied = true;
   });
-  await page.getByRole("button", { name: "Detect devices" }).click();
+  await page.getByRole("button", { name: "Record", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText(
     "Microphone access was denied",
   );
   await page.evaluate(() => {
     window.__audioDevices.denied = false;
   });
-  await page.getByRole("button", { name: "Detect devices" }).click();
-  await expect(page.getByRole("alert")).toHaveCount(0);
-  expect(await page.evaluate(() => window.__auraSynthetic.stops)).toBe(1);
-  await page.getByLabel("Microphone input").selectOption("usb-mic");
-  await page.evaluate(() => {
-    window.__audioDevices.removed = true;
-    navigator.mediaDevices.dispatchEvent(new Event("devicechange"));
-  });
-  await expect(page.getByLabel("Microphone input")).toContainText(
-    "Saved microphone unavailable",
-  );
-  await page.getByLabel("Microphone input").selectOption("camera-mic");
   await page.getByRole("button", { name: "Record", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Finish recording", exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(() => window.__audioDevices.captures.at(-1)?.audio),
-  ).toMatchObject({ deviceId: { exact: "camera-mic" } });
+  ).toEqual({
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  });
   await page.keyboard.press("Escape");
 });
 
-test("welcome, music and guides share the chosen output without recording", async ({
+test("welcome, music and guides use the system output without recording", async ({
   page,
 }) => {
   await selectableDevices(page);
@@ -221,27 +216,8 @@ test("welcome, music and guides share the chosen output without recording", asyn
     localStorage.setItem("ambicrafted-welcome-audio", "off"),
   );
   await page.goto("/welcome");
-  await page.locator(".welcome-device-settings > summary").click();
-  await page.getByLabel("Speaker output").selectOption("display");
-  await page.getByRole("button", { name: "Test speakers" }).click();
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          window.__nativeAudio.find((a) => a.src.endsWith("speaker-check.wav"))
-            ?.currentTime,
-      ),
-    )
-    .toBeGreaterThan(0.1);
-  expect(
-    await page.evaluate(
-      () =>
-        window.__nativeAudio.find((a) => a.src.endsWith("speaker-check.wav"))
-          ?.sinkId,
-    ),
-  ).toBe("display");
+  await expect(page.getByText("Audio devices", { exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => window.__audioDevices.captures)).toEqual([]);
-  await page.keyboard.press("Escape");
   await page
     .getByRole("button", { name: "Play ambient music", exact: true })
     .click();
@@ -253,7 +229,7 @@ test("welcome, music and guides share the chosen output without recording", asyn
             ?.sinkId,
       ),
     )
-    .toBe("display");
+    .toBe("");
   await page
     .getByRole("button", { name: "Listen to my welcome", exact: true })
     .click();
@@ -268,24 +244,14 @@ test("welcome, music and guides share the chosen output without recording", asyn
             ?.sinkId,
       ),
     )
-    .toBe("display");
-  await page.getByLabel("Speaker output").selectOption("headset");
-  await expect
-    .poll(() =>
-      page.evaluate(() =>
-        window.__nativeAudio
-          .filter((a) => !a.paused)
-          .every((a) => a.sinkId === "headset"),
-      ),
-    )
-    .toBe(true);
+    .toBe("");
   await page.keyboard.press("Escape");
   await login(page);
   await page.goto("/guide");
   const video = page.locator("video");
   await expect
     .poll(() => video.evaluate((v) => (v as HTMLVideoElement).sinkId))
-    .toBe("headset");
+    .toBe("");
   await video.evaluate((v) => (v as HTMLVideoElement).play());
   await expect
     .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))

@@ -5,6 +5,10 @@ The current security model is defined by
 It assumes a single trusted workstation user and a trusted local gateway.
 It does not defend against root or a compromised model server.
 
+Current image gate: **0 CRITICAL, 50 HIGH**, still failed. See the
+[29 September assessment](docs/SECURITY-2026-09-29.md). Functional qualification
+does not certify vulnerability-free deployment.
+
 ## Data classification and storage
 
 | Data | Storage and routing |

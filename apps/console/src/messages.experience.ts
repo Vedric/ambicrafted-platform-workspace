@@ -1,4 +1,13 @@
 export const experienceFr = {
+  "Mission control dashboard": "Dashboard de pilotage",
+  "Availability, collection freshness, queue pressure and backup age.":
+    "Disponibilité, fraîcheur de la collecte, file d’attente et âge des sauvegardes.",
+  "Agentic activity dashboard": "Dashboard d’activité agentique",
+  "Saved work, voice latency, measured SRE tokens and knowledge inventory.":
+    "Travaux conservés, latence vocale, tokens SRE mesurés et inventaire des connaissances.",
+  "Infrastructure dashboard": "Dashboard d’infrastructure",
+  "Linux resources, shared GPU usage and native service telemetry.":
+    "Ressources Linux, utilisation partagée du GPU et télémétrie des services.",
   "Motion on": "Animations actives",
   "Motion off": "Animations en pause",
   "Follow device settings": "Suivre les réglages de l’appareil",
@@ -7,8 +16,8 @@ export const experienceFr = {
     "Les animations complètes sont activées dans ce navigateur.",
   "Animations are paused in this browser.":
     "Les animations sont en pause dans ce navigateur.",
-  "Open Audio devices, detect and select your microphone and speakers, then test the signal and playback before starting a conversation.":
-    "Ouvrez Périphériques audio, détectez et choisissez votre microphone et votre sortie audio, puis testez le signal et la lecture avant de commencer une conversation.",
+  "AURA uses your system microphone and speakers. Check microphone & sound before starting a conversation; change devices in your operating system settings.":
+    "AURA utilise le microphone et les haut-parleurs par défaut. Vérifiez le microphone et le son avant la conversation ; changez de périphérique dans les paramètres du système.",
   "This browser": "Ce navigateur",
   "Choose your microphone and speakers, then check the signal before talking to AURA.":
     "Choisissez votre microphone et votre sortie audio, puis vérifiez le signal avant de parler à AURA.",

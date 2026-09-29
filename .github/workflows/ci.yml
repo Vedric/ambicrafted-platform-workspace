@@ -138,6 +138,14 @@ jobs:
         run: |
           cp .env.example .env
           docker compose --env-file .env.example config --quiet
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.5"
+          enable-cache: false
+      - name: Dashboards générés et règles Prometheus
+        run: |
+          uv run --no-project --python 3.14 gateway/observability/build_dashboards.py --check
+          docker run --rm --entrypoint promtool -v "$PWD/gateway/observability:/work:ro" -w /work prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e test rules alerts.test.yml
   evals:
     name: Configuration des évaluations et dépendances npm
     runs-on: ubuntu-24.04

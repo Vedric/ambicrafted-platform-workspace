@@ -1,4 +1,5 @@
 import { t, useI18n } from "./i18n";
+import { BrandGlyph } from "./BrandMark";
 import {
   useContext,
   useEffect,
@@ -152,8 +153,9 @@ export function NeuralCore({
         <g className="core-lens">
           <circle cx="256" cy="256" r="84" fill={`url(#${id}lens)`} />
           <circle cx="256" cy="256" r="77" />
-          <path d="m256 211 40 69h-80Z" />
-          <path d="m256 233 27 47m-54 0 27-47" />
+          <g transform="translate(194 194) scale(1.3)">
+            <BrandGlyph />
+          </g>
           <circle cx="256" cy="256" r="93" strokeDasharray="3 8" />
         </g>
         <g className="core-points">

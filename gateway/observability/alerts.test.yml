@@ -1,0 +1,366 @@
+rule_files: [alerts.yml]
+evaluation_interval: 15s
+tests:
+  - name: "Missing collection is not healthy"
+    interval: 15s
+    input_series: []
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: PlatformMetricsUnavailable
+        exp_alerts:
+          - exp_labels: { severity: warning, job: platform }
+            exp_annotations:
+              summary: "Platform metrics exporter is unavailable"
+              description: "Check the platform-metrics container and Prometheus target. No host port is required."
+              runbook_url: "http://localhost:8787/guide"
+      - eval_time: 3m
+        alertname: PlatformCollectorStale
+        exp_alerts:
+          - exp_labels: { severity: warning, job: platform }
+            exp_annotations:
+              summary: "Platform metrics snapshot is missing or stale"
+              description: "Check ambicrafted-metrics.timer and its user service. Stale dashboards deliberately hide application gauges."
+  - name: "Fresh zero activity is valid, not an error rate or backup failure"
+    interval: 15s
+    input_series:
+      - series: 'up{job="platform",instance="platform-metrics:9100"}'
+        values: "1+0x300"
+      - series: 'ambicrafted_snapshot_timestamp_seconds{job="platform",instance="platform-metrics:9100"}'
+        values: "0+15x300"
+      - series: 'ambicrafted_control_api_scrape_success{job="platform",instance="platform-metrics:9100"}'
+        values: "1+0x300"
+      - series: 'ambicrafted_http_requests_total{job="platform",outcome="success",group="assistant"}'
+        values: "0+0x300"
+      - series: 'ambicrafted_http_requests_total{job="platform",outcome="server_error",group="assistant"}'
+        values: "0+0x300"
+      - series: 'ambicrafted_backup_available{job="platform"}'
+        values: "1+0x300"
+      - series: 'ambicrafted_backup_last_completed_timestamp_seconds{job="platform"}'
+        values: "0+0x300"
+    alert_rule_test:
+      - { eval_time: 1h, alertname: PlatformAPIErrorRate, exp_alerts: [] }
+      - { eval_time: 1h, alertname: PlatformCollectorStale, exp_alerts: [] }
+      - { eval_time: 1h, alertname: PlatformBackupOverdue, exp_alerts: [] }
+    promql_expr_test:
+      - expr: ambicrafted:telemetry_fresh
+        eval_time: 1h
+        exp_samples:
+          - labels: 'ambicrafted:telemetry_fresh{job="platform",instance="platform-metrics:9100"}'
+            value: 1
+  - name: "A stale snapshot does not keep reporting current service health"
+    interval: 15s
+    input_series:
+      - series: 'up{job="platform",instance="platform-metrics:9100"}'
+        values: "1+0x40"
+      - series: 'ambicrafted_snapshot_timestamp_seconds{job="platform",instance="platform-metrics:9100"}'
+        values: "0+0x40"
+      - series: 'ambicrafted_service_up{job="platform",service="ollama"}'
+        values: "0+0x40"
+    alert_rule_test:
+      - { eval_time: 5m, alertname: PlatformServiceUnhealthy, exp_alerts: [] }
+    promql_expr_test:
+      - expr: ambicrafted:telemetry_fresh
+        eval_time: 5m
+        exp_samples:
+          - labels: 'ambicrafted:telemetry_fresh{job="platform",instance="platform-metrics:9100"}'
+            value: 0
+  - {
+      "name": "PlatformControlAPIUnavailable fires and recovers",
+      "interval": "15s",
+      "input_series":
+        [
+          {
+            "series": 'up{job="platform",instance="platform-metrics:9100"}',
+            "values": "1+0x400",
+          },
+          {
+            "series": 'ambicrafted_snapshot_timestamp_seconds{job="platform",instance="platform-metrics:9100"}',
+            "values": "0+15x400",
+          },
+          {
+            "series": "ambicrafted_control_api_scrape_success",
+            "values": "0+0x40 1+0x300",
+          },
+        ],
+      "alert_rule_test":
+        [
+          {
+            "eval_time": "3m",
+            "alertname": "PlatformControlAPIUnavailable",
+            "exp_alerts":
+              [
+                {
+                  "exp_labels": { "severity": "warning" },
+                  "exp_annotations":
+                    {
+                      "summary": "Authenticated control-plane collection failed",
+                      "description": "Check the local console service, private collector configuration and API response; do not expose its port.",
+                    },
+                },
+              ],
+          },
+          {
+            "eval_time": "90m",
+            "alertname": "PlatformControlAPIUnavailable",
+            "exp_alerts": [],
+          },
+        ],
+    }
+  - {
+      "name": "PlatformServiceUnhealthy fires and recovers",
+      "interval": "15s",
+      "input_series":
+        [
+          {
+            "series": 'up{job="platform",instance="platform-metrics:9100"}',
+            "values": "1+0x400",
+          },
+          {
+            "series": 'ambicrafted_snapshot_timestamp_seconds{job="platform",instance="platform-metrics:9100"}',
+            "values": "0+15x400",
+          },
+          {
+            "series": 'ambicrafted_service_up{service="ollama"}',
+            "values": "0+0x40 1+0x300",
+          },
+        ],
+      "alert_rule_test":
+        [
+          {
+            "eval_time": "4m",
+            "alertname": "PlatformServiceUnhealthy",
+            "exp_alerts":
+              [
+                {
+                  "exp_labels": { "severity": "warning", "service": "ollama" },
+                  "exp_annotations":
+                    {
+                      "summary": "Local service ollama is not responding",
+                      "description": "Use the local readiness checks and the service-specific runbook before taking action.",
+                    },
+                },
+              ],
+          },
+          {
+            "eval_time": "90m",
+            "alertname": "PlatformServiceUnhealthy",
+            "exp_alerts": [],
+          },
+        ],
+    }
+  - {
+      "name": "PlatformQueuePressure fires and recovers",
+      "interval": "15s",
+      "input_series":
+        [
+          {
+            "series": 'up{job="platform",instance="platform-metrics:9100"}',
+            "values": "1+0x400",
+          },
+          {
+            "series": 'ambicrafted_snapshot_timestamp_seconds{job="platform",instance="platform-metrics:9100"}',
+            "values": "0+15x400",
+          },
+          { "series": "ambicrafted_queue_depth", "values": "10+0x80 0+0x300" },
+          { "series": "ambicrafted_queue_capacity", "values": "12+0x400" },
+        ],
+      "alert_rule_test":
+        [
+          {
+            "eval_time": "11m",
+            "alertname": "PlatformQueuePressure",
+            "exp_alerts":
+              [
+                {
+                  "exp_labels": { "severity": "warning" },
+                  "exp_annotations":
+                    {
+                      "summary": "Execution queue above 80 percent for ten minutes",
+                      "description": "Inspect active analyses, model availability and explicit cancellations. Do not add parallel workers without qualification.",
+                    },
+                },
+              ],
+          },
+          {
+            "eval_time": "90m",
+            "alertname": "PlatformQueuePressure",
+            "exp_alerts": [],
+          },
+        ],
+    }
+  - {
+      "name": "PlatformDiskLow fires and recovers",
+      "interval": "15s",
+      "input_series":
+        [
+          {
+            "series": 'up{job="platform",instance="platform-metrics:9100"}',
+            "values": "1+0x400",
+          },
+          {
+            "series": 'ambicrafted_snapshot_timestamp_seconds{job="platform",instance="platform-metrics:9100"}',
+            "values": "0+15x400",
+          },
+          {
+            "series": "ambicrafted_data_disk_available_bytes",
+            "values": "5+0x100 50+0x300",
+          },
+          {
+            "series": "ambicrafted_data_disk_size_bytes",
+            "values": "100+0x400",
+          },
+        ],
+      "alert_rule_test":
+        [
+          {
+            "eval_time": "16m",
+            "alertname": "PlatformDiskLow",
+            "exp_alerts":
+              [
+                {
+                  "exp_labels": { "severity": "warning" },
+                  "exp_annotations":
+                    {
+                      "summary": "Platform filesystem has less than 10 percent free space",
+                      "description": "Review platform retention and backups. Never run global Docker cleanup on this shared workstation.",
+                    },
+                },
+              ],
+          },
+          {
+            "eval_time": "90m",
+            "alertname": "PlatformDiskLow",
+            "exp_alerts": [],
+          },
+        ],
+    }
+  - {
+      "name": "PlatformMemoryPressure fires and recovers",
+      "interval": "15s",
+      "input_series":
+        [
+          {
+            "series": 'up{job="platform",instance="platform-metrics:9100"}',
+            "values": "1+0x400",
+          },
+          {
+            "series": 'ambicrafted_snapshot_timestamp_seconds{job="platform",instance="platform-metrics:9100"}',
+            "values": "0+15x400",
+          },
+          {
+            "series": "ambicrafted_host_memory_memavailable_bytes",
+            "values": "5+0x80 50+0x300",
+          },
+          {
+            "series": "ambicrafted_host_memory_memtotal_bytes",
+            "values": "100+0x400",
+          },
+        ],
+      "alert_rule_test":
+        [
+          {
+            "eval_time": "11m",
+            "alertname": "PlatformMemoryPressure",
+            "exp_alerts":
+              [
+                {
+                  "exp_labels": { "severity": "warning" },
+                  "exp_annotations":
+                    {
+                      "summary": "Linux/WSL available memory below 10 percent",
+                      "description": "Inspect local resource use. These metrics cover the VM, not all Windows host memory.",
+                    },
+                },
+              ],
+          },
+          {
+            "eval_time": "90m",
+            "alertname": "PlatformMemoryPressure",
+            "exp_alerts": [],
+          },
+        ],
+    }
+  - {
+      "name": "PlatformGPUHot fires and recovers",
+      "interval": "15s",
+      "input_series":
+        [
+          {
+            "series": 'up{job="platform",instance="platform-metrics:9100"}',
+            "values": "1+0x400",
+          },
+          {
+            "series": 'ambicrafted_snapshot_timestamp_seconds{job="platform",instance="platform-metrics:9100"}',
+            "values": "0+15x400",
+          },
+          {
+            "series": 'ambicrafted_gpu_temperature_celsius{gpu="0"}',
+            "values": "90+0x40 60+0x300",
+          },
+        ],
+      "alert_rule_test":
+        [
+          {
+            "eval_time": "6m",
+            "alertname": "PlatformGPUHot",
+            "exp_alerts":
+              [
+                {
+                  "exp_labels": { "severity": "warning", "gpu": "0" },
+                  "exp_annotations":
+                    {
+                      "summary": "GPU temperature above the 85 C warning threshold",
+                      "description": "Inspect workload and cooling. This operator warning is not a manufacturer thermal limit.",
+                    },
+                },
+              ],
+          },
+          {
+            "eval_time": "90m",
+            "alertname": "PlatformGPUHot",
+            "exp_alerts": [],
+          },
+        ],
+    }
+  - {
+      "name": "PlatformBackupOverdue fires and recovers",
+      "interval": "15s",
+      "input_series":
+        [
+          {
+            "series": 'up{job="platform",instance="platform-metrics:9100"}',
+            "values": "1+0x400",
+          },
+          {
+            "series": 'ambicrafted_snapshot_timestamp_seconds{job="platform",instance="platform-metrics:9100"}',
+            "values": "0+15x400",
+          },
+          {
+            "series": "ambicrafted_backup_available",
+            "values": "0+0x260 1+0x140",
+          },
+        ],
+      "alert_rule_test":
+        [
+          {
+            "eval_time": "61m",
+            "alertname": "PlatformBackupOverdue",
+            "exp_alerts":
+              [
+                {
+                  "exp_labels": { "severity": "warning" },
+                  "exp_annotations":
+                    {
+                      "summary": "No completed local backup within 36 hours",
+                      "description": "Check platform-backup.timer, run a backup and verify restoration. A local manifest does not prove off-host protection.",
+                    },
+                },
+              ],
+          },
+          {
+            "eval_time": "90m",
+            "alertname": "PlatformBackupOverdue",
+            "exp_alerts": [],
+          },
+        ],
+    }

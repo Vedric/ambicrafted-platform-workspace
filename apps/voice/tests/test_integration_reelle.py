@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import wave
@@ -17,6 +18,41 @@ pytestmark = pytest.mark.skipif(
     os.environ.get("VOICE_TEST_REAL") != "1",
     reason="VOICE_TEST_REAL=1 and pinned local models required",
 )
+
+
+@pytest.mark.parametrize(
+    "language,fixture,words",
+    [
+        ("fr", "french-data.wav", ("plateforme", "données")),
+        ("en", "english-onset.wav", ("hello", "platform")),
+    ],
+)
+def test_resident_retains_recognition_across_repeated_turns(tmp_path, language, fixture, words):
+    """Real framing + cached native model; worker gets no external credentials."""
+    source = tmp_path / "capture.wav"
+    shutil.copyfile(Path(__file__).parent / "fixtures" / fixture, source)
+    source.chmod(0o600)
+    request = {
+        "id": "a" * 32,
+        "operation": "transcrire",
+        "langue": language,
+        "fichier": str(source),
+    }
+    result = subprocess.run(
+        [sys.executable, "-m", "voix_locale.resident"],
+        input=(json.dumps(request) + "\n") * 2,
+        text=True,
+        capture_output=True,
+        timeout=130,
+        check=False,
+        env={
+            k: v for k, v in os.environ.items() if k in {"HOME", "PATH", "LANG", "VOICE_STATE_DIR"}
+        },
+    )
+    assert result.returncode == 0 and not result.stderr
+    replies = [json.loads(line)["resultat"] for line in result.stdout.splitlines()]
+    assert len(replies) == 2 and replies[0] == replies[1]
+    assert all(word in replies[0]["texte"].casefold() for word in words)
 
 
 @pytest.mark.parametrize(

@@ -11,7 +11,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Assistant from "./Assistant";
 import { MicrophoneCheck } from "./MicrophoneCheck";
-import { saveAudioPreferences } from "./audio-devices";
+import { AUDIO_DEVICE_KEY } from "./audio-devices";
 import type { SignalReader } from "./audio-signal";
 import { setLanguage } from "./i18n";
 
@@ -272,16 +272,18 @@ async function spokenTurn() {
 }
 
 describe("manual speech resources and language", () => {
-  it("records from an explicitly selected microphone with processing disabled", async () => {
-    saveAudioPreferences({ inputId: "usb-microphone", processing: false });
+  it("uses the system microphone even when legacy routing preferences exist", async () => {
+    localStorage.setItem(
+      AUDIO_DEVICE_KEY,
+      JSON.stringify({ inputId: "usb-microphone", processing: false }),
+    );
     await show();
     await click("Record");
     expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
       audio: {
-        deviceId: { exact: "usb-microphone" },
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
       },
       video: false,
     });
@@ -1026,19 +1028,25 @@ describe("local microphone and sound check", () => {
     expect(active).toHaveBeenLastCalledWith(false);
     expect(mocks.api).not.toHaveBeenCalled();
   });
-  it("discards an old diagnostic sample when the input choice changes", async () => {
+  it("keeps a diagnostic sample unaffected by obsolete routing events", async () => {
     await diagnostic();
     await click("Test microphone");
     await click("Stop test");
     expect(
       screen.getByRole("button", { name: "Listen to the sample" }),
     ).toBeEnabled();
-    act(() => saveAudioPreferences({ inputId: "replacement" }));
+    act(() => {
+      localStorage.setItem(
+        AUDIO_DEVICE_KEY,
+        JSON.stringify({ inputId: "replacement" }),
+      );
+      window.dispatchEvent(new Event("ambicrafted-audio-routing"));
+    });
     await flush();
     expect(
       screen.queryByRole("button", { name: "Listen to the sample" }),
-    ).not.toBeInTheDocument();
-    expect(revoke).toHaveBeenCalledWith("blob:synthetic-1");
+    ).toBeInTheDocument();
+    expect(revoke).not.toHaveBeenCalled();
     expect(mocks.api).not.toHaveBeenCalled();
   });
   it("releases a late permission grant after cancel", async () => {

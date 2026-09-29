@@ -5,6 +5,7 @@ import base64
 import binascii
 import json
 import os
+import secrets
 import shutil
 import stat
 import tempfile
@@ -29,6 +30,91 @@ class Voix:
         self.verrou = asyncio.Lock()
         self.temp = dossier_prive(p.etat / "audio-temp")
         self.cache: dict[str, tuple[float, dict]] = {}
+        self.processus: asyncio.subprocess.Process | None = None
+        self.transport = asyncio.Lock()
+        self.derniere_utilisation = 0.0
+
+    async def fermer(self) -> None:
+        async with self.transport:
+            await self.arreter_resident()
+
+    async def arreter_resident(self) -> None:
+        processus, self.processus = self.processus, None
+        if processus is not None:
+            await Moteur.terminer(processus)
+
+    async def executer_resident(self, arguments: list[str], texte: str, env: dict) -> dict:
+        requete = {
+            "id": secrets.token_hex(16),
+            "operation": arguments[0],
+            "langue": arguments[arguments.index("--langue") + 1],
+            "fichier": arguments[-1],
+        }
+        if arguments[0] == "parler":
+            requete["texte"] = texte
+        trame = json.dumps(requete, ensure_ascii=False).encode() + b"\n"
+        if len(trame) > 32_000:
+            raise HTTPException(422, "Requête vocale trop longue.")
+        async with self.transport:
+            try:
+                async with asyncio.timeout(130):
+                    if self.processus is not None and (
+                        self.processus.returncode is not None
+                        or time.monotonic() - self.derniere_utilisation >= 240
+                    ):
+                        await self.arreter_resident()
+                    if self.processus is None:
+                        creation = asyncio.create_task(
+                            asyncio.create_subprocess_exec(
+                                str(self.p.racine / "apps/voice/.venv/bin/voix-locale"),
+                                "resident",
+                                env=env,
+                                stdin=asyncio.subprocess.PIPE,
+                                stdout=asyncio.subprocess.PIPE,
+                                stderr=asyncio.subprocess.DEVNULL,
+                                start_new_session=True,
+                                limit=64_000,
+                            )
+                        )
+                        try:
+                            self.processus = await asyncio.shield(creation)
+                        except asyncio.CancelledError:
+                            # Reap a child even if cancellation races process creation.
+                            self.processus = await creation
+                            raise
+                    processus = self.processus
+                    assert processus.stdin and processus.stdout
+                    processus.stdin.write(trame)
+                    await processus.stdin.drain()
+                    sortie = await processus.stdout.readline()
+                    if not sortie.endswith(b"\n") or len(sortie) > 64_000:
+                        raise ValueError("Protocole vocal invalide.")
+                    reponse = json.loads(sortie)
+                    if reponse == {"id": requete["id"], "erreur": True}:
+                        raise HTTPException(
+                            422,
+                            "Traitement vocal impossible. Vérifier le format, la durée et les modèles installés.",
+                        )
+                    if (
+                        not isinstance(reponse, dict)
+                        or set(reponse) != {"id", "resultat"}
+                        or reponse["id"] != requete["id"]
+                    ):
+                        raise ValueError("Échec vocal.")
+                    resultat = reponse["resultat"]
+                    if not isinstance(resultat, dict):
+                        raise TypeError("Réponse vocale invalide.")
+                    self.derniere_utilisation = time.monotonic()
+                    return resultat
+            except asyncio.CancelledError:
+                await self.arreter_resident()
+                raise
+            except HTTPException:
+                await self.arreter_resident()
+                raise
+            except TimeoutError, ValueError, TypeError, OSError:
+                await self.arreter_resident()
+                raise HTTPException(503, "Moteur vocal indisponible ou délai dépassé.") from None
 
     def nettoyer_apres_arret(self) -> None:
         """Only call after acquiring the single-instance control lock."""
@@ -46,6 +132,8 @@ class Voix:
         env.update(
             VOICE_STATE_DIR=str(self.p.etat / "voice"), HF_HUB_OFFLINE="1", OMP_NUM_THREADS="4"
         )
+        if arguments[0] in ("parler", "transcrire"):
+            return await self.executer_resident(arguments, texte, env)
         processus = await asyncio.create_subprocess_exec(
             str(executable),
             *arguments,
