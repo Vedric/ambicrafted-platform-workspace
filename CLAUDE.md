@@ -30,6 +30,29 @@ Travailler exclusivement dans ~/, jamais dans /mnt/c (I/O très lentes).
    clone vierge (git clone, commit visé, commandes du travail) ou se taire :
    un .venv déjà construit et un gateway/.env présent mesurent le poste, pas
    le dépôt.
+10. Avant de soumettre du code, de créer ou mettre à jour une PR, ou de publier
+    une review, challenger le fond autant que la forme, selon les critères
+    ci-dessous. Une CI verte et un code bien présenté ne suffisent pas.
+
+## Exigence de fond pour les contributions et les reviews
+- Vérifier le besoin réel, les hypothèses et le comportement attendu : la
+  solution résout-elle le bon problème pour l'utilisateur ?
+- Examiner la conception, les alternatives plus simples et les compromis :
+  cohérence avec l'existant, maintenabilité, sécurité, performances et impact
+  opérationnel, sans sur-ingénierie.
+- Chercher les contre-exemples, les cas limites, les modes de panne et les
+  régressions ; vérifier les interactions, pas uniquement le diff isolé.
+- Choisir des validations proportionnées au risque, capables de mettre en
+  défaut la solution ; confronter les résultats aux exigences réelles, sans
+  se contenter de tests qui reproduisent l'implémentation.
+- Avant de publier une remarque de review, vérifier sa validité dans le
+  contexte et les versions du projet, étayer son impact et distinguer défaut
+  avéré, incertitude et préférence. Ne pas inventer de problèmes pour remplir
+  une review.
+- Relire une dernière fois le résultat et les preuves avant publication :
+  corriger les problèmes établis dans le périmètre autorisé, indiquer les
+  limites et ne pas présenter une hypothèse ou un contrôle non exécuté comme
+  un fait vérifié.
 
 ## Commandes utiles
 - Passerelle : cd ~/platform/workspace/gateway && docker compose ps / logs litellm
