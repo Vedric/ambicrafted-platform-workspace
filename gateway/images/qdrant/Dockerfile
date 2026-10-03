@@ -61,7 +61,7 @@ RUN --network=none /usr/local/go/bin/go test healthcheck.go healthcheck_test.go 
     && /usr/local/go/bin/go build -trimpath -buildvcs=false -o /healthcheck healthcheck.go \
     && /usr/local/go/bin/go version -m /healthcheck
 
-FROM gcr.io/distroless/cc-debian13:nonroot@sha256:54df941ed0d06a1bd95ef5e0ce391fd8d9f94b64782dc9a60062727849ee3f97 AS minimal
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:e792ab3d241a468a4fd7519ddbbebe66b49b5f365771716ea688ad40b6c6f1c2 AS minimal
 COPY --from=runtime-libraries /runtime/ /
 COPY --from=patched /qdrant/qdrant /qdrant/qdrant
 COPY --from=patched /qdrant/qdrant.spdx.json /qdrant/qdrant.spdx.json
