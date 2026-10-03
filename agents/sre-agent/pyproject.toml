@@ -34,7 +34,7 @@ sre-agent = "sre_agent.cli:main"
 sre-agent-graph = "sre_agent.cli_graphe:main"
 
 [build-system]
-requires = ["uv_build==0.12.18"]
+requires = ["uv_build==0.12.21"]
 build-backend = "uv_build"
 
 [tool.ruff]
