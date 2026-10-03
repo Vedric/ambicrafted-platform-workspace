@@ -17,7 +17,7 @@ dependencies = [
     "mcp>=2.2,<3",
     "pydantic>=2.13.5,<3",
     "opentelemetry-sdk>=1.30,<2",
-    "opentelemetry-exporter-otlp-proto-http>=1.30,<2",
+    "opentelemetry-exporter-otlp-proto-http>=1.45.0,<2",
 ]
 
 # Le portage LangGraph vit dans un extra : la version maison reste
