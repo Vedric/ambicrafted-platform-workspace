@@ -1,6 +1,6 @@
 # The default final target is the qualified shell-free runtime.
 # The apt-ui stage is retained only as an explicit comparison/rollback build.
-FROM qdrant/qdrant:v1.19.1@sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10 AS patched
+FROM qdrant/qdrant:v1.19.2@sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad AS patched
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends --only-upgrade \
