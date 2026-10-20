@@ -73,7 +73,7 @@ def check_gateway(client, key, *, inference):
         json={"model": "smart", "messages": [{"role": "user", "content": "synthetic"}]},
     )
     assert denied.status_code in {400, 401, 403}
-    # Test both streaming and embeddings through the same restricted alias key.
+    # Exercise inference formats through the same restricted alias key.
     if inference:
         embedding = client.post(
             "/v1/embeddings",
@@ -83,6 +83,44 @@ def check_gateway(client, key, *, inference):
         )
         embedding.raise_for_status()
         assert len(embedding.json()["data"][0]["embedding"]) > 0
+        structured = client.post(
+            "/v1/chat/completions",
+            headers=headers,
+            timeout=90,
+            json={
+                "model": "local",
+                "max_tokens": 128,
+                "temperature": 0,
+                "reasoning_effort": "none",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "Return a JSON observation: label synthetic, observations 2.",
+                    }
+                ],
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "gateway_qualification",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "label": {"type": "string", "enum": ["synthetic"]},
+                                "observations": {"type": "integer", "enum": [2]},
+                            },
+                            "required": ["label", "observations"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+            },
+        )
+        structured.raise_for_status()
+        assert json.loads(structured.json()["choices"][0]["message"]["content"]) == {
+            "label": "synthetic",
+            "observations": 2,
+        }
         with client.stream(
             "POST",
             "/v1/chat/completions",
@@ -229,6 +267,7 @@ def qualify(old_image, new_image, postgres_image):
                 wait_gateway(client, master)
                 check_gateway(client, key, inference=True)
                 checks["migrated_key_auth_streaming_embeddings"] = True
+                checks["structured_output_schema"] = True
                 command("docker", "restart", new)
                 wait_gateway(client, master)
                 check_gateway(client, key, inference=False)
@@ -293,7 +332,7 @@ def qualify(old_image, new_image, postgres_image):
                     cleanup = False
             checks["isolated_resources_removed"] = cleanup
     result["passed"] = (
-        len(checks) == 5 and all(checks.values()) and "error_type" not in result
+        len(checks) == 6 and all(checks.values()) and "error_type" not in result
     )
     return result
 

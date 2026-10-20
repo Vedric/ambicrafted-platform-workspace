@@ -28,6 +28,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Space for source rebuilds on disposable hosted runners
+        if: contains(fromJSON('["grafana", "prometheus", "tempo"]'), matrix.service)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # These jobs compile inside Docker and do not use the preinstalled SDKs.
+          # Never apply this preparation to a workstation or self-hosted runner.
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          df -h /
+          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /usr/share/swift /opt/ghc
+          df -h /
+          available=$(df --output=avail -B1 /var/lib/docker | tail -n 1)
+          test "$available" -ge 26843545600
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.12.5"

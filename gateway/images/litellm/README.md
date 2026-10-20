@@ -23,7 +23,9 @@ uv run --locked --project apps/control-api python gateway/images/litellm/qualifi
 The qualifier creates its own network, databases and credentials. It tests
 anonymous/wrong-key rejection, the confidential alias allowlist, preservation of
 a real virtual key through migration and restart, real local streaming/embeddings,
-and restoration of a pre-upgrade dump into a separate old-version database.
+a JSON-schema-constrained response, and restoration of a pre-upgrade dump into a
+separate old-version database. The structured-response check validates transport
+compatibility and the returned shape, not factual correctness.
 Only synthetic prompts reach the configured local model. It never restores or
 modifies the workstation database. It needs Docker, the reviewed gateway config
 and local model availability; it does not prove every LiteLLM provider works.

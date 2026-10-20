@@ -75,6 +75,13 @@ releases reuse both workflows and create a draft only when both pass. Complete
 image reports include identity and bounded, redacted preparation failure
 diagnostics. No existing report is reused after a failed scan.
 
+Source rebuilds can exceed a hosted runner's initial free disk space. For the
+Grafana, Prometheus and Tempo jobs only, the workflow verifies that it is on a
+disposable GitHub-hosted Linux runner, removes four unused preinstalled SDK
+directories, records disk capacity and requires at least 25 GiB free before
+building. It does not clean Docker resources or apply this preparation to a
+workstation or self-hosted runner. A resource failure still fails qualification.
+
 ## Historical evaluation dependency correction — 2026-09-29
 
 This section describes the former Promptfoo tree. Those dependencies and their
