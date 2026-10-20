@@ -1,10 +1,14 @@
 # Dependency review
 
 The current candidate inventory and remaining release gates are documented in
-[the 21 October candidate qualification](QUALIFICATION-2026-10-21.md). The HIGH/CRITICAL
-gate remains failed because of the documented Grafana plugin and Qdrant frontend
-dependency findings. Application runtime Python audits and console/evaluation npm
-audits are separate from image scans.
+[the 21 October candidate qualification](QUALIFICATION-2026-10-21.md). The latest
+eight-image development scan reports zero CRITICAL/HIGH, with 42 MEDIUM,
+12 LOW and six UNKNOWN package/advisory occurrences still visible. Grafana's
+plugin and Qdrant's frontend corrections are qualified separately; the release
+gate still rejects any CRITICAL/HIGH or incomplete scan against the final
+artifacts. This development result does not establish live deployment or hosted
+release acceptance. Application Python and npm audits are separate image-scan
+inputs, not substitutes for those scans.
 The [29 September assessment](SECURITY-2026-09-29.md),
 [27 September review](SECURITY-REFINEMENT-2026-09-27.md) and figures below are
 historical snapshots, not the current image inventory.
@@ -12,7 +16,9 @@ historical snapshots, not the current image inventory.
 The initial six-image review used two narrow derivatives, PostgreSQL and Qdrant.
 The current candidate has eight declared derivatives with pinned upstream
 inputs and explicit corrective changes. Their image-specific READMEs and
-ADRs 0035–0037 and [ADR 0042](adr/0042-distribution-grafana-privee-corrigee.md) describe the builds and the private Grafana distribution; [ADR 0012](adr/0012-images-correctives-verifiees.md)
+ADRs 0035–0037 and [ADR 0042](adr/0042-distribution-grafana-privee-corrigee.md) describe the builds and the private Grafana distribution. [ADR 0044](adr/0044-retrait-cible-racine-emsign-g3.md)
+records the subsequent exact CA distrust, certifi 2026.10.19 and Pillow 13.0.0
+corrections. [ADR 0012](adr/0012-images-correctives-verifiees.md)
 records the initial decision.
 
 ## Historical image inventory — 2026-09-26
@@ -45,7 +51,7 @@ primary advisories, exact artifacts, applicability limits, remediation prioritie
 and scan provenance. All findings remain visible; no scanner suppression or
 blanket risk waiver was added. That historical review requested reassessment by
 2026-10-10; the current reassessment is recorded in
-[the 20 October qualification](QUALIFICATION-2026-10-20.md). Repeat scans after
+[the 21 October qualification](QUALIFICATION-2026-10-21.md). Repeat scans after
 each image change and before release.
 
 Loopback bindings, authenticated console, private files and

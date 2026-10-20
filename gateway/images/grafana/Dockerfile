@@ -72,7 +72,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     && go list -deps -tags oss ./pkg/cmd/grafana > /out/grafana-packages.txt \
     && ! grep '^golang.org/x/crypto/openpgp' /out/grafana-packages.txt
 
-FROM grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
+FROM grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f AS application
 USER root
 RUN apk add --no-cache --upgrade zlib=1.3.2-r1
 # External bundled data sources only; built-in panels remain untouched.
@@ -82,4 +82,20 @@ COPY --from=backend --chown=472:0 /out/grafana /usr/share/grafana/bin/grafana
 COPY --from=backend /out/grafana-packages.txt /usr/share/grafana/ambicrafted/grafana-packages.txt
 COPY plugins-provenance.json core-provenance.json core-dependencies.patch distribution-signature.patch distribution_signature.go distribution-public.asc distribution-manifests.json /usr/share/grafana/ambicrafted/
 ENV GF_PLUGINS_PREINSTALL_DISABLED=true GF_PLUGINS_PREINSTALL_AUTO_UPDATE=false
+USER 472
+
+# Shared, build-only trust policy. No helper/toolchain enters the runtime.
+FROM golang:1.26.8-bookworm@sha256:a688600ca24f8a4d3ca77f95b0dd40704a9fc787c826660eb7ba0b641b8b175d AS trust-tools
+ADD --checksum=sha256:65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40 https://go.dev/dl/go1.27.3.linux-amd64.tar.gz /tmp/go.tar.gz
+RUN test "$(uname -m)" = x86_64 && rm -rf /usr/local/go && tar -xzf /tmp/go.tar.gz -C /usr/local
+ENV GOTOOLCHAIN=local GOTELEMETRY=off CGO_ENABLED=0
+WORKDIR /policy
+COPY --from=trust-policy distrust.go distrust_test.go distrusted-emsign-g3.crt VerifyTrust.java ./
+RUN --network=none go test -count=1 -v distrust.go distrust_test.go \
+    && go build -trimpath -buildvcs=false -o /policy/distrust distrust.go
+
+FROM application
+USER 0
+RUN --network=none --mount=type=bind,from=trust-tools,source=/policy,target=/policy,ro ["/policy/distrust", "-report", "/usr/share/ambicrafted/ca-distrust.json"]
+LABEL org.ambicrafted.trust.distrusted-sha256="86a1ecba089c4a8d3bbe2734c612ba341d813e043cf9e8a862cd5c57a36bbe6b"
 USER 472

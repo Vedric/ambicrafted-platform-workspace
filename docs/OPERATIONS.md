@@ -33,11 +33,14 @@ The dashboard and rules are versioned under `gateway/observability`. Rules
 create local alerts; no Slack, email or other notification destination is
 configured. Configure a destination only after deciding what metadata may leave.
 
-The [20 October candidate qualification](QUALIFICATION-2026-10-20.md) records
-57 remaining HIGH package/CVE occurrences: 56 in Grafana's signed plugins and one
-in Qdrant's complete frontend dependency inventory. These are candidate results,
-not proof that the running workstation was upgraded. The release security gate
-remains failed; a green readiness page does not supersede it.
+The [21 October candidate qualification](QUALIFICATION-2026-10-21.md) records the
+corrected images and current evidence. Its eight-image development scan has
+zero CRITICAL/HIGH; 42 MEDIUM, 12 LOW and six UNKNOWN occurrences remain visible.
+The former 57 HIGH findings in the [20 October assessment](QUALIFICATION-2026-10-20.md)
+are historical. Neither a development scan nor a green readiness page establishes
+that the running workstation has been upgraded. Final-image checks and the
+separate deployment/recovery gates still apply. The host's certificate store
+also needs its own [administrative verification](HOST-TOOLS.md#host-certificate-trust-and-uv).
 The [26 September assessment](SECURITY-RELEASE-2026-09-26.md), including its
 166 HIGH count and conditional private-workstation decision, remains historical.
 

@@ -24,8 +24,9 @@ deployment.
 | Runbooks | Versioned files; content remains untrusted input for reasoning |
 | Traces | Local Tempo; tool arguments and raw HTTP/error bodies are not deliberately recorded by the agent |
 
-Extraction is a model transformation, **not declassification**. All three
-SRE model stages use `local` and `CONFIDENTIAL_KEY`. Changing a reasoning
+Extraction is a model transformation, **not declassification**. All SRE model
+stages, including consistency review, use `local` and `CONFIDENTIAL_KEY`.
+Changing a reasoning
 alias to an external alias is rejected before analysis. Gateway restrictions
 and the absence of a fallback from `local` provide additional controls.
 

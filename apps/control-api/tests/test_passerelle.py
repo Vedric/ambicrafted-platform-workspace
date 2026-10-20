@@ -174,8 +174,12 @@ async def test_appel_concurrent_borne_et_annulation_propagee(lanceur, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_sigterm_ferme_aussi_les_deux_sous_processus(lanceur, tmp_path):
+@pytest.mark.parametrize("idle", [0, 0.25])
+async def test_sigterm_ferme_aussi_les_deux_sous_processus(lanceur, tmp_path, idle):
     async with lanceur():
+        # An already-idle client keeps stdin open while the signal is handled.
+        # Signalling immediately after initialize can miss the blocked-read race.
+        await asyncio.sleep(idle)
         os.kill(int((tmp_path / "gateway.pid").read_text()), signal.SIGTERM)
         # Observe signal-driven shutdown while the client's transport stays open.
         # A fixed sleep races its teardown/kill deadline against the gateway's

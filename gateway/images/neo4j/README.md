@@ -1,5 +1,16 @@
 # Dedicated graph-memory image
 
+## Targeted trust correction — 2026-10-21
+
+The current dated image additionally distrusts the exact compromised emSign ECC
+G3 root in its actual operating-system trust stores. See the shared
+[trust policy](../trust-policy/README.md) for the fingerprint, native Java handling,
+unchanged package inventory, qualification evidence and limits. This is a local
+trust-policy change, not a claim that the vendor CA package was upgraded.
+The named build context below contains only public policy code and certificates;
+it is required when building manually. Compose and the image scanner supply it
+explicitly. Existing application binaries and features are unchanged by this step.
+
 This profile supports the platform's **bounded JSON/Cypher note store**: authenticated
 queries, scope-filtered notes, relationships, unique IDs, persisted data and logical
 backup/restore. It retains the vendor's Java 21 runtime, database, authentication,
@@ -50,12 +61,12 @@ maintained/tested runtime; do not bypass the audit to claim universal portabilit
 From the repository root, with the current control API environment synchronized:
 
 ```sh
-docker build --tag ambicrafted/neo4j:5.26.32-memory.20261020 gateway/images/neo4j
+docker build --build-context trust-policy=gateway/images/trust-policy --tag ambicrafted/neo4j:5.26.32-memory.20261021 gateway/images/neo4j
 uv run --project apps/control-api --no-sync python gateway/images/neo4j/qualifier.py \
   --old-image ambicrafted/neo4j:5.26.31-security.20260927 \
-  --new-image ambicrafted/neo4j:5.26.32-memory.20261020
+  --new-image ambicrafted/neo4j:5.26.32-memory.20261021
 uv run --project apps/control-api --no-sync python scripts/exercer_recuperation.py \
-  --neo4j-image ambicrafted/neo4j:5.26.32-memory.20261020
+  --neo4j-image ambicrafted/neo4j:5.26.32-memory.20261021
 ```
 
 The migration exercise creates a unique disposable named volume, starts the old

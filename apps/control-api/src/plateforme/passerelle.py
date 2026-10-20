@@ -20,12 +20,14 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from anyio import CancelScope
 from mcp import ClientSession, StdioServerParameters, stdio_client
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import CallToolResult, ListToolsResult, TextContent, Tool
 
 from .config import lire_environnement
+from .stdio_posix import entree_stdio, sortie_stdio
 
 OUTILS_RUNBOOKS = frozenset({"list_runbooks", "read_runbook", "search_runbooks", "semantic_search"})
 OUTILS_CONTROLE = frozenset(
@@ -205,9 +207,17 @@ class Passerelle:
             await asyncio.gather(*(b.pret.wait() for b in self.backends.values()))
             yield self
         finally:
-            for backend in self.backends.values():
-                backend.arret.set()
-            await asyncio.gather(*taches, return_exceptions=True)
+            # Keep cleanup in each backend's owning task. Shield the join from
+            # repeated AnyIO level cancellation after a broken client transport.
+            with CancelScope(shield=True):
+                for backend, tache in zip(self.backends.values(), taches, strict=True):
+                    backend.arret.set()
+                    # Initialization has no active session yet and may be waiting
+                    # for a backend that never replies. Cancel it once so its SDK
+                    # contexts perform their bounded process-tree cleanup now.
+                    if backend.session is None and not tache.done():
+                        tache.cancel()
+                await asyncio.gather(*taches, return_exceptions=True)
 
     async def lister(self, _contexte: Any, params: Any) -> ListToolsResult:
         if params is not None and params.cursor:
@@ -280,7 +290,11 @@ class Passerelle:
 
         boucle.add_signal_handler(signal.SIGTERM, terminer)
         try:
-            async with stdio_server() as (lecture, ecriture):
+            async with (
+                entree_stdio() as entree,
+                sortie_stdio() as sortie,
+                stdio_server(stdin=entree, stdout=sortie) as (lecture, ecriture),
+            ):
                 await serveur.run(lecture, ecriture, serveur.create_initialization_options())
         except asyncio.CancelledError:
             if not fermeture:

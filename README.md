@@ -175,7 +175,7 @@ preconditions and risks. The agent never executes a remediation.
 ## Install
 
 Reference workstation tools: Python 3.14.7 for the API/agent/MCP and 3.13.15
-for speech, uv 0.12.5, Node 22.23.3, npm 11.10.0, Docker Compose, and Ollama
+for speech, uv 0.13.4, Node 22.23.3, npm 11.10.0, Docker Compose, and Ollama
 0.32.15. Use the project Python selectors and committed locks; do not substitute
 the system Python or install packages globally. The local model needs the
 GPU/RAM described in `CLAUDE.md`. A second-machine installation remains a

@@ -60,13 +60,25 @@ the workflow makes at most one structured finalisation call without tools. The
 existing token, turn, time and cost ceilings still apply. No verified read means
 no forced conclusion. This may stop a useful search early; it proves neither
 source sufficiency nor relevance. Finalisation still passes source checks,
-consistency review and the graph's human gate.
+consistency review and the graph's human gate. An independent counter-test
+also confirms that a source read as B and then A within one tool batch leaves
+only A in the admissible registry; an intermediate B may therefore not count as
+progress. Changing only the counter would not make B admissible evidence.
 [ADR 0043](adr/0043-arret-recherche-sans-progres.md).
 
 Legacy pending analyses keep their report and checkpoint. An incompatible
 contract marker causes HTTP 409 before any decision mutation or queueing. A new
 analysis needs a new identifier and the original observations from the operator;
 the application cannot reconstruct the ephemeral original alert from extraction.
+
+The local MCP gateway now uses cancellable POSIX input/output adapters through
+the SDK's public transport interface. Real subprocess regressions reproduce and
+correct hangs when a client keeps stdin open after initialization or stops
+reading a large response. Backend cleanup stays in its owning task, including
+startup failure; descriptor ownership and blocking modes are restored. The
+supported transport remains Linux/WSL pipes or sockets, with a 1 MiB incoming
+line ceiling and the existing smaller tool-argument limit. Regular-file
+redirection is refused. [ADR 0045](adr/0045-arret-stdio-mcp-annulable.md).
 
 The first twelve newly prepared model cases retained only **5/12 mechanical
 contracts and 5/12 cases in engineering AI review**. Three exhausted their
@@ -79,15 +91,34 @@ first case without a valid result; that change was not retained.
 All 63 previously inspected cases are now regressions. Six new holdouts were
 prepared before the next frozen-source execution, with their input hash and
 history retained in the [qualification suite](../evals/qualification/README.md).
-The new run must report usefulness, factual errors, abstention, tokens and latency
-separately. An engineering AI review is not independent human acceptance.
+The new six-case execution retained **4/6 mechanical contracts and 2/6 cases
+in engineering AI review**. It took 189.884 seconds with 118,662 observed tokens;
+source hashes and actual runtime identities remained stable. One case abstained
+without a useful answer, one exhausted its observed token budget, one missed the
+central sampling-bias explanation, and one invented prior approval of a rights
+change despite the consistency review. The two retained answers have minor
+limitations, including an incorrect kube-proxy/CNI example. The original human
+review remains pending. This is evidence against an expert-autonomy claim, not
+qualification by a renamed pass criterion.
+
+The separate 63-case regression execution retained **36/63 mechanical contracts
+and 28/63 cases in engineering AI review**, in 1,908.346 seconds with 1,210,687
+observed tokens. Fifty-seven cases reached the human gate and six exhausted
+their observed token budget. The source inputs and actual runtime identities
+remained unchanged. The substantive review rejects incorrect PDB guarantees,
+unsupported claims of irrecoverability, missed arithmetic and generic abstention
+without useful case-specific questions. A gate reached is not a correct answer.
+The original independent-human review remains pending; the AI review does not
+replace it. These executions used frozen development source subsequently
+committed in `669c7c5`, not a clean-clone execution of the final candidate.
 
 ## Image corrections and remaining findings
 
 No finding is suppressed, no inventory is deleted to lower a count, and the
 release image gate still fails on any CRITICAL/HIGH finding or incomplete scan.
-The fresh combined eight-image scan must bind the final source and actual image
-identities; a successful individual scan is not that combined acceptance.
+The combined development scan of the eight corrected images reports **0 CRITICAL,
+0 HIGH, 42 MEDIUM, 12 LOW and six UNKNOWN** occurrences. A fresh-clone combined
+scan must still bind the final source and actual image identities before release.
 
 | Corrected derivative | Individual scan: Critical / High / Medium / Low / Unknown | Qualification |
 |---|---|---|
@@ -119,6 +150,23 @@ MEDIUM/LOW findings are visible, including three reviewed Rust LOW findings with
 no applicable trigger established in the inspected use. This does not prove
 that no trigger or unknown vulnerability exists.
 
+A later certifi CA-compromise disclosure required another correction after the
+earlier scan. All seven Python locks now use official certifi 2026.10.19; the
+API uses Pillow 13.0.0 for newly disclosed decoder flaws. All eight container
+trust stores are separately corrected for the exact emSign ECC G3 root, including
+Neo4j's default Java trust manager. Actual old/new root-set comparisons and
+verification require G3 alone to disappear while unaffected roots still verify;
+the application binaries and inventories remain intact.
+[Trust-policy evidence and boundaries](../gateway/images/trust-policy/README.md).
+
+The host uv tool was upgraded to 0.13.4 after official archive checksum and
+GitHub artifact-attestation verification; CI uses that version too. The host's
+system CA bundle still contains the affected root. Its update needs administrator
+credentials unavailable to this session. This remains an explicit host security
+action, with the verification and native Ubuntu correction procedure in
+[HOST-TOOLS.md](HOST-TOOLS.md#host-certificate-trust-and-uv); container corrections
+do not silently clear it.
+
 ## Verification recorded so far
 
 Development validation includes 259 SRE tests, 697 API tests before the final
@@ -134,6 +182,17 @@ exports, reopening, memory drafts, injection refusal, print isolation, caption
 persistence, transcripts, actual video progression and AAC decoding. Physical
 speaker audibility, a particular microphone and a user's listening preference
 remain outside those automated checks.
+
+A separate HTTP/SQLite load exercise against clean commit `669c7c5` created
+40 documents across five conversations, replayed all 40 operations without
+duplicates, then served 640 authenticated exports using 16 concurrent workers.
+Read/export p95 was 26.775 ms and maximum 40.115 ms on this workstation.
+Unauthorized and cross-conversation reads were refused; deleting two
+conversations made their 16 documents unavailable and left 24 valid documents
+with SQLite integrity `ok`. Nine real rate-limit delays were respected; the
+exercise took 547.244 seconds. Inference alone was deterministic synthetic
+input. This is local storage/API evidence, not model latency, distributed load
+capacity or a production SLO. Earlier harness mistakes are retained separately.
 
 Fresh-clone checks, hosted CI, combined image scanning, full browser results,
 new model qualification and live promotion/recovery are recorded only after

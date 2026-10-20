@@ -1,9 +1,19 @@
 # Grafana private security distribution
 
+## Targeted trust correction — 2026-10-21
+
+The current dated image additionally distrusts the exact compromised emSign ECC
+G3 root in its actual operating-system trust stores. See the shared
+[trust policy](../trust-policy/README.md) for the fingerprint, native Java handling,
+unchanged package inventory, qualification evidence and limits. This is a local
+trust-policy change, not a claim that the vendor CA package was upgraded.
+The named build context below contains only public policy code and certificates;
+it is required when building manually. Compose and the image scanner supply it
+explicitly. Existing application binaries and features are unchanged by this step.
+
 This Linux/amd64 candidate rebuilds Grafana **13.2.4** from its pinned source
 with Go **1.27.3**, `kin-openapi` **0.149.0** and a bounded private plugin signing
-authority. The backend reports `13.2.4+ambicrafted.20261020.r2`. The image tag's
-`r4` also identifies the corrected zlib runtime and compiled-package inventory.
+authority. The backend reports `13.2.4+ambicrafted.20261020.r2`. The prior 20 October `r4` image identifies the corrected zlib runtime and compiled-package inventory.
 These are derivative versions, not official Grafana Labs releases.
 
 Only **Prometheus and Tempo** external data sources are included. Authenticated
@@ -56,15 +66,15 @@ public pinned inputs and fails if any byte differs from the committed signed
 inventory. `.dockerignore` admits only the required public files.
 
 ```sh
-docker buildx build --load \
-  --tag ambicrafted/grafana:13.2.4-security.20261020-r4 gateway/images/grafana
+docker buildx build --load --build-context trust-policy=gateway/images/trust-policy \
+  --tag ambicrafted/grafana:13.2.4-security.20261021 gateway/images/grafana
 uv run --project apps/control-api --no-sync python \
   gateway/images/grafana/qualifier-signatures.py \
-  --image ambicrafted/grafana:13.2.4-security.20261020-r4 \
+  --image ambicrafted/grafana:13.2.4-security.20261021 \
   --output /absolute/path/to/new-signature-evidence
 uv run --project apps/control-api --no-sync python \
   gateway/images/grafana/qualifier.py \
-  --image ambicrafted/grafana:13.2.4-security.20261020-r4 \
+  --image ambicrafted/grafana:13.2.4-security.20261021 \
   --output /absolute/path/to/new-grafana-evidence \
   --browser gateway/images/grafana/qualifier-browser.mjs
 ```

@@ -175,6 +175,85 @@ class ScannerTests(unittest.TestCase):
         self.assertNotIn(header_value, text)
         self.assertEqual(diagnostic.stat().st_mode & 0o777, 0o600)
 
+    def trust_context(self, value="./images/trust-policy", name="trust-policy"):
+        context = self.root / "images/litellm"
+        context.mkdir(parents=True, exist_ok=True)
+        (context / "Dockerfile").write_text("FROM synthetic:1\n")
+        trust = self.root / "images/trust-policy"
+        trust.mkdir(exist_ok=True)
+        (trust / "distrust.go").write_text("package main\n")
+        self.compose.write_text(
+            self.text.replace(
+                f"    image: example/litellm:1.0@sha256:{'a' * 64}",
+                "    image: ambicrafted/litellm:1.0-security\n"
+                "    build:\n      context: ./images/litellm\n"
+                f"      additional_contexts:\n        {name}: {value}",
+            )
+        )
+        return trust
+
+    def test_trust_context_passed_as_exact_local_build_argument(self):
+        trust = self.trust_context()
+        with patch.object(
+            scanner.subprocess, "run", side_effect=self.fake_command
+        ) as run:
+            code, _ = self.invoke()
+        self.assertEqual(code, 0)
+        builds = [
+            c.args[0]
+            for c in run.call_args_list
+            if c.args[0][:3] == ["docker", "buildx", "build"]
+        ]
+        self.assertEqual(len(builds), 1)
+        self.assertIn("--build-context", builds[0])
+        self.assertIn(f"trust-policy={trust}", builds[0])
+
+    def test_trust_context_rejects_other_names_uris_and_external_paths(self):
+        for name, value in [
+            ("unexpected", "./images/trust-policy"),
+            ("trust-policy", "https://example.invalid/context"),
+            ("trust-policy", "docker-image://example:1"),
+            ("trust-policy", "../private"),
+            ("trust-policy", "/tmp/private"),
+        ]:
+            with self.subTest(name=name, value=value):
+                self.trust_context(value, name)
+                with self.assertRaises(ValueError):
+                    scanner.read_targets(self.compose)
+
+    def test_trust_context_rejects_symlink_directory_and_child(self):
+        trust = self.trust_context()
+        outside = self.root / "outside"
+        outside.mkdir()
+        (trust / "distrust.go").unlink()
+        trust.rmdir()
+        trust.symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(ValueError):
+            scanner.read_targets(self.compose)
+        trust.unlink()
+        trust.mkdir()
+        (trust / "private").symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(ValueError):
+            scanner.read_targets(self.compose)
+
+    def test_trust_context_rejects_empty_duplicate_and_special_entries(self):
+        trust = self.trust_context()
+        original = self.compose.read_text()
+        for text in [
+            original.replace("        trust-policy: ./images/trust-policy", ""),
+            original.replace(
+                "        trust-policy: ./images/trust-policy",
+                "        trust-policy: ./images/trust-policy\n        trust-policy: ./images/trust-policy",
+            ),
+        ]:
+            self.compose.write_text(text)
+            with self.assertRaises(ValueError):
+                scanner.read_targets(self.compose)
+        self.compose.write_text(original)
+        os.mkfifo(trust / "special")
+        with self.assertRaises(ValueError):
+            scanner.read_targets(self.compose)
+
     def test_one_service_uses_same_failure_policy_and_records_image_identity(
         self,
     ) -> None:

@@ -39,7 +39,7 @@ jobs:
           echo "$RUNNER_TEMP/age-qualified/age" >> "$GITHUB_PATH"
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: "0.12.5"
+          version: "0.13.4"
           enable-cache: false
       - name: Environnement neuf, verrou vérifié
         run: uv sync --locked --all-extras
@@ -95,7 +95,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: "0.12.5"
+          version: "0.13.4"
           enable-cache: false
       - run: uv sync --locked --all-extras
       - name: Modèles publics épinglés et vérifiés par SHA-256
@@ -168,7 +168,7 @@ jobs:
           docker compose --env-file .env.example config --quiet
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: "0.12.5"
+          version: "0.13.4"
           enable-cache: false
       - name: Dashboards générés et règles Prometheus
         run: |
@@ -202,7 +202,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: "0.12.5"
+          version: "0.13.4"
           enable-cache: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

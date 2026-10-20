@@ -1,9 +1,11 @@
 name: ambicrafted-memory
 services:
   neo4j:
-    image: ambicrafted/neo4j:5.26.32-memory.20261020
+    image: ambicrafted/neo4j:5.26.32-memory.20261021
     build:
       context: ./images/neo4j
+      additional_contexts:
+        trust-policy: ./images/trust-policy
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
     ports:

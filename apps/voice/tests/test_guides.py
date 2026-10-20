@@ -68,6 +68,15 @@ def test_guide_video_has_decodable_audible_narration(language, lesson):
     assert " ".join(" ".join(texts).split()) == " ".join(
         " ".join(part["text"] for part in record["narration"]).split()
     )
+    # Progressive playback must not need most of the video before its first audio.
+    with av.open(str(path)) as container:
+        packets = [packet for packet in container.demux() if packet.size]
+        previous_dts = float("-inf")
+        for packet in sorted(packets, key=lambda item: item.pos):
+            assert packet.dts is not None
+            stamp = float(packet.dts * packet.time_base)
+            assert stamp >= previous_dts - 0.000001
+            previous_dts = stamp
     # Decode an actual video frame as well as checking the stream metadata.
     with av.open(str(path)) as container:
         frame = next(container.decode(video=0))
@@ -83,3 +92,18 @@ def test_guide_manifest_covers_exactly_six_bilingual_workflows():
     }
     script = GUIDES.parents[1] / "scripts/guide-script.json"
     assert hashlib.sha256(script.read_bytes()).hexdigest() == manifest["script_sha256"]
+
+
+def test_chapter_navigation_offsets_match_recorded_cues_without_full_provenance():
+    manifest = json.loads((GUIDES / "provenance.json").read_text())
+    mapping_file = GUIDES.parents[1] / "src/guide-chapters.json"
+    mapping = json.loads(mapping_file.read_text())
+    assert set(mapping) == set(LESSONS)
+    assert mapping_file.stat().st_size < 2048
+    for record in manifest["clips"]:
+        starts = mapping[record["lesson"]][record["language"]]
+        assert len(starts) == 4
+        assert all(isinstance(value, (int, float)) for value in starts)
+        assert starts == sorted(starts)
+        assert starts == [round(cue["start"], 3) for cue in record["cues"]]
+        assert 0 <= starts[0] < starts[-1] < record["duration_seconds"]

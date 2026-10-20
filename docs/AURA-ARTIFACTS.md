@@ -84,16 +84,16 @@ Artifact fields are `id`, `schema_version: 1`, `type: diagram | report`, `title`
 `sha256`, `truncated`, and `verified: false`. Source kinds are `request`, `history`
 (operator message), `attachment`, and `generated` (previous model output).
 
-| Document | Structure and limits                                                                                                                            |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Diagram  | `direction: LR                                                                                                                                  | TB`; 1–24 `nodes`, 0–40 `edges`, 0–6 flat `groups`, 0–8 `legend` entries |
-| Node     | `id`, `label` (100 characters), `description` (240), `kind: service                                                                             | data                                                                     | actor                                                        | external | control`, nullable `group_id`, `basis`, `source_ids` |
-| Edge     | `id`, `source`, `target`, `label` (100), `kind: flow                                                                                            | dependency                                                               | trust`, `basis`, `source_ids`; known distinct endpoints only |
-| Group    | `id`, `label` (100), `description` (300); no nested groups                                                                                      |
-| Legend   | `kind` from the node/edge kinds; `label` (160), unique kind                                                                                     |
-| Report   | 1–10 `sections`                                                                                                                                 |
-| Section  | `id`, `heading` (160), 0–6 `paragraphs` (1,800 each), 0–12 `bullets` (600 each), nullable `table`, `basis`, `source_ids`; must contain material |
-| Table    | 1–8 `columns` (100 each), 0–30 `rows`, rectangular; cells at most 500 characters                                                                |
+| Document | Structure and limits |
+| --- | --- |
+| Diagram | `direction`: `LR` or `TB`; 1–24 `nodes`, 0–40 `edges`, 0–6 flat `groups`, 0–8 `legend` entries |
+| Node | `id`, `label` (100 characters), `description` (240), `kind` (`service`, `data`, `actor`, `external` or `control`), nullable `group_id`, `basis`, `source_ids` |
+| Edge | `id`, `source`, `target`, `label` (100), `kind` (`flow`, `dependency` or `trust`), `basis`, `source_ids`; known distinct endpoints only |
+| Group | `id`, `label` (100), `description` (300); no nested groups |
+| Legend | `kind` from the node/edge kinds; `label` (160), unique kind |
+| Report | 1–10 `sections` |
+| Section | `id`, `heading` (160), 0–6 `paragraphs` (1,800 each), 0–12 `bullets` (600 each), nullable `table`, `basis`, `source_ids`; must contain material |
+| Table | 1–8 `columns` (100 each), 0–30 `rows`, rectangular; cells at most 500 characters |
 
 IDs use `[a-z][a-z0-9_-]{0,47}` and diagram IDs are unique across nodes, edges and
 groups. `basis` is `provided`, `proposed`, or `unknown`; `provided` requires at

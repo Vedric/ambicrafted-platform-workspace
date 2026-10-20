@@ -10,8 +10,8 @@
       "lesson": "first-steps",
       "language": "en",
       "duration_seconds": 82.74,
-      "bytes": 7360402,
-      "sha256": "f0d849e9836afb2371907e3d45ddaa01ce929af5a17751dda5a7bfbe686be8e4",
+      "bytes": 7386722,
+      "sha256": "f2dfbb1cf978b2d0af5ac448d66fa767cc72aca00776162b5d7f3db703b57da7",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -73,8 +73,8 @@
       "lesson": "voice",
       "language": "en",
       "duration_seconds": 85.15,
-      "bytes": 5498661,
-      "sha256": "076f997f09c9785fda0f3550c7ff15e04fd0206e9543782b43940549edbca8a4",
+      "bytes": 5524713,
+      "sha256": "b3549f5f7f77b0f7604fc5c5cd1b6d1cb5f07c65c8be5b496acdf6ef8e63916f",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -136,8 +136,8 @@
       "lesson": "investigation",
       "language": "en",
       "duration_seconds": 87.64,
-      "bytes": 4087730,
-      "sha256": "f31304f44e5abeed02906c7c0bd35e1ca4a320476ef2844b7424322dc508c4ae",
+      "bytes": 4115682,
+      "sha256": "42fdaa07906c43ec642d420901675b490b941eaa30d62b573626864460619566",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -199,8 +199,8 @@
       "lesson": "recovery",
       "language": "en",
       "duration_seconds": 87.77,
-      "bytes": 4463458,
-      "sha256": "057cf785d90b58e728c8a4f7f1323ba7e6317425a5e4e82b3296f9fce927dc54",
+      "bytes": 4490514,
+      "sha256": "e8e70007af366be88702dc3887da212bf367a22951a342e5065dc9b537124fdb",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -262,8 +262,8 @@
       "lesson": "observability",
       "language": "en",
       "duration_seconds": 87.43,
-      "bytes": 5454423,
-      "sha256": "595ca1a9f8a003ffbb2ce781d765abe6ba4b935197e61f27596b910431643971",
+      "bytes": 5481319,
+      "sha256": "3e69649f3395f3c1b3af5bdf4163682936e3df34bbdfd58ae089e7e1f068211c",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -325,8 +325,8 @@
       "lesson": "first-steps",
       "language": "fr",
       "duration_seconds": 84.82,
-      "bytes": 8106562,
-      "sha256": "7a0ffa739eed3b02f81b01e20d77365d1750de28cc2bffbd368f2b8fb2b55708",
+      "bytes": 8133638,
+      "sha256": "e43b1d8a545dfd8db6ae9df31079c5eae459424fa5c8227bef3754dbca52456e",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -388,8 +388,8 @@
       "lesson": "voice",
       "language": "fr",
       "duration_seconds": 83.67,
-      "bytes": 6477934,
-      "sha256": "64c7918b867f28db0002da5202c591c5049ee8001036e11408bfc1e9e7ebf8cf",
+      "bytes": 6503498,
+      "sha256": "dfcf662e21b96786b4d95d18787eab00841fcaa2ef660710145d710a456b9982",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -451,8 +451,8 @@
       "lesson": "investigation",
       "language": "fr",
       "duration_seconds": 82.75,
-      "bytes": 4194662,
-      "sha256": "753f97bb0f891ae4d5a3a9232ac637eef5358b7ba802e0a1ff1b784f7f6b1ebc",
+      "bytes": 4220942,
+      "sha256": "8401bb6a5d537a8b7e9d3eb476e2100865dfdbf08098ee4a16a8070ef98d636f",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -514,8 +514,8 @@
       "lesson": "recovery",
       "language": "fr",
       "duration_seconds": 85.6,
-      "bytes": 5027132,
-      "sha256": "e1a5e663770bebd8cc2cdf35e3ed0e71780f38a7c89c0936024204b30eada8fb",
+      "bytes": 5053416,
+      "sha256": "ce33fa504f85147edf3198e851f3d5271551da076b7ec4a1161c586e0ea6d23e",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -577,8 +577,8 @@
       "lesson": "observability",
       "language": "fr",
       "duration_seconds": 82,
-      "bytes": 5774427,
-      "sha256": "d954e4b1e416ee31bb7c2400a22bd5e7e17eef5c4f98e57ac5e8c3a1029a670c",
+      "bytes": 5799451,
+      "sha256": "fb3989fb88100b637279c162c7650844e30c821cc48fcaf9b9b3b2367324c160",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -640,8 +640,8 @@
       "lesson": "documents",
       "language": "en",
       "duration_seconds": 93.28,
-      "bytes": 10520248,
-      "sha256": "895cbff7469c2515a6f422c6e8342f333ca18fd439f8a9d54ad9a6229cc46fde",
+      "bytes": 10549264,
+      "sha256": "8b7471aabcfc83c7da09bb061eaa406b0f07218c0e9117478b204b0bd46c7fd9",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -703,8 +703,8 @@
       "lesson": "documents",
       "language": "fr",
       "duration_seconds": 87.22,
-      "bytes": 9452506,
-      "sha256": "75c831f79d3b847accac545bd96d82c69f1ab667f06b728f6cb0d0871372f8e2",
+      "bytes": 9479442,
+      "sha256": "2444bac7085f2c219af6890fd90474d9cf1f8b34376e42a57e04745f8ef24cef",
       "page_errors": [],
       "viewport": {
         "width": 1920,
@@ -762,5 +762,6 @@
         }
       ]
     }
-  ]
+  ],
+  "interleaving": "Audio and video packets ordered by decoding timestamp; faststart index precedes media."
 }

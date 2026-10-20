@@ -109,6 +109,69 @@ def test_image_normalized_without_metadata_and_dimensions_bounded():
         assert image.format == "JPEG" and not image.getexif()
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "image_format,mode,extension",
+    [
+        ("PNG", "RGBA", ".png"),
+        ("PNG", "P", ".png"),
+        ("JPEG", "RGB", ".jpg"),
+        ("JPEG", "CMYK", ".jpeg"),
+        ("WEBP", "RGB", ".webp"),
+        ("WEBP", "RGBA", ".webp"),
+    ],
+)
+async def test_supported_images_keep_orientation_and_strip_metadata_in_sandbox(
+    image_format, mode, extension
+):
+    source = Image.new(mode, (40, 20))
+    exif = Image.Exif()
+    exif[274] = 6  # Rotate 90 degrees; dimensions must reflect displayed content.
+    exif[270] = "SYNTHETIC_PRIVATE_IMAGE_DESCRIPTION"
+    output = io.BytesIO()
+    source.save(output, image_format, exif=exif)
+    result = await extraire("synthetic" + extension, base64.b64encode(output.getvalue()).decode())
+    assert (result["width"], result["height"]) == (20, 40)
+    normalized = base64.b64decode(result["image"])
+    assert b"SYNTHETIC_PRIVATE_IMAGE_DESCRIPTION" not in normalized
+    with Image.open(io.BytesIO(normalized)) as image:
+        assert image.format == "JPEG" and image.mode == "RGB"
+        assert not image.getexif()
+
+
+@pytest.mark.asyncio
+async def test_animated_webp_uses_first_frame_and_reports_truncation():
+    first = Image.new("RGB", (20, 20), "lime")
+    second = Image.new("RGB", (20, 20), "blue")
+    output = io.BytesIO()
+    first.save(output, "WEBP", save_all=True, append_images=[second], duration=100)
+    result = await extraire("synthetic.webp", base64.b64encode(output.getvalue()).decode())
+    assert result["truncated"]
+    with Image.open(io.BytesIO(base64.b64decode(result["image"]))) as image:
+        red, green, blue = image.getpixel((10, 10))
+        assert green > 200 and red < 30 and blue < 30
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("image_format", ["GIF", "BMP", "TIFF"])
+async def test_disallowed_formats_cannot_bypass_allowlist_with_png_filename(image_format):
+    output = io.BytesIO()
+    Image.new("RGB", (10, 10)).save(output, image_format)
+    with pytest.raises(HTTPException) as error:
+        await extraire("synthetic.png", base64.b64encode(output.getvalue()).decode())
+    assert error.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_compressed_oversized_png_rejected_in_real_sandbox():
+    output = io.BytesIO()
+    Image.new("L", (4000, 4000)).save(output, "PNG")
+    assert len(output.getvalue()) < 100_000
+    with pytest.raises(HTTPException) as error:
+        await extraire("synthetic.png", base64.b64encode(output.getvalue()).decode())
+    assert error.value.status_code == 422
+
+
 def test_text_truncation_and_binary_refusal_are_explicit():
     result = parse(("é" * 17000).encode(), ".csv")
     assert len(result["text"]) == 16000 and result["truncated"]

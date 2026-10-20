@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import chapterStarts from "../src/guide-chapters.json" with { type: "json" };
 
 async function login(page: Page) {
   const response = await page.request.post("/api/auth/ticket", {
@@ -58,67 +59,151 @@ test("captions are optional and remembered across lessons and reloads without au
   expect(accessibility.violations).toEqual([]);
 });
 
-test("all twelve walkthroughs play their 1080p video", async ({ page }) => {
-  await login(page);
-  for (const language of ["en", "fr"])
-    for (const lesson of [
-      "first-steps",
-      "voice",
-      "investigation",
-      "documents",
-      "recovery",
-      "observability",
-    ]) {
-      const result = await page.evaluate(
-        async ({ language, lesson }) => {
-          const video = document.createElement("video");
-          video.muted = true;
-          video.src = `/guides/${lesson}-${language}.mp4`;
-          document.body.append(video);
-          try {
-            await video.play();
-            await new Promise<void>((resolve, reject) => {
-              const timer = setTimeout(
-                () => reject(new Error("Video playback did not progress")),
-                4000,
-              );
-              video.ontimeupdate = () => {
-                if (video.currentTime > 0.1) {
-                  clearTimeout(timer);
-                  resolve();
-                }
-              };
-            });
-            return {
-              width: video.videoWidth,
-              height: video.videoHeight,
-              duration: video.duration,
-              progressed: video.currentTime > 0.1,
-            };
-          } finally {
-            video.pause();
-            video.removeAttribute("src");
-            video.load();
-            video.remove();
-          }
-        },
-        { language, lesson },
-      );
-      expect(result).toMatchObject({
-        width: 1920,
-        height: 1080,
-        progressed: true,
+for (const language of ["en", "fr"]) {
+  for (const [lesson, id] of [
+    "first-steps",
+    "voice",
+    "investigation",
+    "documents",
+    "recovery",
+    "observability",
+  ].entries()) {
+    test(`${language}/${id}: the visible 1080p player plays, pauses and seeks`, async ({
+      page,
+    }) => {
+      await login(page);
+      await page.getByRole("combobox").first().selectOption(language);
+      await page.locator(".guide-lessons button").nth(lesson).click();
+      const player = page.locator("video");
+      await player.scrollIntoViewIfNeeded();
+      // Use the actual visible player: WebKit can suspend offscreen media.
+      await player.evaluate(async (element) => {
+        const video = element as HTMLVideoElement;
+        video.muted = true;
+        await video.play();
       });
-      expect(result.duration).toBeGreaterThanOrEqual(60);
-      expect(result.duration).toBeLessThan(240);
-    }
-});
+      await expect
+        .poll(() =>
+          player.evaluate(
+            (element) => (element as HTMLVideoElement).currentTime,
+          ),
+        )
+        .toBeGreaterThan(0.1);
+      const media = await player.evaluate((element) => {
+        const video = element as HTMLVideoElement;
+        video.pause();
+        return {
+          width: video.videoWidth,
+          height: video.videoHeight,
+          duration: video.duration,
+          paused: video.paused,
+          source: video.currentSrc,
+        };
+      });
+      expect(media).toMatchObject({ width: 1920, height: 1080, paused: true });
+      expect(media.source).toMatch(new RegExp(`/${id}-${language}\\.mp4$`));
+      expect(media.duration).toBeGreaterThanOrEqual(60);
+      expect(media.duration).toBeLessThan(240);
+      await player.evaluate((element) => {
+        const video = element as HTMLVideoElement;
+        video.currentTime = video.duration / 2;
+      });
+      await expect
+        .poll(() =>
+          player.evaluate((element) => {
+            const video = element as HTMLVideoElement;
+            return (
+              video.readyState >= 2 &&
+              Math.abs(video.currentTime - video.duration / 2) < 0.2
+            );
+          }),
+        )
+        .toBe(true);
+    });
+  }
+}
+
+for (const language of ["en", "fr"] as const) {
+  test(`${language}: chapter navigation seeks before playback and preserves captions`, async ({
+    page,
+  }) => {
+    await login(page);
+    await page.getByRole("combobox").first().selectOption(language);
+    await page.locator(".guide-lessons button").nth(3).click();
+    const video = page.locator("video");
+    const chapters = page.locator(".guide-chapters button");
+    const toggle = page.getByRole("button", {
+      name: language === "fr" ? "Sous-titres" : "Captions",
+      exact: true,
+    });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(
+      await video.evaluate((element) => (element as HTMLVideoElement).paused),
+    ).toBe(true);
+    await expect(video).toHaveAttribute("preload", "none");
+    await expect(chapters).toHaveCount(4);
+    await chapters.nth(2).focus();
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(() =>
+        video.evaluate((element) => (element as HTMLVideoElement).currentTime),
+      )
+      .toBeCloseTo(chapterStarts.documents[language][2], 1);
+    expect(
+      await video.evaluate((element) => (element as HTMLVideoElement).paused),
+    ).toBe(true);
+    await expect.poll(() => captionMode(page)).toBe("disabled");
+    await video.scrollIntoViewIfNeeded();
+    await video.evaluate(async (element) => {
+      const player = element as HTMLVideoElement;
+      player.muted = true;
+      await player.play();
+    });
+    await expect
+      .poll(() =>
+        video.evaluate((element) => (element as HTMLVideoElement).currentTime),
+      )
+      .toBeGreaterThan(chapterStarts.documents[language][2] + 0.1);
+    await video.evaluate((element) => (element as HTMLVideoElement).pause());
+    await chapters.nth(1).click();
+    await expect
+      .poll(() =>
+        video.evaluate((element) => (element as HTMLVideoElement).currentTime),
+      )
+      .toBeCloseTo(chapterStarts.documents[language][1], 1);
+    expect(
+      await video.evaluate((element) => (element as HTMLVideoElement).paused),
+    ).toBe(true);
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await toggle.click();
+    await expect.poll(() => captionMode(page)).toBe("showing");
+    await page.locator(".guide-lessons button").nth(0).click();
+    await expect(video).toHaveAttribute("preload", "none");
+    await chapters.nth(3).click();
+    await expect
+      .poll(() =>
+        video.evaluate((element) => (element as HTMLVideoElement).currentTime),
+      )
+      .toBeCloseTo(chapterStarts["first-steps"][language][3], 1);
+    expect(
+      await video.evaluate((element) => (element as HTMLVideoElement).paused),
+    ).toBe(true);
+    await expect.poll(() => captionMode(page)).toBe("showing");
+  });
+}
 
 test("missing captions retain an accessible transcript and usable video", async ({
   page,
 }) => {
   await page.route("**/guides/first-steps-en.vtt", (route) => route.abort());
   await login(page);
+  await page.locator("video").scrollIntoViewIfNeeded();
+  await page.locator("video").evaluate(async (element) => {
+    const video = element as HTMLVideoElement;
+    video.muted = true;
+    await video.play();
+  });
   await expect(
     page.getByText(
       "Captions are unavailable. The full transcript remains below.",
@@ -135,31 +220,44 @@ test("missing captions retain an accessible transcript and usable video", async 
     .toBeGreaterThan(0);
 });
 
-test("French guides remain readable in the light theme on a narrow screen", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.addInitScript(() => {
-    localStorage.setItem("ambicrafted-language", "fr");
-    localStorage.setItem("ambicrafted-theme", "light");
+for (const width of [390, 1440]) {
+  test(`French guides remain readable in the light theme at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.addInitScript(() => {
+      localStorage.setItem("ambicrafted-language", "fr");
+      localStorage.setItem("ambicrafted-theme", "light");
+    });
+    await login(page);
+    await expect(page.locator(".guide-lessons button")).toHaveCount(6);
+    await expect(
+      page.getByRole("button", { name: "Sous-titres", exact: true }),
+    ).toBeVisible();
+    await page.locator(".guide-transcript summary").click();
+    await expect(page.locator(".guide-transcript li")).toHaveCount(4);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    ).toBe(true);
+    await page
+      .locator(".guide-chapters button")
+      .first()
+      .scrollIntoViewIfNeeded();
+    const accessibility = await new AxeBuilder({ page })
+      .include(".guide-walkthrough")
+      .analyze();
+    expect(accessibility.violations).toEqual([]);
+    await page
+      .getByRole("button", { name: "Sous-titres", exact: true })
+      .click();
+    const withoutCaptions = await new AxeBuilder({ page })
+      .include(".guide-walkthrough")
+      .analyze();
+    expect(withoutCaptions.violations).toEqual([]);
   });
-  await login(page);
-  await expect(page.locator(".guide-lessons button")).toHaveCount(6);
-  await expect(
-    page.getByRole("button", { name: "Sous-titres", exact: true }),
-  ).toBeVisible();
-  await page.locator(".guide-transcript summary").click();
-  await expect(page.locator(".guide-transcript li")).toHaveCount(4);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth + 1,
-    ),
-  ).toBe(true);
-  const accessibility = await new AxeBuilder({ page })
-    .include(".guide-walkthrough")
-    .analyze();
-  expect(accessibility.violations).toEqual([]);
-});
+}
 
 test("the browser decodes audible narration through Web Audio", async ({
   page,

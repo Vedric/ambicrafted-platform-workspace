@@ -24,6 +24,7 @@ import {
   useAudioOutput,
 } from "../audio-devices";
 import narration from "../../scripts/guide-script.json";
+import chapterStarts from "../guide-chapters.json";
 import "../guide.css";
 
 const CAPTIONS_KEY = "ambicrafted-guide-captions";
@@ -186,6 +187,48 @@ const lessons = [
   icon: typeof Compass;
   steps: readonly (readonly [MessageKey, MessageKey, string])[];
 }[];
+
+const chapterTitles = {
+  "first-steps": [
+    "Enter the workspace",
+    "Read the readiness checks",
+    "Choose a mission",
+    "Inspect runbooks and CLI",
+  ],
+  voice: [
+    "Check microphone and sound",
+    "Record and review",
+    "Send and stop",
+    "Reopen conversation history",
+  ],
+  investigation: [
+    "Describe the incident",
+    "Review the proposal",
+    "Record a human decision",
+    "Inspect the analysis history",
+  ],
+  documents: [
+    "Request a diagram",
+    "Inspect and export",
+    "Write a report",
+    "Review a memory note",
+  ],
+  recovery: [
+    "Identify protected data",
+    "Review the backup confirmation",
+    "Review the restore drill",
+    "Prepare off-host recovery",
+  ],
+  observability: [
+    "Read collection freshness",
+    "Inspect service health",
+    "Open monitoring dashboards",
+    "Understand the architecture",
+  ],
+} as const satisfies Record<
+  (typeof lessons)[number]["id"],
+  readonly MessageKey[]
+>;
 
 export function UserGuide() {
   const { language } = useI18n();
@@ -437,6 +480,8 @@ function NarratedWalkthrough({
 }) {
   const player = useRef<HTMLVideoElement>(null);
   const captionTrack = useRef<HTMLTrackElement>(null);
+  const pendingSeek = useRef<number | null>(null);
+  const starts = chapterStarts[lesson.id][language === "fr" ? "fr" : "en"];
   const playerId = useId();
   const [captions, setCaptions] = useState(readCaptions);
   const [captionError, setCaptionError] = useState(false);
@@ -448,6 +493,21 @@ function NarratedWalkthrough({
   useAudioOutput(player, (cause) => setOutputError(cause.message));
   const src = `/guides/${lesson.id}-${language}.mp4`;
   useAudioFocus(playing ? "speech" : null);
+  const seekChapter = (start: number) => {
+    const video = player.current;
+    if (!video) return;
+    if (video.readyState >= 1) {
+      video.currentTime = start;
+      return;
+    }
+    // Loading on demand also supports a chapter choice before the first play.
+    const alreadyLoading = pendingSeek.current !== null;
+    pendingSeek.current = start;
+    if (!alreadyLoading) {
+      video.preload = "auto";
+      video.load();
+    }
+  };
   const synchronizeCaptions = () => {
     for (const track of player.current?.textTracks ?? []) {
       if (track.kind === "captions")
@@ -513,7 +573,7 @@ function NarratedWalkthrough({
         src={src}
         controls
         playsInline
-        preload="metadata"
+        preload="none"
         poster={`/guides/${lesson.id}-${language}.jpg`}
         aria-label={t(lesson.title)}
         onPlay={(event) => {
@@ -532,10 +592,17 @@ function NarratedWalkthrough({
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
         onError={() => {
+          pendingSeek.current = null;
           setFailed(true);
           setPlaying(false);
         }}
-        onLoadedMetadata={synchronizeCaptions}
+        onLoadedMetadata={() => {
+          synchronizeCaptions();
+          if (pendingSeek.current !== null && player.current) {
+            player.current.currentTime = pendingSeek.current;
+            pendingSeek.current = null;
+          }
+        }}
       >
         <track
           ref={captionTrack}
@@ -546,6 +613,23 @@ function NarratedWalkthrough({
           label={language === "fr" ? "Français" : "English"}
         />
       </video>
+      <nav className="guide-chapters" aria-label={t("Video chapters")}>
+        {starts.map((start, index) => (
+          <button
+            type="button"
+            className="btn"
+            key={index}
+            aria-controls={playerId}
+            onClick={() => seekChapter(start)}
+          >
+            <span className="mono">
+              {Math.floor(start / 60)}:
+              {String(Math.floor(start % 60)).padStart(2, "0")}
+            </span>
+            <span>{t(chapterTitles[lesson.id][index])}</span>
+          </button>
+        ))}
+      </nav>
       <div className="guide-media-controls">
         <button
           type="button"
@@ -579,7 +663,7 @@ function NarratedWalkthrough({
           {narration[lesson.id][language === "fr" ? "fr" : "en"].map(
             (paragraph, index) => (
               <li key={index}>
-                <h3>{t("Chapter {number}", { number: index + 1 })}</h3>
+                <h3>{t(chapterTitles[lesson.id][index])}</h3>
                 <p>{paragraph}</p>
               </li>
             ),

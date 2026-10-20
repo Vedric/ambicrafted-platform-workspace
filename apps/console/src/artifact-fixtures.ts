@@ -43,7 +43,7 @@ export const diagramFixture: Extract<Artifact, { type: "diagram" }> = {
         id: "sources",
         label: "Read-only investigation",
         description: "Consult the selected runbooks and compare evidence",
-        kind: "data",
+        kind: "service",
         group_id: "local",
         basis: "provided",
         source_ids: ["request"],
@@ -73,7 +73,7 @@ export const diagramFixture: Extract<Artifact, { type: "diagram" }> = {
         source: "extract",
         target: "sources",
         label: "Selected context",
-        kind: "dependency",
+        kind: "flow",
         basis: "provided",
         source_ids: ["request"],
       },
@@ -109,7 +109,7 @@ export const reportFixture: Extract<Artifact, { type: "report" }> = {
     sections: [
       {
         id: "scope",
-        heading: "Observed scope",
+        heading: "Supplied scope",
         paragraphs: [
           "The described service contains an API and a PostgreSQL database.",
         ],

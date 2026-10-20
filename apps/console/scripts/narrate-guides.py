@@ -138,7 +138,13 @@ def mux(evidence):
         try:
             with (
                 av.open(str(evidence / f"{key}.webm")) as src,
-                av.open(str(path), "w", options={"movflags": "+faststart"}) as dst,
+                av.open(
+                    str(path),
+                    "w",
+                    # Encoding completes video before audio. Keep its packets
+                    # queued until both streams can be interleaved by timestamp.
+                    options={"movflags": "+faststart", "max_interleave_delta": "0"},
+                ) as dst,
             ):
                 original = src.streams.video[0]
                 if (original.width, original.height) != (1920, 1080):
@@ -228,6 +234,25 @@ def mux(evidence):
         finally:
             path.unlink(missing_ok=True)
         print(key + ": H.264/AAC verified", flush=True)
+    # Bundle only the chapter offsets, not the provenance or audio metadata.
+    chapters = {}
+    for record in records:
+        chapters.setdefault(record["lesson"], {})[record["language"]] = [
+            round(cue["start"], 3) for cue in record["cues"]
+        ]
+    (ROOT / "apps/console/src/guide-chapters.json").write_text(
+        "{\n"
+        + ",\n".join(
+            f"  {json.dumps(lesson)}: {{\n"
+            + ",\n".join(
+                f"    {json.dumps(language)}: {json.dumps(starts)}"
+                for language, starts in languages.items()
+            )
+            + "\n  }"
+            for lesson, languages in chapters.items()
+        )
+        + "\n}\n"
+    )
     (OUT / "provenance.json").write_text(
         json.dumps(
             {
@@ -237,6 +262,7 @@ def mux(evidence):
                 "script_sha256": hashlib.sha256(script_path.read_bytes()).hexdigest(),
                 "captions": "Optional WebVTT with proportional phrase timing; no burned-in captions.",
                 "capture_notice": "Native recording frame rate is preserved in each clip record; the MP4 is resampled to 30 fps.",
+                "interleaving": "Audio and video packets ordered by decoding timestamp; faststart index precedes media.",
                 "clips": records,
             },
             ensure_ascii=False,

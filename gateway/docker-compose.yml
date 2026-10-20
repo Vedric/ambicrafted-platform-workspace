@@ -5,10 +5,12 @@ name: gateway
 
 services:
   litellm:
-    # Stable upstream image plus a hash-locked aiohttp/yarl security patch.
-    image: ambicrafted/litellm:1.104.4-stable-security.20261020
+    # Stable upstream plus pinned aiohttp/yarl/certifi and exact CA distrust.
+    image: ambicrafted/litellm:1.104.4-stable-security.20261021-r2
     build:
       context: ./images/litellm
+      additional_contexts:
+        trust-policy: ./images/trust-policy
     container_name: litellm
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
@@ -28,10 +30,12 @@ services:
       postgres: { condition: service_healthy }
 
   postgres:
-    # Local security derivative; only the pinned gosu helper is rebuilt.
-    image: ambicrafted/postgres:16.15-alpine-security.20261020
+    # Local derivative: pinned gosu rebuild and exact CA distrust.
+    image: ambicrafted/postgres:16.15-alpine-security.20261021
     build:
       context: ./images/postgres
+      additional_contexts:
+        trust-policy: ./images/trust-policy
     container_name: litellm-db
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
@@ -49,9 +53,11 @@ services:
 
   tempo:
     # Rebuilt from the pinned source with the corrected Go toolchain.
-    image: ambicrafted/tempo:3.0.3-security.20261020-r3
+    image: ambicrafted/tempo:3.0.3-security.20261021
     build:
       context: ./images/tempo
+      additional_contexts:
+        trust-policy: ./images/trust-policy
     container_name: tempo
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
@@ -68,9 +74,11 @@ services:
       - tempodata:/var/tempo
 
   prometheus:
-    image: ambicrafted/prometheus:3.15.0-security.20261020
+    image: ambicrafted/prometheus:3.15.0-security.20261021
     build:
       context: ./images/prometheus
+      additional_contexts:
+        trust-policy: ./images/trust-policy
     container_name: prometheus
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
@@ -92,9 +100,11 @@ services:
       retries: 3
 
   grafana:
-    image: ambicrafted/grafana:13.2.4-security.20261020-r4
+    image: ambicrafted/grafana:13.2.4-security.20261021
     build:
       context: ./images/grafana
+      additional_contexts:
+        trust-policy: ./images/trust-policy
     container_name: grafana
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
@@ -119,9 +129,11 @@ services:
 
   platform-metrics:
     profiles: [observability]
-    image: ambicrafted/platform-metrics:1.12.1-security.20261020
+    image: ambicrafted/platform-metrics:1.12.1-security.20261021
     build:
       context: ./images/platform-metrics
+      additional_contexts:
+        trust-policy: ./images/trust-policy
     restart: unless-stopped
     user: "65534:65534"
     read_only: true
@@ -143,9 +155,11 @@ services:
 
   qdrant:
     # Local security derivative; immutable base and exact package in Dockerfile.
-    image: ambicrafted/qdrant:1.19.2-security.20261020-r4
+    image: ambicrafted/qdrant:1.19.2-security.20261021
     build:
       context: ./images/qdrant
+      additional_contexts:
+        trust-policy: ./images/trust-policy
     container_name: qdrant
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]

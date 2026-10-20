@@ -1,6 +1,17 @@
 # PostgreSQL with a rebuilt gosu helper
 
-## Current candidate — 2026-10-20
+## Targeted trust correction — 2026-10-21
+
+The current dated image additionally distrusts the exact compromised emSign ECC
+G3 root in its actual operating-system trust stores. See the shared
+[trust policy](../trust-policy/README.md) for the fingerprint, native Java handling,
+unchanged package inventory, qualification evidence and limits. This is a local
+trust-policy change, not a claim that the vendor CA package was upgraded.
+The named build context below contains only public policy code and certificates;
+it is required when building manually. Compose and the image scanner supply it
+explicitly. Existing application binaries and features are unchanged by this step.
+
+## Application rebuild — 2026-10-20
 
 The current Dockerfile preserves the same PostgreSQL 16.15 base and gosu 1.19
 source described below, but builds gosu with **Go 1.27.3**. Its Linux/amd64 archive
@@ -10,8 +21,8 @@ Upstream gosu dependencies and symbols remain preserved. The build runs upstream
 tests, compares two builds and verifies a real user switch.
 
 ```sh
-docker buildx build --load --platform linux/amd64 \
-  --tag ambicrafted/postgres:16.15-alpine-security.20261020 \
+docker buildx build --load --build-context trust-policy=gateway/images/trust-policy --platform linux/amd64 \
+  --tag ambicrafted/postgres:16.15-alpine-security.20261021 \
   gateway/images/postgres
 ```
 

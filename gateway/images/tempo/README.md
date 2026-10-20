@@ -1,5 +1,16 @@
 # Tempo security derivative
 
+## Targeted trust correction — 2026-10-21
+
+The current dated image additionally distrusts the exact compromised emSign ECC
+G3 root in its actual operating-system trust stores. See the shared
+[trust policy](../trust-policy/README.md) for the fingerprint, native Java handling,
+unchanged package inventory, qualification evidence and limits. This is a local
+trust-policy change, not a claim that the vendor CA package was upgraded.
+The named build context below contains only public policy code and certificates;
+it is required when building manually. Compose and the image scanner supply it
+explicitly. Existing application binaries and features are unchanged by this step.
+
 The image starts from the immutable upstream 3.0.3 runtime and rebuilds its executable
 from the pinned source archive. `go.mod` and `go.sum` record the full resolved
 dependency graph. The pinned Go toolchain, Thrift, gRPC and OpenTelemetry updates
@@ -44,10 +55,10 @@ the [27 September report](../../../docs/SECURITY-REFINEMENT-2026-09-27.md)
 remains historical.
 
 ```sh
-docker buildx build --load --tag ambicrafted/tempo:3.0.3-security.20261020-r3 gateway/images/tempo
+docker buildx build --load --build-context trust-policy=gateway/images/trust-policy --tag ambicrafted/tempo:3.0.3-security.20261021 gateway/images/tempo
 uv run --project apps/control-api --no-sync python gateway/images/tempo/qualifier.py \
   --old-image ambicrafted/tempo:3.0.3-security.20261020 \
-  --new-image ambicrafted/tempo:3.0.3-security.20261020-r3 \
+  --new-image ambicrafted/tempo:3.0.3-security.20261021 \
   --output /absolute/path/to/new-tempo-evidence
 ```
 

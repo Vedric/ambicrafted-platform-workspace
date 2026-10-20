@@ -36,6 +36,7 @@ class Target:
     service: str
     image: str
     context: Path | None = None
+    trust_context: Path | None = None
 
 
 @dataclass
@@ -69,6 +70,7 @@ def read_targets(compose: Path, *, memory: bool = False) -> list[Target]:
     current: str | None = None
     in_services = False
     in_build = False
+    in_additional = False
     sections = 0
     for raw in compose.read_text(encoding="utf-8").splitlines():
         if not raw.strip() or raw.lstrip().startswith("#"):
@@ -92,11 +94,13 @@ def read_targets(compose: Path, *, memory: bool = False) -> list[Target]:
             current = match[1]
             entries[current] = {}
             in_build = False
+            in_additional = False
             continue
         if current is None or indent < 4:
             raise ValueError("Structure des services Compose non prise en charge.")
         if indent == 4:
             in_build = False
+            in_additional = False
             match = re.fullmatch(r"    ([a-z_]+|<<):(?:\s*(.*))?", raw)
             if not match:
                 raise ValueError("Champ Compose non pris en charge.")
@@ -115,11 +119,23 @@ def read_targets(compose: Path, *, memory: bool = False) -> list[Target]:
                     in_build = True
         elif in_build:
             match = re.fullmatch(r"      context:\s*(.+)", raw)
-            if not match or "context" in entries[current]:
+            if match and "context" not in entries[current] and not in_additional:
+                entries[current]["context"] = scalar(match[1])
+            elif (
+                raw == "      additional_contexts:"
+                and "additional" not in entries[current]
+            ):
+                entries[current]["additional"] = "declared"
+                in_additional = True
+            elif in_additional and "trust-policy" not in entries[current]:
+                match = re.fullmatch(r"        trust-policy:\s*(.+)", raw)
+                if not match:
+                    raise ValueError("Seul le contexte local trust-policy est accepté.")
+                entries[current]["trust-policy"] = scalar(match[1])
+            else:
                 raise ValueError(
-                    "Seul un contexte de construction local explicite est accepté."
+                    "Seuls context et additional_contexts/trust-policy sont acceptés."
                 )
-            entries[current]["context"] = scalar(match[1])
     if sections != 1 or set(entries) != set(expected):
         raise ValueError(
             "Le fichier Compose doit déclarer exactement les services attendus."
@@ -137,6 +153,7 @@ def read_targets(compose: Path, *, memory: bool = False) -> list[Target]:
                 "Chaque service doit déclarer une image épinglée explicitement."
             )
         context = None
+        trust_context = None
         if "build" in entry:
             if service not in {*SERVICES, "neo4j"}:
                 raise ValueError("Construction dérivée non prévue pour ce service.")
@@ -155,9 +172,23 @@ def read_targets(compose: Path, *, memory: bool = False) -> list[Target]:
                 )
             if not (context / "Dockerfile").is_file():
                 raise ValueError("Dockerfile de l'image dérivée absent.")
+            if "additional" in entry:
+                if entry.get("trust-policy") != "./images/trust-policy":
+                    raise ValueError(
+                        "Le contexte trust-policy doit rester local et explicite."
+                    )
+                trust_context = compose.parent / "images" / "trust-policy"
+                expected = compose.parent.resolve() / "images" / "trust-policy"
+                if trust_context.resolve() != expected or not trust_context.is_dir():
+                    raise ValueError("Contexte trust-policy absent ou lien externe.")
+                if any(
+                    path.is_symlink() or not (path.is_file() or path.is_dir())
+                    for path in trust_context.rglob("*")
+                ):
+                    raise ValueError("Aucun lien ou fichier spécial dans trust-policy.")
         elif "@sha256:" not in image:
             raise ValueError("Une image distante doit être épinglée par digest SHA256.")
-        targets.append(Target(service, image, context))
+        targets.append(Target(service, image, context, trust_context))
     return targets
 
 
@@ -280,6 +311,11 @@ def scan(target: Target, trivy: str, output: Path, cache: Path) -> Result:
             "--pull",
             "--tag",
             target.image,
+            *(
+                ["--build-context", f"trust-policy={target.trust_context}"]
+                if target.trust_context
+                else []
+            ),
             str(target.context),
         ]
         if target.context

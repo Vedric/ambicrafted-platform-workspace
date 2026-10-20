@@ -1,5 +1,16 @@
 # Qdrant security derivatives
 
+## Targeted trust correction — 2026-10-21
+
+The current dated image additionally distrusts the exact compromised emSign ECC
+G3 root in its actual operating-system trust stores. See the shared
+[trust policy](../trust-policy/README.md) for the fingerprint, native Java handling,
+unchanged package inventory, qualification evidence and limits. This is a local
+trust-policy change, not a claim that the vendor CA package was upgraded.
+The named build context below contains only public policy code and certificates;
+it is required when building manually. Compose and the image scanner supply it
+explicitly. Existing application binaries and features are unchanged by this step.
+
 Two build targets preserve the Qdrant 1.19.2 executable at its pinned upstream
 image digest. Both rebuild Web UI 0.2.15 from its pinned source commit, a committed
 npm lockfile and an explicit, reviewable patch. Neither build promotes itself.
@@ -12,17 +23,19 @@ an older root-based deployment.
 
 ```sh
 # Qualified minimal runtime (the default).
-docker buildx build --load \
-  --tag ambicrafted/qdrant:1.19.2-security.20261020-r4 \
+docker buildx build --load --build-context trust-policy=gateway/images/trust-policy \
+  --tag ambicrafted/qdrant:1.19.2-security.20261021 \
   gateway/images/qdrant
 
-# Separate comparison image retaining the upstream shell entrypoint.
-docker buildx build --load --target apt-ui \
-  --tag ambicrafted/qdrant:1.19.2-security.20261020-r4-apt \
+# Historical comparison target: does NOT apply the final CA trust policy.
+# Do not use this target as a qualified deployment image.
+docker buildx build --load --build-context trust-policy=gateway/images/trust-policy --target apt-ui \
+  --tag ambicrafted/qdrant:1.19.2-security.20261021-apt \
   gateway/images/qdrant
 ```
 
-Use only this directory as the build context. `.dockerignore` explicitly permits
+Use this directory as the primary build context and the explicitly named public
+`trust-policy` context. `.dockerignore` explicitly permits
 the build recipe, npm manifests/lock, source patch and healthcheck source/tests.
 It excludes private configuration, backups and the rest of the repository.
 Upstream archives and image references are pinned by checksum/digest; npm checks
@@ -111,7 +124,7 @@ uv run --project apps/control-api --no-sync python \
   gateway/images/qdrant/qualifier.py \
   --old-image ambicrafted/qdrant:1.19.2-security.20261020 \
   --old-version 1.19.2 \
-  --new-image ambicrafted/qdrant:1.19.2-security.20261020-r4 \
+  --new-image ambicrafted/qdrant:1.19.2-security.20261021 \
   --browser \
   --output /absolute/path/to/new-qdrant-evidence
 ```

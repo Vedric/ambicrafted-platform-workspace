@@ -122,6 +122,46 @@ The [recovery procedure](RECOVERY.md) explains recipient custody, encrypted
 staging, copying to an independently protected destination and restoration.
 No off-host destination or private identity is provisioned automatically.
 
+## Host certificate trust and uv
+
+Use **uv 0.13.4 or a subsequently qualified version**. Earlier bundled roots
+trust the emSign ECC Root CA - G3 authority affected by compromised intermediate
+keys. Updating Python `certifi` or rebuilding the platform containers does not
+update uv's embedded trust store or the host operating system's certificates.
+See the [uv security advisory](https://github.com/astral-sh/uv/security/advisories/GHSA-hq85-5cpj-mr62)
+and [official release and artifact verification instructions](https://github.com/astral-sh/uv/releases/tag/0.13.4).
+
+On the reference Ubuntu host, update the system trust package with administrator
+access, then check the resulting trust store. Package versions alone are not
+proof that a particular root is absent:
+
+```sh
+sudo apt-get update
+sudo apt-get install --only-upgrade ca-certificates
+python3 - <<'PY'
+import hashlib
+import ssl
+
+blocked = "86a1ecba089c4a8d3bbe2734c612ba341d813e043cf9e8a862cd5c57a36bbe6b"
+roots = ssl.create_default_context().get_ca_certs(binary_form=True)
+present = any(hashlib.sha256(cert).hexdigest() == blocked for cert in roots)
+print("Affected emSign G3 root still trusted:", present)
+raise SystemExit(1 if present else 0)
+PY
+```
+
+If the package still contains this root, use the distribution's trust-management
+interface (`sudo dpkg-reconfigure ca-certificates`) to deselect
+`mozilla/emSign_ECC_Root_CA_-_G3.crt`, then repeat the check. Do not disable TLS
+verification or remove unrelated roots. Restart affected clients so they reload
+their trust stores. Applications with bundled roots, such as browsers or other
+language runtimes, need their own vendor update; this Python check does not
+inspect those stores.
+
+The platform's container correction is described in its trust-policy build
+documentation. A host that still trusts this root remains an outstanding host
+security action even if every platform image passes its scan.
+
 Official references: [bubblewrap](https://github.com/containers/bubblewrap),
 [Ubuntu package](https://packages.ubuntu.com/noble/bubblewrap),
 [age v1.3.1](https://github.com/FiloSottile/age/releases/tag/v1.3.1),
