@@ -214,7 +214,7 @@ installations should follow
 The first real local-model run used clean commit `1fb46446`, the actual LangGraph
 workflow and semantic retrieval over synthetic sources. **33 of 39 mechanical
 contracts passed**. Three cases failed extraction validation and three exhausted
-bounded tool/token budgets. Independent AI engineering review classified
+bounded tool/token budgets. AI engineering review by the implementer classified
 19 outputs as usable with reservations, 14 as requiring correction, and six as
 unassessable because no proposal completed. This is explicitly **not human
 acceptance**.
@@ -245,7 +245,7 @@ passed: 35/39 regression cases and 9/12 new holdouts.** Three cases exhausted
 their budgets and four completed but failed a contract. No remediation was
 executed.
 
-Independent AI review of the 39 regression outputs classified 27 as usable
+AI implementer review of the 39 regression outputs classified 27 as usable
 with reservations, ten as requiring semantic correction and two as having no
 completed proposal. The first independent review of the twelve holdouts found
 eight meeting its four quality thresholds, but only **six passing both the
@@ -255,6 +255,10 @@ comparison, an unjustified statistical assertion and incomplete ARM64
 qualification advice. Two confidence-contract failures have prudent prose but
 ambiguous confidence calibration; their thresholds were not relaxed after
 seeing the results.
+
+The holdout reviewer was independent of the SRE implementation but authored
+those fixtures; the implementer supplied a separate counter-review. This was
+not a blinded independent assessment or human acceptance study.
 
 These are single generations, not a statistical reliability estimate. Better
 regression results do not establish general expert competence. The run used
