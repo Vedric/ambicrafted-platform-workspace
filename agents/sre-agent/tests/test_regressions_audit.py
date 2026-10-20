@@ -219,7 +219,7 @@ def test_unknown_checkpoint_type_is_not_reconstructed():
     encoded = serializer.dumps_typed(Unknown("audit"))
     try:
         decoded = serializer.loads_typed(encoded)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return
     assert not isinstance(decoded, Unknown)
 

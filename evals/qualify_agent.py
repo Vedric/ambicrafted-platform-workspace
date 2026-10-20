@@ -361,6 +361,8 @@ def run(args: argparse.Namespace) -> int:
         cases = [case for case in cases if case["split"] == args.split]
     if args.limit:
         cases = cases[: args.limit]
+    if not cases:
+        raise ValueError("No cases selected; add genuinely uninspected cases before a holdout run")
     gateway = local_url(args.gateway)
     qdrant = (
         local_url(args.qdrant_url, qdrant=True)

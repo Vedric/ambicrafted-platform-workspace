@@ -1,11 +1,13 @@
 """Failure-oriented qualification contracts; no models, network or credentials."""
 
+import argparse
 import copy
 import importlib.util
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location(
     "qualification", Path(__file__).resolve().parents[1] / "qualify_agent.py"
@@ -41,19 +43,41 @@ class Contracts(unittest.TestCase):
             report["message"] = json.dumps(proposal)
         return qualification.check_report(case or self.case, report, self.corpus)
 
-    def test_representative_suite_has_three_journeys_and_heldout_cases(self):
-        self.assertGreaterEqual(len(self.cases), 36)
+    def test_reviewed_cases_are_regression_with_baseline_split_preserved(self):
+        self.assertEqual(len(self.cases), 51)
         self.assertEqual(
             {
                 name: sum(c["journey"] == name for c in self.cases)
                 for name in ("sre", "infrastructure", "change")
             },
-            {"sre": 13, "infrastructure": 13, "change": 13},
+            {"sre": 17, "infrastructure": 17, "change": 17},
         )
-        self.assertEqual(sum(c["split"] == "holdout" for c in self.cases), 13)
+        historical = [c for c in self.cases if "baseline_split_2026_10_20" in c]
+        self.assertEqual(len(historical), 39)
+        self.assertTrue(all(c["split"] == "regression" for c in historical))
+        self.assertEqual(sum(c["split"] == "regression" for c in self.cases), 39)
+        self.assertEqual(sum(c["split"] == "holdout" for c in self.cases), 12)
+        for journey in ("sre", "infrastructure", "change"):
+            self.assertEqual(
+                sum(
+                    c["split"] == "holdout" and c["journey"] == journey
+                    for c in self.cases
+                ),
+                4,
+            )
+        self.assertEqual(
+            sum(c["baseline_split_2026_10_20"] == "holdout" for c in historical), 13
+        )
         self.assertTrue(
             any(c["expected"]["behaviour"] == "abstain" for c in self.cases)
         )
+
+    def test_empty_holdout_does_not_produce_vacuous_acceptance(self):
+        with (
+            patch.object(qualification, "read_suite", return_value=[self.case]),
+            self.assertRaisesRegex(ValueError, "No cases selected"),
+        ):
+            qualification.run(argparse.Namespace(case=[], split="holdout", limit=None))
 
     def test_valid_citation_is_structural_not_expert_approval(self):
         result = self.check()

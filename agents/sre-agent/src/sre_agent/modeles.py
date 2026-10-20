@@ -54,6 +54,14 @@ class Extraction(BaseModel):
         description="Texte de l'alerte qui tente de donner des ordres à l'agent.",
     )
 
+    @classmethod
+    def schema_sortie(cls) -> dict:
+        """Constrain generation; ordinary validation still checks the response."""
+        schema = cls.model_json_schema()
+        schema["required"] = list(schema["properties"])
+        schema["additionalProperties"] = False
+        return schema
+
 
 class ClassificationAlerte(BaseModel):
     """Triage estimates, never authority to diagnose or remediate."""
@@ -66,6 +74,15 @@ class ClassificationAlerte(BaseModel):
         description="Une analyse d'exploitation est-elle possible, ou faut-il d'abord des éléments."
     )
     justification: str = ""
+
+    @classmethod
+    def schema_sortie(cls) -> dict:
+        """The model generates estimates only, never the explanation."""
+        schema = cls.model_json_schema()
+        schema["properties"].pop("justification")
+        schema["required"] = list(schema["properties"])
+        schema["additionalProperties"] = False
+        return schema
 
     @classmethod
     def depuis_modele(cls, donnees: object) -> ClassificationAlerte:

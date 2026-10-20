@@ -73,7 +73,9 @@ def test_free_prose_is_never_required_but_typed_estimates_are():
     base = {"connue": False, "urgence": 1, "actionnable": False}
     expected = ClassificationAlerte.depuis_modele(base)
     # Even malformed free text is discarded rather than processed or rendered.
-    assert ClassificationAlerte.depuis_modele({**base, "justification": {"execute": True}}) == expected
+    assert (
+        ClassificationAlerte.depuis_modele({**base, "justification": {"execute": True}}) == expected
+    )
     for invalid in ({}, {**base, "urgence": 6}, {**base, "connue": "unknown"}, []):
         with pytest.raises(ValidationError):
             ClassificationAlerte.depuis_modele(invalid)

@@ -81,7 +81,7 @@ def analyser(alerte: str) -> Rapport:
 
             with ClientRunbooks() as client:
                 brut, outils = _raisonner(
-                    rapport.extraction, rapport.classification, client, budget
+                    rapport.extraction, rapport.classification, client, budget, alerte=alerte
                 )
             rapport.outils_appeles = outils
 
@@ -137,6 +137,7 @@ def _extraire(alerte: str, budget: Budget) -> Extraction:
         budget=budget,
         tache="extraction",
         max_tokens=MAX_TOKENS_LOCAL,
+        schema_json=Extraction.schema_sortie(),
     )
     return Extraction.model_validate(extraire_json(reponse.contenu))
 
@@ -152,6 +153,7 @@ def _trier(extraction: Extraction, budget: Budget) -> ClassificationAlerte:
         budget=budget,
         tache="classification",
         max_tokens=MAX_TOKENS_TRI,
+        schema_json=ClassificationAlerte.schema_sortie(),
     )
     return ClassificationAlerte.depuis_modele(extraire_json(reponse.contenu))
 
@@ -164,6 +166,8 @@ def _raisonner(
     classification: ClassificationAlerte,
     client: ClientRunbooks,
     budget: Budget,
+    *,
+    alerte: str | None = None,
 ) -> tuple[Diagnostic, list[str]]:
     """Call / tool / result loop, under a double budget.
 
@@ -180,7 +184,7 @@ def _raisonner(
     for tour in range(config.MAX_TOURS):
         reponse = appeler_llm(
             alias=config.ALIAS_RAISONNEMENT,
-            messages=messages,
+            messages=prompts.avec_observations_originales(messages, alerte),
             classification=Classification.CONFIDENTIEL,
             budget=budget,
             tache="raisonnement",

@@ -96,6 +96,7 @@ def appeler_llm(
     max_tokens: int = 2048,
     temperature: float = 0.0,
     format_json: bool = False,
+    schema_json: dict[str, Any] | None = None,
 ) -> ReponseLLM:
     """Call a model by its alias, under the compartmentalisation guard.
 
@@ -121,6 +122,8 @@ def appeler_llm(
     budget.verifier_avant_llm()
     if type(max_tokens) is not int or not 1 <= max_tokens <= config.MAX_TOKENS_REPONSE:
         raise ErreurPasserelle("Plafond de réponse invalide.")
+    if schema_json is not None and (format_json or outils):
+        raise ErreurPasserelle("Schéma de sortie incompatible avec outils ou mode JSON simple.")
     from .progression import signaler
 
     signaler("modele")
@@ -140,7 +143,16 @@ def appeler_llm(
     if outils:
         corps["tools"] = outils
         corps["tool_choice"] = "auto"
-    if format_json:
+    if schema_json is not None:
+        corps["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "sortie_structuree",
+                "strict": True,
+                "schema": schema_json,
+            },
+        }
+    elif format_json:
         corps["response_format"] = {"type": "json_object"}
 
     with tracage.tracer().start_as_current_span(
