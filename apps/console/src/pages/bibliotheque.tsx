@@ -199,7 +199,7 @@ export function Editeur() {
             <input
               id="nom-runbook"
               placeholder="my-procedure.md"
-              pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*\.md"
+              pattern="[a-zA-Z0-9][a-zA-Z0-9_\-]*\.md"
               value={nomFichier}
               onChange={(e) => setNom(e.target.value)}
             />

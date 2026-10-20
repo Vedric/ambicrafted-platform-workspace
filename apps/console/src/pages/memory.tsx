@@ -156,7 +156,7 @@ export default function Memory() {
           <input
             value={scope}
             maxLength={64}
-            pattern="[a-z0-9][a-z0-9_-]{0,63}"
+            pattern="[a-z0-9][a-z0-9_\-]{0,63}"
             onChange={(event) => {
               setScope(event.target.value);
               setSelected(null);

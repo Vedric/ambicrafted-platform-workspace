@@ -139,6 +139,73 @@ test("critical: password entry, cookie boundary, locale, theme and logout", asyn
   expect((await page.request.get("/api/analyses")).status()).toBe(401);
 });
 
+test("critical: native scope and runbook filename constraints reject invalid input", async ({
+  page,
+}) => {
+  // Exercise the browser's pattern validation, not a copy of the expression.
+  // HTML patterns use Unicode v mode, where a literal hyphen must be escaped.
+  await login(page, "/memoire");
+  const scope = page.getByLabel("Memory scope", { exact: true });
+  for (const value of ["a", "team-platform_2", "0" + "a".repeat(63)]) {
+    await scope.fill(value);
+    expect(
+      await scope.evaluate((element: HTMLInputElement) =>
+        element.checkValidity(),
+      ),
+      `Accept valid memory scope: ${value}`,
+    ).toBe(true);
+  }
+  for (const value of [
+    "Team",
+    "-team",
+    "_team",
+    "team/client",
+    "team space",
+    "équipe",
+  ]) {
+    await scope.fill(value);
+    expect(
+      await scope.evaluate(
+        (element: HTMLInputElement) => element.validity.patternMismatch,
+      ),
+      `Reject invalid memory scope: ${value}`,
+    ).toBe(true);
+  }
+
+  const menu = page.getByRole("button", { name: "Open navigation" });
+  if (await menu.isVisible()) await menu.click();
+  await page
+    .getByRole("link", { name: "Runbooks", exact: true })
+    .filter({ visible: true })
+    .click();
+  await page.getByRole("link", { name: "New runbook", exact: true }).click();
+  const filename = page.getByLabel("File name", { exact: true });
+  for (const value of ["a.md", "Team-platform_2.md"]) {
+    await filename.fill(value);
+    expect(
+      await filename.evaluate((element: HTMLInputElement) =>
+        element.checkValidity(),
+      ),
+      `Accept valid runbook filename: ${value}`,
+    ).toBe(true);
+  }
+  for (const value of [
+    "../runbook.md",
+    "dir/runbook.md",
+    "runbook.txt",
+    "runbook.MD",
+    "-runbook.md",
+  ]) {
+    await filename.fill(value);
+    expect(
+      await filename.evaluate(
+        (element: HTMLInputElement) => element.validity.patternMismatch,
+      ),
+      `Reject invalid runbook filename: ${value}`,
+    ).toBe(true);
+  }
+});
+
 test("critical: human approval, portable export, refusal and cancellation", async ({
   page,
 }, info) => {
