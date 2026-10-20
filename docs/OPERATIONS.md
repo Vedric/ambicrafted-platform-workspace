@@ -257,6 +257,12 @@ and record immutable digests after starting those images in an isolated stack.
 Before applying to the working stack, create a backup and run the restore drill.
 Test gateway schema migrations against a restored copy in an internal Docker
 network. Preserve the previous Compose/config files alongside the backup.
+For a reversible local promotion, stop writers and copy the offline volumes to
+new names, retaining the originals. The [recovery volume selectors](RECOVERY.md#select-preserved-or-recovered-volumes)
+keep the normal CLI and Compose commands usable after selection; unset variables
+retain existing names. Validate that selected volumes already contain the
+intended state before starting services. A successful `config --quiet` checks
+configuration syntax, not the presence or integrity of data.
 
 ```sh
 cd gateway

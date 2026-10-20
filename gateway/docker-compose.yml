@@ -168,10 +168,15 @@ services:
 
 volumes:
   pgdata:
+    name: ${PLATFORM_PGDATA_VOLUME:-${COMPOSE_PROJECT_NAME}_pgdata}
   tempodata:
+    name: ${PLATFORM_TEMPODATA_VOLUME:-${COMPOSE_PROJECT_NAME}_tempodata}
   promdata:
+    name: ${PLATFORM_PROMDATA_VOLUME:-${COMPOSE_PROJECT_NAME}_promdata}
   grafanadata:
+    name: ${PLATFORM_GRAFANADATA_VOLUME:-${COMPOSE_PROJECT_NAME}_grafanadata}
   qdrantdata:
+    name: ${PLATFORM_QDRANTDATA_VOLUME:-${COMPOSE_PROJECT_NAME}_qdrantdata}
 
 networks:
   default:

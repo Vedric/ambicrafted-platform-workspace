@@ -30,4 +30,6 @@ services:
       start_period: 60s
 volumes:
   memory-data:
+    name: ${PLATFORM_MEMORY_DATA_VOLUME:-${COMPOSE_PROJECT_NAME}_memory-data}
   memory-logs:
+    name: ${PLATFORM_MEMORY_LOGS_VOLUME:-${COMPOSE_PROJECT_NAME}_memory-logs}

@@ -229,6 +229,49 @@ when a dependency or schema migration changed stored data. Changes made after
 the backup may be lost; reconcile them explicitly. No cross-version migration or
 RTO is certified solely by this procedure.
 
+### Select preserved or recovered volumes
+
+Both Compose definitions support explicit volume names for a controlled
+promotion. With these variables unset or empty, names retain the Compose project
+prefix, including a custom `COMPOSE_PROJECT_NAME` or `--project-name`.
+
+| Private environment file | Variable | Default suffix |
+|---|---|---|
+| `gateway/.env` | `PLATFORM_PGDATA_VOLUME` | `_pgdata` |
+| `gateway/.env` | `PLATFORM_TEMPODATA_VOLUME` | `_tempodata` |
+| `gateway/.env` | `PLATFORM_PROMDATA_VOLUME` | `_promdata` |
+| `gateway/.env` | `PLATFORM_GRAFANADATA_VOLUME` | `_grafanadata` |
+| `gateway/.env` | `PLATFORM_QDRANTDATA_VOLUME` | `_qdrantdata` |
+| root `.env` | `PLATFORM_MEMORY_DATA_VOLUME` | `_memory-data` |
+| root `.env` | `PLATFORM_MEMORY_LOGS_VOLUME` | `_memory-logs` |
+
+The memory installer explicitly loads the root `.env`; keeping its two variables
+there ensures `./plateforme memoire installer` uses the same selected volumes.
+Core services load `gateway/.env`. A custom name is used exactly as specified,
+without an additional project prefix.
+
+Changing these settings **does not copy or restore data**. Compose normally
+creates a missing volume, so verify that every selected target exists and contains
+the reviewed restored data before `up`. First stop the console, its child agents,
+the backup/retention/metrics timers and any direct CLI/indexer/MCP writers. Create
+and validate a fresh logical backup while storage endpoints remain available.
+Then stop all affected containers and copy their offline volumes into new names,
+preserving ownership. The new Qdrant runtime requires UID/GID 65532 on its copied
+storage; do not change ownership of the retained old volume.
+
+Retain the original volume names, exact image IDs, code revision, private
+configuration, systemd units and stopped console/checkpoint directories.
+On rollback, stop candidate writers, preserve their state for reconciliation,
+restore the previous code/configuration, and reconnect the untouched old volumes
+and state. Never start an old binary against a volume migrated by the candidate.
+Preserve Prometheus/Tempo volumes as well: their history is outside the logical
+backup inventory. Do not run `down -v` or global Docker pruning.
+
+This is a recovery selection mechanism, not automatic failover or a deployment
+transaction. Sources: Docker's [volume names](https://docs.docker.com/reference/compose-file/volumes/),
+[project-name interpolation](https://docs.docker.com/reference/compose-file/version-and-name/)
+and [nested defaults](https://docs.docker.com/reference/compose-file/interpolation/).
+
 Common failed checks: private permissions/ownership, wrong age version or key,
 changed source during backup, source/index mismatch, full staging storage,
 incomplete manifest or an unavailable Docker image. Do not disable verification
