@@ -18,6 +18,8 @@ def test_etat_prive_et_sqlite_permissions(parametres, depot):
 def test_rejet_dossier_etat_partage_ou_symbolique(tmp_path):
     partage = tmp_path / "partage"
     partage.mkdir(mode=0o755)
+    # Model a shared directory even when the test runner uses a private umask.
+    partage.chmod(0o755)
     with pytest.raises(ValueError):
         dossier_prive(partage)
     lien = tmp_path / "lien"

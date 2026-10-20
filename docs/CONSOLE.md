@@ -446,10 +446,13 @@ to Docker operations grants substantial authority on the host and belongs only
 to the trusted local operator. The current deployment deliberately has no
 public ingress, multi-user authorization or unattended remediation.
 
-The [26 September 2026 security assessment](SECURITY-RELEASE-2026-09-26.md)
-retains 166 HIGH package occurrences in the promoted images. Its conditional GO
-covers existing supervised private-workstation use only. Unqualified production
-security approval and remote/mutually untrusted use remain NO-GO at that snapshot.
+The [20 October candidate qualification](QUALIFICATION-2026-10-20.md) records
+56 HIGH occurrences in signed Grafana plugins and one in Qdrant's frontend
+dependency inventory. The release security gate remains failed; these candidate
+results do not assert that the running workstation was upgraded. The
+[26 September assessment](SECURITY-RELEASE-2026-09-26.md), including its
+166 HIGH count and conditional private-workstation decision, is historical.
+Remote or mutually untrusted use remains outside the supported scope.
 
 
 ### Background sound and natural speech

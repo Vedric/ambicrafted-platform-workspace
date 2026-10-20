@@ -9,10 +9,11 @@ The [29 September assessment](SECURITY-2026-09-29.md),
 [27 September review](SECURITY-REFINEMENT-2026-09-27.md) and figures below are
 historical snapshots, not the current image inventory.
 
-Six production image versions were pinned in the initial review. PostgreSQL and Qdrant are narrow
-local derivatives with immutable upstream bases and exact corrective versions;
-other services use upstream registry digests. Their dedicated build contexts
-exclude environment files and data. See [ADR 0012](adr/0012-images-correctives-verifiees.md).
+The initial six-image review used two narrow derivatives, PostgreSQL and Qdrant.
+The current candidate has eight declared derivatives with pinned upstream
+inputs and explicit corrective changes. Their image-specific READMEs and
+ADRs 0035–0037 describe the current builds; [ADR 0012](adr/0012-images-correctives-verifiees.md)
+records the initial decision.
 
 ## Historical image inventory — 2026-09-26
 
@@ -42,8 +43,10 @@ unfixed distribution advisories and further available package corrections.
 The full [release security assessment](SECURITY-RELEASE-2026-09-26.md) records
 primary advisories, exact artifacts, applicability limits, remediation priorities
 and scan provenance. All findings remain visible; no scanner suppression or
-blanket risk waiver was added. Review again after every image change and no
-later than **2026-10-10**.
+blanket risk waiver was added. That historical review requested reassessment by
+2026-10-10; the current reassessment is recorded in
+[the 20 October qualification](QUALIFICATION-2026-10-20.md). Repeat scans after
+each image change and before release.
 
 Loopback bindings, authenticated console, private files and
 `no-new-privileges:true` reduce exposure. They do not fix vulnerable image
@@ -72,7 +75,11 @@ releases reuse both workflows and create a draft only when both pass. Complete
 image reports include identity and bounded, redacted preparation failure
 diagnostics. No existing report is reused after a failed scan.
 
-## Evaluation dependency correction — 2026-09-29
+## Historical evaluation dependency correction — 2026-09-29
+
+This section describes the former Promptfoo tree. Those dependencies and their
+regression tests were removed with Promptfoo on 20 October; the present npm
+evaluation package contains only the pinned YAML fixture parser.
 
 During console release qualification, npm audit reported three vulnerable
 transitive packages in `evals` (one high, two moderate). Exact overrides and the
@@ -95,7 +102,7 @@ consumer applies SSRF policy correctly, or remediate the container findings abov
 Historical image reports and checksums are outside Git at
 `/home/vedric/platform/finalisation-2026-09-26/console/security/`.
 
-## Application update — 2026-09-27
+## Historical application update — 2026-09-27
 
 The console and control plane are version 0.3.0; the speech runtime is version
 0.2.0. The immersive bilingual interface adds no application dependency. Translation

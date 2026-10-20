@@ -150,6 +150,8 @@ def test_raw_alert_is_not_persisted(monkeypatch, tmp_path):
 def test_compiler_does_not_chmod_existing_parent_directory(tmp_path):
     parent = tmp_path / "shared"
     parent.mkdir(mode=0o755)
+    # Set the fixture's intended permissions independently of the caller's umask.
+    parent.chmod(0o755)
     graph = graphe.compiler(str(parent / "state.sqlite"))
     graph.checkpointer.conn.close()
     assert parent.stat().st_mode & 0o777 == 0o755

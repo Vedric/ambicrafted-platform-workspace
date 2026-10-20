@@ -40,6 +40,7 @@ def composants():
         ]
         from plateforme.conversations import Conversations
         from plateforme.depot import Depot
+
         from sre_agent.graphe import compiler
 
         return Conversations, Depot, compiler

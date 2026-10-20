@@ -14,9 +14,10 @@ docker compose --project-directory gateway ps
 ```
 
 `preparation` (also `doctor`) reads the same measured checklist as the UI's
-**Readiness** page. Its 19 checks cover local permissions/listeners, installed
-runtimes, six services, restricted alias inventory, knowledge, both voices and
-actual handshakes with the two MCP servers. It has no automatic repair, downloads
+**Readiness** page. Its 20 checks cover local permissions/listeners, installed
+runtimes, six services, restricted alias inventory, knowledge, both voices,
+actual handshakes with the two MCP servers and a synthetic document-sandbox
+extraction. It has no automatic repair, downloads
 or inference requests. Results are cached for 30 seconds and voice artifacts for
 up to 60 seconds. Required failures produce CLI exit code 2; voice and monitoring
 are optional. Review the evidence, not only the summary. See [TOOLS.md](TOOLS.md)
@@ -32,18 +33,21 @@ The dashboard and rules are versioned under `gateway/observability`. Rules
 create local alerts; no Slack, email or other notification destination is
 configured. Configure a destination only after deciding what metadata may leave.
 
-The [security assessment dated 26 September 2026](SECURITY-RELEASE-2026-09-26.md)
-records 166 remaining HIGH package occurrences in the promoted image set. Its
-conditional GO is limited to the existing supervised private workstation.
-Unqualified production security approval and remote/untrusted multi-user access
-remain NO-GO. Re-run scans and review reachability, ownership and remediation
-before changing that decision; a green readiness page does not supersede it.
+The [20 October candidate qualification](QUALIFICATION-2026-10-20.md) records
+57 remaining HIGH package/CVE occurrences: 56 in Grafana's signed plugins and one
+in Qdrant's complete frontend dependency inventory. These are candidate results,
+not proof that the running workstation was upgraded. The release security gate
+remains failed; a green readiness page does not supersede it.
+The [26 September assessment](SECURITY-RELEASE-2026-09-26.md), including its
+166 HIGH count and conditional private-workstation decision, remains historical.
 
-The manual/weekly [image security workflow](../.github/workflows/images-security.yml) scans all six pinned images,
-retains reports and fails for HIGH/CRITICAL findings. It is separate from the push
-functional workflow so residual image debt remains visible. [The scanner and
-dated assessment](SECURITY-RELEASE-2026-09-26.md) describe the baseline evidence;
-a completed functional CI run is not an image-security sign-off.
+The manual/weekly [image security workflow](../.github/workflows/images-security.yml)
+builds and scans eight images in independent jobs: the six core services, the
+monitoring exporter and dedicated Neo4j memory. It retains reports and fails for
+any HIGH/CRITICAL occurrence or incomplete scan. The [release workflow](../.github/workflows/release.yml)
+reuses both image and functional checks; a version tag can create a draft only
+after both pass. It does not publish automatically. A completed functional CI
+run alone is not an image-security sign-off.
 
 The provisioned data sources use `Plateforme Tempo` and `Plateforme Prometheus`
 with stable UIDs. Older sources named `Tempo` and `Prometheus` remain available
