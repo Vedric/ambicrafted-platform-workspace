@@ -70,9 +70,15 @@ archive, coherent SQLite backups of Grafana and the graph, and a snapshot of
 the active runbook index. They are confidential local data, not Git artifacts.
 A `manifest.json` must say `complet=true` before a backup is used.
 
-The platform backup does not copy the Markdown corpus or an operator's separate
-mission files, reports or exports. Preserve those through a private client backup
-process, without committing client material to this development repository.
+New backups also include the active Markdown runbook corpus, console missions,
+conversation messages and attachments, durable graph state and dedicated Neo4j
+memory when configured. Additional mission files, reports and exports require
+explicit private roots in `PLATFORM_BACKUP_INCLUDE_DIRS`; arbitrary filesystem
+content is not discovered automatically. Each data file has a checked size and
+SHA-256 inventory. Browser sessions and one-use tickets are excluded.
+See [RECOVERY.md](RECOVERY.md) for the exact inventory, isolated synthetic
+roundtrip, age export and restore/rollback instructions. An encrypted local
+export is not evidence of an independently protected off-host copy.
 Transient audio and downloadable voice-model weights are excluded; reinstall
 voice weights from the pinned manifest after recovering the private state.
 
@@ -106,10 +112,24 @@ live database or assume an image downgrade reverses a schema migration.
 ## Console recovery
 
 The local service is installed with `./plateforme installer-service --demarrer`.
+Install the [host prerequisites](HOST-TOOLS.md) and run `./plateforme prerequis`
+first. The real document-isolation probe is mandatory both during installation
+and inside the service at startup. Console and backup units use an explicit
+PATH including `~/.local/bin` for qualified private bubblewrap/age installations.
 Use `systemctl --user status ambicrafted-console.service` and
 `journalctl --user -u ambicrafted-console.service` for lifecycle diagnostics;
 HTTP access logging is disabled. The API binds only to `127.0.0.1:8787`.
 See [CONSOLE.md](CONSOLE.md) for the operator commands and private login flow.
+
+On the reference workstation, user lingering was enabled and verified as
+`Linger=yes` on 2026-10-20. This permits the user manager and timers to remain
+active after logout; it does not keep Windows or WSL running, wake a powered-off
+machine, or prove recovery after reboot. No Windows/WSL restart was simulated
+during this qualification. On another host, have its administrator review
+`loginctl enable-linger USER` and verify the user manager, services and timers.
+No external alert recipient is configured and no desktop delivery tool is
+available on the reference host. Selecting a destination and proving actual
+alert delivery remain operator actions; a visible dashboard is not delivery.
 
 The UI language preference is browser-local, defaults to English, and can be
 changed to French independently of AURA's conversation language. It is not part

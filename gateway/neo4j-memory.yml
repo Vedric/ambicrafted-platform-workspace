@@ -1,7 +1,7 @@
 name: ambicrafted-memory
 services:
   neo4j:
-    image: ambicrafted/neo4j:5.26.31-security.20260927
+    image: ambicrafted/neo4j:5.26.32-memory.20261020
     build:
       context: ./images/neo4j
     restart: unless-stopped

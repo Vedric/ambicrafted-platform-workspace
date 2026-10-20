@@ -60,7 +60,9 @@ with motion preferences, hidden tabs or keyboard focus. They do not gate access 
 ## Install and start
 
 Run from the checkout root, with the pinned Node/npm versions declared in
-`apps/console/package.json` and `uv` available:
+`apps/console/package.json` and `uv` available. First install the
+[Linux host prerequisites](HOST-TOOLS.md): bubblewrap, libseccomp2 and working
+unprivileged namespaces are mandatory for document extraction.
 
 ```sh
 uv sync --locked --all-extras --project agents/sre-agent
@@ -70,12 +72,17 @@ cd apps/console
 npm ci
 npm run build
 cd ../..
+./plateforme prerequis
 ./plateforme servir
 ```
 
 The wrapper also finds `~/.local/bin/uv` when it is not on `PATH`. It resolves
 the checkout from its own location, so it works from another current directory.
 Do not move an installed checkout without reinstalling the user service.
+The generated service explicitly searches `~/.local/bin` before standard system
+tool directories. `servir` and service installation fail before startup if the
+real synthetic extraction probe fails. The probe runs again inside the systemd
+service's isolation constraints; no parser fallback disables isolation.
 The gateway, local inference service and knowledge index must be configured as
 described in [operations](OPERATIONS.md). Starting the console does not silently
 start Docker services or send confidential workloads to a remote model.

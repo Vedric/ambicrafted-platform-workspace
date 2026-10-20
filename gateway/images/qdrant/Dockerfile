@@ -1,6 +1,6 @@
 # The default final target is the qualified shell-free runtime.
 # The apt-ui stage is retained only as an explicit comparison/rollback build.
-FROM qdrant/qdrant:v1.19.1@sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10 AS patched
+FROM qdrant/qdrant:v1.19.2@sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad AS patched
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends --only-upgrade \
@@ -52,7 +52,7 @@ RUN test "$(dpkg --print-architecture)" = amd64 \
 ADD --checksum=sha256:210b508429e913d9de5301f90508bc2cbf5b2281de5b45e607c04d58f0f3bd8f https://raw.githubusercontent.com/qdrant/qdrant/6ab21cac18ebb6f4ae29102c7f8f5cc11affd5de/LICENSE /runtime/usr/share/licenses/qdrant/LICENSE
 
 FROM node:24.21.0-bookworm@sha256:64af3819f9275802414d7cdc38c27e9d82bd564dec4d4da87d008255d36c63b4 AS health-builder
-ADD --checksum=sha256:63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445 https://go.dev/dl/go1.27.1.linux-amd64.tar.gz /tmp/go.tar.gz
+ADD --checksum=sha256:65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40 https://go.dev/dl/go1.27.3.linux-amd64.tar.gz /tmp/go.tar.gz
 RUN test "$(uname -m)" = x86_64 && tar -xzf /tmp/go.tar.gz -C /usr/local
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOTOOLCHAIN=local GOMAXPROCS=2
 WORKDIR /src
@@ -61,7 +61,7 @@ RUN --network=none /usr/local/go/bin/go test healthcheck.go healthcheck_test.go 
     && /usr/local/go/bin/go build -trimpath -buildvcs=false -o /healthcheck healthcheck.go \
     && /usr/local/go/bin/go version -m /healthcheck
 
-FROM gcr.io/distroless/cc-debian13:nonroot@sha256:54df941ed0d06a1bd95ef5e0ce391fd8d9f94b64782dc9a60062727849ee3f97 AS minimal
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:e792ab3d241a468a4fd7519ddbbebe66b49b5f365771716ea688ad40b6c6f1c2 AS minimal
 COPY --from=runtime-libraries /runtime/ /
 COPY --from=patched /qdrant/qdrant /qdrant/qdrant
 COPY --from=patched /qdrant/qdrant.spdx.json /qdrant/qdrant.spdx.json

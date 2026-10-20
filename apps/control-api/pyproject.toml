@@ -20,7 +20,7 @@ dependencies = [
 plateforme = "plateforme.cli:main"
 
 [build-system]
-requires = ["uv_build==0.12.18"]
+requires = ["uv_build==0.12.21"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
@@ -46,7 +46,7 @@ follow_imports = "silent"
 
 [dependency-groups]
 dev = [
-    "coverage==7.16.1",
+    "coverage==7.16.2",
     "mypy==2.3.1",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",

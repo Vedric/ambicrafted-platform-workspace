@@ -19,6 +19,7 @@ AUTH_TICKET = "fixture-ticket-must-never-reach-a-backup-file"
 @pytest.fixture
 def scripts(monkeypatch):
     racine = Path(__file__).resolve().parents[3] / "scripts"
+    monkeypatch.syspath_prepend(str(racine))
     resultats = {}
     for nom in ("memoire_sauvegarde", "sauvegarder", "tester_restauration"):
         spec = importlib.util.spec_from_file_location(nom, racine / (nom + ".py"))

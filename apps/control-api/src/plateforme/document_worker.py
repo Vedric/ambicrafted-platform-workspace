@@ -1,10 +1,13 @@
 """Private stdin/stdout parser. No macros, code, external links or shell execution.
 
-Linux/macOS impose CPU/address-space limits in addition to the parent's deadline.
-This is process isolation and resource limiting, not an OS security sandbox.
+Launched inside document_sandbox's mandatory Linux namespaces and read-only root.
+Hard resource limits and a kernel seccomp allowlist are installed before reading
+untrusted bytes. Missing kernel/library support fails closed.
 """
 
 import base64
+import ctypes
+import errno
 import io
 import json
 import re
@@ -15,6 +18,124 @@ from pathlib import PurePosixPath
 
 MAX_TEXT = 16_000
 MAX_XML = 8 * 1024 * 1024
+
+
+def limiter_appels_systeme():
+    """Permit only the single-process, local parsing operations we need.
+
+    libseccomp resolves syscall names for the native architecture. Its default
+    bad-architecture action also prevents an ABI-switch bypass. This filter is
+    inherited and cannot be relaxed, including by native parser code.
+    """
+    library = ctypes.CDLL("libseccomp.so.2", use_errno=True)
+    library.seccomp_init.argtypes = [ctypes.c_uint32]
+    library.seccomp_init.restype = ctypes.c_void_p
+    library.seccomp_syscall_resolve_name.argtypes = [ctypes.c_char_p]
+    library.seccomp_syscall_resolve_name.restype = ctypes.c_int
+    library.seccomp_rule_add.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_int,
+        ctypes.c_uint,
+    ]
+    library.seccomp_rule_add.restype = ctypes.c_int
+    library.seccomp_load.argtypes = [ctypes.c_void_p]
+    library.seccomp_load.restype = ctypes.c_int
+    library.seccomp_release.argtypes = [ctypes.c_void_p]
+    library.seccomp_release.restype = None
+    context = library.seccomp_init(0x00050000 | errno.EPERM)  # SCMP_ACT_ERRNO
+    if not context:
+        raise RuntimeError("Unable to create parser syscall policy")
+    try:
+        for name in (
+            "read",
+            "readv",
+            "pread64",
+            "write",
+            "writev",
+            "pwrite64",
+            "close",
+            "close_range",
+            "lseek",
+            "open",
+            "openat",
+            "stat",
+            "lstat",
+            "fstat",
+            "newfstatat",
+            "statx",
+            "statfs",
+            "fstatfs",
+            "access",
+            "faccessat",
+            "faccessat2",
+            "readlink",
+            "readlinkat",
+            "getdents",
+            "getdents64",
+            "getcwd",
+            "fcntl",
+            "ioctl",
+            "mmap",
+            "mmap2",
+            "mprotect",
+            "mremap",
+            "munmap",
+            "madvise",
+            "brk",
+            "futex",
+            "futex_time64",
+            "rt_sigaction",
+            "rt_sigprocmask",
+            "rt_sigreturn",
+            "sigaltstack",
+            "restart_syscall",
+            "getrandom",
+            "getpid",
+            "getppid",
+            "gettid",
+            "getuid",
+            "getgid",
+            "geteuid",
+            "getegid",
+            "getresuid",
+            "getresgid",
+            "getgroups",
+            "uname",
+            "sysinfo",
+            "getrlimit",
+            "ugetrlimit",
+            "prlimit64",
+            "getrusage",
+            "clock_gettime",
+            "clock_gettime64",
+            "gettimeofday",
+            "time",
+            "clock_nanosleep",
+            "clock_nanosleep_time64",
+            "nanosleep",
+            "sched_getaffinity",
+            "sched_yield",
+            "exit",
+            "exit_group",
+        ):
+            number = library.seccomp_syscall_resolve_name(name.encode("ascii"))
+            if number >= 0 and library.seccomp_rule_add(context, 0x7FFF0000, number, 0):
+                raise RuntimeError("Unable to configure parser syscall policy")
+        if library.seccomp_load(context):
+            raise RuntimeError("Unable to enforce parser syscall policy")
+    finally:
+        library.seccomp_release(context)
+
+
+def limiter_ressources():
+    import resource
+
+    resource.setrlimit(resource.RLIMIT_AS, (1024**3, 1024**3))
+    resource.setrlimit(resource.RLIMIT_CPU, (12, 12))
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
+    resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
 
 
 def xml(data: bytes):
@@ -188,26 +309,11 @@ def parse(data: bytes, extension: str) -> dict:
 
 def main():
     try:
-        import resource
-
-        resource.setrlimit(resource.RLIMIT_AS, (1024**3, 1024**3))
-        resource.setrlimit(resource.RLIMIT_CPU, (12, 12))
-        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-    except ImportError:
-        pass  # The parent still enforces its deadline on Windows.
-
-    def deny(event, args):
-        if event in {
-            "socket.connect",
-            "socket.bind",
-            "subprocess.Popen",
-            "os.system",
-            "os.exec",
-            "os.posix_spawn",
-        }:
-            raise PermissionError("Parser network and execution are disabled")
-
-    sys.addaudithook(deny)
+        limiter_ressources()
+        limiter_appels_systeme()
+    except Exception:  # noqa: BLE001 — no fallback when the boundary is unavailable.
+        raise SystemExit(78) from None
+    sys.path.insert(0, "/packages")
     data = sys.stdin.buffer.read(8 * 1024 * 1024 + 1)
     if not data or len(data) > 8 * 1024 * 1024:
         raise ValueError("File size limit")

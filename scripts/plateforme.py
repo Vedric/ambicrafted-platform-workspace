@@ -147,7 +147,7 @@ def installer_retention() -> dict:
     if base.parent.stat().st_mode & 0o022:
         raise ValueError("Le dossier de checkpoints est modifiable par un tiers.")
 
-    def citer(chemin: Path) -> str:
+    def citer(chemin: Path | str) -> str:
         texte = str(chemin)
         if "\n" in texte:
             raise ValueError("Chemin invalide.")
@@ -186,10 +186,15 @@ WantedBy=timers.target
         if not trouve:
             raise ValueError("uv est requis pour la sauvegarde planifiée.")
         uv = Path(trouve)
+    outils = str(Path.home() / ".local/bin")
+    if any(character in outils for character in "\n\r\x00:"):
+        raise ValueError("Chemin des outils hôte invalide.")
+    outils += ":/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     service_backup = f"""[Unit]
 Description=Sauvegarde locale de la plateforme
 [Service]
 Type=oneshot
+Environment={citer("PATH=" + outils)}
 ExecStart={citer(uv)} run --locked --offline {citer(RACINE / "scripts/sauvegarder.py")}
 UMask=0077
 StandardOutput=null

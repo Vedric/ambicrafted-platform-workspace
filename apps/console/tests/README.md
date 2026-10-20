@@ -6,7 +6,7 @@ Run from `apps/console`, after installing the locked API environment:
 npm ci
 npm run build
 npx tsc --project tests/tsconfig.json --pretty false
-npx playwright install chromium
+npx playwright install --with-deps chromium firefox webkit
 npm test
 npm run test:e2e
 ```
@@ -32,8 +32,9 @@ deterministic replacements defined only in `server.py`. An operational job here
 does not run Docker, create a real backup or invoke a model. Explicit route
 failures exercise client recovery. These tests therefore prove UI/API wiring and
 workflow behavior; they do not prove diagnostic correctness, speech quality,
-GPU performance, real backup recovery or behavior in Safari/Firefox. Those need
-separate workstation acceptance or additional browser projects.
+GPU performance or real backup recovery. Those need separate workstation
+acceptance. Firefox and WebKit run the additional critical journeys described
+below; WebKit on Linux is not an acceptance test on a physical Safari/iOS device.
 
 Vitest unit tests cover fetch/CSRF/error handling, diagnostic-shape validation,
 public authentication states and inert rendering of hostile Markdown. Browser
@@ -48,3 +49,24 @@ narrated H.264/AAC playback for every guide, and retry after a failed media load
 `apps/voice/tests/test_guides.py` additionally checks audio codecs, RMS, hashes
 and caption alignment. Browser microphones are synthetic test signals; physical
 hardware permission and listening acceptance remain an operator check.
+
+## Critical journeys across browser engines
+
+`e2e-critical-paths.spec.ts` runs in Chromium desktop/mobile and separate Firefox
+and WebKit projects. It covers password entry and logout, actual cookie/CSRF
+boundaries, English/French settings, light theme and responsive layout, explicit
+human approval, JSON download, rejection, cancellation, streamed dialogue, CSV
+upload, explicit source selection, persistent history and deletion. Every
+uncaught browser error fails the journey. Motion-preference and welcome/AURA
+animation checks also run on Firefox and WebKit; the full media/GPU suite is
+not claimed on every engine.
+
+```sh
+npx playwright test --project desktop-firefox-critical --project desktop-webkit-critical
+```
+
+A missing browser executable or system dependency is a failed setup, never a
+skipped success. Use the Playwright CLI from the repository lock, not an
+unpinned system install. CI installs all three engines. Physical microphone,
+speaker routing, autoplay policy and perceived voice quality remain a separate
+operator acceptance on the actual supported device.

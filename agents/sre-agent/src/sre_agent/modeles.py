@@ -56,16 +56,48 @@ class Extraction(BaseModel):
 
 
 class ClassificationAlerte(BaseModel):
-    """Output of the triage step, over already-extracted data."""
+    """Triage estimates, never authority to diagnose or remediate."""
 
     model_config = ConfigDict(extra="ignore")
 
     connue: bool = Field(description="Le symptôme relève-t-il d'un motif connu.")
     urgence: int = Field(ge=1, le=5)
     actionnable: bool = Field(
-        description="Existe-t-il une action d'exploitation possible, ou faut-il seulement observer."
+        description="Une analyse d'exploitation est-elle possible, ou faut-il d'abord des éléments."
     )
     justification: str = ""
+
+    @classmethod
+    def depuis_modele(cls, donnees: object) -> ClassificationAlerte:
+        """Discard unconstrained classifier prose before storage or reasoning.
+
+        Existing reports remain readable through ordinary model validation.
+        Only the three bounded triage estimates can enter a new analysis;
+        free text cannot smuggle an ungrounded procedure before source review.
+        The model's estimates themselves still require human verification.
+        """
+        if isinstance(donnees, dict):
+            donnees = {
+                champ: donnees[champ]
+                for champ in ("connue", "urgence", "actionnable")
+                if champ in donnees
+            }
+        tri = cls.model_validate(donnees)
+        motif = (
+            "Motif estimé familier, cause non établie."
+            if tri.connue
+            else "Motif non reconnu, cause non établie."
+        )
+        suite = (
+            "Analyse à poursuivre avec des sources vérifiées."
+            if tri.actionnable
+            else "Éléments complémentaires nécessaires avant de conclure."
+        )
+        tri.justification = (
+            f"Priorité estimée : {tri.urgence}/5, à vérifier selon l'impact observé. "
+            f"{motif} {suite} Aucune intervention autorisée par ce triage."
+        )
+        return tri
 
 
 class Diagnostic(BaseModel):

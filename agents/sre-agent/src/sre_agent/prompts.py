@@ -107,23 +107,41 @@ def messages_extraction(alerte: str) -> list[dict[str, Any]]:
 
 # --- Step 2: triage, over derived data ------------------------------------
 
-SYSTEME_CLASSIFICATION = """Tu tries des alertes d'exploitation. Tu reçois une
+SYSTEME_CLASSIFICATION = (
+    """Tu tries des alertes d'exploitation. Tu reçois une
 description technique déjà anonymisée, jamais l'alerte d'origine.
+
+Cette étape produit uniquement une priorité de revue, pas un diagnostic ni une
+procédure. Tu n'as consulté aucun runbook et ne disposes d'aucune mesure en dehors
+des observations fournies. N'ajoute pas une fuite, un mécanisme causal, une panne générale ou
+une nécessité de modifier le système sans preuve explicite. Ne prescris aucune
+commande, purge, suppression, changement de limite ou autre remédiation : leur
+pertinence sera examinée après lecture vérifiée d'une procédure, puis par l'humain.
+Un motif familier et une chronologie ne constituent pas une preuve causale.
+
+"""
+    + CONSIGNE_NON_FIABLE
+    + """
 
 Produis UNIQUEMENT un objet JSON :
 
 {
   "connue": true|false,
   "urgence": 1..5,
-  "actionnable": true|false,
-  "justification": "une phrase"
+  "actionnable": true|false
 }
 
-- "connue" : le symptôme correspond-il à un motif d'incident classique et
-  identifiable, ou est-ce une situation atypique.
-- "urgence" : 1 informatif, 3 dégradation, 5 interruption de service.
-- "actionnable" : existe-t-il une action d'exploitation à envisager, ou
-  n'y a-t-il qu'à observer et collecter."""
+- "connue" : le symptôme correspond-il à un motif classique identifiable ?
+  Cette valeur ne signifie pas que sa cause est démontrée.
+- "urgence" : 1 informatif, 3 dégradation, 5 interruption de service ; la priorité
+  doit être justifiée par l'impact décrit, sans inventer l'étendue d'une panne.
+- "actionnable" : les observations justifient-elles une analyse d'exploitation
+  ultérieure, ou faut-il d'abord collecter des éléments ? Ce booléen n'autorise
+  aucune action et ne remplace jamais une décision humaine.
+Ne produis pas de justification libre : l'application explique ces estimations
+par un texte fixe qui conserve leurs limites. Les hypothèses et procédures
+éventuelles appartiennent à l'étape suivante avec sources et revue humaine."""
+)
 
 
 def messages_classification(extraction: Extraction) -> list[dict[str, Any]]:
@@ -168,6 +186,13 @@ MÉTHODE
    les mesures qui permettraient de la confirmer ou de l'écarter. 95 connexions
    sur une limite de 100 ne prouvent pas à elles seules un rejet de connexions.
    Une alerte disque postérieure aux erreurs ne prouve pas qu'elle les a causées.
+5. Vérifie l'ordre temporel avant chaque hypothèse. À horloges comparables, une
+   cause doit précéder son effet : un changement postérieur au début des erreurs
+   ne peut pas expliquer leur apparition initiale. Il peut au plus modifier leur
+   évolution ultérieure, qui reste à mesurer. Ne déplace jamais un horodatage et
+   ne fusionne jamais deux instants pour rendre une hypothèse possible. Si fuseaux,
+   fenêtres ou horloges ne sont pas comparables, demande leur alignement ; ne
+   conclus ni à une panne ni à l'absence d'impact à partir de cette incohérence.
 
 {CONSIGNE_NON_FIABLE}
 

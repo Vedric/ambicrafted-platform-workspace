@@ -13,11 +13,20 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-SERVICES = ("litellm", "postgres", "tempo", "prometheus", "grafana", "qdrant", "platform-metrics")
+SERVICES = (
+    "litellm",
+    "postgres",
+    "tempo",
+    "prometheus",
+    "grafana",
+    "qdrant",
+    "platform-metrics",
+)
 SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN")
 IMAGE = re.compile(r"[a-z0-9][a-z0-9./_-]*:[A-Za-z0-9_.-]+(?:@sha256:[a-f0-9]{64})?")
 
@@ -37,6 +46,8 @@ class Result:
     report: str | None = None
     counts: dict[str, int] | None = None
     error: str | None = None
+    diagnostic: str | None = None
+    image_id: str | None = None
 
 
 def scalar(value: str) -> str:
@@ -127,7 +138,7 @@ def read_targets(compose: Path, *, memory: bool = False) -> list[Target]:
             )
         context = None
         if "build" in entry:
-            if service not in {"postgres", "qdrant", "tempo", "grafana", "neo4j", "platform-metrics"}:
+            if service not in {*SERVICES, "neo4j"}:
                 raise ValueError("Construction dérivée non prévue pour ce service.")
             if entry.get("context") != f"./images/{service}":
                 raise ValueError(
@@ -178,40 +189,110 @@ def vulnerability_counts(report: Path) -> dict[str, int]:
     return counts
 
 
-def command(argv: list[str], timeout: int) -> str | None:
-    """Return a bounded error label; never echo subprocess output or environment."""
+def sanitized_tail(raw: bytes) -> str:
+    """Keep useful public build errors while redacting credential-shaped values."""
+    value = raw[-16384:].decode("utf-8", errors="replace")
+    for key, secret in os.environ.items():
+        if len(secret) >= 8 and re.search(
+            r"SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH|COOKIE|(?:^|_)KEY",
+            key,
+            re.IGNORECASE,
+        ):
+            value = value.replace(secret, "[REDACTED]")
+    value = re.sub(r"(?i)((?:bearer|basic)\s+)[^\s\"']+", r"\1[REDACTED]", value)
+    value = re.sub(
+        r"(?im)^([^\r\n]*?\b(?:authorization|proxy-authorization|cookie|set-cookie)\s*:\s*)[^\r\n]+",
+        r"\1[REDACTED]",
+        value,
+    )
+    value = re.sub(r"(https?://)[^/\s:@]+:[^@\s/]+@", r"\1[REDACTED]@", value)
+    value = re.sub(
+        r"""(?ix)
+        (["']?(?:password|token|secret|api[_-]?key|authorization|cookie)["']?\s*[=:]\s*)
+        (?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s&;,"']+)
+        """,
+        r"\1[REDACTED]",
+        value,
+    )
+    return value
+
+
+def command(
+    argv: list[str], timeout: int, diagnostic: Path | None = None
+) -> str | None:
+    """No raw logs or inherited application credentials enter report artifacts.
+
+    Only reviewed public Dockerfile contexts are built. A private temporary file
+    avoids keeping their full compiler output in memory; only a bounded, redacted
+    failure tail is retained. Successful build logs are discarded.
+    """
     # Trivy environment overrides must not silently hide vulnerabilities.
-    environment = {k: v for k, v in os.environ.items() if not k.startswith("TRIVY_")}
-    try:
-        completed = subprocess.run(
-            argv,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=timeout,
-            check=False,
-            env=environment,
-        )
-    except subprocess.TimeoutExpired:
-        return "délai dépassé"
-    except OSError:
-        return "exécutable indisponible"
-    return f"code {completed.returncode}" if completed.returncode else None
+    permitted = {
+        "PATH",
+        "HOME",
+        "USER",
+        "LANG",
+        "LC_ALL",
+        "TMPDIR",
+        "XDG_RUNTIME_DIR",
+        "DOCKER_HOST",
+        "DOCKER_CONTEXT",
+        "DOCKER_CONFIG",
+        "DOCKER_TLS_VERIFY",
+        "DOCKER_CERT_PATH",
+        "SSL_CERT_FILE",
+        "SSL_CERT_DIR",
+    }
+    environment = {k: v for k, v in os.environ.items() if k in permitted}
+    with tempfile.TemporaryFile() as log:
+        try:
+            completed = subprocess.run(
+                argv,
+                stdin=subprocess.DEVNULL,
+                stdout=log if diagnostic else subprocess.DEVNULL,
+                stderr=subprocess.STDOUT if diagnostic else subprocess.DEVNULL,
+                timeout=timeout,
+                check=False,
+                env=environment,
+            )
+            error = f"code {completed.returncode}" if completed.returncode else None
+        except subprocess.TimeoutExpired:
+            error = "délai dépassé"
+        except OSError:
+            error = "exécutable indisponible"
+        if error and diagnostic:
+            log.seek(0, os.SEEK_END)
+            log.seek(max(0, log.tell() - 16384))
+            diagnostic.write_text(sanitized_tail(log.read()) or error, encoding="utf-8")
+            diagnostic.chmod(0o600)
+        return error
 
 
 def scan(target: Target, trivy: str, output: Path, cache: Path) -> Result:
     result = Result(target.service, target.image, "erreur")
     print(f"{target.service} : préparation puis analyse", flush=True)
     prepare = (
-        ["docker", "build", "--pull", "--tag", target.image, str(target.context)]
+        [
+            "docker",
+            "buildx",
+            "build",
+            "--load",
+            "--pull",
+            "--tag",
+            target.image,
+            str(target.context),
+        ]
         if target.context
         else ["docker", "pull", target.image]
     )
-    failure = command(prepare, 1200)
+    diagnostic = output / f"prepare-{target.service}.log"
+    failure = command(prepare, 1800, diagnostic)
     if failure:
         result.error = f"Préparation : {failure}"
+        result.diagnostic = diagnostic.name
         return result
     report = output / f"trivy-{target.service}.json"
+    diagnostic = output / f"scan-{target.service}.log"
     failure = command(
         [
             trivy,
@@ -242,14 +323,22 @@ def scan(target: Target, trivy: str, output: Path, cache: Path) -> Result:
             target.image,
         ],
         660,
+        diagnostic,
     )
     if report.is_file():
         result.report = report.name
     if failure:
         result.error = f"Analyse : {failure}"
+        result.diagnostic = diagnostic.name
         return result
     try:
         result.counts = vulnerability_counts(report)
+        image_id = json.loads(report.read_text()).get("Metadata", {}).get("ImageID")
+        if not isinstance(image_id, str) or not re.fullmatch(
+            r"sha256:[a-f0-9]{64}", image_id
+        ):
+            raise ValueError("Identité immuable de l'image absente du rapport.")
+        result.image_id = image_id
     except (OSError, ValueError, TypeError):
         result.error = "Rapport Trivy absent, incomplet ou invalide"
         return result
@@ -292,6 +381,8 @@ def write_summary(results: list[Result], output: Path) -> int:
     for result in results:
         if result.error:
             rows.extend(["", f"{result.service} : {result.error}", ""])
+            if result.diagnostic:
+                rows.append(f"Diagnostic borné et expurgé : `{result.diagnostic}`.")
     rows.extend(
         [
             "",
@@ -319,12 +410,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--cache", type=Path, required=True, help="Cache Trivy hors des rapports"
     )
-    parser.add_argument("--memory-compose", type=Path, help="Compose de la mémoire Neo4j dédiée")
+    parser.add_argument(
+        "--memory-compose", type=Path, help="Compose de la mémoire Neo4j dédiée"
+    )
+    parser.add_argument(
+        "--service",
+        choices=(*SERVICES, "neo4j"),
+        help="Analyser un service dans un job isolé, avec la même politique complète.",
+    )
     args = parser.parse_args(argv)
     try:
         targets = read_targets(args.compose.resolve())
         if args.memory_compose:
             targets.extend(read_targets(args.memory_compose.resolve(), memory=True))
+        if args.service:
+            targets = [target for target in targets if target.service == args.service]
+            if not targets:
+                raise ValueError("Service non déclaré dans les fichiers fournis.")
         # Refuse old reports: a failed scan must never reuse a prior clean JSON.
         args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
         args.cache.mkdir(mode=0o700, parents=True, exist_ok=True)

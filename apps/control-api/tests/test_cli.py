@@ -377,6 +377,8 @@ def test_servir_uniquement_loopback_sans_access_logs(monkeypatch, parametres):
     import uvicorn
 
     appels = []
+    monkeypatch.setattr(cli, "verifier_prerequis", lambda _: {"ok": True})
+    monkeypatch.setenv("PATH", os.environ.get("PATH", ""))
     monkeypatch.setattr(uvicorn, "run", lambda *args, **kwargs: appels.append((args, kwargs)))
     cli.executer(cli.analyseur().parse_args(["servir"]), parametres)
     options = appels[0][1]
@@ -446,6 +448,7 @@ def test_service_install_is_private_local_and_does_not_autostart(parametres, mon
     agent.touch()
     monkeypatch.setattr(cli.Path, "home", lambda: p.racine)
     monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/systemctl")
+    monkeypatch.setattr(cli, "verifier_prerequis", lambda _: {"ok": True})
     commandes = []
 
     def lancer(commande, **options):
@@ -459,12 +462,62 @@ def test_service_install_is_private_local_and_does_not_autostart(parametres, mon
     assert "PrivateTmp=true" in texte
     assert "KillMode=control-group" in texte
     assert "UMask=0077" in texte
+    assert f'Environment="PATH={p.racine}/.local/bin:' in texte
     assert f"WorkingDirectory={p.racine}\n" in texte
     assert p.cle not in texte
     assert commandes == [["systemctl", "--user", "daemon-reload"]]
     assert Path(resultat["unite"]).stat().st_mode & 0o777 == 0o600
     with pytest.raises(cli.ErreurCLI, match="existe déjà"):
         cli.installer_service(p, demarrer=False, remplacer=False)
+
+
+def test_prerequisite_failure_prevents_service_publication(parametres, monkeypatch):
+    agent = parametres.racine / "agents/sre-agent/.venv/bin/sre-agent-graph"
+    agent.parent.mkdir(parents=True)
+    agent.touch()
+    monkeypatch.setattr(cli.Path, "home", lambda: parametres.racine)
+    monkeypatch.setattr(cli.shutil, "which", lambda _: "/usr/bin/systemctl")
+
+    def refuse(_):
+        raise cli.ErreurCLI("Host isolation failed")
+
+    monkeypatch.setattr(cli, "verifier_prerequis", refuse)
+    monkeypatch.setattr(cli.subprocess, "run", lambda *a, **k: pytest.fail("systemctl called"))
+    with pytest.raises(cli.ErreurCLI, match="isolation"):
+        cli.installer_service(parametres, demarrer=False, remplacer=False)
+    assert not (parametres.racine / ".config/systemd/user/ambicrafted-console.service").exists()
+
+
+def test_prerequisite_probe_never_receives_operator_credentials(parametres, monkeypatch):
+    monkeypatch.setenv("SYNTHETIC_SECRET", "private-fixture")
+    monkeypatch.setenv("PLATFORM_BACKUP_EXPORT_DIR", "/private/export")
+
+    def probe(command, **kwargs):
+        assert command == [cli.sys.executable, "-m", "plateforme.prerequis", "--avec-export"]
+        assert set(kwargs["env"]) == {"HOME", "PATH", "LANG"}
+        assert "private-fixture" not in repr(kwargs)
+        assert kwargs["env"]["PATH"].startswith(str(Path.home() / ".local/bin") + ":")
+        return subprocess.CompletedProcess(command, 0, b'{"ok":true}')
+
+    monkeypatch.setattr(cli.subprocess, "run", probe)
+    assert cli.verifier_prerequis(parametres) == {"ok": True}
+
+
+@pytest.mark.parametrize("code,payload", [(1, b'{"ok":true}'), (0, b"[]"), (0, b"invalid")])
+def test_prerequisite_probe_fails_closed(parametres, monkeypatch, code, payload):
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda command, **kwargs: subprocess.CompletedProcess(command, code, payload),
+    )
+    with pytest.raises(cli.ErreurCLI, match="Prérequis Linux"):
+        cli.verifier_prerequis(parametres)
+
+
+def test_prerequisite_command_works_without_api(parametres, monkeypatch):
+    monkeypatch.setattr(cli, "verifier_prerequis", lambda _: {"ok": True})
+    monkeypatch.setattr(cli, "Client", lambda *_: pytest.fail("API client created"))
+    assert cli.executer(cli.analyseur().parse_args(["prerequis"]), parametres) == {"ok": True}
 
 
 def test_systemd_path_escaping():

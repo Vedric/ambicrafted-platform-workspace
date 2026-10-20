@@ -339,7 +339,12 @@ export type RunBudget = {
 export type Rapport = {
   statut: string;
   diagnostic?: Diagnostic;
-  classification?: { connue: boolean; urgence: number; justification: string };
+  classification?: {
+    connue: boolean;
+    urgence: number;
+    actionnable?: boolean;
+    justification: string;
+  };
   message?: string;
   outils_appeles?: string[];
   budget?: RunBudget;

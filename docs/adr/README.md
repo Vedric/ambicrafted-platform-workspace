@@ -73,3 +73,9 @@ observed is written as a prediction, not as a result.
 
 - [0030 — Private operational telemetry](0030-observabilite-privee.md): aggregate collection, bilingual Grafana views and freshness-aware alerts.
 - [0031 — Warm local voice and system defaults](0031-moteur-vocal-resident.md): bounded resident speech worker; supersedes audio routing in ADR 0027.
+- [0032 — OS-enforced document extraction](0032-isolation-systeme-des-documents.md): mandatory rootless namespaces, read-only parser filesystem and native syscall policy, with no unsafe fallback.
+- [0033 — Verifiable private recovery](0033-recuperation-privee-verifiable.md): source inventory, encrypted export and nonempty synthetic restoration.
+- [0034 — Workflow and lifecycle qualification](0034-qualification-agentique-et-cycle-de-vie.md): real local graph/MCP scenarios, separate expert review and bounded reliability exercises.
+- [0035 — Dedicated Neo4j memory profile](0035-neo4j-memoire-ubi10.md): vendor UBI10 runtime, explicit Parquet exclusion and tested logical rollback.
+- [0037 — Corrective images and release gate](0037-maintenance-images-et-verrou-release.md): source-verified derivatives, independent image scans and publication gated by both CI and security.
+- [0036 — Grafana source rebuild and signed plugins](0036-grafana-source-et-plugins-signes.md): pinned backend remediation, intact official plugin signatures and explicit residual release blockers.

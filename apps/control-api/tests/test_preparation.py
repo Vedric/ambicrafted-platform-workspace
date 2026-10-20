@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock
 
 import httpx
 import pytest
+from fastapi import HTTPException
 
 from plateforme.config import enregistrer_secret
 from plateforme.preparation import boucle_locale, controle, ecoutes_locales, inventorier_mcp, prive
@@ -125,6 +126,7 @@ async def test_verification_cache_coalescence_echecs_et_pas_de_contenu(
         return_value=[controle("runtime_agent", "runtime", "pass", "Runtime", "Installed")]
     )
     monkeypatch.setattr(preparation, "runtime", appels)
+    monkeypatch.setattr(preparation, "documents", AsyncMock(return_value=[]))
     monkeypatch.setattr(
         preparation, "configuration", AsyncMock(side_effect=ValueError(parametres.cle))
     )
@@ -151,6 +153,7 @@ async def test_verification_cache_coalescence_echecs_et_pas_de_contenu(
 async def test_tout_vert_sans_certification_production(preparation, monkeypatch):
     requis = [
         "runtime_agent",
+        "runtime_documents",
         "configuration_private",
         "configuration_local",
         "configuration_listener",
@@ -167,6 +170,7 @@ async def test_tout_vert_sans_certification_production(preparation, monkeypatch)
     ]
     for nom in (
         "runtime",
+        "documents",
         "configuration",
         "ecoute",
         "demons",
@@ -186,6 +190,36 @@ async def test_tout_vert_sans_certification_production(preparation, monkeypatch)
     resultat = await preparation.verifier()
     assert resultat["ready"] and all(resultat["capabilities"].values())
     assert "not a security or production certification" in resultat["limits"][0]
+
+
+@pytest.mark.asyncio
+async def test_document_readiness_uses_real_sandbox_without_private_input(preparation):
+    result = (await preparation.documents())[0]
+    assert result["id"] == "runtime_documents"
+    assert result["status"] == "pass" and result["required"]
+    assert result["evidence"] == {
+        "synthetic_extraction": True,
+        "kernel_isolation_required": True,
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["unavailable", "timeout", "unexpected"])
+async def test_document_readiness_rejects_failed_or_invalid_probe(preparation, monkeypatch, mode):
+    async def extract(name, data):
+        assert (name, data) == ("readiness.txt", "eA==")
+        if mode == "unavailable":
+            raise HTTPException(503, "SYNTHETIC_DIAGNOSTIC_MUST_NOT_ESCAPE")
+        if mode == "timeout":
+            await asyncio.sleep(60)
+        return {"kind": "text", "text": "wrong probe reply", "truncated": False}
+
+    monkeypatch.setattr("plateforme.preparation.extraire", extract)
+    monkeypatch.setattr("plateforme.preparation.DELAI_DOCUMENT", 0.01)
+    result = (await preparation.documents())[0]
+    assert result["status"] == "fail" and result["required"]
+    assert result["evidence"]["synthetic_extraction"] is False
+    assert "SYNTHETIC_DIAGNOSTIC" not in json.dumps(result)
 
 
 @pytest.mark.asyncio

@@ -293,6 +293,18 @@ export const frenchMessages = {
   Missions: "Missions",
   "Model assessment. Verify against the observed facts.":
     "Évaluation du modèle. Vérifiez-la à partir des faits observés.",
+  "Pattern estimated as familiar; cause not established.":
+    "Motif estimé familier ; cause non établie.",
+  "Pattern not recognized; cause not established.":
+    "Motif non reconnu ; cause non établie.",
+  "Continue the analysis with verified sources.":
+    "Poursuivre l’analyse avec des sources vérifiées.",
+  "More evidence is needed before drawing conclusions.":
+    "Des éléments complémentaires sont nécessaires avant de conclure.",
+  "No further-analysis estimate is available.":
+    "L’estimation du besoin d’analyse complémentaire est indisponible.",
+  "Triage does not authorize intervention.":
+    "Le triage n’autorise aucune intervention.",
   "Model calls": "Appels au modèle",
   "Model inventory unavailable.": "Inventaire des modèles indisponible.",
   "Model routing": "Routage des modèles",
@@ -725,6 +737,15 @@ export const frenchMessages = {
   "The bounded local check did not complete. Retry after checking the local service.":
     "Le contrôle local borné n’a pas abouti. Réessayez après avoir vérifié le service local.",
   "Control runtime": "Runtime de contrôle",
+  "Document sandbox": "Isolation des documents",
+  "A fixed synthetic document was extracted through the required Linux sandbox.":
+    "Un document synthétique fixe a été extrait dans l’environnement Linux isolé requis.",
+  "Secure document extraction is unavailable. Check bubblewrap, libseccomp and Linux namespace support.":
+    "L’extraction sécurisée des documents est indisponible. Vérifiez bubblewrap, libseccomp et la prise en charge des namespaces Linux.",
+  "Secure document processing is unavailable. Check the Linux bubblewrap, libseccomp and namespace prerequisites.":
+    "Le traitement sécurisé des documents est indisponible. Vérifiez les prérequis Linux : bubblewrap, libseccomp et namespaces.",
+  "Document processing exceeded its output limit.":
+    "Le traitement du document a dépassé sa limite de sortie.",
   "Installed package metadata in the running API process.":
     "Métadonnées des packages installés dans le processus API en cours.",
   "Analysis executable": "Exécutable d’analyse",

@@ -422,7 +422,14 @@ export function DetailAnalyse() {
     attente = a.statut === "en_attente_humain",
     livre = a.statut === "complet" && r?.statut === "complet";
   const exportFichier = (format: string) => {
-    location.assign(`/api/analyses/${id}/export?format=${format}`);
+    // Explicit download intent also keeps WebKit on the current analysis.
+    // The authenticated same-origin endpoint still owns the response/filename.
+    const link = document.createElement("a");
+    link.href = `/api/analyses/${id}/export?format=${format}`;
+    link.download = `analyse-${id}.${format}`;
+    document.body.append(link);
+    link.click();
+    link.remove();
   };
   return (
     <>
@@ -677,9 +684,19 @@ export function DetailAnalyse() {
                 <strong>
                   {t("Reported urgency:")} {r.classification.urgence}/5
                 </strong>
-                <p>{r.classification.justification}</p>
+                <p>
+                  {r.classification.connue
+                    ? t("Pattern estimated as familiar; cause not established.")
+                    : t("Pattern not recognized; cause not established.")}{" "}
+                  {r.classification.actionnable === true
+                    ? t("Continue the analysis with verified sources.")
+                    : r.classification.actionnable === false
+                      ? t("More evidence is needed before drawing conclusions.")
+                      : t("No further-analysis estimate is available.")}
+                </p>
                 <small>
-                  {t("Model assessment. Verify against the observed facts.")}
+                  {t("Model assessment. Verify against the observed facts.")}{" "}
+                  {t("Triage does not authorize intervention.")}
                 </small>
               </div>
             )}

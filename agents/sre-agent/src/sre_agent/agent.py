@@ -153,7 +153,7 @@ def _trier(extraction: Extraction, budget: Budget) -> ClassificationAlerte:
         tache="classification",
         max_tokens=MAX_TOKENS_TRI,
     )
-    return ClassificationAlerte.model_validate(extraire_json(reponse.contenu))
+    return ClassificationAlerte.depuis_modele(extraire_json(reponse.contenu))
 
 
 # --- Step 3: the tool loop ------------------------------------------------

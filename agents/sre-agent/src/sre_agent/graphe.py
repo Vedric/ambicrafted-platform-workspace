@@ -330,7 +330,7 @@ def classification(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
         tache="classification",
         max_tokens=MAX_TOKENS_TRI,
     )
-    tri = ClassificationAlerte.model_validate(extraire_json(reponse.contenu))
+    tri = ClassificationAlerte.depuis_modele(extraire_json(reponse.contenu))
     return {
         "classification": tri,
         "messages": prompts.messages_raisonnement(extrait, tri),

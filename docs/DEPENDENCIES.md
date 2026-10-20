@@ -1,11 +1,13 @@
 # Dependency review
 
-The current eight-image inventory and corrected derivatives are documented in
-[the 29 September assessment](SECURITY-2026-09-29.md): **0 CRITICAL, 50 HIGH**.
-Current application versions: console **0.4.5**, control API **0.4.2**,
-speech runtime **0.3.2**. The HIGH/CRITICAL gate remains failed.
-The [27 September review](SECURITY-REFINEMENT-2026-09-27.md) and figures below
-are historical snapshots, not the current image inventory.
+The current candidate inventory and remaining release gates are documented in
+[the 20 October qualification](QUALIFICATION-2026-10-20.md). The HIGH/CRITICAL
+gate remains failed because of the documented Grafana plugin and Qdrant frontend
+dependency findings. Application runtime Python audits and console/evaluation npm
+audits are separate from image scans.
+The [29 September assessment](SECURITY-2026-09-29.md),
+[27 September review](SECURITY-REFINEMENT-2026-09-27.md) and figures below are
+historical snapshots, not the current image inventory.
 
 Six production image versions were pinned in the initial review. PostgreSQL and Qdrant are narrow
 local derivatives with immutable upstream bases and exact corrective versions;
@@ -54,15 +56,21 @@ publication remain blocked by the documented remediation and architecture work.
 All four Python projects use committed uv locks. CI audits their runtime
 requirements with pip-audit 2.10.1; local package sources are excluded from the
 public dependency lookup. Standalone maintenance scripts have their own locks.
-React/Vite and promptfoo use npm locks, Node 22.23.3 and npm 11.10.0. The verified
-runtime Python and npm audits reported zero known advisories at this snapshot.
+React/Vite and evaluation-fixture validation use npm locks, Node 22.23.3 and
+npm 11.10.0. Promptfoo was removed from the supported installation on 20 October;
+the real Python graph/MCP qualification replaces it, and external-provider
+comparison is no longer a supported npm command. The four Python audits and both
+npm audits reported zero known advisories after the targeted corrections.
 This does not cover the container findings above or unknown vulnerabilities.
 
-Dependabot watches GitHub Actions, npm, uv, Compose upstream images and the two
+Dependabot watches GitHub Actions, npm, uv, Compose upstream images and all eight
 corrective Dockerfiles. Dated local image tags are excluded from registry update
 lookups; changes require a rebuild and qualification. The separate manual/weekly
 image-security workflow retains full reports and fails on critical/high findings.
-Functional CI passing is therefore not a container security sign-off.
+Functional CI passing is therefore not a container security sign-off. Tagged
+releases reuse both workflows and create a draft only when both pass. Complete
+image reports include identity and bounded, redacted preparation failure
+diagnostics. No existing report is reused after a failed scan.
 
 ## Evaluation dependency correction — 2026-09-29
 

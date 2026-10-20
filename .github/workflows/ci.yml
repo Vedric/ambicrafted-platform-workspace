@@ -2,16 +2,18 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   python:
     name: Tests, couverture, lint et construction
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         project: [agents/sre-agent, mcp-servers/runbooks, apps/control-api, apps/voice]
     defaults:
@@ -19,7 +21,23 @@ jobs:
         working-directory: ${{ matrix.project }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Isolated document parser and encrypted recovery dependencies
+        if: matrix.project == 'apps/control-api'
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap libseccomp2
+      - name: Verified age 1.3.1 recovery tool
+        if: matrix.project == 'apps/control-api'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/age-qualified"
+          curl --fail --silent --show-error --location --retry 3 --proto '=https' --tlsv1.2 \
+            https://github.com/FiloSottile/age/releases/download/v1.3.1/age-v1.3.1-linux-amd64.tar.gz \
+            --output "$RUNNER_TEMP/age-qualified/archive.tar.gz"
+          printf '%s  %s\n' bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377 \
+            "$RUNNER_TEMP/age-qualified/archive.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/age-qualified/archive.tar.gz" -C "$RUNNER_TEMP/age-qualified"
+          echo "$RUNNER_TEMP/age-qualified/age" >> "$GITHUB_PATH"
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.12.5"
           enable-cache: false
@@ -50,6 +68,13 @@ jobs:
       - name: Construction du paquet
         if: matrix.project != 'mcp-servers/runbooks'
         run: uv build
+      - name: Synthetic workflow contracts and lifecycle recovery
+        if: matrix.project == 'apps/control-api'
+        run: |
+          uv run --no-sync python ../../evals/qualify_agent.py validate
+          uv run --no-sync python -m unittest discover -s ../../evals/tests -p test_qualification.py -v
+          uv run --no-sync python -m unittest discover -s ../../scripts -p 'test_*.py' -v
+          uv run --no-sync python ../../scripts/qualifier_cycle_vie.py --seconds 60 --output "${{ runner.temp }}/lifecycle-qualification.json"
       - name: Dépendances Python connues vulnérables
         run: |
           uv export --locked --all-extras --no-dev --no-emit-project --no-emit-package sre-agent --format requirements-txt -o /tmp/requirements.txt > /dev/null
@@ -65,7 +90,7 @@ jobs:
         working-directory: apps/voice
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.12.5"
           enable-cache: false
@@ -105,7 +130,7 @@ jobs:
               --basetemp="${{ runner.temp }}/speech-synthetic-tests"
       - name: Synthetic speech failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: speech-synthetic-${{ github.run_id }}
           path: |
@@ -138,7 +163,7 @@ jobs:
         run: |
           cp .env.example .env
           docker compose --env-file .env.example config --quiet
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.12.5"
           enable-cache: false
@@ -151,7 +176,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
       - run: npm install --global npm@11.10.0
@@ -172,11 +197,11 @@ jobs:
         working-directory: apps/console
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.12.5"
           enable-cache: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
       - run: npm install --global npm@11.10.0
@@ -187,7 +212,9 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: uv sync --locked --project ../control-api
-      - run: npx playwright install --with-deps chromium firefox
+      - name: Isolated document parser
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap libseccomp2
+      - run: npx playwright install --with-deps chromium firefox webkit
       - name: Desktop, mobile, clavier et WCAG
         run: npm run test:e2e
         env:
@@ -196,7 +223,7 @@ jobs:
       # The disposable browser server contains synthetic data and ephemeral credentials only.
       - name: Browser failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: console-browser-${{ github.run_id }}
           path: |

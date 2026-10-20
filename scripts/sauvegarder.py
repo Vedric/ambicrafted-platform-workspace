@@ -18,6 +18,8 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from inventaire_sauvegarde import copier_sources, inventaire
+
 RACINE = Path(__file__).resolve().parents[1]
 DESTINATION = Path.home() / ".local/state/platform-backups"
 
@@ -133,6 +135,24 @@ def copier_console(etat: Path, destination: Path) -> dict:
         identifiants = [
             r[0] for r in copie.execute("SELECT id FROM analyses ORDER BY id")
         ]
+        tables = {
+            row[0]
+            for row in copie.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        resultat["contenu"] = {
+            table: copie.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+            for table in (
+                "conversations",
+                "messages_conversation",
+                "pieces_conversation",
+                "requetes_conversation",
+                "revisions",
+                "journal",
+            )
+            if table in tables
+        }
         if any(
             not isinstance(i, str) or not re.fullmatch(r"[0-9a-f]{32}", i)
             for i in identifiants
@@ -201,7 +221,61 @@ def sauvegarder() -> Path:
             shutil.copyfile(source, dossier / nom)
             (dossier / nom).chmod(0o600)
     valeurs = dotenv_values(RACINE / ".env")
-    manifeste["memoire"] = exporter_memoire(dossier, valeurs.get("NEO4J_MEMORY_PASSWORD"))
+    repertoire_corpus = (
+        Path(
+            os.environ.get("RUNBOOK_DIR")
+            or valeurs.get("RUNBOOK_DIR")
+            or str(RACINE / "runbooks")
+        )
+        .expanduser()
+        .absolute()
+    )
+    autres = json.loads(
+        os.environ.get("PLATFORM_BACKUP_INCLUDE_DIRS")
+        or valeurs.get("PLATFORM_BACKUP_INCLUDE_DIRS")
+        or "[]"
+    )
+    if not isinstance(autres, list) or any(
+        not isinstance(source, str) for source in autres
+    ):
+        raise ValueError(
+            "PLATFORM_BACKUP_INCLUDE_DIRS doit être une liste JSON de dossiers."
+        )
+    manifeste["sources"] = copier_sources(
+        repertoire_corpus,
+        [Path(source).expanduser().absolute() for source in autres],
+        dossier,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(RACINE), "rev-parse", "HEAD"],
+        capture_output=True,
+        check=True,
+        timeout=10,
+        text=True,
+    ).stdout.strip()
+    if not re.fullmatch(r"[a-f0-9]{40,64}", revision):
+        raise ValueError("Révision de code invalide.")
+    manifeste["revision"] = revision
+    manifeste["arbre_propre"] = not subprocess.run(
+        ["git", "-C", str(RACINE), "status", "--porcelain", "--untracked-files=normal"],
+        capture_output=True,
+        check=True,
+        timeout=10,
+    ).stdout
+    manifeste["coherence"] = (
+        "snapshots-individuels-arreter-les-ecritures-pour-reprise-complete"
+    )
+    manifeste["exclusions"] = [
+        "sessions-et-tickets",
+        "audio-transitoire",
+        "poids-modeles-reinstallables",
+        "historique-prometheus-tempo",
+        "fichiers-hors-des-racines-explicites",
+        "roles-et-grants-postgres",
+    ]
+    manifeste["memoire"] = exporter_memoire(
+        dossier, valeurs.get("NEO4J_MEMORY_PASSWORD")
+    )
     etat_console = (
         Path(
             os.environ.get("PLATFORM_STATE_DIR")
@@ -326,9 +400,32 @@ def sauvegarder() -> Path:
             manifeste["qdrant_snapshots"].append(
                 {"collection": collection, "fichier": nom}
             )
+    manifeste["integrite"] = inventaire(dossier)
     manifeste["complet"] = True
     fichier_manifeste.write_text(json.dumps(manifeste, indent=2))
+    exporter_si_configure(dossier, valeurs)
     return dossier
+
+
+def exporter_si_configure(dossier: Path, valeurs: dict) -> dict:
+    """Optional scheduled encrypted staging; a directory alone never proves off-host recovery."""
+    from exporter_sauvegarde import chiffrer
+
+    destinataires = os.environ.get(
+        "PLATFORM_BACKUP_AGE_RECIPIENTS_FILE"
+    ) or valeurs.get("PLATFORM_BACKUP_AGE_RECIPIENTS_FILE")
+    destination = os.environ.get("PLATFORM_BACKUP_EXPORT_DIR") or valeurs.get(
+        "PLATFORM_BACKUP_EXPORT_DIR"
+    )
+    if not destinataires and not destination:
+        return {"export_configure": False}
+    if not destinataires or not destination:
+        raise ValueError("Les deux paramètres d’export chiffré sont requis.")
+    return chiffrer(
+        dossier,
+        Path(destinataires).expanduser().absolute(),
+        Path(destination).expanduser().absolute() / (dossier.name + ".tar.age"),
+    )
 
 
 def purger(jours: int) -> int:
@@ -374,7 +471,7 @@ def main() -> int:
             json.dumps(
                 {
                     "erreur": type(erreur).__name__,
-                    "message": "Sauvegarde interrompue ; une sauvegarde incomplète ne doit pas être restaurée.",
+                    "message": "Sauvegarde ou export interrompu ; vérifier le manifeste et l’export avant restauration.",
                 }
             )
         )

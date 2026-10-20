@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 import httpx
+from inventaire_sauvegarde import lire_manifeste, verifier_inventaire
 from memoire_sauvegarde import restore_check as verifier_memoire
 from sauvegarder import publier_sqlite, sqlite_prive, verifier_dossier_prive
 
@@ -70,6 +71,43 @@ def verifier_console(dossier: Path, description: dict | None) -> dict:
             ):
                 raise ValueError("Inventaire des analyses incohérent.")
             publier_sqlite(entree, cible / "console.sqlite")
+            if "contenu" in description:
+                tables = {
+                    row[0]
+                    for row in entree.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    )
+                }
+                comptages = {
+                    table: entree.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                    for table in (
+                        "conversations",
+                        "messages_conversation",
+                        "pieces_conversation",
+                        "requetes_conversation",
+                        "revisions",
+                        "journal",
+                    )
+                    if table in tables
+                }
+                if comptages != description["contenu"]:
+                    raise ValueError("Inventaire du contenu de la console incohérent.")
+                if comptages:
+                    resultat["contenu_console"] = comptages
+                if "conversations" in tables:
+                    for table in (
+                        "messages_conversation",
+                        "pieces_conversation",
+                        "requetes_conversation",
+                    ):
+                        if (
+                            table in tables
+                            and entree.execute(
+                                f"SELECT count(*) FROM {table} x LEFT JOIN conversations c "
+                                "ON x.conversation_id=c.id WHERE c.id IS NULL"
+                            ).fetchone()[0]
+                        ):
+                            raise ValueError("Contenu de conversation orphelin.")
         vus = set()
         for checkpoint in description["checkpoints"]:
             if not isinstance(checkpoint, dict):
@@ -80,7 +118,8 @@ def verifier_console(dossier: Path, description: dict | None) -> dict:
                 or not re.fullmatch(r"[0-9a-f]{32}", identifiant)
                 or identifiant not in identifiants
                 or identifiant in vus
-                or checkpoint.get("fichier") != f"console/analyses/{identifiant}/graphe.sqlite"
+                or checkpoint.get("fichier")
+                != f"console/analyses/{identifiant}/graphe.sqlite"
             ):
                 raise ValueError("Identifiant de checkpoint invalide.")
             verifier_dossier_prive(dossier / "console/analyses")
@@ -112,13 +151,17 @@ def commande(*args, **kwargs):
 
 
 def verifier(dossier: Path) -> dict:
-    manifeste = json.loads((dossier / "manifest.json").read_text())
-    if manifeste.get("type") != "platform-backup-v1" or not manifeste.get("complet"):
-        raise ValueError("Sauvegarde incomplète.")
+    dossier = dossier.expanduser().absolute()
+    manifeste = lire_manifeste(dossier)
+    integrite = verifier_inventaire(dossier, manifeste)
     images = {}
     service = ""
     for ligne in (RACINE / "gateway/docker-compose.yml").read_text().splitlines():
-        if ligne.startswith("  ") and not ligne.startswith("   ") and ligne.endswith(":"):
+        if (
+            ligne.startswith("  ")
+            and not ligne.startswith("   ")
+            and ligne.endswith(":")
+        ):
             service = ligne.strip().rstrip(":")
         if ligne.strip().startswith("image:"):
             images[service] = ligne.split("image:", 1)[1].strip()
@@ -126,6 +169,8 @@ def verifier(dossier: Path) -> dict:
     postgres, qdrant = prefixe + "-pg", prefixe + "-qdrant"
     conteneurs = []
     resultat = verifier_console(dossier, manifeste.get("console"))
+    resultat.update(integrite)
+    resultat["sources_incluses"] = manifeste.get("sources", {}).get("fichiers", 0)
     with socket.socket() as sonde:
         sonde.bind(("127.0.0.1", 0))
         port = sonde.getsockname()[1]
@@ -257,13 +302,18 @@ def verifier(dossier: Path) -> dict:
                     response.raise_for_status()
                 response = client.get(f"/collections/restore-{i}")
                 response.raise_for_status()
-                resultat[f"points_qdrant_{i}"] = response.json()["result"]["points_count"]
+                resultat[f"points_qdrant_{i}"] = response.json()["result"][
+                    "points_count"
+                ]
         for nom in ("grafana.sqlite", "graphe.sqlite"):
             if (dossier / nom).exists():
-                connexion = sqlite3.connect((dossier / nom).as_uri() + "?mode=ro", uri=True)
+                connexion = sqlite3.connect(
+                    (dossier / nom).as_uri() + "?mode=ro", uri=True
+                )
                 try:
                     resultat[nom] = (
-                        connexion.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+                        connexion.execute("PRAGMA integrity_check").fetchone()[0]
+                        == "ok"
                     )
                     if not resultat[nom]:
                         raise ValueError("Sauvegarde SQLite incohérente.")
@@ -282,7 +332,9 @@ def verifier(dossier: Path) -> dict:
             if memory_config.exists()
             else ""
         )
-        resultat.update(verifier_memoire(dossier, manifeste.get("memoire"), memory_image))
+        resultat.update(
+            verifier_memoire(dossier, manifeste.get("memoire"), memory_image)
+        )
         return resultat
     finally:
         for conteneur in reversed(conteneurs):

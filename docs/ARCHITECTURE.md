@@ -1,7 +1,8 @@
 # Architecture
 
-The workstation hosts a six-service gateway/observability stack, local Ollama,
-a runbook corpus, two stdio MCP servers, and two implementations of one read-only
+The workstation hosts a seven-service gateway/observability stack, optional
+dedicated Neo4j memory, local Ollama, a runbook corpus, two MCP backends behind
+the NEXUS stdio gateway, and two implementations of one read-only
 incident-analysis workflow. The shared UI/CLI control API and local speech runtime
 are described in ADR 0010–0015; incident guarantees are in ADR 0009. Older ADRs
 remain historical records. [ADR 0017](adr/0017-indicateurs-flux-et-defilement.md)
@@ -39,7 +40,7 @@ control MCP has a separate read-only surface, with no approval or execution tool
 flowchart LR
   UI[Private EN / FR console] --> API[Loopback authenticated control API]
   CLI[Unified CLI] --> API
-  CMCP[Control MCP: 9 read-only tools] --> API
+  CMCP[NEXUS control backend: 11 read-only tools] --> API
   API --> State[Private console state]
   API --> Jobs[Serial analysis / maintenance worker]
   Jobs --> Graph[Supervised SRE graph]
@@ -115,16 +116,17 @@ qualification is recorded against the integrated release commit.
 ## Readiness and local tools
 
 `GET /api/preparation`, the Readiness page and `./plateforme preparation` /
-`doctor` share one versioned response. Nineteen checks measure installed runtime
+`doctor` share one versioned response. Twenty checks measure installed runtime
 metadata, entrypoints, private storage permissions, Linux API socket bindings,
 configured local destinations, live permitted aliases, six health endpoints,
-source/index availability, voice artifacts and actual MCP handshakes. They run
+source/index availability, voice artifacts, actual MCP handshakes and a real
+synthetic extraction inside the mandatory document sandbox. They run
 independently under deadlines, share a short cache and return bounded evidence
 without client content, credentials or raw exceptions. Suggested commands are
 inert guidance, not automatic remediation.
 
 The control MCP offers health, preparation, catalogue, analysis list/detail,
-runbook list/read, search and bounded audit. It can only call fixed authenticated
+runbook list/read, search, bounded audit and graph-note list/detail. It can only call fixed authenticated
 GET routes on loopback, rejects redirects, bounds response bodies and never
 initializes missing configuration. Its read-only annotations describe the
 restricted implementation; they do not enforce a consumer's subsequent use of
@@ -269,7 +271,8 @@ model latency remain operational constraints; it has no multi-host failover.
 Use separately qualified deployments/VMs for separate clients; a title, mission
 preset or alternative state directory does not isolate the shared gateway,
 corpus, index and backups. [CLIENT-WORKFLOW.md](CLIENT-WORKFLOW.md) makes that
-boundary explicit. The [26 September 2026 security assessment](SECURITY-RELEASE-2026-09-26.md)
-retains 166 HIGH package occurrences and grants only conditional continued use
-in the existing supervised local scope. Unqualified production security approval
-and remote/mutually untrusted use remain NO-GO at that snapshot.
+boundary explicit. The [current qualification](QUALIFICATION-2026-10-20.md)
+separates functional results, remaining image findings, expert acceptance and
+operational recovery. Earlier September counts are historical. The supported
+architecture remains a supervised private workstation; remote/mutually untrusted
+use requires a different identity, isolation and operations design.
