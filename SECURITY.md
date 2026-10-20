@@ -15,7 +15,7 @@ deployment.
 
 | Data | Storage and routing |
 |---|---|
-| Raw alert supplied to the agent | In-memory invocation context; never a dedicated checkpoint field |
+| Raw alert supplied to the agent | In-memory invocation context and ephemeral local reasoning request; the added original-input message is not persisted |
 | Extraction, injection quotations, model/tool messages and diagnoses | Confidential; local model only; graph checkpoints may retain identifiers missed by extraction |
 | Checkpoints | SQLite file 0600; newly created parent 0700; existing parent permissions are not changed |
 | Virtual/provider/master keys | Private `.env` files; never printed by provisioning or operational scripts |

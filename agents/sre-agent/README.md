@@ -37,6 +37,15 @@ Extraction, triage and reasoning all use `local` with confidential
 classification. `SRE_ALIAS_RAISONNEMENT=smart` is rejected. An extraction may
 retain identifying data and is never automatically declassified.
 
+Extraction and triage request JSON Schema generation and still validate the
+received response. Reasoning receives original observations in a temporary
+per-call message so it can challenge the derived summary. That added message is
+not stored in checkpoints or trace attributes; generated text can nevertheless
+repeat its contents and remains confidential. These controls constrain shape
+and routing, not factual correctness. The
+[real qualification protocol](../../evals/qualification/README.md) separates
+mechanical contracts from substantive review.
+
 The source registry is populated only by complete verified MCP reads. Actions
 must match passages actually read from the cited document. A missing source,
 failed/truncated read or invented/paraphrased action causes rejection and an

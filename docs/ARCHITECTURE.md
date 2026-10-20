@@ -172,12 +172,17 @@ size/duration and private temporary-file cleanup; model weights are reinstallabl
 and excluded from platform backups. See [VOICE.md](VOICE.md) and
 [ADR 0013](adr/0013-voix-anglaise-reactive.md).
 
-## Incident path
+## Supervised analysis path
 
 1. An input-size/configuration check runs before model work.
-2. `local` extracts a technical description. The description remains confidential.
-3. `local` classifies urgency and actionability.
-4. `local` reasons with four MCP tools: list, read, literal search and semantic search.
+2. `local` extracts a technical description with constrained JSON generation and
+   application validation. The description remains confidential and fallible.
+3. `local` estimates urgency and actionability. Its free-form explanation is
+   discarded; the application supplies a bounded, non-prescriptive explanation.
+4. `local` compares the derived summary with original observations in ephemeral
+   context and reasons with four MCP tools: list, read, literal search and semantic
+   search. Prompts distinguish observed incidents from infrastructure/change
+   reviews, without treating that distinction as a correctness guarantee.
 5. The source guard checks actions against passages in a complete, verified
    `read_runbook` result. A filename supplied by a model is insufficient.
 6. The loop returns a proposal. The graph persists the proposal and pauses
@@ -193,9 +198,13 @@ calls for separate uses, but no SRE stage invokes that external path.
 ## State lifecycle
 
 A new incident needs a new thread ID. Reuse is refused; resume requires an
-existing human interruption. The raw alert is held only in the invocation
-context, so a process crash before extraction requires a new input. Extracts,
-reasoning messages and tool results are persisted and treated as confidential.
+existing human interruption. The raw alert is held in invocation memory and
+inserted into each reasoning request without modifying the durable message list.
+A crash does not preserve that original input for replay. Resuming an existing
+human interruption needs neither the original nor another model call. Extracts,
+generated reasoning messages and tool results are persisted and treated as
+confidential; they can still repeat original details. See
+[ADR 0038](adr/0038-observations-originales-et-sorties-contraintes.md).
 
 Public graph helpers open/close SQLite connections and hold an exclusive
 advisory lock during database operations. A second concurrent invocation on
