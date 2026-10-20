@@ -1,7 +1,8 @@
 name: Sécurité des images
 
-# This audit deliberately reports existing image debt without gating push/PR CI.
+# Reusable release gate. Each image gets a fresh runner and an independent report.
 on:
+  workflow_call:
   workflow_dispatch:
   schedule:
     - cron: "23 5 * * 1"
@@ -15,14 +16,33 @@ concurrency:
 
 jobs:
   images:
-    name: Huit images, rapports complets, seuil CRITICAL et HIGH
+    name: Image ${{ matrix.service }}, seuil CRITICAL et HIGH
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        service: [litellm, postgres, tempo, prometheus, grafana, qdrant, platform-metrics, neo4j]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Space for source rebuilds on disposable hosted runners
+        if: contains(fromJSON('["grafana", "prometheus", "tempo"]'), matrix.service)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # These jobs compile inside Docker and do not use the preinstalled SDKs.
+          # Never apply this preparation to a workstation or self-hosted runner.
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          df -h /
+          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /usr/share/swift /opt/ghc
+          df -h /
+          available=$(df --output=avail -B1 /var/lib/docker | tail -n 1)
+          test "$available" -ge 26843545600
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.12.5"
           enable-cache: false
@@ -44,7 +64,7 @@ jobs:
             "$TRIVY_DIRECTORY/trivy.tar.gz" | sha256sum --check --strict
           tar -xzf "$TRIVY_DIRECTORY/trivy.tar.gz" -C "$TRIVY_DIRECTORY" trivy
           "$TRIVY_DIRECTORY/trivy" --version
-      - name: Construire les dérivées déclarées et analyser les huit images
+      - name: Construire et analyser le service déclaré
         env:
           TRIVY_BINARY: ${{ runner.temp }}/trivy-0.74.0/trivy
           IMAGE_REPORTS: ${{ runner.temp }}/image-security-reports
@@ -52,7 +72,8 @@ jobs:
         run: |
           uv run --no-project --python 3.14 scripts/scanner_images.py \
             --compose gateway/docker-compose.yml --memory-compose gateway/neo4j-memory.yml \
-            --trivy "$TRIVY_BINARY" --output "$IMAGE_REPORTS" --cache "$IMAGE_CACHE"
+            --trivy "$TRIVY_BINARY" --output "$IMAGE_REPORTS" --cache "$IMAGE_CACHE" \
+            --service "${{ matrix.service }}"
       - name: Résumé même en cas de vulnérabilités ou d'erreur
         if: always()
         env:
@@ -65,9 +86,9 @@ jobs:
           fi
       - name: Conserver tous les rapports disponibles
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: images-security-${{ github.run_id }}-${{ github.run_attempt }}
+          name: images-security-${{ matrix.service }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/image-security-reports/
           if-no-files-found: error
           retention-days: 30

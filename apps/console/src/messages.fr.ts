@@ -293,6 +293,18 @@ export const frenchMessages = {
   Missions: "Missions",
   "Model assessment. Verify against the observed facts.":
     "Évaluation du modèle. Vérifiez-la à partir des faits observés.",
+  "Pattern estimated as familiar; cause not established.":
+    "Motif estimé familier ; cause non établie.",
+  "Pattern not recognized; cause not established.":
+    "Motif non reconnu ; cause non établie.",
+  "Continue the analysis with verified sources.":
+    "Poursuivre l’analyse avec des sources vérifiées.",
+  "More evidence is needed before drawing conclusions.":
+    "Des éléments complémentaires sont nécessaires avant de conclure.",
+  "No further-analysis estimate is available.":
+    "L’estimation du besoin d’analyse complémentaire est indisponible.",
+  "Triage does not authorize intervention.":
+    "Le triage n’autorise aucune intervention.",
   "Model calls": "Appels au modèle",
   "Model inventory unavailable.": "Inventaire des modèles indisponible.",
   "Model routing": "Routage des modèles",
@@ -342,8 +354,8 @@ export const frenchMessages = {
   "Operational checks do not replace security review or production qualification.":
     "Les contrôles opérationnels ne remplacent ni la revue de sécurité ni la qualification pour la production.",
   Operations: "Opérations",
-  "Operations share a bounded queue with analyses. Backups may contain confidential data and remain on this device.":
-    "Les opérations partagent une file bornée avec les analyses. Les sauvegardes peuvent contenir des données confidentielles et restent sur ce poste.",
+  "Operations share a bounded queue with analyses. Local backups may contain confidential data. Encrypted export requires configuration; verify off-host recovery separately.":
+    "Les opérations partagent une file bornée avec les analyses. Les sauvegardes locales peuvent contenir des données confidentielles. L’export chiffré nécessite une configuration ; vérifiez séparément la restauration hors du poste.",
   Operator: "Opérateur",
   "Operator action required": "Action de l’opérateur requise",
   "Optional capability": "Fonctionnalité optionnelle",
@@ -628,8 +640,8 @@ export const frenchMessages = {
   Unknown: "Inconnu",
   "Unknown access mode": "Mode d’accès inconnu",
   Unspecified: "Non précisée",
-  "Use a dedicated VM per client. Keep client source files and exports outside this repository, with a separate private backup.":
-    "Utilisez une VM dédiée par client. Conservez les fichiers sources et exports client hors de ce dépôt, avec une sauvegarde privée distincte.",
+  "Use a dedicated VM per client. Keep client files outside this repository, configure their backup roots explicitly, and verify encrypted off-host recovery.":
+    "Utilisez une VM dédiée par client. Conservez les fichiers client hors de ce dépôt, configurez explicitement leurs dossiers à sauvegarder et vérifiez la restauration depuis une copie chiffrée hors du poste.",
   "Use at least 14 characters. Saving signs out all existing sessions.":
     "Utilisez au moins 14 caractères. L’enregistrement déconnecte toutes les sessions existantes.",
   VOICE: "VOIX",
@@ -725,6 +737,15 @@ export const frenchMessages = {
   "The bounded local check did not complete. Retry after checking the local service.":
     "Le contrôle local borné n’a pas abouti. Réessayez après avoir vérifié le service local.",
   "Control runtime": "Runtime de contrôle",
+  "Document sandbox": "Isolation des documents",
+  "A fixed synthetic document was extracted through the required Linux sandbox.":
+    "Un document synthétique fixe a été extrait dans l’environnement Linux isolé requis.",
+  "Secure document extraction is unavailable. Check bubblewrap, libseccomp and Linux namespace support.":
+    "L’extraction sécurisée des documents est indisponible. Vérifiez bubblewrap, libseccomp et la prise en charge des namespaces Linux.",
+  "Secure document processing is unavailable. Check the Linux bubblewrap, libseccomp and namespace prerequisites.":
+    "Le traitement sécurisé des documents est indisponible. Vérifiez les prérequis Linux : bubblewrap, libseccomp et namespaces.",
+  "Document processing exceeded its output limit.":
+    "Le traitement du document a dépassé sa limite de sortie.",
   "Installed package metadata in the running API process.":
     "Métadonnées des packages installés dans le processus API en cours.",
   "Analysis executable": "Exécutable d’analyse",

@@ -31,6 +31,7 @@ Checks measure:
 | Group | Evidence and limits |
 | --- | --- |
 | Runtime | Installed API package metadata, an executable agent entrypoint, console build entrypoint. Existence does not prove inference correctness. |
+| Documents | Mandatory bubblewrap/seccomp isolation exercised with synthetic text; unavailable isolation disables ingestion. This is a runtime boundary check, not a proof that every document format is safe. |
 | Configuration | Current-owner private permissions on `.env` and state directory; configured agent destinations are loopback; development cross-origin access is disabled. Linux socket tables confirm that all observed listeners on the API port use loopback. No secret values or unrelated socket details are returned. |
 | Services | HTTP health of the six fixed local service endpoints. This does not inspect arbitrary URLs or Docker environment values. |
 | Routing | A live gateway model inventory using the confidential credential contains exactly `local` and `local-embed`. This does not inspect or certify the provider mapping behind an alias. |
@@ -70,6 +71,8 @@ The table retains legacy catalogue identifiers:
 | `plateforme_lire_runbook` | `nom`: validated Markdown basename | Read one source with its digest. |
 | `plateforme_recherche` | `requete`: 2–500 characters; `mode`: `texte` or `semantique` | Search exact text or use local embeddings and Qdrant. |
 | `plateforme_journal` | `limite`: 1–100, default 20 | Read bounded audit metadata, without raw alert content. |
+| `plateforme_memoire` | `scope`: required; `recherche`: optional, at most 200 characters | List bounded graph-memory notes; scope filters are organization, not tenant authorization. |
+| `plateforme_note_memoire` | `scope`: required; `identifiant`: note UUID | Read an existing note and its same-scope relationships through the authenticated control API. |
 
 All tools advertise read-only, non-destructive, idempotent and closed-world MCP
 annotations. The implementation only calls fixed authenticated GET routes on
@@ -127,5 +130,5 @@ records upstream checksums, action pins and the retained PostgreSQL major versio
 
 No additional external-account connector is required for the implemented private
 workflows. Configure only tools justified by the client mission and its approved
-data boundary; NEXUS with its two backend profiles and nineteen readiness checks is
+data boundary; NEXUS with its two backend profiles and twenty readiness checks is
 the supported starting point.

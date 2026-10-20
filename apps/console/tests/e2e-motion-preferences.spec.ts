@@ -227,11 +227,18 @@ test("full mode restores native scroll fades despite a reduced-motion device", a
           finished: false,
         };
         samples.push(sample);
-        void animation.ready
-          .then(() => {
-            sample.opacity = Number(getComputedStyle(this).opacity);
-          })
-          .catch(() => {});
+        // WebKit can resolve ready after much of a short animation has elapsed.
+        // Read its computed starting style immediately, then sample frames;
+        // keep the independent finished assertion to prove real progression.
+        const measure = () => {
+          sample.opacity = Math.min(
+            sample.opacity,
+            Number(getComputedStyle(this).opacity),
+          );
+          if (animation.playState === "running" || animation.pending)
+            requestAnimationFrame(measure);
+        };
+        measure();
         void animation.finished
           .then(() => {
             sample.finished = true;
@@ -266,7 +273,32 @@ test("full mode restores native scroll fades despite a reduced-motion device", a
           sample.finished,
       );
     }, direction);
-  await expect.poll(() => finished("down")).toBe(true);
-  await page.locator(".landing-copy h1").scrollIntoViewIfNeeded();
-  await expect.poll(() => finished("up")).toBe(true);
+  try {
+    await expect.poll(() => finished("down")).toBe(true);
+    await page.locator(".landing-copy h1").scrollIntoViewIfNeeded();
+    await expect.poll(() => finished("up")).toBe(true);
+  } finally {
+    await test.info().attach("rendered-scroll-fades", {
+      body: JSON.stringify(
+        await page.evaluate(() => {
+          const samples = (window as unknown as { __motionSamples: unknown })
+            .__motionSamples;
+          return {
+            samples,
+            scrollY,
+            hidden: document.hidden,
+            mode: document.documentElement.dataset.motionMode,
+            targets: [...document.querySelectorAll("[data-reveal-state]")].map(
+              (node) => ({
+                tag: node.tagName,
+                state: (node as HTMLElement).dataset.revealState,
+                direction: (node as HTMLElement).dataset.revealDirection,
+              }),
+            ),
+          };
+        }),
+      ),
+      contentType: "application/json",
+    });
+  }
 });

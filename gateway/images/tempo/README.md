@@ -16,9 +16,12 @@ archive URL, SHA-256 and revision are in the Dockerfile; retain them and the mod
 dependency manifests with redistributed builds. No scanning inventory is deleted.
 
 A disposable qualification accepted an OTLP HTTP span, queried it, restarted with
-persistent storage and queried it again. The final inventory reports no CRITICAL,
-HIGH or MEDIUM findings, with lower/unknown findings retained in the full report.
-See [the current security report](../../../docs/SECURITY-REFINEMENT-2026-09-27.md).
+persistent storage and queried it again. The 20 October candidate inventory reports
+no CRITICAL, HIGH or MEDIUM findings, with lower/unknown findings retained in the
+full report. This does not assert that the live service was upgraded.
+See [the current candidate qualification](../../../docs/QUALIFICATION-2026-10-20.md);
+the [27 September report](../../../docs/SECURITY-REFINEMENT-2026-09-27.md)
+remains historical.
 
 Compose runs as UID/GID 10001. For an existing root-owned Tempo volume, stop only
 this platform's service, archive its volume privately, and migrate that dedicated

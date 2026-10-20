@@ -5,8 +5,10 @@ name: gateway
 
 services:
   litellm:
-    # Image vérifiée sur la pile isolée le 2026-09-26 ; digest immuable.
-    image: ghcr.io/berriai/litellm:v1.102.1@sha256:87f34979b9f8cb274fac90ca8a4fdda07d8480de22755562a26adeb95ce20d02
+    # Stable upstream image plus a hash-locked aiohttp/yarl security patch.
+    image: ambicrafted/litellm:1.104.4-stable-security.20261020
+    build:
+      context: ./images/litellm
     container_name: litellm
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
@@ -27,7 +29,7 @@ services:
 
   postgres:
     # Local security derivative; only the pinned gosu helper is rebuilt.
-    image: ambicrafted/postgres:16.15-alpine-security.20260926
+    image: ambicrafted/postgres:16.15-alpine-security.20261020
     build:
       context: ./images/postgres
     container_name: litellm-db
@@ -46,8 +48,8 @@ services:
       retries: 5
 
   tempo:
-    # Image vérifiée sur la pile isolée le 2026-09-26 ; digest immuable.
-    image: ambicrafted/tempo:3.0.3-security.20260927
+    # Rebuilt from the pinned source with the corrected Go toolchain.
+    image: ambicrafted/tempo:3.0.3-security.20261020
     build:
       context: ./images/tempo
     container_name: tempo
@@ -66,7 +68,9 @@ services:
       - tempodata:/var/tempo
 
   prometheus:
-    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    image: ambicrafted/prometheus:3.15.0-security.20261020
+    build:
+      context: ./images/prometheus
     container_name: prometheus
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
@@ -88,7 +92,7 @@ services:
       retries: 3
 
   grafana:
-    image: ambicrafted/grafana:13.2.2-security.20260929
+    image: ambicrafted/grafana:13.2.4-security.20261020
     build:
       context: ./images/grafana
     container_name: grafana
@@ -115,7 +119,7 @@ services:
 
   platform-metrics:
     profiles: [observability]
-    image: ambicrafted/platform-metrics:1.12.1-security.20260929
+    image: ambicrafted/platform-metrics:1.12.1-security.20261020
     build:
       context: ./images/platform-metrics
     restart: unless-stopped
@@ -139,7 +143,7 @@ services:
 
   qdrant:
     # Local security derivative; immutable base and exact package in Dockerfile.
-    image: ambicrafted/qdrant:1.19.1-security.20260927
+    image: ambicrafted/qdrant:1.19.2-security.20261020
     build:
       context: ./images/qdrant
     container_name: qdrant
@@ -164,10 +168,15 @@ services:
 
 volumes:
   pgdata:
+    name: ${PLATFORM_PGDATA_VOLUME:-${COMPOSE_PROJECT_NAME}_pgdata}
   tempodata:
+    name: ${PLATFORM_TEMPODATA_VOLUME:-${COMPOSE_PROJECT_NAME}_tempodata}
   promdata:
+    name: ${PLATFORM_PROMDATA_VOLUME:-${COMPOSE_PROJECT_NAME}_promdata}
   grafanadata:
+    name: ${PLATFORM_GRAFANADATA_VOLUME:-${COMPOSE_PROJECT_NAME}_grafanadata}
   qdrantdata:
+    name: ${PLATFORM_QDRANTDATA_VOLUME:-${COMPOSE_PROJECT_NAME}_qdrantdata}
 
 networks:
   default:

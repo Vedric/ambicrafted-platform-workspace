@@ -12,6 +12,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Animation-engine major changes require their own UX/motion qualification.
+      - dependency-name: motion
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: uv
     directories:
       - /agents/sre-agent
@@ -36,10 +40,19 @@ updates:
     directories:
       - /gateway/images/qdrant
       - /gateway/images/postgres
+      - /gateway/images/litellm
+      - /gateway/images/prometheus
+      - /gateway/images/tempo
+      - /gateway/images/grafana
+      - /gateway/images/platform-metrics
+      - /gateway/images/neo4j
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
     # PostgreSQL major upgrades require an explicit data migration (ADR 0016).
     ignore:
       - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+      # Keep the currently qualified LTS build toolchain until explicit migration.
+      - dependency-name: node
         update-types: ["version-update:semver-major"]

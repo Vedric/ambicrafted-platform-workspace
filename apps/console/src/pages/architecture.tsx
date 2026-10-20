@@ -116,7 +116,7 @@ const components = {
     role: "Runs the configured local language and embedding models on this host.",
     data: "Prompts, generated text and numerical embeddings.",
     boundary:
-      "Ollama is a separate local inference service, not one of the six gateway stack containers.",
+      "Ollama runs separately from the gateway stack and dedicated graph-memory service.",
     href: "/sante",
     kind: "request",
     icon: Sparkles,
@@ -139,7 +139,7 @@ const components = {
     role: "Stores procedures that an operator reviews before they become retrieval evidence.",
     data: "Local Markdown procedures and their content fingerprints.",
     boundary:
-      "Platform snapshots do not back up source Markdown or client mission files. Keep a separate private source backup.",
+      "Platform backups include the active Markdown corpus. Mission files are included only from explicitly configured roots. Keep an encrypted off-host copy and test recovery.",
     href: "/runbooks",
     kind: "knowledge",
     icon: BookOpen,
@@ -225,7 +225,7 @@ const components = {
   metrics: {
     title: "Metrics",
     caption: "Prometheus · scrape targets",
-    role: "Collects configured metrics from Prometheus itself, Tempo, Qdrant and Grafana.",
+    role: "Collects configured metrics from the platform exporter, Prometheus itself, Tempo, Qdrant and Grafana.",
     data: "Service counters, timings and resource metrics exposed by the configured targets.",
     boundary:
       "Local alert rules have no external notification destination configured.",

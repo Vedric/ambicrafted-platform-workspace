@@ -1,12 +1,17 @@
 # Gateway stack
 
-Six pinned services: LiteLLM, PostgreSQL, Tempo, Prometheus, Grafana and
-Qdrant. PostgreSQL and Qdrant use locally built security derivatives with immutable
-bases and exact corrective versions; see their build records for
-[PostgreSQL](images/postgres/README.md) and [Qdrant](images/qdrant/README.md).
-Ollama remains on the host. Exact image versions and the validation date
-are in `docker-compose.yml`; known remaining findings are in
+Six core services: LiteLLM, PostgreSQL, Tempo, Prometheus, Grafana and Qdrant.
+The optional `observability` profile adds the platform metrics exporter;
+`neo4j-memory.yml` defines dedicated memory separately. The candidate uses eight
+local security derivatives with pinned upstream inputs. Ollama remains on the
+host. See the image-specific build records and
 [the dependency register](../docs/DEPENDENCIES.md).
+
+The Compose files declare the candidate versions; they do not establish which
+images a running installation currently uses. The
+[20 October qualification](../docs/QUALIFICATION-2026-10-20.md) records outstanding
+image findings and the blocked release gate. Back up and qualify an upgrade
+before replacing existing services.
 
 ## Initial setup
 

@@ -1,5 +1,32 @@
 # PostgreSQL with a rebuilt gosu helper
 
+## Current candidate — 2026-10-20
+
+The current Dockerfile preserves the same PostgreSQL 16.15 base and gosu 1.19
+source described below, but builds gosu with **Go 1.27.3**. Its Linux/amd64 archive
+SHA-256 is
+`65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40`.
+Upstream gosu dependencies and symbols remain preserved. The build runs upstream
+tests, compares two builds and verifies a real user switch.
+
+```sh
+docker buildx build --load --platform linux/amd64 \
+  --tag ambicrafted/postgres:16.15-alpine-security.20261020 \
+  gateway/images/postgres
+```
+
+The 20 October candidate scan records 0 CRITICAL, 0 HIGH, 2 MEDIUM and 1 UNKNOWN;
+the remaining findings are retained. See
+[the current qualification](../../../docs/QUALIFICATION-2026-10-20.md) and the
+candidate's scan artifact. The old binary/image hashes below do not identify this
+new build. Candidate validation does not promote the running database or replace
+its backup and rollback procedure.
+
+## Historical build and evidence — 2026-09-26
+
+The following recipe, hashes, tag and measurements describe the earlier
+Go 1.27.1 derivative. They are retained as historical evidence.
+
 This linux/amd64 derivative preserves the tested PostgreSQL 16.15 Alpine base
 digest and replaces only `/usr/local/bin/gosu`. It rebuilds the **same gosu 1.19
 source** with Go 1.27.1 instead of Go 1.24.6. PostgreSQL, the entrypoint, OS

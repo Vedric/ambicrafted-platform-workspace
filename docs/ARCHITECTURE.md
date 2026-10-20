@@ -1,7 +1,8 @@
 # Architecture
 
-The workstation hosts a six-service gateway/observability stack, local Ollama,
-a runbook corpus, two stdio MCP servers, and two implementations of one read-only
+The workstation hosts a seven-service gateway/observability stack, optional
+dedicated Neo4j memory, local Ollama, a runbook corpus, two MCP backends behind
+the NEXUS stdio gateway, and two implementations of one read-only
 incident-analysis workflow. The shared UI/CLI control API and local speech runtime
 are described in ADR 0010–0015; incident guarantees are in ADR 0009. Older ADRs
 remain historical records. [ADR 0017](adr/0017-indicateurs-flux-et-defilement.md)
@@ -39,7 +40,7 @@ control MCP has a separate read-only surface, with no approval or execution tool
 flowchart LR
   UI[Private EN / FR console] --> API[Loopback authenticated control API]
   CLI[Unified CLI] --> API
-  CMCP[Control MCP: 9 read-only tools] --> API
+  CMCP[NEXUS control backend: 11 read-only tools] --> API
   API --> State[Private console state]
   API --> Jobs[Serial analysis / maintenance worker]
   Jobs --> Graph[Supervised SRE graph]
@@ -75,7 +76,7 @@ state counts and service results also have textual labels. Empty data and failed
 probes remain explicit. Native SVG and CSS render the views without adding a chart
 service or sending the records elsewhere.
 
-The architecture map provides four conceptual journeys:
+The architecture map provides five conceptual journeys:
 
 | Journey | What the guide explains |
 | --- | --- |
@@ -83,6 +84,7 @@ The architecture map provides four conceptual journeys:
 | Voice | Browser audio/text, the control boundary, local recognition, AURA dialogue, local synthesis and WAV playback. |
 | Knowledge | Reviewed Markdown, local embeddings, versioned Qdrant publication and read-only source retrieval. |
 | Telemetry | Gateway accounting, correlated spans, metric scraping and dashboard queries. |
+| Memory | Explicit scoped notes, read-only MCP retrieval and selected copies into conversation context. |
 
 Selecting a component displays its role, handled data, trust boundary and a link
 to its workspace. A textual connection guide accompanies the diagram, and mobile
@@ -115,16 +117,17 @@ qualification is recorded against the integrated release commit.
 ## Readiness and local tools
 
 `GET /api/preparation`, the Readiness page and `./plateforme preparation` /
-`doctor` share one versioned response. Nineteen checks measure installed runtime
+`doctor` share one versioned response. Twenty checks measure installed runtime
 metadata, entrypoints, private storage permissions, Linux API socket bindings,
 configured local destinations, live permitted aliases, six health endpoints,
-source/index availability, voice artifacts and actual MCP handshakes. They run
+source/index availability, voice artifacts, actual MCP handshakes and a real
+synthetic extraction inside the mandatory document sandbox. They run
 independently under deadlines, share a short cache and return bounded evidence
 without client content, credentials or raw exceptions. Suggested commands are
 inert guidance, not automatic remediation.
 
 The control MCP offers health, preparation, catalogue, analysis list/detail,
-runbook list/read, search and bounded audit. It can only call fixed authenticated
+runbook list/read, search, bounded audit and graph-note list/detail. It can only call fixed authenticated
 GET routes on loopback, rejects redirects, bounds response bodies and never
 initializes missing configuration. Its read-only annotations describe the
 restricted implementation; they do not enforce a consumer's subsequent use of
@@ -169,12 +172,17 @@ size/duration and private temporary-file cleanup; model weights are reinstallabl
 and excluded from platform backups. See [VOICE.md](VOICE.md) and
 [ADR 0013](adr/0013-voix-anglaise-reactive.md).
 
-## Incident path
+## Supervised analysis path
 
 1. An input-size/configuration check runs before model work.
-2. `local` extracts a technical description. The description remains confidential.
-3. `local` classifies urgency and actionability.
-4. `local` reasons with four MCP tools: list, read, literal search and semantic search.
+2. `local` extracts a technical description with constrained JSON generation and
+   application validation. The description remains confidential and fallible.
+3. `local` estimates urgency and actionability. Its free-form explanation is
+   discarded; the application supplies a bounded, non-prescriptive explanation.
+4. `local` compares the derived summary with original observations in ephemeral
+   context and reasons with four MCP tools: list, read, literal search and semantic
+   search. Prompts distinguish observed incidents from infrastructure/change
+   reviews, without treating that distinction as a correctness guarantee.
 5. The source guard checks actions against passages in a complete, verified
    `read_runbook` result. A filename supplied by a model is insufficient.
 6. The loop returns a proposal. The graph persists the proposal and pauses
@@ -190,9 +198,13 @@ calls for separate uses, but no SRE stage invokes that external path.
 ## State lifecycle
 
 A new incident needs a new thread ID. Reuse is refused; resume requires an
-existing human interruption. The raw alert is held only in the invocation
-context, so a process crash before extraction requires a new input. Extracts,
-reasoning messages and tool results are persisted and treated as confidential.
+existing human interruption. The raw alert is held in invocation memory and
+inserted into each reasoning request without modifying the durable message list.
+A crash does not preserve that original input for replay. Resuming an existing
+human interruption needs neither the original nor another model call. Extracts,
+generated reasoning messages and tool results are persisted and treated as
+confidential; they can still repeat original details. See
+[ADR 0038](adr/0038-observations-originales-et-sorties-contraintes.md).
 
 Public graph helpers open/close SQLite connections and hold an exclusive
 advisory lock during database operations. A second concurrent invocation on
@@ -249,9 +261,9 @@ Gateway spans may carry their own accounting. Filtering by service and span
 kind is necessary. A resume links to the original trace and creates no new
 LLM work when the human gate is the only pending step.
 
-Prometheus scrapes itself, Tempo, Qdrant and Grafana. Docker healthchecks cover
+Prometheus scrapes the platform exporter, itself, Tempo, Qdrant and Grafana. Docker healthchecks cover
 five services; Tempo's shell-free image is checked through HTTP metrics and
-readiness from outside its container. Grafana provisions a platform dashboard.
+readiness from outside its container. Grafana provisions English and French platform dashboards.
 Availability alerts stay local; no external notification destination is set.
 
 ## Deliberately bounded scope
@@ -269,7 +281,8 @@ model latency remain operational constraints; it has no multi-host failover.
 Use separately qualified deployments/VMs for separate clients; a title, mission
 preset or alternative state directory does not isolate the shared gateway,
 corpus, index and backups. [CLIENT-WORKFLOW.md](CLIENT-WORKFLOW.md) makes that
-boundary explicit. The [26 September 2026 security assessment](SECURITY-RELEASE-2026-09-26.md)
-retains 166 HIGH package occurrences and grants only conditional continued use
-in the existing supervised local scope. Unqualified production security approval
-and remote/mutually untrusted use remain NO-GO at that snapshot.
+boundary explicit. The [current qualification](QUALIFICATION-2026-10-20.md)
+separates functional results, remaining image findings, expert acceptance and
+operational recovery. Earlier September counts are historical. The supported
+architecture remains a supervised private workstation; remote/mutually untrusted
+use requires a different identity, isolation and operations design.

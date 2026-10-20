@@ -329,7 +329,9 @@ describe("architecture: explained flows and measured checks", () => {
       within(mobile).getByRole("button", { name: /Reviewed runbooks/ }),
     );
     expect(
-      within(details()).getByText(/snapshots do not back up source Markdown/),
+      within(details()).getByText(
+        /Platform backups include the active Markdown corpus\. Mission files are included only from explicitly configured roots/,
+      ),
     ).toBeInTheDocument();
     expect(within(details()).getByRole("link")).toHaveAttribute(
       "href",

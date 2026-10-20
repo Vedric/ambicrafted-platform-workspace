@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const yaml = require('yaml');
 
 test('Les évaluations locales ne déclarent aucun fournisseur externe ni juge distant', () => {
-  const config = yaml.parse(fs.readFileSync('promptfooconfig.local.yaml', 'utf8'));
+  const config = yaml.parse(fs.readFileSync('archive/promptfooconfig.local.yaml', 'utf8'));
   assert.ok(config.providers.length > 0);
   for (const provider of config.providers) {
     assert.equal(provider.id, 'openai:chat:local');
@@ -20,7 +20,7 @@ test('Les évaluations locales ne déclarent aucun fournisseur externe ni juge d
 });
 
 test('Les assertions locales sont des expressions exécutables et refusent une source inventée', () => {
-  const config = yaml.parse(fs.readFileSync('promptfooconfig.local.yaml', 'utf8'));
+  const config = yaml.parse(fs.readFileSync('archive/promptfooconfig.local.yaml', 'utf8'));
   for (const example of config.tests) {
     for (const assertion of example.assert.filter(a => a.type === 'javascript')) {
       const evaluate = new Function('output', `return (${assertion.value});`);

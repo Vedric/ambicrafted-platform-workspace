@@ -303,6 +303,7 @@ def extraction(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
         budget=budget,
         tache="extraction",
         max_tokens=MAX_TOKENS_LOCAL,
+        schema_json=Extraction.schema_sortie(),
     )
     extrait = Extraction.model_validate(extraire_json(reponse.contenu))
     return {
@@ -329,8 +330,9 @@ def classification(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
         budget=budget,
         tache="classification",
         max_tokens=MAX_TOKENS_TRI,
+        schema_json=ClassificationAlerte.schema_sortie(),
     )
-    tri = ClassificationAlerte.model_validate(extraire_json(reponse.contenu))
+    tri = ClassificationAlerte.depuis_modele(extraire_json(reponse.contenu))
     return {
         "classification": tri,
         "messages": prompts.messages_raisonnement(extrait, tri),
@@ -348,7 +350,7 @@ def raisonnement(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
     """
     reponse = appeler_llm(
         alias=config.ALIAS_RAISONNEMENT,
-        messages=etat["messages"],
+        messages=prompts.avec_observations_originales(etat["messages"], _alerte_courante),
         classification=Classification.CONFIDENTIEL,
         budget=budget,
         tache="raisonnement",

@@ -60,7 +60,9 @@ with motion preferences, hidden tabs or keyboard focus. They do not gate access 
 ## Install and start
 
 Run from the checkout root, with the pinned Node/npm versions declared in
-`apps/console/package.json` and `uv` available:
+`apps/console/package.json` and `uv` available. First install the
+[Linux host prerequisites](HOST-TOOLS.md): bubblewrap, libseccomp2 and working
+unprivileged namespaces are mandatory for document extraction.
 
 ```sh
 uv sync --locked --all-extras --project agents/sre-agent
@@ -70,12 +72,17 @@ cd apps/console
 npm ci
 npm run build
 cd ../..
+./plateforme prerequis
 ./plateforme servir
 ```
 
 The wrapper also finds `~/.local/bin/uv` when it is not on `PATH`. It resolves
 the checkout from its own location, so it works from another current directory.
 Do not move an installed checkout without reinstalling the user service.
+The generated service explicitly searches `~/.local/bin` before standard system
+tool directories. `servir` and service installation fail before startup if the
+real synthetic extraction probe fails. The probe runs again inside the systemd
+service's isolation constraints; no parser fallback disables isolation.
 The gateway, local inference service and knowledge index must be configured as
 described in [operations](OPERATIONS.md). Starting the console does not silently
 start Docker services or send confidential workloads to a remote model.
@@ -439,10 +446,13 @@ to Docker operations grants substantial authority on the host and belongs only
 to the trusted local operator. The current deployment deliberately has no
 public ingress, multi-user authorization or unattended remediation.
 
-The [26 September 2026 security assessment](SECURITY-RELEASE-2026-09-26.md)
-retains 166 HIGH package occurrences in the promoted images. Its conditional GO
-covers existing supervised private-workstation use only. Unqualified production
-security approval and remote/mutually untrusted use remain NO-GO at that snapshot.
+The [20 October candidate qualification](QUALIFICATION-2026-10-20.md) records
+56 HIGH occurrences in signed Grafana plugins and one in Qdrant's frontend
+dependency inventory. The release security gate remains failed; these candidate
+results do not assert that the running workstation was upgraded. The
+[26 September assessment](SECURITY-RELEASE-2026-09-26.md), including its
+166 HIGH count and conditional private-workstation decision, is historical.
+Remote or mutually untrusted use remains outside the supported scope.
 
 
 ### Background sound and natural speech

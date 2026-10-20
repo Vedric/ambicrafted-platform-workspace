@@ -15,6 +15,9 @@ Console **0.4.5**, control API **0.4.2**, local speech runtime **0.3.2**.
 See the [0.4.5 delivery report](docs/RELEASE-0.4.5.md) for exact qualification and
 remaining conditions. This is a private, single-operator workspace; it is not a
 multi-tenant commercial service or a zero-vulnerability certification.
+The [20 October qualification](docs/QUALIFICATION-2026-10-20.md) records the
+current hardening, real test results, model-quality limits and blocked image
+release gate. Earlier release reports remain historical evidence.
 
 This version adds [saved conversations and documents](docs/CONVERSATIONS.md),
 [dedicated graph memory](docs/MEMORY.md), the [NEXUS MCP gateway](docs/MCP-GATEWAY.md),
@@ -136,9 +139,9 @@ See [the architecture guide](docs/ARCHITECTURE.md#operational-charts-and-interac
 | MCP runbooks | Four bounded, read-only tools |
 | SRE loop / LangGraph | Local analysis; the graph adds durable human approval |
 | Tempo, Prometheus, Grafana | Local traces, metrics, availability rules and dashboard |
-| promptfoo | Synthetic model evaluations, with a local-only configuration |
+| Local workflow qualification | 51 synthetic cases through the real graph/MCP: 39 regressions, 12 new holdouts, separate expert review |
 | React / FastAPI console | Authenticated local workspace, bounded jobs, SSE and approvals |
-| Unified CLI / NEXUS MCP | Operator commands, 19 readiness checks, four runbook and eleven read-only control tools |
+| Unified CLI / NEXUS MCP | Operator commands, 20 readiness checks, four runbook and eleven read-only control tools |
 | Multilingual ONNX speech / faster-whisper | Offline English/French female speech and transcription on CPU |
 
 ```mermaid
@@ -146,6 +149,7 @@ flowchart LR
   A[Confidential alert] --> E[Local extraction]
   E --> T[Local triage]
   T --> R[Local reasoning]
+  A -. Ephemeral local comparison .-> R
   R --> M[Read-only MCP]
   M --> F[Versioned runbooks]
   M --> Q[Qdrant alias]
@@ -177,6 +181,15 @@ Python versions explicitly when preparing a new workstation:
 export PATH="$HOME/.local/bin:$PATH"
 uv python install 3.14.7 3.13.15
 ```
+
+The qualified server target is Ubuntu 24.04 amd64, including WSL2 with systemd.
+Document extraction requires bubblewrap, libseccomp2 and working Linux namespaces.
+Install the [host prerequisites](docs/HOST-TOOLS.md), then run
+`./plateforme prerequis` before starting or installing the console service.
+The guide includes a verified private installer when administrator access is
+unavailable and a pinned age installer for encrypted backup export.
+Native Windows/macOS servers and a second machine are not yet qualified.
+The dedicated Neo4j amd64 image requires an x86-64-v3 CPU.
 
 1. Review [gateway setup](gateway/README.md), prepare its private environment
    from `gateway/.env.example`, and start the six core services. The monitoring exporter uses the optional
@@ -246,13 +259,11 @@ missed calendar events are caught up through `Persistent=true`.
 - [Contributing and checks](CONTRIBUTING.md)
 - [Remaining dependency risks](docs/DEPENDENCIES.md)
 
-The [security review dated 26 September 2026](docs/SECURITY-RELEASE-2026-09-26.md)
-records **166 remaining HIGH package occurrences** in the promoted images.
-Continued supervised use in the existing private workstation scope has a
-**conditional GO**. Unqualified production security sign-off, remote exposure
-and mutually untrusted users remain **NO-GO** under that assessment. Readiness
-checks and green functional tests do not resolve those findings or establish
-high availability, exhaustive incident coverage or a vulnerability-free system.
-Reassess the dated findings against a fresh scan before expanding the scope.
+The [current qualification](docs/QUALIFICATION-2026-10-20.md) records the tested
+scope and remaining release gates. Private supervised use, functional CI,
+vulnerability remediation and production acceptance are separate conclusions.
+Readiness checks do not establish high availability, exhaustive incident coverage
+or a vulnerability-free system. Historical security reports retain their original
+dates and must not be used as current scan results.
 
 License: Apache-2.0.

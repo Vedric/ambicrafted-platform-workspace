@@ -12,16 +12,19 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
+from fastapi import HTTPException
 from mcp import ClientSession, StdioServerParameters, stdio_client
 
 from .config import Parametres, lire_environnement
 from .corpus import Corpus
+from .documents import extraire
 from .passerelle import AUTORISES
 from .services import Services, json_borne
 from .voix import Voix
 
 CACHE_SECONDES = 30
 DELAI_SONDE = 20
+DELAI_DOCUMENT = 5
 LIMITES = [
     "This is local operational readiness, not a security or production certification.",
     "One trusted operator on this workstation; remote access and tenant isolation are not supported.",
@@ -138,6 +141,7 @@ class Preparation:
             debut = time.monotonic()
             groupes = await asyncio.gather(
                 self.borne("runtime", self.runtime),
+                self.borne("runtime_documents", self.documents),
                 self.borne("configuration", self.configuration),
                 self.borne("configuration_listener", self.ecoute),
                 self.borne("services", self.demons),
@@ -178,6 +182,7 @@ class Preparation:
                     "voice_en": "voice_en" in succes,
                     "voice_fr": "voice_fr" in succes,
                     "mcp_readonly": {"mcp_control", "mcp_runbooks"} <= succes,
+                    "document_ingestion": "runtime_documents" in succes,
                 },
                 "limits": LIMITES,
             }
@@ -278,6 +283,32 @@ class Preparation:
                     "cross_origin_development": bool(self.p.origine_dev),
                 },
             ),
+        ]
+
+    async def documents(self) -> list[dict]:
+        """Exercise mandatory kernel isolation using only a fixed synthetic byte.
+
+        This coalesced/cached probe may coexist with the single admitted user
+        upload. It never opens a conversation or persists a document.
+        """
+        try:
+            async with asyncio.timeout(DELAI_DOCUMENT):
+                result = await extraire("readiness.txt", "eA==")
+            ok = result == {"kind": "text", "text": "x", "truncated": False}
+        except HTTPException, TimeoutError:
+            ok = False
+        return [
+            controle(
+                "runtime_documents",
+                "runtime",
+                "pass" if ok else "fail",
+                "Document sandbox",
+                "A fixed synthetic document was extracted through the required Linux sandbox."
+                if ok
+                else "Secure document extraction is unavailable. Check bubblewrap, libseccomp and Linux namespace support.",
+                preuve={"synthetic_extraction": ok, "kernel_isolation_required": True},
+                commande="uv run --locked --project apps/control-api pytest apps/control-api/tests/test_document_sandbox.py -q",
+            )
         ]
 
     async def ecoute(self) -> list[dict]:

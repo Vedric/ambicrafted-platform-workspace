@@ -5,19 +5,22 @@ The current security model is defined by
 It assumes a single trusted workstation user and a trusted local gateway.
 It does not defend against root or a compromised model server.
 
-Current image gate: **0 CRITICAL, 50 HIGH**, still failed. See the
-[29 September assessment](docs/SECURITY-2026-09-29.md). Functional qualification
-does not certify vulnerability-free deployment.
+The release image gate fails on any HIGH/CRITICAL occurrence or incomplete scan.
+See the [20 October qualification](docs/QUALIFICATION-2026-10-20.md) for the
+candidate, exact scope and remaining upstream findings. Earlier dated assessments
+remain historical. Functional qualification does not certify a vulnerability-free
+deployment.
 
 ## Data classification and storage
 
 | Data | Storage and routing |
 |---|---|
-| Raw alert supplied to the agent | In-memory invocation context; never a dedicated checkpoint field |
+| Raw alert supplied to the agent | In-memory invocation context and ephemeral local reasoning request; the added original-input message is not persisted |
 | Extraction, injection quotations, model/tool messages and diagnoses | Confidential; local model only; graph checkpoints may retain identifiers missed by extraction |
 | Checkpoints | SQLite file 0600; newly created parent 0700; existing parent permissions are not changed |
 | Virtual/provider/master keys | Private `.env` files; never printed by provisioning or operational scripts |
 | Backups | Local 0700 directory with private files; includes secrets, database contents and incident state |
+| Saved conversations and extracted attachments | Private console SQLite tables, local inference only; bounded retention and explicit deletion |
 | Runbooks | Versioned files; content remains untrusted input for reasoning |
 | Traces | Local Tempo; tool arguments and raw HTTP/error bodies are not deliberately recorded by the agent |
 
@@ -59,6 +62,12 @@ logical deletion mechanism and need their own lifecycle.
   stop. A post-call spending threshold is not an exact prepaid invoice cap.
 - HTTP/MCP/configuration failures produce bounded, sanitized errors instead
   of copying upstream response bodies or validation inputs into reports.
+- Uploaded documents require Linux namespaces, a read-only parser filesystem,
+  native syscall restrictions and bounded streams. Missing isolation fails
+  closed; see [the document boundary](docs/DOCUMENT-SECURITY.md).
+- Encrypted backup exports require a verified inventory and the qualified age
+  tool. Import stages into a new private directory and never activates restored
+  services. Off-host custody remains a separate operator responsibility.
 
 Offline regression tests cover these refusal paths. Real-service tests
 add evidence about deployment and routing; they do not prove model quality.
@@ -104,9 +113,11 @@ expires audit events and editor revisions after 30 days. Backups have a separate
 
 Microphone capture requires a browser gesture. Only local transcription receives
 audio; audio is bounded and its private temporary directory is removed after the
-operation. No browser cloud speech-recognition API is used. Conversation history
-exists only in the current page's memory and uses the restricted local gateway
-key. It cannot approve analyses or execute operations. The read-only control MCP
+operation. No browser cloud speech-recognition API is used. Saved conversation
+history and extracted attachments persist in private SQLite storage and use the
+restricted local gateway key. Selecting saved sources or copying a note to Neo4j
+is explicit; no cross-client memory is inferred. AURA cannot approve analyses or
+execute operations. The read-only control MCP
 must only be launched by a trusted local operator; its credential grants API
 authority even though its exposed tools do not mutate state.
 

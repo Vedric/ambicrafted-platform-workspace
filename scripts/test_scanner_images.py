@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import base64
 import io
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
+import uuid
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
@@ -53,6 +56,7 @@ class ScannerTests(unittest.TestCase):
     def payload(severities: tuple[str, ...] = ()) -> dict:
         return {
             "SchemaVersion": 2,
+            "Metadata": {"ImageID": "sha256:" + "a" * 64},
             "Results": [
                 {
                     "Target": "synthetic-image",
@@ -68,8 +72,8 @@ class ScannerTests(unittest.TestCase):
         self, argv: list[str], **kwargs: object
     ) -> subprocess.CompletedProcess:
         self.assertIs(kwargs["stdin"], subprocess.DEVNULL)
-        self.assertIs(kwargs["stdout"], subprocess.DEVNULL)
-        self.assertIs(kwargs["stderr"], subprocess.DEVNULL)
+        self.assertTrue(hasattr(kwargs["stdout"], "write"))
+        self.assertIs(kwargs["stderr"], subprocess.STDOUT)
         self.assertNotIn("shell", kwargs)
         if argv[0] != "docker":
             Path(argv[argv.index("--output") + 1]).write_text(
@@ -131,14 +135,55 @@ class ScannerTests(unittest.TestCase):
         builds = [
             call.args[0]
             for call in run.call_args_list
-            if call.args[0][:2] == ["docker", "build"]
+            if call.args[0][:3] == ["docker", "buildx", "build"]
         ]
         self.assertEqual(len(builds), 2)
         self.assertEqual(
             {Path(argv[-1]).name for argv in builds}, {"postgres", "qdrant"}
         )
-        self.assertTrue(all(argv[2:4] == ["--pull", "--tag"] for argv in builds))
+        self.assertTrue(
+            all(argv[3:6] == ["--load", "--pull", "--tag"] for argv in builds)
+        )
         self.assertEqual(len(list(self.output.glob("trivy-*.json"))), 7)
+
+    def test_failure_diagnostic_is_bounded_redacted_and_drops_credentials(self) -> None:
+        diagnostic = self.root / "failure.log"
+        marker = "synthetic-private-credential-123"
+        header_value = uuid.uuid4().hex
+        program = (
+            "import os,sys;"
+            "assert 'EXAMPLE_SECRET' not in os.environ;"
+            "assert 'TRIVY_IGNORE_UNFIXED' not in os.environ;"
+            "print('x'*40000);"
+            f"print('compiler failed: {marker}');"
+            f"print('Authorization=Bearer '+{header_value!r});"
+            "sys.exit(7)"
+        )
+        with patch.dict(
+            os.environ,
+            {
+                "EXAMPLE_SECRET": marker,
+                "TRIVY_IGNORE_UNFIXED": "true",
+            },
+        ):
+            error = scanner.command([sys.executable, "-c", program], 10, diagnostic)
+        self.assertEqual(error, "code 7")
+        text = diagnostic.read_text()
+        self.assertLessEqual(len(text), 16384)
+        self.assertIn("compiler failed", text)
+        self.assertNotIn(marker, text)
+        self.assertNotIn(header_value, text)
+        self.assertEqual(diagnostic.stat().st_mode & 0o777, 0o600)
+
+    def test_one_service_uses_same_failure_policy_and_records_image_identity(
+        self,
+    ) -> None:
+        with patch.object(scanner.subprocess, "run", side_effect=self.fake_command):
+            code = scanner.main([*self.arguments(), "--service", "litellm"])
+        self.assertEqual(code, 0)
+        summary = json.loads((self.output / "summary.json").read_text())
+        self.assertEqual(len(summary["images"]), 1)
+        self.assertEqual(summary["images"][0]["image_id"], "sha256:" + "a" * 64)
 
     def test_reject_ambiguous_unpinned_or_dynamic_compose_without_echo(self) -> None:
         replacement = f"example/litellm:1.0@sha256:{'a' * 64}"
@@ -196,7 +241,9 @@ class ScannerTests(unittest.TestCase):
         )
         self.assertEqual(len(list(self.output.glob("trivy-*.json"))), 7)
 
-    def test_scan_failure_continues_other_services_and_keeps_partial_report(self) -> None:
+    def test_scan_failure_continues_other_services_and_keeps_partial_report(
+        self,
+    ) -> None:
         def failing(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
             result = self.fake_command(argv, **kwargs)
             if argv[0] != "docker" and "litellm" in argv[-1]:
@@ -249,6 +296,21 @@ class ScannerTests(unittest.TestCase):
                 patch.object(scanner.subprocess, "run", side_effect=exception),
             ):
                 self.assertEqual(scanner.command(["unavailable"], 1), expected)
+
+    def test_diagnostics_redact_quoted_and_basic_credentials(self) -> None:
+        basic = base64.b64encode(b"synthetic:only").decode()
+        for payload, sensitive in [
+            (f"Authorization: Basic {basic}", basic),
+            ('{"token": "synthetic-only-secret"}', "synthetic-only-secret"),
+            ('password="synthetic-only-secret"', "synthetic-only-secret"),
+            ("api_key='synthetic-only-secret'", "synthetic-only-secret"),
+            ('{"secret": "escaped \\"synthetic\\" value"}', "synthetic"),
+            ("Cookie: session=synthetic-session; csrf=synthetic-csrf", "synthetic"),
+        ]:
+            with self.subTest(payload=payload):
+                redacted = scanner.sanitized_tail(payload.encode())
+                self.assertNotIn(sensitive, redacted)
+                self.assertIn("[REDACTED]", redacted)
 
     def test_invalid_or_empty_report_never_passes(self) -> None:
         self.output.mkdir()

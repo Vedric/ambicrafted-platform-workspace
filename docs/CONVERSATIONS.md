@@ -62,7 +62,17 @@ claim. Spreadsheets include sheet labels and cell references, shared strings and
 cached formula results. Formulas and macros never execute. Slides follow the
 presentation's relationship order. Unsupported formats return an explicit error.
 Office archive expansion, XML entities and parsing time/memory are bounded. The
-parser subprocess is **not an OS sandbox** for arbitrary hostile files.
+parser runs in a mandatory **Linux OS sandbox**: read-only runtime/package mounts,
+no host home or project files, isolated network/PID namespaces, and a kernel
+syscall allowlist that blocks socket creation, fork and execution. It has no
+writable temporary storage. Parsed text remains untrusted LLM input.
+
+The API accepts one extraction at a time across all conversations. A competing
+upload receives HTTP 409 immediately. Each extraction has a 20-second deadline,
+12 CPU seconds, a 1 GiB address-space cap, 64 file descriptors and bounded stdout.
+Missing isolation prerequisites return HTTP 503 with no attachment saved; there
+is no unsafe compatibility fallback. See [document sandbox operations](DOCUMENT-SECURITY.md)
+and [ADR 0032](adr/0032-isolation-systeme-des-documents.md).
 
 History retains at most 500 conversations and 200 complete turns per conversation;
 inactive threads expire after 30 days. The UI displays the latest 100 messages.

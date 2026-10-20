@@ -3,7 +3,9 @@
 import importlib.util
 import os
 import sqlite3
+import subprocess
 import sys
+from contextlib import closing
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,6 +21,7 @@ AUTH_TICKET = "fixture-ticket-must-never-reach-a-backup-file"
 @pytest.fixture
 def scripts(monkeypatch):
     racine = Path(__file__).resolve().parents[3] / "scripts"
+    monkeypatch.syspath_prepend(str(racine))
     resultats = {}
     for nom in ("memoire_sauvegarde", "sauvegarder", "tester_restauration"):
         spec = importlib.util.spec_from_file_location(nom, racine / (nom + ".py"))
@@ -194,6 +197,100 @@ def test_restauration_jetable_compte_sans_toucher_source(scripts, donnees):
     }
     assert donnees.console.execute("SELECT count(*) FROM sessions").fetchone()[0] == 1
     assert donnees.graphe.execute("SELECT count(*) FROM checkpoints").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("mode", ["legacy", "grafana"])
+def test_snapshot_capture_wal_et_normalise_seulement_destination(scripts, tmp_path, mode):
+    source = tmp_path / "live.sqlite"
+    destination = tmp_path / "snapshot.sqlite"
+    with closing(
+        base_privee(
+            source,
+            "PRAGMA journal_mode=WAL; PRAGMA wal_autocheckpoint=0;"
+            "CREATE TABLE evidence(value TEXT);",
+        )
+    ) as live:
+        live.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        live.execute("INSERT INTO evidence VALUES('committed-only-in-wal')")
+        live.commit()
+        assert Path(str(source) + "-wal").stat().st_size > 0
+        with closing(sqlite3.connect(source.as_uri() + "?immutable=1", uri=True)) as raw:
+            assert raw.execute("SELECT count(*) FROM evidence").fetchone()[0] == 0
+        if mode == "legacy":
+            with scripts.sauvegarder.sqlite_prive(source) as entree:
+                scripts.sauvegarder.publier_sqlite(entree, destination)
+        else:
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    scripts.sauvegarder.PROGRAMME_GRAFANA,
+                    str(source),
+                    str(destination),
+                    str(os.getuid()),
+                    str(os.getgid()),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=10,
+            )
+        assert live.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+        assert Path(str(source) + "-wal").stat().st_size > 0
+    with closing(sqlite3.connect(destination.as_uri() + "?mode=ro", uri=True)) as copied:
+        assert copied.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
+        assert copied.execute("SELECT value FROM evidence").fetchone() == (
+            "committed-only-in-wal",
+        )
+    assert destination.stat().st_mode & 0o777 == 0o600
+    assert not list(tmp_path.glob("snapshot.sqlite-*"))
+
+
+@pytest.mark.parametrize("nom", ["graphe.sqlite", "grafana.sqlite"])
+def test_validation_ancienne_archive_wal_repetee_ne_modifie_aucun_fichier(
+    scripts, tmp_path, nom
+):
+    from inventaire_sauvegarde import inventaire, verifier_inventaire
+
+    path = tmp_path / nom
+    with closing(
+        base_privee(
+            path,
+            "PRAGMA journal_mode=WAL; CREATE TABLE evidence(value TEXT);"
+            "INSERT INTO evidence VALUES('complete-closed-snapshot');",
+        )
+    ):
+        pass
+    assert not list(tmp_path.glob("*-wal"))
+    assert path.read_bytes()[18:20] == b"\x02\x02"  # A closed legacy WAL snapshot.
+    manifest = {"integrite": inventaire(tmp_path)}
+    before = path.read_bytes()
+    for _ in range(2):
+        assert scripts.tester_restauration.verifier_sqlite(tmp_path) == {nom: True}
+        verifier_inventaire(tmp_path, manifest)
+        assert path.read_bytes() == before
+        assert list(tmp_path.iterdir()) == [path]
+
+
+def test_console_archive_wal_validation_repetee_sans_annexes(scripts, donnees):
+    from inventaire_sauvegarde import inventaire, verifier_inventaire
+
+    description = scripts.sauvegarder.copier_console(donnees.etat, donnees.destination)
+    for path in donnees.destination.rglob("*.sqlite"):
+        with closing(sqlite3.connect(path)) as connection:
+            connection.execute("PRAGMA journal_mode=WAL")
+    manifest = {"integrite": inventaire(donnees.destination)}
+    for _ in range(2):
+        result = scripts.tester_restauration.verifier_console(donnees.destination, description)
+        assert result["analyses_console"] == 2 and result["checkpoints_console"] == 1
+        verifier_inventaire(donnees.destination, manifest)
+
+
+def test_snapshot_immutable_refuse_un_wal_actif(scripts, donnees):
+    with (
+        pytest.raises(ValueError, match="figé"),
+        scripts.sauvegarder.sqlite_prive(donnees.etat / "console.sqlite", fige=True),
+    ):
+        pytest.fail("A live WAL database must never be treated as immutable")
 
 
 def test_console_absente_et_sauvegarde_ancienne(scripts, tmp_path):

@@ -23,7 +23,8 @@ from uuid import UUID, uuid4
 import httpx
 
 from . import __version__
-from .config import Parametres
+from .config import Parametres, lire_environnement
+from .prerequis import chemin_outils
 
 OPERATIONS = ("verifier", "indexer", "sauvegarder", "tester-restauration")
 ACTIFS = {"en_file", "en_cours", "decision"}
@@ -289,6 +290,9 @@ def analyseur() -> argparse.ArgumentParser:
     commandes.add_parser(
         "preparation", aliases=["doctor"], help="Diagnostiquer les capacités locales mesurées."
     )
+    commandes.add_parser(
+        "prerequis", help="Vérifier l'isolation Linux et les outils sans démarrer l'API."
+    )
     commandes.add_parser("vue-ensemble", help="Afficher les indicateurs de la plateforme.")
     commandes.add_parser("parametres", help="Afficher les paramètres publics, sans secrets.")
     commandes.add_parser("veille", help="Consulter le bulletin technologique public mis en cache.")
@@ -441,6 +445,30 @@ def repertoire_systemd(valeur: str) -> str:
     return valeur.replace("%", "%%")
 
 
+def verifier_prerequis(p: Parametres) -> dict:
+    valeurs = lire_environnement(p.racine)
+    commande = [sys.executable, "-m", "plateforme.prerequis"]
+    if os.environ.get("PLATFORM_BACKUP_EXPORT_DIR") or valeurs.get("PLATFORM_BACKUP_EXPORT_DIR"):
+        commande.append("--avec-export")
+    try:
+        result = subprocess.run(
+            commande,
+            capture_output=True,
+            timeout=20,
+            check=False,
+            env={"HOME": str(Path.home()), "PATH": chemin_outils(), "LANG": "C.UTF-8"},
+        )
+        data = json.loads(result.stdout)
+        if result.returncode or not isinstance(data, dict) or data.get("ok") is not True:
+            raise ValueError("Host prerequisites unavailable")
+        return data
+    except OSError, subprocess.SubprocessError, ValueError, TypeError:
+        raise ErreurCLI(
+            "Prérequis Linux non satisfaits : vérifier bubblewrap, libseccomp2, les namespaces "
+            "et age si l'export est configuré. Voir docs/HOST-TOOLS.md ; aucun mode non isolé."
+        ) from None
+
+
 def installer_service(p: Parametres, *, demarrer: bool, remplacer: bool) -> dict:
     if not shutil.which("systemctl"):
         raise ErreurCLI("systemd utilisateur est nécessaire pour installer le service.")
@@ -461,6 +489,7 @@ def installer_service(p: Parametres, *, demarrer: bool, remplacer: bool) -> dict
             raise ErreurCLI("L'unité existe déjà. Utiliser --remplacer après examen.")
         if "# Managed by Ambicrafted CLI" not in chemin.read_text():
             raise ErreurCLI("L'unité existante n'est pas gérée par ce CLI ; elle est conservée.")
+    verifier_prerequis(p)
     texte = f"""# Managed by Ambicrafted CLI
 [Unit]
 Description=Ambicrafted private agentic console
@@ -474,6 +503,7 @@ WorkingDirectory={repertoire_systemd(str(p.racine))}
 ExecStart={argument_systemd(str(p.racine / "plateforme"), commande=True)} servir
 Environment=PLATFORM_PORT={p.port}
 Environment={argument_systemd("PLATFORM_STATE_DIR=" + str(p.etat))}
+Environment={argument_systemd("PATH=" + chemin_outils())}
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=15
@@ -518,6 +548,8 @@ WantedBy=default.target
 
 
 def executer(args: argparse.Namespace, p: Parametres) -> Any:
+    if args.commande == "prerequis":
+        return verifier_prerequis(p)
     if args.commande == "observabilite" and args.action != "afficher":
         import asyncio
 
@@ -539,6 +571,8 @@ def executer(args: argparse.Namespace, p: Parametres) -> Any:
             raise ErreurCLI(
                 "Construire la console avec npm ci puis npm run build dans apps/console."
             )
+        verifier_prerequis(p)
+        os.environ["PATH"] = chemin_outils()
         import uvicorn
 
         uvicorn.run(
