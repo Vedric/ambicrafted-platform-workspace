@@ -12,7 +12,7 @@ RUN apt-get update \
         perl-base=5.40.1-6+deb13u1 \
     && rm -rf /var/lib/apt/lists/*
 
-FROM node:24.21.0-bookworm@sha256:64af3819f9275802414d7cdc38c27e9d82bd564dec4d4da87d008255d36c63b4 AS web-ui
+FROM node:24.22.0-bookworm@sha256:14078204b6bb268c107ceff6d3c43f45a888105e5c2b18b14c32b3409d93a1b0 AS web-ui
 ADD --checksum=sha256:41bb1ae7fa6e7011e62a0990ab2a90abfd3e44f4d2a0aa076e68c6dc8f39b44f https://codeload.github.com/qdrant/qdrant-web-ui/tar.gz/4a211d6dbbf1a60f0bc7035a49336df166a8dcd8 /tmp/source.tar.gz
 WORKDIR /src
 RUN tar -xzf /tmp/source.tar.gz --strip-components=1 -C /src \
@@ -51,7 +51,7 @@ RUN test "$(dpkg --print-architecture)" = amd64 \
     && chown 65532:65532 /runtime/qdrant/storage /runtime/qdrant/snapshots
 ADD --checksum=sha256:210b508429e913d9de5301f90508bc2cbf5b2281de5b45e607c04d58f0f3bd8f https://raw.githubusercontent.com/qdrant/qdrant/6ab21cac18ebb6f4ae29102c7f8f5cc11affd5de/LICENSE /runtime/usr/share/licenses/qdrant/LICENSE
 
-FROM node:24.21.0-bookworm@sha256:64af3819f9275802414d7cdc38c27e9d82bd564dec4d4da87d008255d36c63b4 AS health-builder
+FROM node:24.22.0-bookworm@sha256:14078204b6bb268c107ceff6d3c43f45a888105e5c2b18b14c32b3409d93a1b0 AS health-builder
 ADD --checksum=sha256:65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40 https://go.dev/dl/go1.27.3.linux-amd64.tar.gz /tmp/go.tar.gz
 RUN test "$(uname -m)" = x86_64 && tar -xzf /tmp/go.tar.gz -C /usr/local
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOTOOLCHAIN=local GOMAXPROCS=2
