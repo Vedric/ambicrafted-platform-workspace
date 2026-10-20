@@ -11,7 +11,7 @@ dependencies = [
     "pillow==12.3.0",
     "prometheus-client==0.26.0",
     "pypdf==6.19.0",
-    "python-dotenv==1.2.3",
+    "python-dotenv==1.2.4",
     "sre-agent[graphe]==0.1.0",
     "uvicorn==0.54.0",
 ]
