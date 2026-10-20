@@ -7,7 +7,7 @@ dependencies = [
     "defusedxml==0.7.1",
     "fastapi==0.141.1",
     "httpx==0.28.1",
-    "mcp==2.2.0",
+    "mcp==2.3.0",
     "pillow==12.3.0",
     "prometheus-client==0.26.0",
     "pypdf==6.19.0",
