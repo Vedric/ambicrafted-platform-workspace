@@ -26,6 +26,21 @@ unsafe files fail verification. The manifest records the repository revision,
 whether its working tree was clean, the source roots, exclusions and lack of
 atomicity across services. The manifest is private too; do not publish it.
 
+SQLite backup APIs include committed live WAL transactions. Each completed copy
+is normalized to `journal_mode=DELETE` before inventorying, without changing the
+live database's journal mode. The restore drill opens only frozen snapshots with
+`immutable=1`, then checks the inventory again: even repeated verification must
+not create `-wal` or `-shm` files. Never use this option against a live database.
+Older complete snapshots with a WAL header can be read without creating sidecars.
+If an existing backup contains unlisted sidecars, retain it unchanged, investigate
+their origin and validate a separate copy of the inventoried files. Do not delete
+WAL files from an active database or accept unverified missing transactions.
+The Grafana source mount stays read-only. If Grafana uses WAL and has been stopped
+with no remaining sidecars, SQLite may refuse that source mount; the backup then
+fails closed. Check the configured journal mode before maintenance, or qualify a
+separate writable copy of the stopped volume. Do not enable `immutable=1` on the
+live source or make its source mount writable to bypass this refusal.
+
 | Data | Included | Recovery constraint |
 |---|---|---|
 | Root/gateway configuration and secrets | Existing `.env` and Compose/config files | Local copy is confidential plaintext; off-host copy must be encrypted. |

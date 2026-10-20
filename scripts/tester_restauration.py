@@ -11,7 +11,6 @@ import json
 import re
 import secrets
 import socket
-import sqlite3
 import subprocess
 import tempfile
 import time
@@ -53,7 +52,7 @@ def verifier_console(dossier: Path, description: dict | None) -> dict:
     verifier_dossier_prive(dossier / "console")
     with tempfile.TemporaryDirectory(prefix="platform-console-restore-") as temporaire:
         cible = Path(temporaire)
-        with sqlite_prive(dossier / "console/console.sqlite") as entree:
+        with sqlite_prive(dossier / "console/console.sqlite", fige=True) as entree:
             if any(
                 entree.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
                 for table in ("sessions", "tickets")
@@ -123,7 +122,7 @@ def verifier_console(dossier: Path, description: dict | None) -> dict:
             ):
                 raise ValueError("Identifiant de checkpoint invalide.")
             verifier_dossier_prive(dossier / "console/analyses")
-            with sqlite_prive(dossier / checkpoint["fichier"]) as entree:
+            with sqlite_prive(dossier / checkpoint["fichier"], fige=True) as entree:
                 publier_sqlite(entree, cible / (identifiant + ".sqlite"))
             vus.add(identifiant)
         if len(identifiants) - len(vus) != description["sans_checkpoint"]:
@@ -148,6 +147,20 @@ def commande(*args, **kwargs):
         timeout=120,
         **kwargs,
     )
+
+
+def verifier_sqlite(dossier: Path) -> dict:
+    """Read only completed, inventoried snapshots, including legacy WAL headers."""
+    resultat = {}
+    for nom in ("grafana.sqlite", "graphe.sqlite"):
+        if (dossier / nom).exists():
+            with sqlite_prive(dossier / nom, fige=True) as connexion:
+                resultat[nom] = (
+                    connexion.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+                )
+                if not resultat[nom]:
+                    raise ValueError("Sauvegarde SQLite incohérente.")
+    return resultat
 
 
 def verifier(dossier: Path) -> dict:
@@ -305,20 +318,7 @@ def verifier(dossier: Path) -> dict:
                 resultat[f"points_qdrant_{i}"] = response.json()["result"][
                     "points_count"
                 ]
-        for nom in ("grafana.sqlite", "graphe.sqlite"):
-            if (dossier / nom).exists():
-                connexion = sqlite3.connect(
-                    (dossier / nom).as_uri() + "?mode=ro", uri=True
-                )
-                try:
-                    resultat[nom] = (
-                        connexion.execute("PRAGMA integrity_check").fetchone()[0]
-                        == "ok"
-                    )
-                    if not resultat[nom]:
-                        raise ValueError("Sauvegarde SQLite incohérente.")
-                finally:
-                    connexion.close()
+        resultat.update(verifier_sqlite(dossier))
         memory_config = RACINE / "gateway/neo4j-memory.yml"
         memory_image = (
             next(
@@ -335,6 +335,8 @@ def verifier(dossier: Path) -> dict:
         resultat.update(
             verifier_memoire(dossier, manifeste.get("memoire"), memory_image)
         )
+        # Restoration must not mutate the source archive, even by adding sidecars.
+        verifier_inventaire(dossier, manifeste)
         return resultat
     finally:
         for conteneur in reversed(conteneurs):

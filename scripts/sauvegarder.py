@@ -23,6 +23,27 @@ from inventaire_sauvegarde import copier_sources, inventaire
 RACINE = Path(__file__).resolve().parents[1]
 DESTINATION = Path.home() / ".local/state/platform-backups"
 
+# Executed in the existing Python image against a read-only Grafana mount.
+# Only the completed destination changes journal mode; the live WAL is included.
+PROGRAMME_GRAFANA = """
+import os, sqlite3, sys
+from contextlib import closing
+from pathlib import Path
+source, destination, uid, gid = sys.argv[1:]
+fd = os.open(destination, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+os.close(fd)
+with closing(sqlite3.connect(Path(source).as_uri() + '?mode=ro', uri=True)) as a:
+    with closing(sqlite3.connect(destination)) as b:
+        a.backup(b)
+        b.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+        if b.execute('PRAGMA journal_mode=DELETE').fetchone()[0] != 'delete':
+            raise ValueError('SQLite snapshot journal mode was not normalized')
+        if b.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+            raise ValueError('SQLite snapshot is inconsistent')
+os.chown(destination, int(uid), int(gid))
+os.chmod(destination, 0o600)
+"""
+
 
 def verifier_dossier_prive(chemin: Path) -> None:
     """Reject links and public state directories before opening any database."""
@@ -38,8 +59,8 @@ def verifier_dossier_prive(chemin: Path) -> None:
 
 
 @contextmanager
-def sqlite_prive(chemin: Path):
-    """Pin the parent directory while SQLite reads the database and its live WAL."""
+def sqlite_prive(chemin: Path, *, fige: bool = False):
+    """Read live WAL by default; immutable is ONLY for complete frozen snapshots."""
     verifier_dossier_prive(chemin.parent)
     parent = os.open(chemin.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     descripteur = None
@@ -62,6 +83,8 @@ def sqlite_prive(chemin: Path):
                 )
             except FileNotFoundError:
                 continue
+            if fige:
+                raise ValueError("Un snapshot SQLite figé doit être sans journal annexe.")
             if (
                 not stat.S_ISREG(annexe.st_mode)
                 or annexe.st_uid != os.getuid()
@@ -70,6 +93,8 @@ def sqlite_prive(chemin: Path):
                 raise ValueError("Journal SQLite privé régulier requis.")
         # A descriptor for the *directory* keeps the -wal/-shm lookup beside the source.
         uri = Path(f"/proc/self/fd/{parent}/{chemin.name}").as_uri() + "?mode=ro"
+        if fige:
+            uri += "&immutable=1"
         connexion = sqlite3.connect(uri, uri=True, timeout=5)
         actuel = os.stat(chemin.name, dir_fd=parent, follow_symlinks=False)
         if (actuel.st_dev, actuel.st_ino) != (info.st_dev, info.st_ino):
@@ -93,10 +118,11 @@ def publier_sqlite(entree: sqlite3.Connection, chemin: Path) -> None:
     sortie = sqlite3.connect(chemin)
     try:
         entree.backup(sortie)
+        sortie.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        if sortie.execute("PRAGMA journal_mode=DELETE").fetchone()[0] != "delete":
+            raise ValueError("Le snapshot SQLite conserve un journal externe.")
         if sortie.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise ValueError("La copie SQLite est incohérente.")
-        sortie.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        sortie.execute("PRAGMA journal_mode=DELETE")
         termine = True
     finally:
         sortie.close()
@@ -296,13 +322,8 @@ def sauvegarder() -> Path:
         .resolve()
     )
     if base.exists():
-        with sqlite3.connect(base.as_uri() + "?mode=ro", uri=True) as entree:
-            sortie = sqlite3.connect(dossier / "graphe.sqlite")
-            try:
-                entree.backup(sortie)
-            finally:
-                sortie.close()
-        entree.close()
+        with sqlite_prive(base) as entree:
+            publier_sqlite(entree, dossier / "graphe.sqlite")
     with (dossier / "postgres.dump").open("wb") as fichier:
         subprocess.run(
             [
@@ -327,13 +348,6 @@ def sauvegarder() -> Path:
         for line in (RACINE / "gateway/docker-compose.yml").read_text().splitlines()
         if "image:" in line
     )
-    programme = (
-        "import sqlite3,os; "
-        "a=sqlite3.connect('file:/var/lib/grafana/grafana.db?mode=ro',uri=True); "
-        "b=sqlite3.connect('/backup/grafana.sqlite'); a.backup(b); b.close(); a.close(); "
-        f"os.chown('/backup/grafana.sqlite',{os.getuid()},{os.getgid()}); "
-        "os.chmod('/backup/grafana.sqlite',0o600)"
-    )
     subprocess.run(
         [
             "docker",
@@ -352,7 +366,11 @@ def sauvegarder() -> Path:
             "python",
             image,
             "-c",
-            programme,
+            PROGRAMME_GRAFANA,
+            "/var/lib/grafana/grafana.db",
+            "/backup/grafana.sqlite",
+            str(os.getuid()),
+            str(os.getgid()),
         ],
         check=True,
         capture_output=True,

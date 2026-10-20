@@ -92,6 +92,25 @@ does. Individual live database snapshots were consistent, but writers were not
 quiesced across all stores during that initial backup. A coordinated promotion
 requires a separate stopped-writer snapshot and preservation of old state.
 
+A later strict inventory check detected SQLite sidecars added by the original
+restore drill's read-only connection to a closed legacy WAL snapshot. The
+sixteen inventoried files still matched their hashes; the extra files correctly
+made inventory validation fail. The original backup was retained. Recovery
+qualification used a separate copy containing only the verified inventoried
+files. The correction normalizes completed SQLite copies to DELETE journal mode
+and reads frozen snapshots as immutable, with a second inventory check after the
+drill. Live database reads still include committed WAL transactions.
+
+Reference-host preflight also found four running container image identities
+unavailable from the local image store. They cannot be promised as byte-identical
+rollback artifacts. A separately qualified compatible recovery set restored
+PostgreSQL/LiteLLM data and authentication, 31 Qdrant points, Neo4j data and six
+Grafana dashboards with identical panel definitions. Synthetic exporter →
+Prometheus and Tempo ingestion/readback also passed. This does not restore
+historical telemetry absent from the logical backup. Promotion additionally
+requires preserved offline volumes, saved application environments and the exact
+qualified recovery images; no old binary may be started over migrated storage.
+
 ## Agent quality: contracts and meaning
 
 The first real local-model run used clean commit `1fb46446`, the actual LangGraph
