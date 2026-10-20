@@ -354,8 +354,8 @@ export const frenchMessages = {
   "Operational checks do not replace security review or production qualification.":
     "Les contrôles opérationnels ne remplacent ni la revue de sécurité ni la qualification pour la production.",
   Operations: "Opérations",
-  "Operations share a bounded queue with analyses. Backups may contain confidential data and remain on this device.":
-    "Les opérations partagent une file bornée avec les analyses. Les sauvegardes peuvent contenir des données confidentielles et restent sur ce poste.",
+  "Operations share a bounded queue with analyses. Local backups may contain confidential data. Encrypted export requires configuration; verify off-host recovery separately.":
+    "Les opérations partagent une file bornée avec les analyses. Les sauvegardes locales peuvent contenir des données confidentielles. L’export chiffré nécessite une configuration ; vérifiez séparément la restauration hors du poste.",
   Operator: "Opérateur",
   "Operator action required": "Action de l’opérateur requise",
   "Optional capability": "Fonctionnalité optionnelle",
@@ -640,8 +640,8 @@ export const frenchMessages = {
   Unknown: "Inconnu",
   "Unknown access mode": "Mode d’accès inconnu",
   Unspecified: "Non précisée",
-  "Use a dedicated VM per client. Keep client source files and exports outside this repository, with a separate private backup.":
-    "Utilisez une VM dédiée par client. Conservez les fichiers sources et exports client hors de ce dépôt, avec une sauvegarde privée distincte.",
+  "Use a dedicated VM per client. Keep client files outside this repository, configure their backup roots explicitly, and verify encrypted off-host recovery.":
+    "Utilisez une VM dédiée par client. Conservez les fichiers client hors de ce dépôt, configurez explicitement leurs dossiers à sauvegarder et vérifiez la restauration depuis une copie chiffrée hors du poste.",
   "Use at least 14 characters. Saving signs out all existing sessions.":
     "Utilisez au moins 14 caractères. L’enregistrement déconnecte toutes les sessions existantes.",
   VOICE: "VOIX",

@@ -633,7 +633,7 @@ export function Operations() {
         <ShieldCheck size={20} />
         <span>
           {t(
-            "Operations share a bounded queue with analyses. Backups may contain confidential data and remain on this device.",
+            "Operations share a bounded queue with analyses. Local backups may contain confidential data. Encrypted export requires configuration; verify off-host recovery separately.",
           )}
         </span>
       </div>

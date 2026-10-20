@@ -76,7 +76,7 @@ state counts and service results also have textual labels. Empty data and failed
 probes remain explicit. Native SVG and CSS render the views without adding a chart
 service or sending the records elsewhere.
 
-The architecture map provides four conceptual journeys:
+The architecture map provides five conceptual journeys:
 
 | Journey | What the guide explains |
 | --- | --- |
@@ -84,6 +84,7 @@ The architecture map provides four conceptual journeys:
 | Voice | Browser audio/text, the control boundary, local recognition, AURA dialogue, local synthesis and WAV playback. |
 | Knowledge | Reviewed Markdown, local embeddings, versioned Qdrant publication and read-only source retrieval. |
 | Telemetry | Gateway accounting, correlated spans, metric scraping and dashboard queries. |
+| Memory | Explicit scoped notes, read-only MCP retrieval and selected copies into conversation context. |
 
 Selecting a component displays its role, handled data, trust boundary and a link
 to its workspace. A textual connection guide accompanies the diagram, and mobile
@@ -251,9 +252,9 @@ Gateway spans may carry their own accounting. Filtering by service and span
 kind is necessary. A resume links to the original trace and creates no new
 LLM work when the human gate is the only pending step.
 
-Prometheus scrapes itself, Tempo, Qdrant and Grafana. Docker healthchecks cover
+Prometheus scrapes the platform exporter, itself, Tempo, Qdrant and Grafana. Docker healthchecks cover
 five services; Tempo's shell-free image is checked through HTTP metrics and
-readiness from outside its container. Grafana provisions a platform dashboard.
+readiness from outside its container. Grafana provisions English and French platform dashboards.
 Availability alerts stay local; no external notification destination is set.
 
 ## Deliberately bounded scope

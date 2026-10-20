@@ -147,8 +147,8 @@ export const architectureFr = {
     "Exécute les modèles de langage et de vectorisation locaux configurés sur cet hôte.",
   "Prompts, generated text and numerical embeddings.":
     "Prompts, texte généré et vecteurs numériques.",
-  "Ollama is a separate local inference service, not one of the six gateway stack containers.":
-    "Ollama est un service local d’inférence distinct, pas l’un des six conteneurs de la pile passerelle.",
+  "Ollama runs separately from the gateway stack and dedicated graph-memory service.":
+    "Ollama fonctionne séparément de la pile passerelle et du service dédié à la mémoire graphe.",
   "Runbook tools": "Outils de runbooks",
   "MCP · four read-only tools": "MCP · quatre outils en lecture seule",
   "Lists, reads and searches reviewed runbooks for the supervised investigation.":
@@ -163,8 +163,8 @@ export const architectureFr = {
     "Conserve les procédures relues par un opérateur avant leur utilisation comme sources.",
   "Local Markdown procedures and their content fingerprints.":
     "Procédures Markdown locales et empreintes de leur contenu.",
-  "Platform snapshots do not back up source Markdown or client mission files. Keep a separate private source backup.":
-    "Les instantanés de la plateforme ne sauvegardent ni le Markdown source ni les fichiers de mission client. Prévoyez une sauvegarde privée distincte.",
+  "Platform backups include the active Markdown corpus. Mission files are included only from explicitly configured roots. Keep an encrypted off-host copy and test recovery.":
+    "Les sauvegardes de la plateforme incluent le corpus Markdown actif. Les fichiers de mission ne sont inclus que depuis les dossiers explicitement configurés. Conservez une copie chiffrée hors du poste et testez la restauration.",
   "Voice workspace": "Espace vocal",
   "AURA · browser audio": "AURA · audio du navigateur",
   "Records with permission, presents editable transcripts and plays the generated WAV through native browser audio.":
@@ -215,8 +215,8 @@ export const architectureFr = {
     "PostgreSQL ne possède aucune sonde indépendante dans cette vue à six sondes. Une passerelle disponible ne prouve pas que la base est prête.",
   Metrics: "Métriques",
   "Prometheus · scrape targets": "Prometheus · cibles de collecte",
-  "Collects configured metrics from Prometheus itself, Tempo, Qdrant and Grafana.":
-    "Collecte les métriques configurées de Prometheus, Tempo, Qdrant et Grafana.",
+  "Collects configured metrics from the platform exporter, Prometheus itself, Tempo, Qdrant and Grafana.":
+    "Collecte les métriques configurées de l’exporteur de la plateforme, de Prometheus, de Tempo, de Qdrant et de Grafana.",
   "Service counters, timings and resource metrics exposed by the configured targets.":
     "Compteurs, durées et métriques de ressources exposés par les cibles configurées.",
   "Local alert rules have no external notification destination configured.":

@@ -274,7 +274,7 @@ export function Preparation() {
           <h2>{t("Set the boundaries. Then launch.")}</h2>
           <p>
             {t(
-              "Use a dedicated VM per client. Keep client source files and exports outside this repository, with a separate private backup.",
+              "Use a dedicated VM per client. Keep client files outside this repository, configure their backup roots explicitly, and verify encrypted off-host recovery.",
             )}
           </p>
         </div>

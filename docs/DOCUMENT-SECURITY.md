@@ -48,6 +48,24 @@ AppArmor or their runtime. Qualify the service under that policy or run it on th
 supported Linux/WSL host. **Do not make bubblewrap setuid, globally disable
 AppArmor, use privileged containers, or add an unsandboxed fallback.**
 
+On Ubuntu 24.04, installing bubblewrap alone may leave its user-namespace
+permission unavailable. The signed `apparmor-profiles` package supplies the
+opt-in `/usr/share/apparmor/extra-profiles/bwrap-userns-restrict` policy.
+It authorizes `/usr/bin/bwrap` to establish namespaces and places its executed
+children under a capability-denying profile. Have the host administrator review
+this policy and existing profiles before installing/loading it; do not replace
+a custom profile blindly. It does not authorize a private `~/.local/bin/bwrap`.
+See [Canonical's explanation](https://discourse.ubuntu.com/t/understanding-apparmor-user-namespace-restriction/58007).
+
+The GitHub Ubuntu 24.04 jobs run `scripts/qualifier_sandbox_ci.sh` before API or
+browser tests. Its first probe uses the production launcher with one fixed
+synthetic byte and records the kernel settings and bounded worker stderr. On a
+restricted GitHub runner only, a failed probe can load that distribution profile,
+then must pass the same probe. Existing different profiles are preserved; global
+sysctls and application isolation are unchanged. `--probe` is a read-only local
+diagnostic. This detailed stderr path must never be used with operator documents;
+the API deliberately keeps its production errors generic.
+
 After setup changes, verify a successful upload and a rejected invalid document
 through the UI/CLI. Re-run the kernel boundary tests when changing Python,
 Pillow, pypdf, libseccomp, bubblewrap or the hosting environment.

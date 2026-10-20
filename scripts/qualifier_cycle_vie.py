@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Bounded real-HTTP control-plane qualification on self-created disposable state.
 
 Run with the locked control-api Python environment. Inference is a synthetic

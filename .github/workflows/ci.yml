@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Isolated document parser and encrypted recovery dependencies
         if: matrix.project == 'apps/control-api'
-        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap libseccomp2
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap libseccomp2 apparmor-profiles
       - name: Verified age 1.3.1 recovery tool
         if: matrix.project == 'apps/control-api'
         shell: bash
@@ -43,6 +43,9 @@ jobs:
           enable-cache: false
       - name: Environnement neuf, verrou vérifié
         run: uv sync --locked --all-extras
+      - name: Real document sandbox and scoped Ubuntu AppArmor policy
+        if: matrix.project == 'apps/control-api'
+        run: bash ../../scripts/qualifier_sandbox_ci.sh
       - name: Tests isolés et couverture des branches
         env:
           HTTP_PROXY: http://127.0.0.1:9
@@ -213,7 +216,9 @@ jobs:
       - run: npm test
       - run: uv sync --locked --project ../control-api
       - name: Isolated document parser
-        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap libseccomp2
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap libseccomp2 apparmor-profiles
+      - name: Real document sandbox and scoped Ubuntu AppArmor policy
+        run: bash ../../scripts/qualifier_sandbox_ci.sh
       - run: npx playwright install --with-deps chromium firefox webkit
       - name: Desktop, mobile, clavier et WCAG
         run: npm run test:e2e
