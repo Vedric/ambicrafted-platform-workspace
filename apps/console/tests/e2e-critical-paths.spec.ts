@@ -324,3 +324,55 @@ test("critical: streamed dialogue, document grounding choice and persisted histo
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(input).toHaveValue("");
 });
+
+test("critical: an incompatible pending report remains readable and requests fresh observations", async ({
+  page,
+}) => {
+  await login(page, "/analyses");
+  const title = "Historical review contract " + test.info().project.name;
+  const id = await create(page, title);
+  await expect(
+    page.getByRole("button", { name: "Approve proposal", exact: true }),
+  ).toBeVisible();
+  const original = await (await page.request.get("/api/analyses/" + id)).json();
+  // Only the version-capability response is changed to represent a retained
+  // historical record. The API's real pre-mutation refusal has offline tests.
+  await page.route("**/api/analyses/" + id, async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      json: {
+        ...(await response.json()),
+        reprise_compatible: false,
+        options: {},
+      },
+    });
+  });
+  await page.reload();
+  await expect(
+    page.getByText("This analysis uses an earlier review contract", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Approve proposal", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Reject proposal", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("link", { name: "New analysis", exact: true }).click();
+  await expect(page.getByLabel(/Analysis title/)).toHaveValue(title);
+  await expect(page.getByLabel(/Alert & context/)).toHaveValue("");
+  await expect(
+    page.getByRole("link", { name: "Previous analysis", exact: true }),
+  ).toHaveAttribute("href", "/analyses/" + id);
+  const retained = await (await page.request.get("/api/analyses/" + id)).json();
+  expect(retained.rapport).toEqual(original.rapport);
+  expect(retained.statut).toBe("en_attente_humain");
+  await page.unroute("**/api/analyses/" + id);
+  await page
+    .getByRole("link", { name: "Previous analysis", exact: true })
+    .click();
+  await remove(page);
+});

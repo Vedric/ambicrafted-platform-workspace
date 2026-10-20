@@ -20,7 +20,7 @@ import sys
 
 from . import config
 from .agent import analyser
-from .modeles import Rapport
+from .modeles import QualiteDiagnostic, Rapport
 
 CODES = {"complet": 0, "budget_epuise": 2, "erreur": 3}
 
@@ -90,11 +90,11 @@ def rendre(rapport: Rapport) -> str:
     if rapport.injections_signalees:
         lignes += [
             "",
-            "TENTATIVE D'INJECTION DANS L'ALERTE : rapportée, non suivie",
+            "PASSAGES SIGNALÉS PAR LE DÉTECTEUR : non exécutés, à vérifier",
         ]
         for texte in rapport.injections_signalees:
             lignes.append(f"  · {texte}")
-        lignes.append("  L'alerte est peut-être forgée : confirmer son contenu à la source.")
+        lignes.append("  Ce signalement faillible ne prouve ni une attaque ni son exécution.")
 
     if rapport.classification:
         c = rapport.classification
@@ -120,6 +120,8 @@ def rendre(rapport: Rapport) -> str:
         if d.actions_proposees:
             lignes += ["", "ACTIONS PROPOSÉES : à exécuter par un humain"]
             lignes += [f"  {i}. {a}" for i, a in enumerate(d.actions_proposees, 1)]
+        if d.qualite:
+            lignes += ["", rendre_qualite(d.qualite)]
 
     if rapport.actions_ecartees_sans_source:
         lignes += [
@@ -137,6 +139,20 @@ def rendre(rapport: Rapport) -> str:
         lignes.append(f"TRACE  : {rapport.trace_id}")
 
     return "\n".join(lignes).strip()
+
+
+def rendre_qualite(qualite: QualiteDiagnostic) -> str:
+    lignes = [
+        "REVUE DE COHÉRENCE IA : " + qualite.statut,
+        "  " + qualite.limite,
+        (
+            f"  {qualite.latence_ms} ms ; tokens observés "
+            f"entrée {qualite.tokens_entree}, sortie {qualite.tokens_sortie}"
+        ),
+    ]
+    lignes += ["  · " + ecart for ecart in qualite.ecarts]
+    lignes += ["  Calcul : " + calcul for calcul in qualite.calculs]
+    return "\n".join(lignes)
 
 
 if __name__ == "__main__":

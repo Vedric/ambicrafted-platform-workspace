@@ -1,0 +1,39 @@
+--- a/pkg/plugins/manager/signature/manifest.go
++++ b/pkg/plugins/manager/signature/manifest.go
+@@ -100,7 +100,12 @@
+ 		return nil, fmt.Errorf("%v: %w", "Error parsing manifest JSON", err)
+ 	}
+ 
+-	if err = s.validateManifest(ctx, manifest, block); err != nil {
++	if manifest.KeyID == distributionKeyID {
++		err = verifyDistributionManifest(body, manifest, block)
++	} else {
++		err = s.validateManifest(ctx, manifest, block)
++	}
++	if err != nil {
+ 		return nil, err
+ 	}
+ 
+@@ -322,6 +327,13 @@
+ }
+ 
+ func (s *Signature) validateManifest(ctx context.Context, m PluginManifest, block *clearsign.Block) error {
++	if err := validateManifestFields(m); err != nil {
++		return err
++	}
++	return s.Verify(ctx, m.KeyID, block)
++}
++
++func validateManifestFields(m PluginManifest) error {
+ 	if len(m.Plugin) == 0 {
+ 		return invalidFieldErr{field: "plugin"}
+ 	}
+@@ -349,7 +361,7 @@
+ 		}
+ 	}
+ 
+-	return s.Verify(ctx, m.KeyID, block)
++	return nil
+ }
+ 
+ func (s *Signature) Verify(ctx context.Context, keyID string, block *clearsign.Block) error {

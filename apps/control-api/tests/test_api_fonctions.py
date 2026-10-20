@@ -122,11 +122,43 @@ def test_export_et_flux_terminal(client, application, bearer):
     assert "attachment" in reponse.headers["content-disposition"]
     markdown = client.get(chemin + "/export?format=md", headers=bearer)
     assert "Cause synthétique" in markdown.text and "postgres.md" in markdown.text
+    assert "Revue IA locale bornée" not in markdown.text
     assert client.get(chemin + "/export?format=html", headers=bearer).status_code == 422
     evenements = client.get(chemin + "/evenements", headers=bearer)
     assert "text/event-stream" in evenements.headers["content-type"]
     assert evenements.text.startswith("data: ")
     assert json.loads(evenements.text[6:].strip())["statut"] == "complet"
+
+
+def test_export_preserves_bounded_ai_review_without_claiming_independence(
+    client, application, bearer
+):
+    analyse = creer(client, bearer)
+    qualite = {
+        "statut": "abstention",
+        "ecarts": ["Source insuffisante"],
+        "calculs": ["3 × 4 = 12"],
+        "extraction_ecartee": True,
+        "latence_ms": 240,
+        "tokens_entree": 100,
+        "tokens_sortie": 20,
+        "limite": "Revue IA locale, sans validation indépendante.",
+    }
+    application.state.depot.changer(
+        analyse["id"],
+        "complet",
+        rapport={"diagnostic": {"cause_probable": "Hypothèse", "qualite": qualite}},
+    )
+    url = f"/api/analyses/{analyse['id']}"
+    for endpoint in (url, url + "/export"):
+        assert (
+            client.get(endpoint, headers=bearer).json()["rapport"]["diagnostic"]["qualite"]
+            == qualite
+        )
+    content = client.get(url + "/export?format=md", headers=bearer).text
+    assert "Revue IA locale bornée" in content and "Source insuffisante" in content
+    assert "3 × 4 = 12" in content and qualite["limite"] in content
+    assert "tokens_sortie : 20" in content and "extraction_ecartee : True" in content
 
 
 def test_runbooks_edition_et_recherche(client, bearer):

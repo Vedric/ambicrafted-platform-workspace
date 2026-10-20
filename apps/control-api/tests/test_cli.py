@@ -170,6 +170,44 @@ def test_cli_refuses_incomplete_conversation_without_leaking_upstream(
     assert str(UUID("b" * 32)) in str(failure.value)
 
 
+@pytest.mark.parametrize("invalid", [False, True])
+def test_cli_accepts_bounded_structured_reply_and_rejects_unknown_sources(
+    monkeypatch, parametres, invalid
+):
+    from test_artefacts import artifact
+
+    value = artifact("report")
+    section = value["document"]["sections"][0]
+    section["paragraphs"] = ["x" * 1700] * 6
+    section["table"] = None
+    value["document"]["sections"] = [{**section, "id": f"section-{i}"} for i in range(6)]
+    if invalid:
+        value["document"]["sections"][0]["source_ids"] = ["unread"]
+    event = {"type": "done", "texte": "x" * 6000, "artefacts": [value]}
+    payload = json.dumps(event)
+    assert 65_536 < len(payload.encode()) < 131_072
+    client_simule(
+        monkeypatch,
+        parametres,
+        lambda _: httpx.Response(
+            200, content=payload, headers={"Content-Type": "application/x-ndjson"}
+        ),
+    )
+    with cli.Client(parametres) as client:
+        if invalid:
+            with pytest.raises(cli.ErreurCLI):
+                client.dialogue(UUID("a" * 32), {"operation_id": str(UUID("b" * 32))})
+        else:
+            assert client.dialogue(UUID("a" * 32), {"operation_id": str(UUID("b" * 32))})[
+                "artefacts"
+            ] == [value]
+
+
+def test_cli_manual_artifact_mode_is_explicit():
+    args = cli.analyseur().parse_args(["conversations", "dire", "a" * 32, "--format", "diagram"])
+    assert args.format == "diagram"
+
+
 def test_attachment_cli_preserves_bytes_and_refuses_public_files(monkeypatch, parametres, tmp_path):
     document = tmp_path / "synthetic.csv"
     document.write_bytes(b"latency_ms\n125\n")
@@ -647,3 +685,87 @@ def test_synthesis_rejects_non_audio_or_empty_response(
     )
     with cli.Client(parametres) as client, pytest.raises(cli.ErreurCLI):
         client.appeler("POST", "/api/voix/parler", binaire=True, json={"texte": "Bonjour"})
+
+
+@pytest.mark.parametrize("format", ["json", "markdown"])
+def test_cli_artifact_export_is_private_validated_and_exclusive(
+    monkeypatch, parametres, tmp_path, format
+):
+    from test_artefacts import artifact
+
+    value = artifact("report")
+    target = tmp_path / "document.txt"
+    calls = client_simule(monkeypatch, parametres, lambda _: httpx.Response(200, json=value))
+    command = [
+        "conversations",
+        "exporter",
+        "a" * 32,
+        "--artefact",
+        value["id"],
+        "--format",
+        format,
+        "--sortie",
+        str(target),
+    ]
+    result = cli.executer(cli.analyseur().parse_args(command), parametres)
+    assert result["octets"] == target.stat().st_size
+    assert target.stat().st_mode & 0o777 == 0o600
+    assert calls[0].url.path.endswith(f"/artefacts/{value['id']}/export")
+    if format == "json":
+        assert json.loads(target.read_text()) == value
+    else:
+        assert "Sources" in target.read_text() and value["title"] in target.read_text()
+    original = target.read_bytes()
+    with pytest.raises(FileExistsError):
+        cli.executer(cli.analyseur().parse_args(command), parametres)
+    assert target.read_bytes() == original
+
+
+@pytest.mark.parametrize("failure", ["auth", "type", "size", "invalid", "wrong-id", "partial"])
+def test_cli_artifact_export_failures_never_create_a_file(
+    monkeypatch, parametres, tmp_path, failure
+):
+    from test_artefacts import artifact
+
+    value = artifact()
+
+    class Partial(httpx.SyncByteStream):
+        def __iter__(self):
+            yield b'{"schema_version":1'
+            raise httpx.ReadError("Synthetic incomplete response")
+
+    def respond(_request):
+        if failure == "auth":
+            return httpx.Response(401, json={})
+        if failure == "type":
+            return httpx.Response(200, text="<html>synthetic</html>")
+        if failure == "size":
+            return httpx.Response(
+                200, content=b"x" * 262_145, headers={"content-type": "application/json"}
+            )
+        if failure == "invalid":
+            return httpx.Response(200, json={})
+        if failure == "wrong-id":
+            return httpx.Response(
+                200, json={**value, "id": "b" * 8 + "-bbbb-bbbb-bbbb-" + "b" * 12}
+            )
+        return httpx.Response(200, stream=Partial(), headers={"content-type": "application/json"})
+
+    client_simule(monkeypatch, parametres, respond)
+    target = tmp_path / "document.json"
+    with pytest.raises(cli.ErreurCLI):
+        cli.executer(
+            cli.analyseur().parse_args(
+                [
+                    "conversations",
+                    "exporter",
+                    "a" * 32,
+                    "--artefact",
+                    value["id"],
+                    "--sortie",
+                    str(target),
+                ]
+            ),
+            parametres,
+        )
+    assert not target.exists()

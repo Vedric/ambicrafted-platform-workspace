@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { parseArtifacts, type ArtifactFormat } from "./artifacts";
 import Assistant, { type Message } from "./Assistant";
 import { api, date, savedDialogue } from "./api";
 import { t, useI18n } from "./i18n";
@@ -57,6 +58,7 @@ export default function ConversationWorkspace() {
     pieces: string;
     language: string;
     vocal: boolean;
+    format: ArtifactFormat;
   } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const list = useQuery({
@@ -128,6 +130,10 @@ export default function ConversationWorkspace() {
       );
       if (request.signal.aborted) return;
       version.current++;
+      loaded.messages = loaded.messages.map((message) => ({
+        ...message,
+        artefacts: parseArtifacts(message.artefacts),
+      }));
       current.current = loaded;
       pending.current = null;
       lastOperation.current = null;
@@ -236,6 +242,7 @@ export default function ConversationWorkspace() {
       <Assistant
         key={viewKey}
         initialMessages={thread?.messages || []}
+        conversationId={thread?.id}
         externalBusy={loading}
         initialDraft={drafts.current.get(thread?.id || viewKey) || ""}
         onDraftChange={(draft) => {
@@ -244,7 +251,14 @@ export default function ConversationWorkspace() {
           else drafts.current.delete(key);
         }}
         onNew={reset}
-        sendMessage={async (text, language, signal, onText, vocal = false) => {
+        sendMessage={async (
+          text,
+          language,
+          signal,
+          onText,
+          vocal = false,
+          format = "auto",
+        ) => {
           const generation = version.current;
           const active = await ensure(signal);
           const previous = lastOperation.current,
@@ -253,7 +267,8 @@ export default function ConversationWorkspace() {
             previous?.text === text &&
             previous.conversation === active.id &&
             previous.pieces === pieces &&
-            previous.language === language;
+            previous.language === language &&
+            previous.format === format;
           const operation = retry ? previous.id : crypto.randomUUID();
           // Retry the exact uncertain operation, including its reply mode. A
           // spoken turn retried via Send must not duplicate an already saved pair.
@@ -265,11 +280,13 @@ export default function ConversationWorkspace() {
             pieces,
             language,
             vocal: spoken,
+            format,
           };
           const result = await savedDialogue(
             active.id,
             {
               message: text,
+              ...(format !== "auto" ? { format } : {}),
               langue: language,
               ...(spoken ? { vocal: true } : {}),
               pieces: selected,

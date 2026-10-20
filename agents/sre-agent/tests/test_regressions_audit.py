@@ -12,12 +12,23 @@ from sre_agent.budget import Budget, BudgetEpuise
 from sre_agent.modeles import Diagnostic, Extraction, appliquer_garde_source
 
 
+class SourcesQuiProgressent(FauxClient):
+    """Exercise recursion bounds without intentionally repeating the same evidence."""
+
+    def appeler(self, nom, arguments):
+        self.reponse = (
+            "## Runbook\nTerminer les sessions idle.\n\n"
+            f"Version synthétique observée : {len(self.appels) + 1}."
+        )
+        return super().appeler(nom, arguments)
+
+
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     def forbidden(*a, **kw):
         pytest.fail("Appel réseau réel interdit dans les preuves hors ligne")
 
-    monkeypatch.setattr(httpx, "post", forbidden)
+    monkeypatch.setattr(llm, "_poster_borne", forbidden)
     monkeypatch.setattr(httpx.Client, "send", forbidden)
     monkeypatch.setenv("CONFIDENTIAL_KEY", "audit-placeholder")
     monkeypatch.setenv("ORCHESTRATOR_KEY", "audit-placeholder")
@@ -42,7 +53,7 @@ def test_failed_anonymisation_does_not_reach_frontier(monkeypatch):
         seen.append(kw["json"])
         return httpx.Response(200, json={"choices": [{"message": {"content": TRI}}]})
 
-    monkeypatch.setattr(llm.httpx, "post", capture)
+    monkeypatch.setattr(llm, "_poster_borne", capture)
     extraction = Extraction(
         signature_technique="Erreur client AUDIT_CLIENT_42 à 192.0.2.42",
         requete_recherche="AUDIT_CLIENT_42",
@@ -59,21 +70,21 @@ def test_missing_key_yields_error_report(monkeypatch):
 
 
 def test_invalid_gateway_json_yields_error_report(monkeypatch):
-    monkeypatch.setattr(llm.httpx, "post", lambda *a, **k: httpx.Response(200, text="not-json"))
+    monkeypatch.setattr(llm, "_poster_borne", lambda *a, **k: httpx.Response(200, text="not-json"))
     report = agent.analyser("alerte synthétique")
     assert report.statut == "erreur"
 
 
 def test_non_finite_token_usage_yields_error_report(monkeypatch):
     body = '{"usage":{"prompt_tokens":1e999},"choices":[{"message":{"content":"{}"}}]}'
-    monkeypatch.setattr(llm.httpx, "post", lambda *a, **k: httpx.Response(200, text=body))
+    monkeypatch.setattr(llm, "_poster_borne", lambda *a, **k: httpx.Response(200, text=body))
     assert agent.analyser("alerte synthétique").statut == "erreur"
 
 
 def test_raw_error_body_not_exposed(monkeypatch):
     monkeypatch.setattr(
-        llm.httpx,
-        "post",
+        llm,
+        "_poster_borne",
         lambda *a, **k: httpx.Response(502, text="AUDIT_SYNTHETIC_SENSITIVE_RESPONSE"),
     )
     report = agent.analyser("alerte synthétique")
@@ -84,8 +95,8 @@ def test_raw_error_body_not_exposed(monkeypatch):
 def test_frontier_cost_must_be_known_and_valid(monkeypatch, cost):
     headers = {} if cost is None else {"x-litellm-response-cost": cost}
     monkeypatch.setattr(
-        llm.httpx,
-        "post",
+        llm,
+        "_poster_borne",
         lambda *a, **k: httpx.Response(
             200, headers=headers, json={"choices": [{"message": {"content": "{}"}}]}
         ),
@@ -134,9 +145,11 @@ def test_default_turn_budget_returns_report_not_recursion_error(monkeypatch, tmp
     sequence = [reponse(EXTRACTION), reponse(TRI)]
     sequence += [reponse(appels_outils=[appel_outil("read_runbook", f"c{i}")]) for i in range(10)]
     sequence += [reponse("not JSON"), reponse(DIAGNOSTIC)]
-    scenariser(monkeypatch, sequence)
+    client = SourcesQuiProgressent()
+    scenariser(monkeypatch, sequence, client)
     report = graphe.demarrer("synthetic", "audit-recursion", str(tmp_path / "state.sqlite"))
-    assert report.statut in {"budget_epuise", "en_attente_humain"}
+    assert report.statut == "en_attente_humain"
+    assert len(client.appels) == 10
 
 
 def test_raw_alert_is_not_persisted(monkeypatch, tmp_path):
@@ -264,6 +277,8 @@ def test_large_turn_limit_does_not_hit_framework_default(monkeypatch, tmp_path):
     seq = [reponse(EXTRACTION), reponse(TRI)]
     seq += [reponse(appels_outils=[appel_outil("read_runbook", f"c{i}")]) for i in range(26)]
     seq += [reponse(DIAGNOSTIC)]
-    scenariser(monkeypatch, seq)
+    client = SourcesQuiProgressent()
+    scenariser(monkeypatch, seq, client)
     report = graphe.demarrer("synthetic", "long", str(tmp_path / "long.sqlite"))
     assert report.statut == "en_attente_humain"
+    assert len(client.appels) == 26

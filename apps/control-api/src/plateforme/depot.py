@@ -12,6 +12,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from sre_agent.graphe import VERSION_CONTRAT
+
 from .config import dossier_prive
 
 
@@ -88,6 +90,11 @@ class Depot:
     def decoder(ligne: sqlite3.Row, detail: bool = True) -> dict[str, Any]:
         resultat = dict(ligne)
         resultat["options"] = json.loads(resultat["options"])
+        contrat = resultat["options"].get("version_contrat")
+        # Compatibility is metadata, never an approval or a checkpoint migration.
+        resultat["reprise_compatible"] = (
+            resultat["mode"] == "graphe" and type(contrat) is int and contrat == VERSION_CONTRAT
+        )
         resultat["rapport"] = json.loads(resultat["rapport"]) if resultat["rapport"] else None
         if not detail:
             rapport = resultat.pop("rapport") or {}

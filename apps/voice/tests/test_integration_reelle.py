@@ -266,3 +266,28 @@ def test_processus_cli_reel_sans_journal_client(tmp_path):
     assert resultat.returncode == 0
     assert "welcome" not in resultat.stdout
     assert resultat.stderr == ""
+
+
+@pytest.mark.parametrize(
+    "langue,phrase,mots",
+    [
+        (
+            "en",
+            "Your written report is ready. Press the button and review the little table.",
+            ("written", "report", "button", "table"),
+        ),
+        (
+            "fr",
+            "Votre rapport est prêt. Appuyez sur le bouton et consultez le petit tableau.",
+            ("rapport", "bouton", "tableau"),
+        ),
+    ],
+)
+def test_syllabic_english_words_and_french_regression(tmp_path, langue, phrase, mots):
+    """Real synthesis and recognition, never evidence of a physical microphone."""
+    wav = tmp_path / "syllabic.wav"
+    metadata = parler(phrase, wav, langue)
+    assert metadata["frequence_hz"] == 24000
+    assert 3 < metadata["duree_s"] < 20
+    transcript = transcrire(wav, langue)["texte"].casefold()
+    assert all(word in transcript for word in mots)

@@ -1,0 +1,71 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:05.279
+Ouvrez AURA et demandez directement un
+diagramme, ou choisissez Diagramme dans le
+
+00:00:05.279 --> 00:00:10.624
+format de réponse. Décrivez les composants
+et le sens de leurs échanges. L’exemple
+
+00:00:10.624 --> 00:00:16.360
+fictif comprend un navigateur, une interface
+de programmation et PostgreSQL. Le document
+
+00:00:16.360 --> 00:00:20.075
+est enregistré dans cette conversation et
+doit être relu.
+
+00:00:20.875 --> 00:00:26.379
+Ouvrez l’espace du document, examinez les
+libellés et utilisez le zoom ou la taille
+
+00:00:26.379 --> 00:00:31.883
+réelle. Consultez le plan complet et les
+références des sources. Un contexte fourni
+
+00:00:31.883 --> 00:00:36.791
+ne constitue pas une infrastructure
+vérifiée. Exportez le schéma en format
+
+00:00:36.791 --> 00:00:41.300
+vectoriel ou en image ; le fichier de
+données conserve sa structure.
+
+00:00:42.116 --> 00:00:47.304
+Demandez ensuite un rapport séparant faits
+fournis, inconnues et vérifications
+
+00:00:47.304 --> 00:00:52.359
+proposées. Relisez chaque section et
+tableau. Une information manquante doit
+
+00:00:52.359 --> 00:00:57.879
+rester inconnue, sans devenir un résultat
+inventé. Le texte s’exporte en Markdown ;
+
+00:00:57.879 --> 00:01:02.868
+l’impression permet un document paginé.
+L’historique retrouve les livrables
+
+00:01:02.868 --> 00:01:03.666
+enregistrés.
+
+00:01:04.466 --> 00:01:09.574
+Préparez une note mémoire uniquement si le
+résultat mérite d’être conservé. Le
+
+00:01:09.574 --> 00:01:14.552
+formulaire propose un résumé non vérifié,
+classé comme question. Relisez-le,
+
+00:01:14.552 --> 00:01:19.791
+choisissez son périmètre et enregistrez
+explicitement. Aucune note n’est ajoutée
+
+00:01:19.791 --> 00:01:24.834
+automatiquement au graphe. Vous pouvez
+annuler pour garder le contenu dans la
+
+00:01:24.834 --> 00:01:26.341
+conversation seulement.

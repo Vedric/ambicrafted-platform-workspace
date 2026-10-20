@@ -84,6 +84,7 @@ def verifier_console(dossier: Path, description: dict | None) -> dict:
                         "messages_conversation",
                         "pieces_conversation",
                         "requetes_conversation",
+                        "artefacts_conversation",
                         "revisions",
                         "journal",
                     )
@@ -98,6 +99,7 @@ def verifier_console(dossier: Path, description: dict | None) -> dict:
                         "messages_conversation",
                         "pieces_conversation",
                         "requetes_conversation",
+                        "artefacts_conversation",
                     ):
                         if (
                             table in tables
@@ -107,6 +109,18 @@ def verifier_console(dossier: Path, description: dict | None) -> dict:
                             ).fetchone()[0]
                         ):
                             raise ValueError("Contenu de conversation orphelin.")
+                if "artefacts_conversation" in tables:
+                    if not {"conversations", "messages_conversation"} <= tables:
+                        raise ValueError(
+                            "Artefacts sans tables parentes de conversation."
+                        )
+                    if entree.execute(
+                        "SELECT count(*) FROM artefacts_conversation a "
+                        "LEFT JOIN messages_conversation m ON "
+                        "a.conversation_id=m.conversation_id AND a.operation_id=m.operation_id "
+                        "AND m.role='assistant' WHERE m.conversation_id IS NULL"
+                    ).fetchone()[0]:
+                        raise ValueError("Artefact sans message assistant parent.")
         vus = set()
         for checkpoint in description["checkpoints"]:
             if not isinstance(checkpoint, dict):

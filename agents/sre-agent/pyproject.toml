@@ -1,6 +1,6 @@
 [project]
 name = "sre-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "Agent SRE borné : analyse une alerte, cite ses runbooks, ne remédie jamais."
 readme = "README.md"
 authors = [

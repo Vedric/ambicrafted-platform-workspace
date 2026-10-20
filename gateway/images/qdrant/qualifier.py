@@ -19,7 +19,9 @@ from pathlib import Path
 
 import httpx
 
-OWNERSHIP_HELPER = "qdrant/qdrant:v1.19.2@sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad"
+OWNERSHIP_HELPER = (
+    "qdrant/qdrant:v1.19.2@sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad"
+)
 
 
 def docker(*args):
@@ -28,7 +30,7 @@ def docker(*args):
     ).strip()
 
 
-def qualify(old_image, new_image, output):
+def qualify(old_image, new_image, output, old_version="1.19.1", browser=False):
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     prefix = "qdrant-qualification-" + secrets.token_hex(5)
     subnet = f"10.232.{secrets.randbelow(254) + 1}"
@@ -112,9 +114,7 @@ def qualify(old_image, new_image, output):
             image,
         )
         containers.append(name)
-        client = httpx.Client(
-            base_url=f"http://{address}:6333", timeout=30, trust_env=False
-        )
+        client = httpx.Client(base_url=f"http://{address}:6333", timeout=30, trust_env=False)
         last_status = None
         for _ in range(60):
             try:
@@ -148,9 +148,7 @@ def qualify(old_image, new_image, output):
             "POST",
             f"/collections/{target}/snapshots/upload",
             params={"priority": "snapshot"},
-            files={
-                "snapshot": ("synthetic.snapshot", data, "application/octet-stream")
-            },
+            files={"snapshot": ("synthetic.snapshot", data, "application/octet-stream")},
         )
 
     def verify(client, expected, target=alias):
@@ -169,8 +167,7 @@ def qualify(old_image, new_image, output):
             assert got["id"] == wanted["id"] and got["payload"] == wanted["payload"]
             assert len(got["vector"]) == len(wanted["vector"])
             assert all(
-                abs(a - b) < 1e-6
-                for a, b in zip(got["vector"], wanted["vector"], strict=True)
+                abs(a - b) < 1e-6 for a, b in zip(got["vector"], wanted["vector"], strict=True)
             )
         found = request(
             client,
@@ -227,9 +224,11 @@ def qualify(old_image, new_image, output):
         docker("network", "create", "--internal", "--subnet", subnet + ".0/24", network)
         network_created = True
         storage = disk("storage")
+        if old_version == "1.19.2":
+            normalize_owner(storage)
         baseline, client = start(old_image, storage, "old")
         with closing(client):
-            assert client.get("/").json()["version"] == "1.19.1"
+            assert client.get("/").json()["version"] == old_version
             request(
                 client,
                 "PUT",
@@ -318,6 +317,21 @@ def qualify(old_image, new_image, output):
                 json={"points": [3]},
             )
             checks["upgraded_write_delete"] = verify(client, changed)
+            if browser:
+                proof = subprocess.check_output(
+                    ["node", str(Path(__file__).with_name("qualifier-browser.mjs"))],
+                    input=json.dumps(
+                        {
+                            "root": str(Path(__file__).resolve().parents[3]),
+                            "base": str(client.base_url),
+                            "output": str(output.resolve()),
+                        }
+                    ),
+                    text=True,
+                    stderr=subprocess.PIPE,
+                    timeout=120,
+                )
+                checks["browser"] = json.loads(proof)
             docker("restart", upgraded)
             for _ in range(60):
                 try:
@@ -357,13 +371,13 @@ def qualify(old_image, new_image, output):
             )
             checks["restored_alias_recreated"] = verify(client, changed)
         rollback_disk = disk("rollback")
+        if old_version == "1.19.2":
+            normalize_owner(rollback_disk)
         _, client = start(old_image, rollback_disk, "rollback")
         with closing(client):
-            assert client.get("/").json()["version"] == "1.19.1"
+            assert client.get("/").json()["version"] == old_version
             restore(client, before, collection)
-            checks["old_restores_pre_upgrade_snapshot"] = verify(
-                client, points, collection
-            )
+            checks["old_restores_pre_upgrade_snapshot"] = verify(client, points, collection)
         checks["snapshot_sha256"] = {
             "before": hashlib.sha256(before).hexdigest(),
             "after": hashlib.sha256(after).hexdigest(),
@@ -384,21 +398,21 @@ def qualify(old_image, new_image, output):
                     check=False,
                 ).stdout
                 (output / (name + ".log")).write_text(log)
-            except (OSError, subprocess.SubprocessError):
+            except OSError, subprocess.SubprocessError:
                 pass
             try:
                 docker("rm", "-f", name)
-            except (OSError, subprocess.SubprocessError):
+            except OSError, subprocess.SubprocessError:
                 failures.append(name)
         for name in reversed(volumes):
             try:
                 docker("volume", "rm", name)
-            except (OSError, subprocess.SubprocessError):
+            except OSError, subprocess.SubprocessError:
                 failures.append(name)
         if network_created:
             try:
                 docker("network", "rm", network)
-            except (OSError, subprocess.SubprocessError):
+            except OSError, subprocess.SubprocessError:
                 failures.append(network)
         result["cleanup_failures"] = failures
         result["passed"] = result["passed"] and not failures
@@ -412,7 +426,15 @@ if __name__ == "__main__":
     parser.add_argument("--old-image", required=True)
     parser.add_argument("--new-image", required=True)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--old-version", choices=("1.19.1", "1.19.2"), default="1.19.1")
+    parser.add_argument("--browser", action="store_true")
     arguments = parser.parse_args()
     raise SystemExit(
-        not qualify(arguments.old_image, arguments.new_image, arguments.output)
+        not qualify(
+            arguments.old_image,
+            arguments.new_image,
+            arguments.output,
+            arguments.old_version,
+            arguments.browser,
+        )
     )

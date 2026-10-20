@@ -72,10 +72,18 @@ from .modeles import (
     Confiance,
     Diagnostic,
     Extraction,
+    QualiteDiagnostic,
     Rapport,
     appliquer_garde_source,
 )
 from .outils import ClientRunbooks, ErreurOutil, executer_outil
+from .qualite import extraction_retenue, verifier_diagnostic
+from .recherche import (
+    CONCLUSION_BORNEE,
+    ProgressionRecherche,
+    lire_finalisation,
+    schema_finalisation,
+)
 
 # The token ceilings and the two decoding functions come from `agent.py`.
 # Copying them here would give two settings that drift apart on the first
@@ -91,7 +99,7 @@ CHEMIN_CHECKPOINTS = os.environ.get(
 # (block_retention, 336 h), so a thread and its trace expire together, and
 # one on-call rotation. See ADR 0004, Consequences.
 RETENTION_JOURS = int(config._nombre("SRE_RETENTION_JOURS", 14))
-VERSION_CONTRAT = 2
+VERSION_CONTRAT = 3
 
 
 # --- State ----------------------------------------------------------------
@@ -136,6 +144,9 @@ class EtatSRE(TypedDict, total=False):
     version_contrat: int
     tours: int
     relance_tentee: bool
+    recherche_empreintes: list[list[str]]
+    recherche_sans_progres: int
+    finalisation_sans_outils: bool
     motif_abandon: str
     statut: str
     message: str
@@ -341,26 +352,36 @@ def classification(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
 
 @noeud("raisonnement")
 def raisonnement(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
-    """One turn of the tool-using model. Just one: the cycle is in the graph.
-
-    The tools stay declared even once the budget is spent, exactly as in
-    `agent.py`: removing them would make the model answer without having
-    consulted the runbooks, and that degraded answer would be returned as
-    a diagnosis.
-    """
+    """One turn; only verified-read stagnation can request tool-free finalisation."""
+    progression = _progression_recherche(etat)
+    finaliser = progression.terminee
+    messages = etat["messages"]
+    if finaliser:
+        messages = messages + [{"role": "user", "content": CONCLUSION_BORNEE}]
     reponse = appeler_llm(
         alias=config.ALIAS_RAISONNEMENT,
-        messages=prompts.avec_observations_originales(etat["messages"], _alerte_courante),
+        messages=prompts.avec_observations_originales(messages, _alerte_courante),
         classification=Classification.CONFIDENTIEL,
         budget=budget,
-        tache="raisonnement",
-        outils=_client().outils_openai(),
+        tache="finalisation_recherche" if finaliser else "raisonnement",
+        outils=None if finaliser else _client().outils_openai(),
+        schema_json=schema_finalisation() if finaliser else None,
         max_tokens=MAX_TOKENS_RAISONNEMENT,
     )
+    if finaliser and reponse.appels_outils:
+        raise ErreurPasserelle("La finalisation bornée ne peut pas appeler d'outil.")
     return {
         "messages": [_message_assistant(reponse.message)],
         "tours": etat.get("tours", 0) + 1,
+        "finalisation_sans_outils": finaliser,
     }
+
+
+def _progression_recherche(etat: EtatSRE) -> ProgressionRecherche:
+    return ProgressionRecherche(
+        empreintes={(item[0], item[1]) for item in etat.get("recherche_empreintes", [])},
+        sans_progres=etat.get("recherche_sans_progres", 0),
+    )
 
 
 @noeud("recherche_runbooks")
@@ -386,7 +407,14 @@ def recherche_runbooks(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
                 "content": prompts.message_resultat_outil(nom, resultat),
             }
         )
-    return {"messages": messages, "outils_appeles": noms}
+    progression = _progression_recherche(etat)
+    progression.observer(budget.sources_lues)
+    return {
+        "messages": messages,
+        "outils_appeles": noms,
+        "recherche_empreintes": [list(item) for item in sorted(progression.empreintes)],
+        "recherche_sans_progres": progression.sans_progres,
+    }
 
 
 @noeud("diagnostic")
@@ -401,8 +429,16 @@ def diagnostic(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
     """
     contenu = etat["messages"][-1].get("content") or ""
     try:
-        brut = Diagnostic.model_validate(extraire_json(contenu))
+        brut = (
+            lire_finalisation(contenu)
+            if etat.get("finalisation_sans_outils")
+            else Diagnostic.model_validate(extraire_json(contenu))
+        )
     except ErreurPasserelle, ValidationError:
+        if etat.get("finalisation_sans_outils"):
+            raise ErreurPasserelle(
+                "La finalisation bornée n'a pas produit de proposition valide."
+            ) from None
         if etat.get("relance_tentee"):
             raise ErreurPasserelle(
                 "Le modèle n'a pas produit de diagnostic exploitable après relance."
@@ -414,7 +450,22 @@ def diagnostic(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
         }
 
     retenu, ecartees = appliquer_garde_source(brut, budget.sources_lues)
-    return {"diagnostic": retenu, "actions_ecartees_sans_source": ecartees}
+    extrait = etat["extraction"]
+    if extrait is None:
+        raise ErreurPasserelle("Extraction absente de la revue de cohérence.")
+    retenu = verifier_diagnostic(
+        retenu,
+        extrait,
+        _alerte_courante,
+        budget,
+        appel=appeler_llm,
+        nombre_actions_ecartees=len(ecartees),
+    )
+    return {
+        "diagnostic": retenu,
+        "extraction": extraction_retenue(extrait, retenu),
+        "actions_ecartees_sans_source": ecartees,
+    }
 
 
 @noeud("porte_humaine")
@@ -441,6 +492,7 @@ def porte_humaine(etat: EtatSRE, budget: Budget) -> dict[str, Any]:
             "runbook_source": d.runbook_source,
             "actions_proposees": d.actions_proposees,
             "elements_manquants": d.elements_manquants,
+            "qualite": d.qualite.model_dump() if d.qualite else None,
             "injections_signalees": etat.get("injections_signalees", []),
             "actions_ecartees_sans_source": etat.get("actions_ecartees_sans_source", []),
             "outils_appeles": etat.get("outils_appeles", []),
@@ -610,7 +662,7 @@ def construire() -> StateGraph:
 # flags as a code-execution vector for anyone able to write to that file.
 # So it gets the same shape as `OUTILS_AUTORISES`: a closed allowlist,
 # owned by this repository.
-TYPES_PERSISTABLES = (Extraction, ClassificationAlerte, Diagnostic, Confiance)
+TYPES_PERSISTABLES = (Extraction, ClassificationAlerte, Diagnostic, QualiteDiagnostic, Confiance)
 
 
 def _serialiseur() -> JsonPlusSerializer:

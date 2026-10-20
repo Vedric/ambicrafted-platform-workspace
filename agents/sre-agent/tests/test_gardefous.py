@@ -27,7 +27,7 @@ def test_charge_confidentielle_refusee_sur_frontiere(alias, monkeypatch):
     def interdit(*_a, **_k):
         raise AssertionError("Un appel réseau a été tenté malgré le refus.")
 
-    monkeypatch.setattr(llm.httpx, "post", interdit)
+    monkeypatch.setattr(llm, "_poster_borne", interdit)
 
     with pytest.raises(llm.FuiteConfidentielle):
         llm.appeler_llm(
@@ -45,7 +45,7 @@ def test_les_deux_ensembles_d_alias_sont_disjoints():
 
 
 def test_alias_inconnu_refuse(monkeypatch):
-    monkeypatch.setattr(llm.httpx, "post", lambda *a, **k: pytest.fail("réseau non attendu"))
+    monkeypatch.setattr(llm, "_poster_borne", lambda *a, **k: pytest.fail("réseau non attendu"))
     with pytest.raises(llm.ErreurPasserelle, match="Alias inconnu"):
         llm.appeler_llm(
             alias="claude-opus-5",

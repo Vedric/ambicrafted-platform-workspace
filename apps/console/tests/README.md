@@ -70,3 +70,19 @@ skipped success. Use the Playwright CLI from the repository lock, not an
 unpinned system install. CI installs all three engines. Physical microphone,
 speaker routing, autoplay policy and perceived voice quality remain a separate
 operator acceptance on the actual supported device.
+
+## Saved documents and guide lessons
+
+`e2e-artifacts.spec.ts` exercises the real conversation database/export routes,
+with deterministic generation only. It checks graph persistence, source-preserving
+SVG/PNG/JSON downloads, both orientations on a 24-node/40-edge grouped graph,
+light/dark layouts, hostile markup refusal, selected-document print isolation,
+and editable memory drafts without automatic writes. Firefox and WebKit run
+these document journeys in addition to desktop/mobile Chromium. The DOM checks
+measure actual rendered text bounds; they are not image-quality certification.
+
+Unit tests cover malformed schemas, Unicode boundaries, stalled layout workers,
+font readiness, abort handling, stale sessions, bounded authenticated exports
+and oversized raster refusal. `e2e-guides.spec.ts` covers caption preferences,
+transcripts and failure signaling. See [guide production](../../../docs/GUIDES.md)
+for the separate native video, narration and reproduction checks.

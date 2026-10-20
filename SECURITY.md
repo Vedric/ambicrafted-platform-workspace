@@ -6,7 +6,7 @@ It assumes a single trusted workstation user and a trusted local gateway.
 It does not defend against root or a compromised model server.
 
 The release image gate fails on any HIGH/CRITICAL occurrence or incomplete scan.
-See the [20 October qualification](docs/QUALIFICATION-2026-10-20.md) for the
+See the [21 October candidate qualification](docs/QUALIFICATION-2026-10-21.md) for the
 candidate, exact scope and remaining upstream findings. Earlier dated assessments
 remain historical. Functional qualification does not certify a vulnerability-free
 deployment.
@@ -20,7 +20,7 @@ deployment.
 | Checkpoints | SQLite file 0600; newly created parent 0700; existing parent permissions are not changed |
 | Virtual/provider/master keys | Private `.env` files; never printed by provisioning or operational scripts |
 | Backups | Local 0700 directory with private files; includes secrets, database contents and incident state |
-| Saved conversations and extracted attachments | Private console SQLite tables, local inference only; bounded retention and explicit deletion |
+| Saved conversations, extracted attachments and generated documents | Private console SQLite tables, local inference only; bounded retention and explicit deletion; generated content remains unverified |
 | Runbooks | Versioned files; content remains untrusted input for reasoning |
 | Traces | Local Tempo; tool arguments and raw HTTP/error bodies are not deliberately recorded by the agent |
 
@@ -55,7 +55,11 @@ logical deletion mechanism and need their own lifecycle.
 - Existing threads cannot be restarted as new incidents. Database operations
   are serialized by a lock; SQLite connections are closed by public helpers.
 - Checkpoints from earlier delivery-contract versions cannot be approved;
-  the incident must be analysed again under a new thread identifier.
+  the API refuses incompatible decisions before mutation or queueing. The
+  incident must be analysed again under a new identifier with its original input.
+- Generated diagrams and reports use a bounded schema, plain text and code-owned
+  rendering. Model HTML, SVG, links and scripts are rejected. A local review can
+  reject a proposal but cannot certify it; memory writes require an explicit save.
 - Tool, turn, context, alert-size, time and monetary limits are enforced at
   their respective boundaries. Resource cleanup can add time beyond a deadline.
 - Unknown external costs, negative costs and non-finite numbers cause a

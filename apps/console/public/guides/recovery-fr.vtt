@@ -1,0 +1,68 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:05.080
+Ouvrez Opérations pour retrouver la
+sauvegarde et les contrôles de restauration.
+
+00:00:05.080 --> 00:00:09.716
+Avant une maintenance, identifiez les
+données à protéger : conversations,
+
+00:00:09.716 --> 00:00:14.542
+documents, analyses, procédures, mémoire
+locale et données des services. Une
+
+00:00:14.542 --> 00:00:19.622
+sauvegarde peut contenir des informations
+confidentielles ; conservez-la dans un
+
+00:00:19.622 --> 00:00:20.575
+stockage privé.
+
+00:00:21.391 --> 00:00:26.695
+Choisissez Sauvegarder maintenant et
+examinez la confirmation. En usage normal,
+
+00:00:26.695 --> 00:00:32.200
+elle place une opération traçable dans la
+file. Ce tutoriel annule cette fenêtre :
+
+00:00:32.200 --> 00:00:37.704
+aucune sauvegarde réelle n’est créée pendant
+l’enregistrement. Après une véritable
+
+00:00:37.704 --> 00:00:41.866
+exécution, vérifiez le résultat final plutôt
+que le seul clic.
+
+00:00:42.695 --> 00:00:47.984
+Ouvrez Tester la sauvegarde et lisez son
+objectif : restaurer dans des conteneurs
+
+00:00:47.984 --> 00:00:53.077
+temporaires isolés, puis vérifier
+l’inventaire. Cela ne remplace pas les bases
+
+00:00:53.077 --> 00:00:58.627
+actives. Conservez les volumes originaux
+pour un retour arrière. Un test local réussi
+
+00:00:58.627 --> 00:01:02.545
+ne prouve pas qu’une copie chiffrée distante
+est accessible.
+
+00:01:03.369 --> 00:01:09.174
+Revenez à Préparation et à la documentation
+de reprise avant une mise à jour. Configurez
+
+00:01:09.174 --> 00:01:14.518
+un destinataire de chiffrement, exportez
+vers un emplacement externe choisi, puis
+
+00:01:14.518 --> 00:01:19.532
+testez avec une identité conservée
+séparément. La destination et la garde de
+
+00:01:19.532 --> 00:01:24.744
+cette identité relèvent de vous. Ne collez
+jamais une clé dans la conversation.

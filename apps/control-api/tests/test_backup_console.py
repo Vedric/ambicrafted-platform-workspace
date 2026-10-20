@@ -9,13 +9,68 @@ from contextlib import closing
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
+
+from plateforme.conversations import Conversations
 
 IDENTIFIANT = "1234567890abcdef1234567890abcdef"
 SECOND = "abcdef1234567890abcdef1234567890"
 AUTH_SESSION = "fixture-session-must-never-reach-a-backup-file"
 AUTH_TICKET = "fixture-ticket-must-never-reach-a-backup-file"
+
+
+def test_artifacts_survive_real_backup_and_restore_drill(scripts, depot, tmp_path):
+    from test_artefacts import artifact
+
+    store = Conversations(depot)
+    identifier = store.creer()["id"]
+    value = artifact()
+    store.enregistrer_tour(
+        identifier,
+        str(uuid4()),
+        "Synthetic request",
+        {"texte": "Synthetic summary", "artefacts": [value]},
+    )
+    destination = tmp_path / "artifact-backup"
+    destination.mkdir(mode=0o700)
+    description = scripts.sauvegarder.copier_console(depot.chemin.parent, destination)
+    assert description["contenu"]["artefacts_conversation"] == 1
+    before = (destination / "console/console.sqlite").read_bytes()
+    for _ in range(2):
+        result = scripts.tester_restauration.verifier_console(destination, description)
+        assert result["contenu_console"]["artefacts_conversation"] == 1
+    assert (destination / "console/console.sqlite").read_bytes() == before
+    assert not list(destination.rglob("*-wal")) and not list(destination.rglob("*-shm"))
+
+
+@pytest.mark.parametrize(
+    "mutation", ["missing-table", "missing-manifest", "orphan-conversation", "orphan-message"]
+)
+def test_artifact_restore_rejects_missing_or_orphaned_data(scripts, depot, tmp_path, mutation):
+    from test_artefacts import artifact
+
+    store = Conversations(depot)
+    identifier = store.creer()["id"]
+    store.enregistrer_tour(
+        identifier, str(uuid4()), "Synthetic", {"texte": "Summary", "artefacts": [artifact()]}
+    )
+    destination = tmp_path / "artifact-backup"
+    destination.mkdir(mode=0o700)
+    description = scripts.sauvegarder.copier_console(depot.chemin.parent, destination)
+    with sqlite3.connect(destination / "console/console.sqlite") as c:
+        if mutation == "missing-table":
+            c.execute("DROP TABLE artefacts_conversation")
+        elif mutation == "missing-manifest":
+            del description["contenu"]["artefacts_conversation"]
+        elif mutation == "orphan-conversation":
+            c.execute("UPDATE artefacts_conversation SET conversation_id='missing'")
+        else:
+            c.execute("DELETE FROM messages_conversation WHERE role='assistant'")
+            description["contenu"]["messages_conversation"] -= 1
+    with pytest.raises(ValueError):
+        scripts.tester_restauration.verifier_console(destination, description)
 
 
 @pytest.fixture
@@ -238,17 +293,13 @@ def test_snapshot_capture_wal_et_normalise_seulement_destination(scripts, tmp_pa
         assert Path(str(source) + "-wal").stat().st_size > 0
     with closing(sqlite3.connect(destination.as_uri() + "?mode=ro", uri=True)) as copied:
         assert copied.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
-        assert copied.execute("SELECT value FROM evidence").fetchone() == (
-            "committed-only-in-wal",
-        )
+        assert copied.execute("SELECT value FROM evidence").fetchone() == ("committed-only-in-wal",)
     assert destination.stat().st_mode & 0o777 == 0o600
     assert not list(tmp_path.glob("snapshot.sqlite-*"))
 
 
 @pytest.mark.parametrize("nom", ["graphe.sqlite", "grafana.sqlite"])
-def test_validation_ancienne_archive_wal_repetee_ne_modifie_aucun_fichier(
-    scripts, tmp_path, nom
-):
+def test_validation_ancienne_archive_wal_repetee_ne_modifie_aucun_fichier(scripts, tmp_path, nom):
     from inventaire_sauvegarde import inventaire, verifier_inventaire
 
     path = tmp_path / nom

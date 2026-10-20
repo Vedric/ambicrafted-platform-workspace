@@ -9,9 +9,10 @@ from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
+from .artefacts import contexte_sources, exporter_markdown, format_demande, generer_artefact
 from .assistant import flux_dialogue
 from .conversations import Conversations
 from .depot import Conflit, Introuvable
@@ -58,6 +59,7 @@ class Tour(ChargeConversation):
     langue: Literal["en", "fr"] = "en"
     vocal: StrictBool = False
     pieces: list[UUID] = Field(default_factory=list, max_length=8)
+    format: Literal["auto", "text", "diagram", "report"] = "auto"
 
 
 class ContexteMemoire(ChargeConversation):
@@ -96,6 +98,31 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
     async def renommer(request: Request, identifiant: UUID, charge: TitreConversation):
         auth.acteur(request, mutation=True)
         return store.renommer(str(identifiant), charge.titre)
+
+    @router.get("/{identifiant}/artefacts/{artefact_id}/export")
+    async def exporter(
+        request: Request,
+        identifiant: UUID,
+        artefact_id: UUID,
+        format: Literal["json", "markdown"] = "json",
+    ):
+        auth.acteur(request)
+        document = store.obtenir_artefact(str(identifiant), str(artefact_id))
+        content = (
+            json.dumps(document, ensure_ascii=False, indent=2) + "\n"
+            if format == "json"
+            else exporter_markdown(document)
+        )
+        extension, media = (
+            ("json", "application/json") if format == "json" else ("md", "text/markdown")
+        )
+        return Response(
+            content,
+            media_type=media,
+            headers={
+                "Content-Disposition": f'attachment; filename="artifact-{artefact_id}.{extension}"',
+            },
+        )
 
     @router.delete("/{identifiant}")
     async def supprimer(request: Request, identifiant: UUID):
@@ -143,6 +170,7 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
             json.dumps(
                 {
                     **({"vocal": True} if charge.vocal else {}),
+                    **({"format": charge.format} if charge.format != "auto" else {}),
                     "message": charge.message,
                     "langue": charge.langue,
                     "pieces": sorted({str(value) for value in charge.pieces}),
@@ -155,24 +183,50 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
         if completed:
 
             async def cached():
-                yield json.dumps({"type": "done", **completed}) + "\n"
+                yield json.dumps({"type": "done", **completed}, ensure_ascii=False) + "\n"
 
             return StreamingResponse(cached(), media_type="application/x-ndjson")
         if moteur.inference.locked() or not moteur.file.empty():
             raise HTTPException(
                 409, "The local engine is busy. Try again when the current task finishes."
             )
+        format = format_demande(charge.message, charge.format)
         messages = store.contexte(
-            conversation_id, charge.message, [str(value) for value in charge.pieces]
+            conversation_id,
+            charge.message,
+            [str(value) for value in charge.pieces],
+            tracabilite=format != "text",
         )
+        sources: list[dict] = []
+        if format != "text":
+            store.capacite_artefact(conversation_id)
+            messages, sources = contexte_sources(
+                messages, charge.langue, store.precedent_artefact(conversation_id)
+            )
         # Acquired before headers, held until generation is complete or the browser disconnects.
         await moteur.inference.acquire()
 
         async def events():
             try:
-                async for event in flux_dialogue(
-                    p, messages, charge.langue, **({"vocal": True} if charge.vocal else {})
-                ):
+
+                async def produire():
+                    if format != "text":
+                        yield await generer_artefact(
+                            p,
+                            messages,
+                            charge.langue,
+                            format,
+                            conversation_id,
+                            operation_id,
+                            sources,
+                        )
+                    else:
+                        async for event in flux_dialogue(
+                            p, messages, charge.langue, **({"vocal": True} if charge.vocal else {})
+                        ):
+                            yield event
+
+                async for event in produire():
                     if event["type"] == "done":
                         store.enregistrer_tour(
                             conversation_id, operation_id, charge.message, event, empreinte
@@ -188,6 +242,7 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
                 TypeError,
                 AttributeError,
                 TimeoutError,
+                RecursionError,
                 Conflit,
                 Introuvable,
                 sqlite3.Error,
@@ -197,7 +252,11 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
                     json.dumps(
                         {
                             "type": "error",
-                            "message": "The local reply was interrupted. Retry your message; partial replies are not saved.",
+                            "message": (
+                                "The local document could not be completed or validated. Retry or simplify the request; no partial artifact was saved."
+                                if format != "text"
+                                else "The local reply was interrupted. Retry your message; partial replies are not saved."
+                            ),
                         }
                     )
                     + "\n"

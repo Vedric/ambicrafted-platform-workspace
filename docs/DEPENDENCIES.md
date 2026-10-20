@@ -1,7 +1,7 @@
 # Dependency review
 
 The current candidate inventory and remaining release gates are documented in
-[the 20 October qualification](QUALIFICATION-2026-10-20.md). The HIGH/CRITICAL
+[the 21 October candidate qualification](QUALIFICATION-2026-10-21.md). The HIGH/CRITICAL
 gate remains failed because of the documented Grafana plugin and Qdrant frontend
 dependency findings. Application runtime Python audits and console/evaluation npm
 audits are separate from image scans.
@@ -12,7 +12,7 @@ historical snapshots, not the current image inventory.
 The initial six-image review used two narrow derivatives, PostgreSQL and Qdrant.
 The current candidate has eight declared derivatives with pinned upstream
 inputs and explicit corrective changes. Their image-specific READMEs and
-ADRs 0035–0037 describe the current builds; [ADR 0012](adr/0012-images-correctives-verifiees.md)
+ADRs 0035–0037 and [ADR 0042](adr/0042-distribution-grafana-privee-corrigee.md) describe the builds and the private Grafana distribution; [ADR 0012](adr/0012-images-correctives-verifiees.md)
 records the initial decision.
 
 ## Historical image inventory — 2026-09-26

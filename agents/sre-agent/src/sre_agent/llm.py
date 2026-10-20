@@ -17,9 +17,12 @@ Three barriers, in this order:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 import re
+import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -38,6 +41,37 @@ class FuiteConfidentielle(RuntimeError):
 
 class ErreurPasserelle(RuntimeError):
     """The gateway refused, or did not answer."""
+
+
+def _poster_borne(url: str, *, headers: dict, json: dict, timeout: float) -> httpx.Response:
+    """Bound the entire HTTP exchange, not only inactivity between response bytes.
+
+    Cancellation closes the HTTP client before returning. If a caller already has
+    an event loop, a joined worker hosts this cancellable exchange; it is never
+    abandoned on a thread timeout. Disconnecting the proxy does not prove that a
+    model server has cancelled computation already accepted upstream.
+    """
+    fin = time.monotonic() + timeout
+
+    async def poster() -> httpx.Response:
+        try:
+            async with asyncio.timeout(max(0, fin - time.monotonic())):
+                async with httpx.AsyncClient() as client:
+                    return await client.post(url, headers=headers, json=json, timeout=timeout)
+        except TimeoutError:
+            raise httpx.ReadTimeout("Échéance totale de la requête dépassée.") from None
+
+    def executer() -> httpx.Response:
+        return asyncio.run(poster())
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return executer()
+    # Preserve the synchronous API in embedded callers without nesting event loops.
+    # result() has no separate timeout: the coroutine cancels and closes, then we join.
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="sre-http") as executor:
+        return executor.submit(executer).result()
 
 
 @dataclass
@@ -183,7 +217,7 @@ def appeler_llm(
 
         budget.appels_llm_tentes += 1
         try:
-            reponse = httpx.post(
+            reponse = _poster_borne(
                 f"{config.LITELLM_BASE_URL.rstrip('/')}/chat/completions",
                 headers=entetes,
                 json=corps,

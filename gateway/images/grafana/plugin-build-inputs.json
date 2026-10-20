@@ -1,0 +1,28 @@
+{
+  "architecture": "linux/amd64",
+  "epoch": 1792490400,
+  "plugins": [
+    {
+      "id": "prometheus",
+      "version": "13.2.3",
+      "repository": "https://github.com/grafana/grafana-prometheus-datasource",
+      "commit": "6d21418acde6ce31c9f7a6418a88758842a881bb",
+      "source_url": "https://codeload.github.com/grafana/grafana-prometheus-datasource/tar.gz/6d21418acde6ce31c9f7a6418a88758842a881bb",
+      "source_sha256": "24b1f2ed395438a5574102b166314be621259431fbae3f04ae66b55a143f1c13",
+      "archive_url": "https://grafana.com/api/plugins/prometheus/versions/13.2.3/download?os=linux&arch=amd64",
+      "archive_sha256": "8bdd6583e398f84d497dabec0287563b9eee471d711dea08a21482db5cd5a294",
+      "derived_version": "13.2.3+ambicrafted.20261020"
+    },
+    {
+      "id": "tempo",
+      "version": "13.2.4",
+      "repository": "https://github.com/grafana/grafana-tempo-datasource",
+      "commit": "cdacb742bae90fbf62c48c5cca0eacdc08fd2acd",
+      "source_url": "https://codeload.github.com/grafana/grafana-tempo-datasource/tar.gz/cdacb742bae90fbf62c48c5cca0eacdc08fd2acd",
+      "source_sha256": "fdef6e02f81297dc9c26cd13c735fba011e31fa90bc08a6b231489251016238f",
+      "archive_url": "https://grafana.com/api/plugins/tempo/versions/13.2.4/download?os=linux&arch=amd64",
+      "archive_sha256": "a89fa4ee83a61e58dac30eae3ce42ae6f677545d05e419b88f0a6f5f6cfdf8e7",
+      "derived_version": "13.2.4+ambicrafted.20261020"
+    }
+  ]
+}

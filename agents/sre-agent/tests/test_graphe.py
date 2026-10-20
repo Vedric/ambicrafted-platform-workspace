@@ -100,6 +100,22 @@ DIAGNOSTIC = json.dumps(
         "runbook_source": "incident-p1-database.md",
     }
 )
+REVUE = json.dumps(
+    {"examens": [], "calculs": [], "confiance_max": "moyenne", "preuves_suffisantes": True}
+)
+
+
+def completer_revue(schema, revue):
+    """Construct a complete scripted external response; never bypass production checks."""
+    if "examens" not in revue:
+        return revue
+    references = schema["$defs"]["Ecart"]["properties"]["reference"]["enum"]
+    avis = {e["reference"]: e for e in revue["examens"]}
+    return {
+        **revue,
+        "examens": [avis.get(ref, {"reference": ref, "nature": "aucun"}) for ref in references]
+        + [e for e in revue["examens"] if e["reference"] not in references],
+    }
 
 
 def scenariser(monkeypatch, suite: list[ReponseLLM], client: FauxClient | None = None):
@@ -112,6 +128,10 @@ def scenariser(monkeypatch, suite: list[ReponseLLM], client: FauxClient | None =
 
     def faux_appel(*, budget: Budget, **_kwargs) -> ReponseLLM:
         budget.verifier_avant_llm()
+        if _kwargs.get("tache") == "revue_coherence":
+            r = reponse(json.dumps(completer_revue(_kwargs["schema_json"], json.loads(REVUE))))
+            budget.consommer_llm(r.cout_usd, r.tokens_entree, r.tokens_sortie)
+            return r
         if not restant:
             raise AssertionError("Plus de réponse scénarisée : le graphe boucle.")
         r = restant.pop(0)
@@ -288,7 +308,7 @@ def test_charge_confidentielle_refusee_dans_le_graphe(monkeypatch, db):
     def interdit(*_a, **_k):
         raise AssertionError("Un appel réseau a été tenté malgré le refus.")
 
-    monkeypatch.setattr(llm.httpx, "post", interdit)
+    monkeypatch.setattr(llm, "_poster_borne", interdit)
     monkeypatch.setattr(config, "ALIAS_EXTRACTION", "smart")
     monkeypatch.setattr(graphe, "_client", lambda: FauxClient())
 
@@ -307,7 +327,10 @@ def test_la_classification_du_noeud_extraction_est_confidentielle(monkeypatch, d
     def espion(*, classification, budget, **_k):
         vues.append(classification)
         budget.consommer_llm(0.0, 1, 1)
-        return reponse([EXTRACTION, TRI, DIAGNOSTIC][len(vues) - 1], cout=0.0)
+        contenu = [EXTRACTION, TRI, DIAGNOSTIC, REVUE][len(vues) - 1]
+        if _k.get("tache") == "revue_coherence":
+            contenu = json.dumps(completer_revue(_k["schema_json"], json.loads(REVUE)))
+        return reponse(contenu, cout=0.0)
 
     monkeypatch.setattr(graphe, "appeler_llm", espion)
     monkeypatch.setattr(graphe, "_client", lambda: FauxClient())
@@ -315,7 +338,7 @@ def test_la_classification_du_noeud_extraction_est_confidentielle(monkeypatch, d
     graphe.demarrer("alerte", "t-classif", db)
 
     assert vues[0] is Classification.CONFIDENTIEL
-    assert vues == [Classification.CONFIDENTIEL] * 3
+    assert vues == [Classification.CONFIDENTIEL] * 4
 
 
 def test_la_liste_blanche_tient_dans_le_noeud_d_outils(monkeypatch, db):

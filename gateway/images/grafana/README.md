@@ -1,78 +1,142 @@
-# Grafana source and signed-plugin derivative
+# Grafana private security distribution
 
-This Linux/amd64 derivative uses the immutable official Grafana **13.2.4** base.
-The backend is genuinely rebuilt from its exact upstream source commit with
-Go **1.27.3** and `kin-openapi` **0.149.0**. The only resulting module changes are
-`kin-openapi` and its `jsonschema` dependency, as recorded in
-`core-dependencies.patch`. The build verifies the source archive, compiler image,
-and resulting `go.mod`/`go.sum` checksums. `core-provenance.json` records their
-identities; the executable reports `13.2.4+ambicrafted.20261020`.
+This Linux/amd64 candidate rebuilds Grafana **13.2.4** from its pinned source
+with Go **1.27.3**, `kin-openapi` **0.149.0** and a bounded private plugin signing
+authority. The backend reports `13.2.4+ambicrafted.20261020.r2`. The image tag's
+`r4` also identifies the corrected zlib runtime and compiled-package inventory.
+These are derivative versions, not official Grafana Labs releases.
 
-OpenTSDB 13.0.5 and Google Cloud Monitoring (`stackdriver`) 12.6.3 are installed
-from complete official signed archives, each pinned by SHA-256. Eleven other
-bundled plugin directories remain exactly as supplied by the base image.
-`plugins-provenance.json` records all thirteen versions and the two downloads.
-No binary metadata, plugin content or signature manifest is altered. Plugin
-signature verification remains enabled.
+Only **Prometheus and Tempo** external data sources are included. Authenticated
+read-only inventory of the existing instance found four datasource records using
+those two types, six dashboards with 102 content panels, builtin panel types and
+no alert rules. Eleven unused external sources are deliberately removed:
+Elasticsearch, PostgreSQL, Pyroscope, InfluxDB, Jaeger, Loki, MSSQL, MySQL,
+OpenTSDB, Google Cloud Monitoring and Zipkin. Their removal is a declared
+capability reduction; adding one later requires a new reviewed build. Builtin
+panels, existing datasource IDs, queries and dashboard assets remain supported.
+Automatic preinstallation and automatic plugin updates are disabled in the image.
 
-## Build and qualification
+## Artifact identity and signatures
 
-From the repository root:
+`plugin-build-inputs.json` pins source commits, archive SHA-256 values, original
+frontend archives and derivative versions. Each plugin backend is rebuilt using
+its upstream Mage SDK build path, exact Go locks and corrected `x/net` 0.60.0.
+Frontend assets remain those of the pinned official archives; plugin metadata
+truthfully identifies the modified version. Each bundle includes the full patched
+backend source archive, attribution and license notices.
+
+The Tempo plugin imports only protobuf contracts from Tempo. Instead of carrying
+a server-module dependency for that purpose, it compiles the exact protocol files
+from official Tempo 3.1.0 revision `77fc4563d1135d0ca2656709c7384c278a9c67b0`
+under its internal package. Only import prefixes change. Original and derived
+hashes for all 23 files, upstream license notices and an SPDX source component
+remain in the bundle. `tempo/protobuf-source-inventory.json` records this scope.
+No server/storage implementation is copied or imported, and the build checks
+that no `github.com/grafana/tempo/` package remains in the dependency closure.
+This is an explicit source extraction, not an invented Go module version.
+
+The offline key is **not** a Grafana Labs signing identity. Its public fingerprint
+is `9927b7037e53a8156725792ff5fdd4382c05e115`. The core compiles that exact key,
+two plugin IDs/versions and SHA-256 of each complete armored `MANIFEST.txt`.
+Every signature must verify cryptographically. Upstream checks still validate
+all file hashes, missing/additional files, IDs, versions and private root URLs.
+Official Grafana signature verification is unchanged and its tests still run.
+No `allow_loading_unsigned_plugins`, environment-driven trust root, key-download
+fallback or signature-status override is introduced.
+
+The only signed root URLs are `http://localhost:3000/` and
+`http://127.0.0.1:3000/`. A different externally configured Grafana root URL
+requires a newly reviewed signed release. Internal bridge URLs used by tests do
+not change Grafana's configured root URL.
+
+## Rebuild and qualify the existing release
+
+No private key is needed to reproduce this release. The build assembles the
+public pinned inputs and fails if any byte differs from the committed signed
+inventory. `.dockerignore` admits only the required public files.
 
 ```sh
 docker buildx build --load \
-  --tag platform/grafana:13.2.4-security20261020 gateway/images/grafana
+  --tag ambicrafted/grafana:13.2.4-security.20261020-r4 gateway/images/grafana
+uv run --project apps/control-api --no-sync python \
+  gateway/images/grafana/qualifier-signatures.py \
+  --image ambicrafted/grafana:13.2.4-security.20261020-r4 \
+  --output /absolute/path/to/new-signature-evidence
 uv run --project apps/control-api --no-sync python \
   gateway/images/grafana/qualifier.py \
-  --image platform/grafana:13.2.4-security20261020 \
+  --image ambicrafted/grafana:13.2.4-security.20261020-r4 \
   --output /absolute/path/to/new-grafana-evidence \
   --browser gateway/images/grafana/qualifier-browser.mjs
 ```
 
-The build runs the upstream alert-rule validation, OpenAPI parser and OpenAPI
-request-filter tests with `go test -short`. The short mode deliberately excludes
-the upstream remote APIs.guru corpus download. It is not the full Grafana test
-suite or a cross-version production database migration test.
+The build runs four packaging/refusal tests, upstream plugin tests under the Go
+race detector, copied protocol tests, Grafana signature/loader tests and the
+existing alert-validation/OpenAPI tests. The loader integration test checks both
+actual bundles, including tampering, missing/extra files and wrong root URL.
+The short OpenAPI tests exclude the upstream remote APIs.guru corpus; this is
+not the entire Grafana test suite.
 
-The qualifier requires a **local Linux Docker Engine**, the console's installed
-Playwright package/Chromium, and the two pinned synthetic fixture images declared
-in `qualifier.py`. It creates an internal network, disposable state and random
-temporary credentials. The host accesses the private bridge directly; no ports
-are published and containers have no external network access. A conflicting
-private subnet fails explicitly. Docker Desktop remote engines require a
-separately adapted test runner; they are not silently given an external network.
+The runtime refusal qualifier starts real Grafana eight times: valid baseline,
+modified executable, missing file, additional file, changed whole manifest,
+foreign key ID, unsigned plugin and wrong root URL. Forbidden plugins must not
+be registered; the unmodified datasource must continue loading where applicable.
+The functional qualifier verifies authentication, private signatures, absence of
+the removed plugins, all six dashboards, Prometheus query data and the actual
+synthetic Tempo trace through traceId and TraceQL. Search indexing is polled with
+a strict 30-second bound. Playwright renders all 102 panels without JavaScript
+exceptions. Empty application time series in the isolated fixture are expected.
 
-Checks cover startup, the reported backend version, authentication, all thirteen
-plugin signatures/versions, both provisioned datasources, six EN/FR dashboards,
-a real Prometheus query and a synthetic Tempo trace through Grafana's datasource
-API. The browser loads all six dashboards, captures screenshots and checks for
-JavaScript exceptions. Empty application series are expected because the fixture
-does not invent AURA, token or SRE measurements. Screenshots prove rendering,
-not production metric coverage or long-term retention.
+These qualifiers require a local Linux Docker Engine and installed console
+Playwright/Chromium. They use unique internal networks, ephemeral state and
+random synthetic credentials, publish no ports and never mount live volumes.
+Only their own resources are removed; cleanup failures fail qualification.
+They do not establish cross-version production database migration compatibility.
 
-Logs and `qualification.json` stay in the selected evidence directory. The
-generated credential enters the browser through stdin and is redacted from
-diagnostics. Only resources created by the qualifier are removed; cleanup
-failures make qualification fail.
+## Creating a new signed release
 
-## Security boundary and remaining findings
+1. Review current catalog/source and the actual datasource/alert/panel inventory.
+   Prefer a maintained official corrected plugin when available. Update public
+   source/archive pins, exact locks, derived versions and deterministic Mage
+   build metadata together. Never relabel an old binary or erase its inventory.
+2. Build `--target prometheus-build` and `--target tempo-build`. Copy each target's
+   `/prepared/<id>` directory from a stopped temporary container into an operator
+   staging directory outside the checkout. These targets require no signing key.
+3. Review the resulting source inventories, tests and full binary scans before
+   invoking `sign_distribution.py PRIVATE_GNUPG_DIRECTORY PREPARED_DIRECTORY
+   gateway/images/grafana`. That offline step writes only public signed manifests
+   and their policy digests into the checkout. It never runs inside Docker.
+4. Rebuild the final core and image, repeat negative loader tests, actual queries,
+   dashboards, complete scans and independent review. Promotion remains separate
+   and requires a verified backup/rollback plan and an unchanged security gate.
 
-The 2026-10-20 Trivy 0.74.0 scan of this built image reports **0 CRITICAL,
-56 HIGH, 173 MEDIUM, 13 LOW and 5 UNKNOWN** package/CVE occurrences. The five
-`kin-openapi` HIGH findings in the unmodified 13.2.4 backend are gone. All remaining
-HIGH findings are in official signed datasource executables, including the
-required Prometheus and Tempo plugins. Current official catalog archives still
-contain the affected Go/dependency versions.
+The private RSA3072 signing key is operator state outside both checkout and build
+context (directory mode 0700; key files mode 0600), with a two-year expiry. Back
+it up in a separate encrypted off-host archive; an untested local key directory
+is not a disaster-recovery guarantee. Do not put it in application backups,
+container images, logs or Git. A lost key does not prevent rebuilding the existing
+release, but a new release requires deliberate key rotation. Rotate before
+expiry, or immediately after suspected compromise: generate a new offline key,
+review its public fingerprint, re-sign the reviewed artifacts and rebuild the
+compiled policy. A stolen key alone cannot approve different bytes under the old
+whole-manifest pins; changing the policy/core is still required. Preserve the
+previous qualified image and state for controlled rollback.
 
-This is **not** a clean security sign-off. The repository's CRITICAL/HIGH release
-gate must stay red until suitable signed upstream fixes or a separately reviewed
-implementation are qualified. There is no vulnerability suppression, unsigned
-plugin exception or metadata-only change. Removing the optional plugins alone
-would leave the required plugins affected; removing files without controlling
-preinstallation can also cause automatic downloads.
+## Scan interpretation and maintenance
 
-Keep the service private and authenticated. Those deployment controls reduce
-exposure; they do not erase the findings. Preserve the AGPL license, upstream and
-plugin notices, corresponding source and this derivative's patch when
-redistributing. See [ADR 0036](../../../docs/adr/0036-grafana-source-et-plugins-signes.md)
-for the decision and its maintenance cost.
+The 2026-10-21 candidate scan with Trivy 0.69.1 reports **zero CRITICAL, HIGH,
+MEDIUM and LOW** findings. The real runtime zlib package is upgraded to
+1.3.2-r1. One UNKNOWN remains: GO-2026-5932 concerns the unmaintained
+`golang.org/x/crypto/openpgp` package. This distribution uses the maintained
+ProtonMail implementation. The build explicitly rejects the old package in the
+OSS executable's dependency closure and preserves that complete closure as
+`/usr/share/grafana/ambicrafted/grafana-packages.txt`. The x/crypto module is still
+needed for other packages; its module-level scanner finding remains visible.
+This is a usage distinction, not suppression or a claim of universal safety.
+
+The former 56-HIGH image is historical evidence, not this candidate's result.
+Source URLs, patches, public signing material, full plugin corresponding source,
+AGPL and protocol license notices are preserved. If distributing the derivative,
+make its complete corresponding source and build changes available as required
+by the upstream licenses. Maintaining this small fork has a real cost: each
+plugin update changes the signed manifest and requires a core rebuild/review.
+See [ADR 0042](../../../docs/adr/0042-distribution-grafana-privee-corrigee.md).

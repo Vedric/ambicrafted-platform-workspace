@@ -199,7 +199,7 @@ def qualify(image, output, browser=None):
             ready(port(tempo, 3200) + "/ready")
             checks["health"] = request(base + "/api/health")
             assert checks["health"]["database"] == "ok"
-            assert checks["health"]["version"] == "13.2.4+ambicrafted.20261020"
+            assert checks["health"]["version"] == "13.2.4+ambicrafted.20261020.r2"
             try:
                 request(base + "/api/datasources")
                 raise AssertionError("Anonymous datasource access was accepted")
@@ -219,17 +219,23 @@ def qualify(image, output, browser=None):
             signatures = {
                 identifier: {
                     "signature": installed[identifier].get("signature"),
+                    "signatureType": installed[identifier].get("signatureType"),
+                    "signatureOrg": installed[identifier].get("signatureOrg"),
                     "version": installed[identifier].get("info", {}).get("version"),
                 }
                 for identifier in expected
             }
-            assert len(signatures) == 13
+            assert len(signatures) == 2
             assert all(
                 item["signature"] == "valid"
+                and item["signatureType"] == "private"
+                and item["signatureOrg"] == "Ambicrafted local distribution"
                 and item["version"] == expected[identifier]
                 for identifier, item in signatures.items()
             ), signatures
             checks["plugin_signatures_and_versions"] = signatures
+            assert not set(provenance["removed_unused_plugins"]).intersection(installed)
+            checks["unused_plugins_absent"] = len(provenance["removed_unused_plugins"])
             sources = request(base + "/api/datasources", auth=True)
             assert {source["uid"] for source in sources} == {"prometheus", "tempo"}
             checks["datasources"] = sorted(source["uid"] for source in sources)
@@ -291,8 +297,9 @@ def qualify(image, output, browser=None):
                 "from": str(now // 1_000_000 - 60_000),
                 "to": str(now // 1_000_000 + 60_000),
             }
-            for reference, query in [
+            for name, reference, query in [
                 (
+                    "prometheus",
                     "prometheus",
                     {
                         "expr": "up",
@@ -301,27 +308,47 @@ def qualify(image, output, browser=None):
                         "format": "time_series",
                     },
                 ),
-                ("tempo", {"queryType": "traceId", "query": trace_id}),
-            ]:
-                data = request(
-                    base + "/api/ds/query",
+                ("tempo", "tempo", {"queryType": "traceId", "query": trace_id}),
+                (
+                    "tempo_traceql",
+                    "tempo",
                     {
-                        **envelope,
-                        "queries": [
-                            {
-                                "refId": "A",
-                                "datasource": {"type": reference, "uid": reference},
-                                "intervalMs": 1000,
-                                "maxDataPoints": 100,
-                                **query,
-                            }
-                        ],
+                        "queryType": "traceql",
+                        "query": '{ resource.service.name = "grafana-qualification-synthetic" }',
                     },
-                    auth=True,
+                ),
+            ]:
+                query_request = {
+                    **envelope,
+                    "queries": [
+                        {
+                            "refId": "A",
+                            "datasource": {"type": reference, "uid": reference},
+                            "intervalMs": 1000,
+                            "maxDataPoints": 100,
+                            **query,
+                        }
+                    ],
+                }
+                deadline = time.monotonic() + 30
+                while True:
+                    data = request(base + "/api/ds/query", query_request, auth=True)
+                    item = data["results"]["A"]
+                    if name != "tempo_traceql" or trace_id in json.dumps(
+                        item.get("frames", [])
+                    ):
+                        break
+                    if time.monotonic() >= deadline:
+                        break
+                    time.sleep(1)
+                (output / (name + "-synthetic-response.json")).write_text(
+                    json.dumps(data, indent=2) + "\n"
                 )
                 item = data["results"]["A"]
                 assert item.get("frames") and not item.get("error"), reference
-                checks[reference + "_backend_query"] = {"frames": len(item["frames"])}
+                if reference == "tempo":
+                    assert trace_id in json.dumps(item["frames"]), name
+                checks[name + "_backend_query"] = {"frames": len(item["frames"])}
             if browser:
                 # Synthetic temporary credentials enter via stdin, never argv,
                 # shell history, test reports or browser screenshots.

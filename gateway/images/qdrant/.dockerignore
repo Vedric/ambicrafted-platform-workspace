@@ -6,3 +6,5 @@
 !web-ui.patch
 !healthcheck.go
 !healthcheck_test.go
+!build-dependencies.check.mjs
+!redirects-security.check.mjs

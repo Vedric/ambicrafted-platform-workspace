@@ -90,21 +90,28 @@ def test_pause_is_not_an_error_or_a_delivered_diagnosis(monkeypatch, tmp_path):
     assert not gate.events
     root = next(s for s in spans if s.name == "task.incident_analysis")
     assert tracage.ATTR_COUT not in root.attributes
-    assert root.attributes[tracage.ATTR_COUT_TOTAL] == pytest.approx(0.03)
+    assert root.attributes[tracage.ATTR_COUT_TOTAL] == pytest.approx(0.04)
     assert all(tracage.ATTR_COUT not in s.attributes for s in spans if s.name.startswith("node."))
     provider.shutdown()
 
 
-def test_legacy_checkpoint_cannot_deliver_an_unverified_diagnosis(monkeypatch, tmp_path):
+@pytest.mark.parametrize("previous_version", [0, 2])
+def test_legacy_checkpoint_cannot_deliver_an_unverified_diagnosis(
+    monkeypatch, tmp_path, previous_version
+):
     db = str(tmp_path / "legacy.sqlite")
     scenariser(monkeypatch, [reponse(EXTRACTION), reponse(TRI), reponse(DIAGNOSTIC)])
     assert graphe.demarrer("synthetic", "legacy", db).statut == "en_attente_humain"
     with graphe._application(db) as application:
-        application.update_state(graphe._configuration("legacy"), {"version_contrat": 0})
+        application.update_state(
+            graphe._configuration("legacy"), {"version_contrat": previous_version}
+        )
+    before = graphe.etat("legacy", db)
     report = graphe.reprendre("oui", "legacy", db)
     assert report.statut == "erreur"
     assert "incompatible" in report.message
     assert report.diagnostic is None
+    assert graphe.etat("legacy", db) == before  # Historical exports remain readable and intact.
 
 
 @pytest.mark.parametrize(

@@ -10,6 +10,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
+from uuid import NAMESPACE_URL, uuid5
 
 import plateforme.app as application_module
 import plateforme.conversation_routes as conversation_module
@@ -131,7 +132,7 @@ async def semantique(_, requete):
 async def dialoguer_simule(_, messages, langue="en"):
     await asyncio.sleep(0.08)
     return {
-        "texte": "Synthetic reply: open Analyses to investigate an incident with its sources.",
+        "texte": "Réponse simulée : ouvrez Analyses pour examiner un incident avec ses sources." if langue == "fr" else "Synthetic reply: open Analyses to investigate an incident with its sources.",
         "local": True,
         "actions_executees": False,
     }
@@ -145,6 +146,23 @@ async def flux_simule(p, messages, langue="en", vocal=False):
     yield {"type": "done", **result}
 
 
+async def document_simule(p, messages, langue, format, conversation, operation, sources):
+    # Only inference is simulated: the real route validates, authenticates,
+    # persists, replays and exports the document in disposable SQLite state.
+    fixtures = json.loads((Path(__file__).parent / "fixtures/documents.json").read_text())
+    # Guide-only examples retain the same route, validation and real persistence.
+    payload = json.dumps(messages, ensure_ascii=False).lower()
+    if "synthetic guide" in payload or "guide fictif" in payload:
+        fixtures = json.loads((Path(__file__).parent / "fixtures/guides-documents.json").read_text())[langue]
+    artifact = fixtures[format]
+    artifact["id"] = str(uuid5(NAMESPACE_URL, f"ambicrafted:{conversation}:{operation}"))
+    artifact["sources"] = sources
+    await asyncio.sleep(0.08)
+    return {"type": "done", "texte": artifact["summary"], "local": True,
+            "actions_executees": False, "artefacts": [artifact]}
+
+
+conversation_module.generer_artefact = document_simule
 conversation_module.flux_dialogue = flux_simule
 
 

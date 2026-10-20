@@ -53,7 +53,7 @@ def capture(monkeypatch):
         vu["contexte"] = trace.get_current_span().get_span_context()
         return _reponse_passerelle()
 
-    monkeypatch.setattr(llm.httpx, "post", faux_post)
+    monkeypatch.setattr(llm, "_poster_borne", faux_post)
     return vu
 
 
@@ -121,7 +121,7 @@ def test_le_refus_precede_l_injection_et_le_reseau(alias, monkeypatch):
         raise AssertionError("atteint malgré le refus")
 
     monkeypatch.setattr(llm.propagate, "inject", interdit)
-    monkeypatch.setattr(llm.httpx, "post", interdit)
+    monkeypatch.setattr(llm, "_poster_borne", interdit)
 
     with pytest.raises(llm.FuiteConfidentielle):
         _appel(alias=alias, classification=Classification.CONFIDENTIEL)

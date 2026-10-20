@@ -1,0 +1,148 @@
+{
+  "source": "https://codeload.github.com/grafana/tempo/tar.gz/77fc4563d1135d0ca2656709c7384c278a9c67b0",
+  "version": "3.1.0",
+  "revision": "77fc4563d1135d0ca2656709c7384c278a9c67b0",
+  "archive_sha256": "a5489d155031677121f8e715791012bc96f1ecacf5b4bcaaee6eb6a902560156",
+  "scope": "pkg/tempopb only; no server modules or storage package copied",
+  "transformation": "replace Go import package prefix only",
+  "files": [
+    {
+      "upstream_path": "pkg/tempopb/LICENSE_APACHE2",
+      "destination": "internal/tempopb/LICENSE_APACHE2",
+      "source_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "derived_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "upstream_path": "pkg/tempopb/additional_metrics_keys.go",
+      "destination": "internal/tempopb/additional_metrics_keys.go",
+      "source_sha256": "da9053a345593b84d4a4303bbb92e2b578c336bf7ca8551ecba2dadd7cb0facb",
+      "derived_sha256": "da9053a345593b84d4a4303bbb92e2b578c336bf7ca8551ecba2dadd7cb0facb"
+    },
+    {
+      "upstream_path": "pkg/tempopb/additional_metrics_keys_test.go",
+      "destination": "internal/tempopb/additional_metrics_keys_test.go",
+      "source_sha256": "5c6b4fe160911509cd31fdd514ba8b8be58834af870770af1b44f9a8ec431d3e",
+      "derived_sha256": "5c6b4fe160911509cd31fdd514ba8b8be58834af870770af1b44f9a8ec431d3e"
+    },
+    {
+      "upstream_path": "pkg/tempopb/backendwork.pb.go",
+      "destination": "internal/tempopb/backendwork.pb.go",
+      "source_sha256": "a7ccb2cc5ed1cfb486cd04cd2de811635ea4fe7e75539882f00570c0aa97fc42",
+      "derived_sha256": "a7ccb2cc5ed1cfb486cd04cd2de811635ea4fe7e75539882f00570c0aa97fc42"
+    },
+    {
+      "upstream_path": "pkg/tempopb/backendwork.proto",
+      "destination": "internal/tempopb/backendwork.proto",
+      "source_sha256": "fea1e78514e51ed48167566600b423a9a05c37770e2f434364e832bfca4a7828",
+      "derived_sha256": "fea1e78514e51ed48167566600b423a9a05c37770e2f434364e832bfca4a7828"
+    },
+    {
+      "upstream_path": "pkg/tempopb/common/v1/common.pb.go",
+      "destination": "internal/tempopb/common/v1/common.pb.go",
+      "source_sha256": "a2e7f498a63a0c2c37e842e88db079f91a33d5ebd8b4923eca1e084858d803b0",
+      "derived_sha256": "a2e7f498a63a0c2c37e842e88db079f91a33d5ebd8b4923eca1e084858d803b0"
+    },
+    {
+      "upstream_path": "pkg/tempopb/metrics.go",
+      "destination": "internal/tempopb/metrics.go",
+      "source_sha256": "f063969017599d147028aa9596aaec4942bb8501645d9bed0360c3904f3c1e85",
+      "derived_sha256": "f063969017599d147028aa9596aaec4942bb8501645d9bed0360c3904f3c1e85"
+    },
+    {
+      "upstream_path": "pkg/tempopb/metrics_test.go",
+      "destination": "internal/tempopb/metrics_test.go",
+      "source_sha256": "e90ebabe2e7a0aec18cac342bb658b039fb9ea6b2d08eda35bb08d65a4cc971f",
+      "derived_sha256": "e33b55a3c5aa8876421a30dec12081e241751500040883a52e4be8d7c627dcf7"
+    },
+    {
+      "upstream_path": "pkg/tempopb/pool.go",
+      "destination": "internal/tempopb/pool.go",
+      "source_sha256": "5cf1be2e743966fa83ba1079ba62f3f109800fc8a621fa9a7a7d741c7a2087ff",
+      "derived_sha256": "5cf1be2e743966fa83ba1079ba62f3f109800fc8a621fa9a7a7d741c7a2087ff"
+    },
+    {
+      "upstream_path": "pkg/tempopb/pool_test.go",
+      "destination": "internal/tempopb/pool_test.go",
+      "source_sha256": "75b43f915a297ab9772c650fa05b211bd42e9ac5139dce546400fee7fd94540e",
+      "derived_sha256": "75b43f915a297ab9772c650fa05b211bd42e9ac5139dce546400fee7fd94540e"
+    },
+    {
+      "upstream_path": "pkg/tempopb/prealloc.go",
+      "destination": "internal/tempopb/prealloc.go",
+      "source_sha256": "3576409fbc0860724cb07f90a46594a1a51d8288221ce01e14daa0c49e8c89db",
+      "derived_sha256": "3576409fbc0860724cb07f90a46594a1a51d8288221ce01e14daa0c49e8c89db"
+    },
+    {
+      "upstream_path": "pkg/tempopb/prealloc_test.go",
+      "destination": "internal/tempopb/prealloc_test.go",
+      "source_sha256": "b0321e0f9a76e317a597d4a241920a99ca309337be37650032e8345978aa1f3f",
+      "derived_sha256": "b0321e0f9a76e317a597d4a241920a99ca309337be37650032e8345978aa1f3f"
+    },
+    {
+      "upstream_path": "pkg/tempopb/redaction.go",
+      "destination": "internal/tempopb/redaction.go",
+      "source_sha256": "db0e2beaa5204416e4450a89d9b0497d5158c104b71b12529f648475ed8bc238",
+      "derived_sha256": "db0e2beaa5204416e4450a89d9b0497d5158c104b71b12529f648475ed8bc238"
+    },
+    {
+      "upstream_path": "pkg/tempopb/redaction_test.go",
+      "destination": "internal/tempopb/redaction_test.go",
+      "source_sha256": "c4f9eead73cfc4f1afb6cf3fc35fcec920dc0cd4af5a5395d435f8a33b511229",
+      "derived_sha256": "c4f9eead73cfc4f1afb6cf3fc35fcec920dc0cd4af5a5395d435f8a33b511229"
+    },
+    {
+      "upstream_path": "pkg/tempopb/resource/v1/resource.pb.go",
+      "destination": "internal/tempopb/resource/v1/resource.pb.go",
+      "source_sha256": "4881d4d531ace020ded30f697f93338fc330c82c4a68a2661d53eae41dcf5349",
+      "derived_sha256": "e2555728af8b5b120eb7acb0b07368e8456adbca49df372728502b6e46c6310c"
+    },
+    {
+      "upstream_path": "pkg/tempopb/tempo.pb.go",
+      "destination": "internal/tempopb/tempo.pb.go",
+      "source_sha256": "3c954144ba02d388b53b80d5fc1a74443018ce7f045a649c1a1617ea0fff0b74",
+      "derived_sha256": "3d2103e06238f76675b2702b1cf7979d1349d93a57033c2f7e7202ae018c50f4"
+    },
+    {
+      "upstream_path": "pkg/tempopb/tempo.proto",
+      "destination": "internal/tempopb/tempo.proto",
+      "source_sha256": "728fcb4a0f7100732366136184b8bb437b02ff80c72c9a7a0e7d56bd7efbccea",
+      "derived_sha256": "728fcb4a0f7100732366136184b8bb437b02ff80c72c9a7a0e7d56bd7efbccea"
+    },
+    {
+      "upstream_path": "pkg/tempopb/trace.json",
+      "destination": "internal/tempopb/trace.json",
+      "source_sha256": "1b5a17d208f2ac04e11f1b36ef83a2324a4db59e46d18d5d794eb83ce38aadd1",
+      "derived_sha256": "1b5a17d208f2ac04e11f1b36ef83a2324a4db59e46d18d5d794eb83ce38aadd1"
+    },
+    {
+      "upstream_path": "pkg/tempopb/trace/v1/trace.pb.go",
+      "destination": "internal/tempopb/trace/v1/trace.pb.go",
+      "source_sha256": "73e6f0df59d629a28a4c0b98f99e767db5ed3a99244d4f440dd68ce33a176355",
+      "derived_sha256": "8ab0dea7094592e6f21cca197bd90fbc07c71fe244dedb434c70f3cbefe5ebdd"
+    },
+    {
+      "upstream_path": "pkg/tempopb/trace_utils.go",
+      "destination": "internal/tempopb/trace_utils.go",
+      "source_sha256": "7f904d6139d77d0b052c9dde54d7e8c64d36ff10dce53a993bfddd0c5894e31a",
+      "derived_sha256": "7f904d6139d77d0b052c9dde54d7e8c64d36ff10dce53a993bfddd0c5894e31a"
+    },
+    {
+      "upstream_path": "pkg/tempopb/trace_utils_test.go",
+      "destination": "internal/tempopb/trace_utils_test.go",
+      "source_sha256": "d85397c7c9c636051158adb4bf8aa0c5f29ee0d228bd1103f66db007c08f32b1",
+      "derived_sha256": "6932abfa18d4ce516f26bd6e326426ae95c9c8792ee76e6d6f05f70993c8b512"
+    },
+    {
+      "upstream_path": "pkg/tempopb/utils.go",
+      "destination": "internal/tempopb/utils.go",
+      "source_sha256": "0d03b21b5fa24437cff656bb3269ff6d6b5ef169e5b180f29cd72496cd86ddc8",
+      "derived_sha256": "ecabd9e9e945527fb94c03f7128772da97be9e5b4a0562aa10906e6d6fe47794"
+    },
+    {
+      "upstream_path": "pkg/tempopb/utils_test.go",
+      "destination": "internal/tempopb/utils_test.go",
+      "source_sha256": "3012938c229d51e5477d688a1573453c51ad7c7db6bd2f5e700c5804117e5dac",
+      "derived_sha256": "4353e918fa1eb8d1d2758dd87bedca7817f77d65abe17085b5f24b0b7b7ddb98"
+    }
+  ]
+}

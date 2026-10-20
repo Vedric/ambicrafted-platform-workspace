@@ -1,0 +1,198 @@
+--- a/pkg/tempo/grpc.go
++++ b/pkg/tempo/grpc.go
+@@ -27,7 +27,7 @@
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
+ 	"github.com/grafana/grafana-plugin-sdk-go/config"
+-	"github.com/grafana/tempo/pkg/tempopb"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
+ )
+ 
+ var (
+--- a/pkg/tempo/metrics_stream.go
++++ b/pkg/tempo/metrics_stream.go
+@@ -13,7 +13,7 @@
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/kinds/dataquery"
+-	"github.com/grafana/tempo/pkg/tempopb"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
+ 	"go.opentelemetry.io/otel/attribute"
+ 	"go.opentelemetry.io/otel/codes"
+ )
+--- a/pkg/tempo/metrics_stream_test.go
++++ b/pkg/tempo/metrics_stream_test.go
+@@ -9,8 +9,8 @@
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/kinds/dataquery"
+-	"github.com/grafana/tempo/pkg/tempopb"
+-	v1 "github.com/grafana/tempo/pkg/tempopb/common/v1"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
++	v1 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/common/v1"
+ 	"google.golang.org/grpc/metadata"
+ )
+ 
+--- a/pkg/tempo/search.go
++++ b/pkg/tempo/search.go
+@@ -16,8 +16,8 @@
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/kinds/dataquery"
+-	"github.com/grafana/tempo/pkg/tempopb"
+-	v1 "github.com/grafana/tempo/pkg/tempopb/common/v1"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
++	v1 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/common/v1"
+ )
+ 
+ type DataFrameField struct {
+--- a/pkg/tempo/search_stream.go
++++ b/pkg/tempo/search_stream.go
+@@ -11,7 +11,7 @@
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/kinds/dataquery"
+-	"github.com/grafana/tempo/pkg/tempopb"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
+ 	"go.opentelemetry.io/otel/attribute"
+ 	"go.opentelemetry.io/otel/codes"
+ )
+--- a/pkg/tempo/search_stream_test.go
++++ b/pkg/tempo/search_stream_test.go
+@@ -12,7 +12,7 @@
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/kinds/dataquery"
+-	"github.com/grafana/tempo/pkg/tempopb"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
+ 	"google.golang.org/grpc/metadata"
+ )
+ 
+--- a/pkg/tempo/search_test.go
++++ b/pkg/tempo/search_test.go
+@@ -8,8 +8,8 @@
+ 
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/kinds/dataquery"
+-	"github.com/grafana/tempo/pkg/tempopb"
+-	v1 "github.com/grafana/tempo/pkg/tempopb/common/v1"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
++	v1 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/common/v1"
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+ )
+--- a/pkg/tempo/tempo.go
++++ b/pkg/tempo/tempo.go
+@@ -23,7 +23,7 @@
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
+-	"github.com/grafana/tempo/pkg/tempopb"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
+ 
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/kinds/dataquery"
+ )
+--- a/pkg/tempo/trace.go
++++ b/pkg/tempo/trace.go
+@@ -16,7 +16,7 @@
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+-	"github.com/grafana/tempo/pkg/tempopb"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
+ 
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/kinds/dataquery"
+ 
+--- a/pkg/tempo/trace_transform.go
++++ b/pkg/tempo/trace_transform.go
+@@ -7,9 +7,9 @@
+ 	"math"
+ 
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+-	commonv11 "github.com/grafana/tempo/pkg/tempopb/common/v1"
+-	v1 "github.com/grafana/tempo/pkg/tempopb/resource/v1"
+-	tracev11 "github.com/grafana/tempo/pkg/tempopb/trace/v1"
++	commonv11 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/common/v1"
++	v1 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/resource/v1"
++	tracev11 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/trace/v1"
+ 	"go.opentelemetry.io/otel/attribute"
+ 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+ )
+--- a/pkg/tempo/trace_transform_test.go
++++ b/pkg/tempo/trace_transform_test.go
+@@ -10,10 +10,10 @@
+ 	//nolint:all
+ 	"github.com/golang/protobuf/jsonpb"
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+-	"github.com/grafana/tempo/pkg/tempopb"
+-	commonv11 "github.com/grafana/tempo/pkg/tempopb/common/v1"
+-	resourcev1 "github.com/grafana/tempo/pkg/tempopb/resource/v1"
+-	v1 "github.com/grafana/tempo/pkg/tempopb/trace/v1"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
++	commonv11 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/common/v1"
++	resourcev1 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/resource/v1"
++	v1 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/trace/v1"
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+ )
+--- a/pkg/tempo/traceql/exemplars.go
++++ b/pkg/tempo/traceql/exemplars.go
+@@ -5,7 +5,7 @@
+ 	"time"
+ 
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+-	"github.com/grafana/tempo/pkg/tempopb"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
+ )
+ 
+ func transformExemplarToFrame(name string, series *tempopb.TimeSeries) *data.Frame {
+--- a/pkg/tempo/traceql/exemplars_test.go
++++ b/pkg/tempo/traceql/exemplars_test.go
+@@ -4,8 +4,8 @@
+ 	"testing"
+ 	"time"
+ 
+-	"github.com/grafana/tempo/pkg/tempopb"
+-	v1 "github.com/grafana/tempo/pkg/tempopb/common/v1"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
++	v1 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/common/v1"
+ 	"github.com/stretchr/testify/assert"
+ )
+ 
+--- a/pkg/tempo/traceql/metrics.go
++++ b/pkg/tempo/traceql/metrics.go
+@@ -9,8 +9,8 @@
+ 	"time"
+ 
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+-	"github.com/grafana/tempo/pkg/tempopb"
+-	v1 "github.com/grafana/tempo/pkg/tempopb/common/v1"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
++	v1 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/common/v1"
+ )
+ 
+ func TransformMetricsResponse(query string, resp tempopb.QueryRangeResponse) []*data.Frame {
+--- a/pkg/tempo/traceql/metrics_test.go
++++ b/pkg/tempo/traceql/metrics_test.go
+@@ -5,8 +5,8 @@
+ 	"time"
+ 
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+-	"github.com/grafana/tempo/pkg/tempopb"
+-	v1 "github.com/grafana/tempo/pkg/tempopb/common/v1"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
++	v1 "github.com/grafana/grafana-tempo-datasource/internal/tempopb/common/v1"
+ 	"github.com/stretchr/testify/assert"
+ )
+ 
+--- a/pkg/tempo/traceql_query.go
++++ b/pkg/tempo/traceql_query.go
+@@ -18,7 +18,7 @@
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/kinds/dataquery"
+ 	"github.com/grafana/grafana-tempo-datasource/pkg/tempo/traceql"
+-	"github.com/grafana/tempo/pkg/tempopb"
++	"github.com/grafana/grafana-tempo-datasource/internal/tempopb"
+ 	"go.opentelemetry.io/otel/attribute"
+ 	"go.opentelemetry.io/otel/codes"
+ 	"go.opentelemetry.io/otel/trace"

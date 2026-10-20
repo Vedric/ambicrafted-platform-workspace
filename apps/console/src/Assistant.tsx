@@ -1,3 +1,9 @@
+import {
+  parseArtifacts,
+  type Artifact,
+  type ArtifactFormat,
+  type DialogueReply,
+} from "./artifacts";
 import { MicrophoneCheck } from "./MicrophoneCheck";
 import {
   microphoneConstraints,
@@ -10,6 +16,8 @@ import { texteOral } from "./spoken-text";
 export { texteOral } from "./spoken-text";
 import { getLanguage, number, t, useI18n, type MessageKey } from "./i18n";
 import {
+  lazy,
+  Suspense,
   useEffect,
   useRef,
   useState,
@@ -43,10 +51,18 @@ import {
 import { api, audioLocal } from "./api";
 import { Erreur, Markdown, Titre, useToast } from "./ui";
 import "./voice-controls.css";
+import "./artifacts.css";
 
-export type Message = { role: "user" | "assistant"; content: string };
+const ArtifactCard = lazy(() => import("./ArtifactCard"));
+
+export type Message = {
+  role: "user" | "assistant";
+  content: string;
+  artefacts?: Artifact[];
+};
 export type SavedConversationProps = {
   initialMessages?: Message[];
+  conversationId?: string;
   initialDraft?: string;
   onDraftChange?: (draft: string) => void;
   externalBusy?: boolean;
@@ -56,7 +72,8 @@ export type SavedConversationProps = {
     signal: AbortSignal,
     onText: (text: string) => void,
     vocal?: boolean,
-  ) => Promise<{ texte: string; usage?: unknown }>;
+    format?: ArtifactFormat,
+  ) => Promise<DialogueReply>;
   onNew?: () => void;
   composerExtra?: ReactNode;
 };
@@ -109,6 +126,7 @@ function encoderAudio(blob: Blob): Promise<string> {
 
 export default function Assistant({
   initialMessages = [],
+  conversationId,
   initialDraft = "",
   onDraftChange,
   externalBusy = false,
@@ -119,6 +137,7 @@ export default function Assistant({
   useI18n();
   const notifier = useToast();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [format, setFormat] = useState<ArtifactFormat>("auto");
   const [brouillon, setBrouillon] = useState(initialDraft);
   const draftCallback = useRef(onDraftChange);
   draftCallback.current = onDraftChange;
@@ -533,15 +552,16 @@ export default function Assistant({
                 ]);
             },
             continueConversation,
+            format,
           )
-        : await api<{ texte: string; usage?: unknown }>(
+        : await api<DialogueReply>(
             "/assistant/dialogue",
             "POST",
             {
               langue,
               ...(continueConversation ? { vocal: true } : {}),
               messages: suivants.map((message) => ({
-                ...message,
+                role: message.role,
                 content: message.content.slice(0, 4000),
               })),
             },
@@ -562,7 +582,11 @@ export default function Assistant({
       }));
       const updated = [
         ...suivants,
-        { role: "assistant", content: resultat.texte },
+        {
+          role: "assistant",
+          content: resultat.texte,
+          artefacts: parseArtifacts(resultat.artefacts),
+        },
       ].slice(sendMessage ? -100 : -7) as Message[];
       latestMessages.current = updated;
       setMessages(updated);
@@ -1118,7 +1142,7 @@ export default function Assistant({
                     {[
                       t("How do I start an analysis?"),
                       t("How do the agents work?"),
-                      t("How do I back up my platform?"),
+                      t("Draw a diagram of a supervised investigation."),
                     ].map((suggestion) => (
                       <button
                         key={suggestion}
@@ -1152,6 +1176,23 @@ export default function Assistant({
                     ) : (
                       <p>{message.content}</p>
                     )}
+                    {message.role === "assistant" &&
+                      conversationId &&
+                      message.artefacts?.map((artifact) => (
+                        <Suspense
+                          key={artifact.id}
+                          fallback={
+                            <p role="status">
+                              {t("Preparing the diagram layout…")}
+                            </p>
+                          }
+                        >
+                          <ArtifactCard
+                            artifact={artifact}
+                            conversation={conversationId}
+                          />
+                        </Suspense>
+                      ))}
                     {message.role === "assistant" && (
                       <div className="message-actions">
                         <button
@@ -1211,6 +1252,23 @@ export default function Assistant({
               </p>
             )}
             <form className="chat-compose" onSubmit={envoyer}>
+              {sendMessage && (
+                <label className="document-format">
+                  {t("Response format")}
+                  <select
+                    value={format}
+                    disabled={occupe || handsFree}
+                    onChange={(event) =>
+                      setFormat(event.target.value as ArtifactFormat)
+                    }
+                  >
+                    <option value="auto">{t("Automatic")}</option>
+                    <option value="text">{t("Text")}</option>
+                    <option value="diagram">{t("Diagram")}</option>
+                    <option value="report">{t("Report")}</option>
+                  </select>
+                </label>
+              )}
               {composerExtra && (
                 <fieldset
                   className="attachment-controls"

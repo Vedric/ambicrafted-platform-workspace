@@ -1,9 +1,11 @@
+import "../artifacts.css";
 import { t, useI18n, getLocale, number, countLabel } from "../i18n";
 import { useEffect, useState } from "react";
 import { RunUsage } from "../RunUsage";
 import {
   Link,
   useNavigate,
+  useLocation,
   useParams,
   useSearchParams,
 } from "react-router-dom";
@@ -226,7 +228,25 @@ export function NouvelleAnalyse() {
   useI18n();
   const [searchParams] = useSearchParams();
   const mission = findMission(searchParams.get("mission"));
-  const [titre, setTitre] = useState<string>(() => mission?.draftTitle || ""),
+  const location = useLocation();
+  const previous = location.state as {
+    title?: unknown;
+    analysisId?: unknown;
+  } | null;
+  const previousId =
+    typeof previous?.analysisId === "string" &&
+    /^[a-f0-9]{32}$/.test(previous.analysisId)
+      ? previous.analysisId
+      : null;
+  const previousTitle =
+    previousId &&
+    typeof previous?.title === "string" &&
+    previous.title.length <= 100
+      ? previous.title
+      : "";
+  const [titre, setTitre] = useState<string>(
+      () => previousTitle || mission?.draftTitle || "",
+    ),
     [alerte, setAlerte] = useState<string>(() => mission?.draft || "");
   const navigate = useNavigate();
   const mutation = useMutation({
@@ -245,6 +265,17 @@ export function NouvelleAnalyse() {
           "Describe what you observed. Your agents will investigate against your runbooks.",
         )}
       />
+      {previousId && (
+        <div className="mission-brief" role="status">
+          <strong>{t("Start again with current checks")}</strong>
+          <p>
+            {t(
+              "The original observations were not retained. Enter them again; the previous report is preserved.",
+            )}
+          </p>
+          <Link to={"/analyses/" + previousId}>{t("Previous analysis")}</Link>
+        </div>
+      )}
       {mission && (
         <div className="mission-brief">
           <span>{mission.category}</span>
@@ -463,7 +494,29 @@ export function DetailAnalyse() {
           <Trash2 size={17} />
         </button>
       </Titre>
-      {attente && (
+      {attente && a.reprise_compatible === false && (
+        <div className="approval-banner" role="status">
+          <LockKeyhole size={25} />
+          <div>
+            <strong>
+              {t("This analysis uses an earlier review contract")}
+            </strong>
+            <p>
+              {t(
+                "Its report is preserved. Start a new analysis to apply the current checks before making a decision.",
+              )}
+            </p>
+          </div>
+          <Link
+            className="btn primary"
+            to="/analyses/nouvelle"
+            state={{ title: a.titre, analysisId: a.id }}
+          >
+            <Plus size={17} /> {t("New analysis")}
+          </Link>
+        </div>
+      )}
+      {attente && a.reprise_compatible !== false && (
         <div className="approval-banner">
           <ShieldCheck size={25} />
           <div>
@@ -569,6 +622,56 @@ export function DetailAnalyse() {
                       ))}
                     </ul>
                   </div>
+                )}
+                {d.qualite && (
+                  <section className="quality-review">
+                    <h3>{t("AI consistency review")}</h3>
+                    <p className="tag">
+                      {d.qualite.statut === "abstention"
+                        ? t("Proposal withheld")
+                        : t("No blocking inconsistency detected")}
+                    </p>
+                    {!!d.qualite.ecarts.length && (
+                      <ul>
+                        {d.qualite.ecarts.map((issue, index) => (
+                          <li key={index}>{issue}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {!!d.qualite.calculs.length && (
+                      <>
+                        <h4>{t("Arithmetic checks")}</h4>
+                        <p className="hint">
+                          {t(
+                            "Calculations use model-selected inputs. Check the inputs as well as the result.",
+                          )}
+                        </p>
+                        <ul>
+                          {d.qualite.calculs.map((calculation, index) => (
+                            <li key={index}>{calculation}</li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    {d.qualite.extraction_ecartee && (
+                      <p>
+                        {t("The initial extraction was excluded after review.")}
+                      </p>
+                    )}
+                    <p className="hint">
+                      {t(
+                        "This bounded review can miss errors. It does not establish the root cause or replace your decision.",
+                      )}
+                    </p>
+                    <small>
+                      {d.qualite.latence_ms} ms ·{" "}
+                      {t("{count} observed tokens", {
+                        count: number(
+                          d.qualite.tokens_entree + d.qualite.tokens_sortie,
+                        ),
+                      })}
+                    </small>
+                  </section>
                 )}
                 <button
                   className="btn small"

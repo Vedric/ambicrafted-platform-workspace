@@ -1,0 +1,64 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:06.108
+Open AURA and request a diagram directly, or
+choose Diagram in the response format
+
+00:00:06.108 --> 00:00:12.515
+selector. Describe the components and the
+direction of each interaction. Our synthetic
+
+00:00:12.515 --> 00:00:18.474
+example contains a browser, an API and
+PostgreSQL. The saved document belongs to
+
+00:00:18.474 --> 00:00:22.050
+this conversation and remains a draft to
+review.
+
+00:00:22.850 --> 00:00:29.193
+Open the document workspace, inspect labels
+and use zoom or actual size to read the
+
+00:00:29.193 --> 00:00:35.383
+graph. Examine its complete outline and
+source references. Supplied context means
+
+00:00:35.383 --> 00:00:41.725
+attribution to your request, not verified
+infrastructure. Export SVG for a scalable
+
+00:00:41.725 --> 00:00:47.150
+diagram or PNG for a bounded image; JSON
+preserves the structured data.
+
+00:00:47.967 --> 00:00:53.577
+Next request a report that separates
+supplied facts, unknowns and proposed
+
+00:00:53.577 --> 00:00:59.414
+checks. Read every section and table.
+Missing information must remain unknown
+
+00:00:59.414 --> 00:01:05.479
+rather than becoming an invented result.
+Markdown preserves readable text, while
+
+00:01:05.479 --> 00:01:11.392
+printing offers a paginated PDF. Reopen
+history to recover the saved document.
+
+00:01:12.192 --> 00:01:18.238
+Prepare a memory note only when the result
+is worth retaining. The form opens with an
+
+00:01:18.238 --> 00:01:24.355
+unverified summary as a question. Review the
+text, choose a scope and save explicitly.
+
+00:01:24.355 --> 00:01:30.543
+Nothing is automatically written to Neo4j.
+Cancel the form if the content should remain
+
+00:01:30.543 --> 00:01:32.392
+only in this conversation.

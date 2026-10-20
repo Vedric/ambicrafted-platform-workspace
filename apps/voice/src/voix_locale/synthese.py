@@ -74,6 +74,11 @@ def _phonemiser(texte: str, langue: str, vocabulaire: dict[str, int]) -> list[st
     for phrase in phrases:
         # Normalize known eSpeak notation to this model's phonetic alphabet.
         phrase = phrase.replace("ɚ", "əɹ").replace("ʲ", "").replace("r", "ɹ")
+        # The pinned vocabulary lacks U+0329 (syllabic). Preserve the syllable
+        # with an explicit schwa before these two English sonorants only.
+        # This is a model-alphabet approximation, not deletion of diacritics.
+        if langue == "en":
+            phrase = phrase.replace("n\u0329", "ən").replace("l\u0329", "əl")
         phrase = re.sub(r"[-–\n\t]", " ", phrase)
         phrase = re.sub(r"\s+", " ", phrase).strip()
         # Never silently omit a spoken phoneme or truncate a sentence.

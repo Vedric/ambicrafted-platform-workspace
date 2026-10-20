@@ -61,8 +61,8 @@ try {
       if (only && only !== language && only !== `${lesson}-${language}`)
         continue;
       const context = await browser.newContext({
-        viewport: { width: 1280, height: 800 },
-        recordVideo: { dir: temporary, size: { width: 1280, height: 800 } },
+        viewport: { width: 1920, height: 1080 },
+        recordVideo: { dir: temporary, size: { width: 1920, height: 1080 } },
         reducedMotion: "no-preference",
         locale: language === "fr" ? "fr-FR" : "en-US",
         permissions: ["microphone"],
@@ -81,6 +81,7 @@ try {
       page.on("pageerror", (error) => errors.push(error.message));
       const started = performance.now();
       const cues = [];
+      let posterCaptured = false;
       const cue = (index) =>
         cues.push({
           start: (performance.now() - started) / 1000,
@@ -92,6 +93,42 @@ try {
         await page.evaluate(() => document.fonts.ready);
         await page.waitForTimeout(1100);
       };
+      const captions = (text, start, end) => {
+        // Short, optional WebVTT cues; narration is never burned into pixels.
+        const words = text.split(/\s+/),
+          parts = [];
+        let lines = [""];
+        for (const word of words) {
+          const index = lines.length - 1;
+          if ((lines[index] + " " + word).trim().length <= 44)
+            lines[index] = (lines[index] + " " + word).trim();
+          else if (lines.length === 1) lines.push(word);
+          else {
+            parts.push(lines.join("\n"));
+            lines = [word];
+          }
+        }
+        if (lines[0]) parts.push(lines.join("\n"));
+        const length = parts.reduce((sum, part) => sum + part.length, 0);
+        let position = start;
+        return parts
+          .map((part) => {
+            const next = position + ((end - start) * part.length) / length;
+            const result = `${stamp(position)} --> ${stamp(next)}\n${part}\n`;
+            position = next;
+            return result;
+          })
+          .join("\n");
+      };
+      const click = (en, fr) =>
+        page
+          .getByRole("button", {
+            name: language === "fr" ? fr : en,
+            exact: true,
+          })
+          .click();
+      const draft = () =>
+        page.getByLabel(language === "fr" ? "Votre message" : "Your message");
       const pause = () => {
         const index = cues.length - 1;
         const target = narration[`${lesson}-${language}`][index].duration + 0.8;
@@ -108,6 +145,9 @@ try {
         await pause();
         cue(2);
         await go("/missions");
+        await pause();
+        cue(3);
+        await go("/runbooks");
         await pause();
       } else if (lesson === "voice") {
         // Deterministic guide fixture; native browser capture still uses Chromium's fake microphone.
@@ -128,20 +168,6 @@ try {
         await page.route("**/api/voix/transcrire", (route) =>
           route.fulfill({ json: { texte: question, local: true } }),
         );
-        if (language === "fr")
-          await page.route("**/api/conversations/*/messages", (route) =>
-            route.fulfill({
-              contentType: "application/x-ndjson",
-              body:
-                JSON.stringify({
-                  type: "done",
-                  texte:
-                    "Réponse simulée : ouvrez Analyses pour examiner un incident avec ses sources.",
-                  local: true,
-                  actions_executees: false,
-                }) + "\n",
-            }),
-          );
         cue(0);
         await go("/assistant");
         await page
@@ -183,7 +209,105 @@ try {
           })
           .click();
         await pause();
-      } else {
+        cue(3);
+        await click("Conversation history", "Historique des conversations");
+        await pause();
+      } else if (lesson === "documents") {
+        cue(0);
+        await go("/assistant");
+        await draft().fill(
+          language === "fr"
+            ? "Crée un diagramme pour ce guide fictif : un navigateur envoie des requêtes HTTPS à une API, puis l’API interroge PostgreSQL avec SQL. Trois composants seulement."
+            : "Create a diagram for this synthetic guide: a browser sends HTTPS requests to an API, then the API queries PostgreSQL using SQL. Three components only.",
+        );
+        await click("Send", "Envoyer");
+        await page.locator(".artifact-card").waitFor();
+        await pause();
+        cue(1);
+        await click("Open document", "Ouvrir le document");
+        await page.locator(".artifact-expanded svg.document-diagram").waitFor();
+        await page
+          .getByRole("dialog")
+          .getByRole("button", {
+            name: language === "fr" ? "Afficher l’ensemble" : "Fit diagram",
+            exact: true,
+          })
+          .click();
+        await page.screenshot({
+          path: join(output, `${lesson}-${language}.jpg`),
+          type: "jpeg",
+          quality: 86,
+        });
+        posterCaptured = true;
+        await pause();
+        await page.keyboard.press("Escape");
+        cue(2);
+        await draft().fill(
+          language === "fr"
+            ? "Rédige un rapport pour ce guide fictif : une API consulte PostgreSQL. La disponibilité cible et les tests de restauration ne sont pas renseignés. Sépare faits fournis, inconnues et vérifications proposées."
+            : "Write a report for this synthetic guide: an API queries PostgreSQL. The availability target and restore tests are unknown. Separate supplied facts, unknowns and proposed checks.",
+        );
+        await click("Send", "Envoyer");
+        await page.locator(".document-report").waitFor();
+        await page.locator(".artifact-card").last().scrollIntoViewIfNeeded();
+        await pause();
+        cue(3);
+        await page
+          .locator(".artifact-card")
+          .last()
+          .getByRole("button", {
+            name:
+              language === "fr"
+                ? "Préparer une note de mémoire"
+                : "Prepare a memory note",
+            exact: true,
+          })
+          .click();
+        await page.getByRole("dialog").waitFor();
+        await pause();
+        await page.keyboard.press("Escape");
+      } else if (lesson === "recovery") {
+        cue(0);
+        await go("/operations");
+        await pause();
+        cue(1);
+        await click("Back up now", "Sauvegarder maintenant");
+        await page.getByRole("dialog").waitFor();
+        await pause();
+        await page.keyboard.press("Escape");
+        cue(2);
+        await click("Test backup", "Tester la sauvegarde");
+        await page.getByRole("dialog").waitFor();
+        await pause();
+        await page.keyboard.press("Escape");
+        cue(3);
+        await go("/preparation");
+        await page
+          .locator("main")
+          .evaluate((element) =>
+            element.scrollTo({ top: element.scrollHeight, behavior: "smooth" }),
+          );
+        await pause();
+      } else if (lesson === "observability") {
+        cue(0);
+        await go("/observabilite");
+        await pause();
+        cue(1);
+        await go("/sante");
+        await pause();
+        cue(2);
+        await go("/observabilite");
+        await page
+          .locator("main")
+          .evaluate((element) =>
+            element.scrollTo({ top: element.scrollHeight, behavior: "smooth" }),
+          );
+        await pause();
+        cue(3);
+        await go("/architecture");
+        await page.mouse.wheel(0, 500);
+        await pause();
+      } else if (lesson === "investigation") {
         cue(0);
         await go("/analyses/nouvelle");
         await page
@@ -231,13 +355,18 @@ try {
           .getByRole("dialog", { name: reject })
           .getByRole("button", { name: reject, exact: true })
           .click();
+        cue(3);
+        await go("/analyses");
         await pause();
-      }
-      await page.screenshot({
-        path: join(output, `${lesson}-${language}.jpg`),
-        type: "jpeg",
-        quality: 86,
-      });
+      } else throw Error("Unknown guide lesson");
+      if (cues.length !== 4)
+        throw Error("Every guide needs four recorded chapters");
+      if (!posterCaptured)
+        await page.screenshot({
+          path: join(output, `${lesson}-${language}.jpg`),
+          type: "jpeg",
+          quality: 86,
+        });
       const duration = (performance.now() - started) / 1000;
       const video = page.video();
       await context.close();
@@ -246,9 +375,12 @@ try {
         join(output, `${lesson}-${language}.vtt`),
         "WEBVTT\n\n" +
           cues
-            .map(
-              (cue, index) =>
-                `${index + 1}\n${stamp(cue.start)} --> ${stamp(cues[index + 1]?.start ?? duration)}\n${cue.text}\n`,
+            .map((cue, index) =>
+              captions(
+                cue.text,
+                cue.start,
+                cue.start + narration[`${lesson}-${language}`][index].duration,
+              ),
             )
             .join("\n"),
       );
@@ -270,6 +402,8 @@ try {
         bytes: bytes.length,
         sha256: createHash("sha256").update(bytes).digest("hex"),
         page_errors: errors,
+        viewport: { width: 1920, height: 1080 },
+        captions_burned_in: false,
         cues,
       });
       await writeFile(

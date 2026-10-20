@@ -2,3 +2,4 @@
 !Dockerfile
 !go.mod
 !go.sum
+!exporters_security_test.go

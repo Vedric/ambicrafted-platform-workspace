@@ -9,7 +9,7 @@ import pytest
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-from test_graphe import DIAGNOSTIC, EXTRACTION, TRI, FauxClient, appel_outil
+from test_graphe import DIAGNOSTIC, EXTRACTION, REVUE, TRI, FauxClient, appel_outil, completer_revue
 
 from sre_agent import agent, config, graphe, llm, prompts, tracage
 from sre_agent.budget import Budget
@@ -37,6 +37,7 @@ def test_local_calls_compare_original_and_preserve_checkpoint_trace_boundaries(
         {"content": TRI},
         {"tool_calls": [appel_outil("read_runbook", "read-1")]},
         {"content": DIAGNOSTIC},
+        {"content": REVUE},
     ]
     captured = []
     client = Client()
@@ -50,15 +51,19 @@ def test_local_calls_compare_original_and_preserve_checkpoint_trace_boundaries(
 
     def request(_url, **kwargs):
         captured.append(copy.deepcopy(kwargs["json"]))
+        message = contents.pop(0)
+        if message.get("content") == REVUE:
+            schema = kwargs["json"]["response_format"]["json_schema"]["schema"]
+            message = {"content": json.dumps(completer_revue(schema, json.loads(REVUE)))}
         return httpx.Response(
             200,
             json={
-                "choices": [{"message": {"role": "assistant", **contents.pop(0)}}],
+                "choices": [{"message": {"role": "assistant", **message}}],
                 "usage": {"prompt_tokens": 100, "completion_tokens": 40},
             },
         )
 
-    monkeypatch.setattr(llm.httpx, "post", request)
+    monkeypatch.setattr(llm, "_poster_borne", request)
     db = str(tmp_path / "state.sqlite")
     if engine is graphe:
         report = graphe.demarrer(alert, "ephemeral", db)
@@ -76,7 +81,7 @@ def test_local_calls_compare_original_and_preserve_checkpoint_trace_boundaries(
         report = agent.analyser(alert)
         assert report.statut == "complet"
     assert marker not in report.model_dump_json()
-    assert len(captured) == 4
+    assert len(captured) == 5
     assert all(body["model"] == "local" for body in captured)
     assert marker not in json.dumps(captured[1]["messages"])
     for body in captured[2:]:
@@ -84,7 +89,9 @@ def test_local_calls_compare_original_and_preserve_checkpoint_trace_boundaries(
         assert serialized.count(marker) == 1
         assert "observations_originales" in serialized
         assert "Wrong summary" in serialized
-    assert captured[-1]["messages"][-1]["role"] == "tool"
+    assert captured[-2]["messages"][-1]["role"] == "tool"
+    assert captured[-1]["messages"][-1]["role"] == "user"
+    assert "tools" not in captured[-1]
     assert client.appels == ["read_runbook"]
     for body, model in zip(captured[:2], (Extraction, ClassificationAlerte), strict=True):
         output = body["response_format"]
@@ -132,7 +139,7 @@ def test_schema_ignoring_provider_is_rejected_without_permissive_repair(
             200, json={"choices": [{"message": {"content": json.dumps(malformed)}}]}
         )
 
-    monkeypatch.setattr(llm.httpx, "post", request)
+    monkeypatch.setattr(llm, "_poster_borne", request)
     report = (
         agent.analyser("synthetic")
         if engine is agent

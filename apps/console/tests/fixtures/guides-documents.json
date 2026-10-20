@@ -1,0 +1,296 @@
+{
+  "en": {
+    "diagram": {
+      "title": "Browser, API and PostgreSQL",
+      "summary": "The browser calls the API using HTTPS; the API queries PostgreSQL using SQL.",
+      "id": "92cbb38a-1456-5107-8e41-1b2ab40b5502",
+      "schema_version": 1,
+      "type": "diagram",
+      "sources": [
+        {
+          "id": "request",
+          "label": "Demande actuelle",
+          "kind": "request",
+          "sha256": "873cabc9eb7b033346c50d784d69ede0fe1f0391cb6cb7a8b64d4b52f79dae4a",
+          "truncated": false,
+          "verified": false
+        }
+      ],
+      "document": {
+        "direction": "LR",
+        "nodes": [
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "node_browser",
+            "label": "Browser",
+            "description": "Web client initiating the request.",
+            "kind": "service",
+            "group_id": null
+          },
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "node_api",
+            "label": "API",
+            "description": "Intermediary handling the request.",
+            "kind": "service",
+            "group_id": null
+          },
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "node_postgres",
+            "label": "PostgreSQL",
+            "description": "Relational data store.",
+            "kind": "data",
+            "group_id": null
+          }
+        ],
+        "edges": [
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "edge_browser_to_api",
+            "source": "node_browser",
+            "target": "node_api",
+            "label": "HTTPS request",
+            "kind": "flow"
+          },
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "edge_api_to_postgres",
+            "source": "node_api",
+            "target": "node_postgres",
+            "label": "SQL query",
+            "kind": "flow"
+          }
+        ],
+        "groups": [],
+        "legend": [
+          {
+            "kind": "service",
+            "label": "Application component"
+          },
+          {
+            "kind": "data",
+            "label": "Data storage"
+          },
+          {
+            "kind": "flow",
+            "label": "Communication flow"
+          }
+        ]
+      }
+    },
+    "report": {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "schema_version": 1,
+      "type": "report",
+      "title": "Service readiness review",
+      "summary": "Scope, evidence and outstanding recovery checks for the described service.",
+      "sources": [
+        {
+          "id": "request",
+          "label": "Current request",
+          "kind": "request",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "truncated": false,
+          "verified": false
+        }
+      ],
+      "document": {
+        "sections": [
+          {
+            "id": "scope",
+            "heading": "Supplied scope",
+            "paragraphs": [
+              "The described service contains an API and a PostgreSQL database."
+            ],
+            "bullets": [],
+            "table": {
+              "columns": ["Component", "Role"],
+              "rows": [
+                ["API", "Request handling"],
+                ["PostgreSQL", "Persistent data"]
+              ]
+            },
+            "basis": "provided",
+            "source_ids": ["request"]
+          },
+          {
+            "id": "unknowns",
+            "heading": "Unspecified information",
+            "paragraphs": [
+              "The availability target and restore test results have not been supplied. This does not mean those controls are absent."
+            ],
+            "bullets": [],
+            "table": null,
+            "basis": "unknown",
+            "source_ids": ["request"]
+          },
+          {
+            "id": "recovery",
+            "heading": "Recovery checks",
+            "paragraphs": [],
+            "bullets": [
+              "Restore a backup into an isolated environment.",
+              "Measure the recovery duration against the agreed objective."
+            ],
+            "table": null,
+            "basis": "proposed",
+            "source_ids": []
+          }
+        ]
+      }
+    }
+  },
+  "fr": {
+    "diagram": {
+      "title": "Navigateur, API et PostgreSQL",
+      "summary": "Le navigateur appelle l’API en HTTPS ; l’API interroge PostgreSQL en SQL.",
+      "id": "92cbb38a-1456-5107-8e41-1b2ab40b5502",
+      "schema_version": 1,
+      "type": "diagram",
+      "sources": [
+        {
+          "id": "request",
+          "label": "Demande actuelle",
+          "kind": "request",
+          "sha256": "873cabc9eb7b033346c50d784d69ede0fe1f0391cb6cb7a8b64d4b52f79dae4a",
+          "truncated": false,
+          "verified": false
+        }
+      ],
+      "document": {
+        "direction": "LR",
+        "nodes": [
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "node_browser",
+            "label": "Navigateur",
+            "description": "Client web initiant la communication.",
+            "kind": "service",
+            "group_id": null
+          },
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "node_api",
+            "label": "API",
+            "description": "Service intermédiaire traitant les requêtes.",
+            "kind": "service",
+            "group_id": null
+          },
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "node_postgres",
+            "label": "PostgreSQL",
+            "description": "Système de gestion de base de données relationnelle.",
+            "kind": "data",
+            "group_id": null
+          }
+        ],
+        "edges": [
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "edge_browser_to_api",
+            "source": "node_browser",
+            "target": "node_api",
+            "label": "Requête HTTPS",
+            "kind": "flow"
+          },
+          {
+            "basis": "provided",
+            "source_ids": ["request"],
+            "id": "edge_api_to_postgres",
+            "source": "node_api",
+            "target": "node_postgres",
+            "label": "Interrogation SQL",
+            "kind": "flow"
+          }
+        ],
+        "groups": [],
+        "legend": [
+          {
+            "kind": "service",
+            "label": "Service applicatif"
+          },
+          {
+            "kind": "data",
+            "label": "Stockage de données"
+          },
+          {
+            "kind": "flow",
+            "label": "Flux de communication"
+          }
+        ]
+      }
+    },
+    "report": {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "schema_version": 1,
+      "type": "report",
+      "title": "Revue de préparation du service",
+      "summary": "Description fournie, informations manquantes et vérifications proposées pour une API utilisant PostgreSQL.",
+      "sources": [
+        {
+          "id": "request",
+          "label": "Current request",
+          "kind": "request",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "truncated": false,
+          "verified": false
+        }
+      ],
+      "document": {
+        "sections": [
+          {
+            "id": "scope",
+            "heading": "Périmètre fourni",
+            "paragraphs": [
+              "Le service décrit comprend une API qui accède à une base PostgreSQL."
+            ],
+            "bullets": [],
+            "table": {
+              "columns": ["Composant", "Rôle"],
+              "rows": [
+                ["API", "Traitement des requêtes"],
+                ["PostgreSQL", "Données persistantes"]
+              ]
+            },
+            "basis": "provided",
+            "source_ids": ["request"]
+          },
+          {
+            "id": "unknowns",
+            "heading": "Informations non renseignées",
+            "paragraphs": [
+              "L’objectif de disponibilité et les résultats des tests de restauration ne sont pas fournis. Leur absence de mention ne prouve pas qu’ils n’existent pas."
+            ],
+            "bullets": [],
+            "table": null,
+            "basis": "unknown",
+            "source_ids": ["request"]
+          },
+          {
+            "id": "recovery",
+            "heading": "Vérifications proposées",
+            "paragraphs": [],
+            "bullets": [
+              "Préciser l’objectif de disponibilité.",
+              "Demander les résultats du dernier test de restauration avant de conclure sur la reprise."
+            ],
+            "table": null,
+            "basis": "proposed",
+            "source_ids": []
+          }
+        ]
+      }
+    }
+  }
+}

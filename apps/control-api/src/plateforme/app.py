@@ -292,6 +292,23 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
             texte = f"# {resultat['titre']}\n\nÉtat : {resultat['statut']}\n\n{diagnostic.get('cause_probable', rapport.get('message', ''))}\n\n"
             texte += "\n".join(f"- {a}" for a in diagnostic.get("actions_proposees", []))
             texte += f"\n\nSource : {diagnostic.get('runbook_source') or 'Aucune'}\n"
+            qualite = diagnostic.get("qualite")
+            if isinstance(qualite, dict):
+                texte += "\n## Revue IA locale bornée\n\n"
+                texte += f"Statut : {qualite.get('statut', 'non renseigné')}\n\n"
+                for cle, titre in (("ecarts", "Écarts"), ("calculs", "Vérifications de calcul")):
+                    valeurs = qualite.get(cle)
+                    if isinstance(valeurs, list) and valeurs:
+                        texte += f"### {titre}\n\n"
+                        texte += (
+                            "\n".join(f"- {value}" for value in valeurs if isinstance(value, str))
+                            + "\n\n"
+                        )
+                if isinstance(qualite.get("limite"), str):
+                    texte += f"Limite : {qualite['limite']}\n\n"
+                for cle in ("extraction_ecartee", "latence_ms", "tokens_entree", "tokens_sortie"):
+                    if cle in qualite:
+                        texte += f"{cle} : {qualite[cle]}\n"
         return Response(
             texte,
             media_type="text/plain; charset=utf-8",

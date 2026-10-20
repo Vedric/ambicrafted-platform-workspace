@@ -1,0 +1,141 @@
+import type { Artifact } from "./artifacts";
+
+// Synthetic, independent of the operator's documents and running services.
+export const diagramFixture: Extract<Artifact, { type: "diagram" }> = {
+  id: "11111111-1111-4111-8111-111111111111",
+  schema_version: 1,
+  type: "diagram",
+  title: "Supervised investigation workflow",
+  summary:
+    "An operator submits observations. Read-only investigation precedes the review decision.",
+  sources: [
+    {
+      id: "request",
+      label: "Current request",
+      kind: "request",
+      sha256: "0".repeat(64),
+      truncated: false,
+      verified: false,
+    },
+  ],
+  document: {
+    direction: "LR",
+    nodes: [
+      {
+        id: "operator",
+        label: "UI or CLI",
+        description: "Submit observations and selected sources",
+        kind: "actor",
+        group_id: null,
+        basis: "provided",
+        source_ids: ["request"],
+      },
+      {
+        id: "extract",
+        label: "Local extraction",
+        description: "Identify signals without executing document content",
+        kind: "service",
+        group_id: "local",
+        basis: "provided",
+        source_ids: ["request"],
+      },
+      {
+        id: "sources",
+        label: "Read-only investigation",
+        description: "Consult the selected runbooks and compare evidence",
+        kind: "data",
+        group_id: "local",
+        basis: "provided",
+        source_ids: ["request"],
+      },
+      {
+        id: "review",
+        label: "Human review",
+        description: "Approve delivery or refuse the proposal",
+        kind: "control",
+        group_id: null,
+        basis: "provided",
+        source_ids: ["request"],
+      },
+    ],
+    edges: [
+      {
+        id: "submit",
+        source: "operator",
+        target: "extract",
+        label: "Observations",
+        kind: "flow",
+        basis: "provided",
+        source_ids: ["request"],
+      },
+      {
+        id: "consult",
+        source: "extract",
+        target: "sources",
+        label: "Selected context",
+        kind: "dependency",
+        basis: "provided",
+        source_ids: ["request"],
+      },
+      {
+        id: "deliver",
+        source: "sources",
+        target: "review",
+        label: "Sourced proposal",
+        kind: "trust",
+        basis: "provided",
+        source_ids: ["request"],
+      },
+    ],
+    groups: [
+      {
+        id: "local",
+        label: "Private workspace",
+        description: "Local processing boundary",
+      },
+    ],
+    legend: [{ kind: "control", label: "Decision boundary" }],
+  },
+};
+
+export const reportFixture: Extract<Artifact, { type: "report" }> = {
+  ...diagramFixture,
+  id: "22222222-2222-4222-8222-222222222222",
+  type: "report",
+  title: "Service readiness review",
+  summary:
+    "Scope, evidence and outstanding recovery checks for the described service.",
+  document: {
+    sections: [
+      {
+        id: "scope",
+        heading: "Observed scope",
+        paragraphs: [
+          "The described service contains an API and a PostgreSQL database.",
+        ],
+        bullets: [],
+        table: {
+          columns: ["Component", "Role"],
+          rows: [
+            ["API", "Request handling"],
+            ["PostgreSQL", "Persistent data"],
+          ],
+        },
+        basis: "provided",
+        source_ids: ["request"],
+      },
+      {
+        id: "recovery",
+        heading: "Recovery checks",
+        paragraphs: [],
+        bullets: [
+          "Restore a backup into an isolated environment.",
+          "Measure the recovery duration against the agreed objective.",
+        ],
+        table: null,
+        basis: "proposed",
+        source_ids: [],
+      },
+    ],
+  },
+};

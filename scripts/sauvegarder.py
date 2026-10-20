@@ -174,6 +174,7 @@ def copier_console(etat: Path, destination: Path) -> dict:
                 "messages_conversation",
                 "pieces_conversation",
                 "requetes_conversation",
+                "artefacts_conversation",
                 "revisions",
                 "journal",
             )

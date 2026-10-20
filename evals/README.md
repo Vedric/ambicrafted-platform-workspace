@@ -34,7 +34,7 @@ false positives and the remaining triage limitations.
 
 ## Representative workflow qualification
 
-The [39-case supervised qualification suite](qualification/README.md) runs the
+The [69-case supervised qualification suite](qualification/README.md) runs the
 real LangGraph workflow and NEXUS MCP tools against isolated synthetic sources.
 It separates deterministic safety/provenance contracts from a mandatory expert
 review. It also documents bounded HTTP/process lifecycle and long-duration

@@ -1,0 +1,65 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:05.546
+Ouvrez Observabilité et lisez l’heure de
+collecte avant d’interpréter les graphiques.
+
+00:00:05.546 --> 00:00:10.831
+Examinez ensemble la disponibilité, la
+pression de la file et l’activité récente.
+
+00:00:10.831 --> 00:00:16.377
+Les mesures de ce tutoriel sont fictives. Un
+graphique calme peut refléter une faible
+
+00:00:16.377 --> 00:00:19.900
+activité, une collecte ancienne ou une
+donnée absente.
+
+00:00:20.704 --> 00:00:26.220
+Inspectez la santé détaillée des services,
+puis comparez-la à Préparation. Distinguez
+
+00:00:26.220 --> 00:00:31.283
+une adresse inaccessible, une dépendance
+dégradée et une erreur du modèle. Une
+
+00:00:31.283 --> 00:00:36.994
+latence décrit une mesure sur une période ;
+elle ne garantit pas durablement le service.
+
+00:00:36.994 --> 00:00:40.304
+Cherchez des évolutions répétées avant de
+conclure.
+
+00:00:41.110 --> 00:00:46.093
+Explorez les liens vers les tableaux de
+bord, les métriques et les traces. Leur
+
+00:00:46.093 --> 00:00:51.266
+accès dépend de votre configuration locale.
+Contrôlez les unités, les légendes, la
+
+00:00:51.266 --> 00:00:56.376
+période et les données manquantes. Un
+service disponible ne prouve pas que chaque
+
+00:00:56.376 --> 00:01:00.035
+graphique est récent ni qu’une alerte
+externe a été reçue.
+
+00:01:00.836 --> 00:01:06.025
+Ouvrez l’architecture pour comprendre les
+liens entre requêtes, outils, mémoire et
+
+00:01:06.025 --> 00:01:11.404
+observabilité. Les flux animés expliquent la
+conception ; ils ne représentent pas des
+
+00:01:11.404 --> 00:01:16.719
+paquets réseau en temps réel. Corrélez une
+investigation avec ses horodatages et ses
+
+00:01:16.719 --> 00:01:21.086
+résultats enregistrés, puis examinez les
+preuves du service concerné.

@@ -1,3 +1,4 @@
+import { parseArtifacts, type DialogueReply } from "./artifacts";
 import { t, getLocale } from "./i18n";
 export class ErreurAPI extends Error {
   constructor(
@@ -228,7 +229,7 @@ export async function savedDialogue(
   body: unknown,
   signal: AbortSignal,
   onText: (value: string) => void,
-): Promise<{ texte: string; usage?: unknown }> {
+): Promise<DialogueReply> {
   const response = await fetch(
     `/api/conversations/${encodeURIComponent(id)}/messages`,
     {
@@ -260,7 +261,7 @@ export async function savedDialogue(
   let pending = "",
     text = "",
     bytes = 0;
-  let final: { texte: string; usage?: unknown } | null = null;
+  let final: DialogueReply | null = null;
   try {
     while (true) {
       const chunk = await reader.read();
@@ -272,7 +273,7 @@ export async function savedDialogue(
         const index = pending.indexOf("\n"),
           line = pending.slice(0, index);
         pending = pending.slice(index + 1);
-        if (line.length > 65_536)
+        if (line.length > 131_072)
           throw new Error(
             t("The reply stream was interrupted. Your draft is preserved."),
           );
@@ -293,10 +294,16 @@ export async function savedDialogue(
           event.texte.length <= 6000 &&
           (!text || text === event.texte)
         )
-          final = { texte: event.texte, usage: event.usage };
+          final = {
+            texte: event.texte,
+            usage: event.usage,
+            ...(event.artefacts === undefined
+              ? {}
+              : { artefacts: parseArtifacts(event.artefacts) }),
+          };
         else throw new Error("Invalid reply frame");
       }
-      if (pending.length > 65_536)
+      if (pending.length > 131_072)
         throw new Error(
           t("The reply stream was interrupted. Your draft is preserved."),
         );
@@ -317,6 +324,16 @@ export async function savedDialogue(
   }
 }
 export type Diagnostic = {
+  qualite?: {
+    statut: "revue_ia_sans_ecart_bloquant" | "abstention";
+    ecarts: string[];
+    calculs: string[];
+    extraction_ecartee: boolean;
+    latence_ms: number;
+    tokens_entree: number;
+    tokens_sortie: number;
+    limite: string;
+  } | null;
   cause_probable: string;
   confiance: string;
   runbook_source: string | null;
@@ -365,7 +382,8 @@ export type Analyse = {
   urgence?: number;
   rapport?: Rapport;
   evenements?: { id: number; date: string; stade: string }[];
-  options: { operation?: string };
+  options: { operation?: string; version_contrat?: number };
+  reprise_compatible?: boolean;
 };
 export type Liste = { elements: Analyse[]; total: number; page: number };
 export type Runbook = {

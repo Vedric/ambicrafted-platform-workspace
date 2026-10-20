@@ -1,0 +1,342 @@
+.artifact-card {
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel);
+  padding: clamp(14px, 2vw, 24px);
+  min-width: 0;
+  overflow: hidden;
+}
+.artifact-card > header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.artifact-card > header > div {
+  flex: 1;
+  min-width: 0;
+}
+.artifact-card h3,
+.artifact-expanded h2 {
+  overflow-wrap: anywhere;
+  margin: 0.25rem 0;
+}
+.document-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--mint);
+}
+.document-summary {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.document-status {
+  color: var(--muted);
+  font-size: 0.83rem;
+  letter-spacing: 0.02em;
+  margin: 12px 0;
+}
+.document-actions,
+.document-zoom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0;
+}
+.document-actions .btn,
+.document-zoom .btn {
+  min-height: 38px;
+  font-size: 0.82rem;
+}
+.document-zoom output {
+  min-width: 50px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.document-canvas {
+  width: 100%;
+  max-height: clamp(300px, 48vh, 540px);
+  min-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  overscroll-behavior: contain;
+  background: #091522;
+  scrollbar-gutter: stable;
+}
+[data-theme="light"] .document-canvas {
+  background: #f8fafc;
+}
+.document-canvas.expanded {
+  max-height: min(66dvh, 900px);
+}
+.document-canvas:focus-visible,
+.document-table:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+.document-canvas-space {
+  position: relative;
+}
+.document-canvas-space > div {
+  position: absolute;
+  inset: 0 auto auto 0;
+}
+.document-diagram {
+  display: block;
+  max-width: none !important;
+  flex-shrink: 0;
+}
+.document-flow {
+  animation: document-current 5s linear infinite;
+  stroke-dasharray: 12 3;
+}
+@keyframes document-current {
+  to {
+    stroke-dashoffset: -60;
+  }
+}
+[data-motion="paused"] .document-flow,
+[data-motion="reduced"] .document-flow {
+  animation: none;
+  stroke-dasharray: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion-mode="full"]) .document-flow {
+    animation: none;
+    stroke-dasharray: none;
+  }
+}
+.document-sources,
+.document-outline-toggle {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 16px;
+}
+.document-sources summary,
+.document-outline-toggle summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 4px 0;
+}
+.document-sources code {
+  display: block;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 0.73rem;
+  margin: 7px 0 14px;
+}
+.document-sources p,
+.document-sources li,
+.document-outline {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.document-attribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  align-items: center;
+}
+.document-basis {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+.document-basis.proposed {
+  border-style: dashed;
+}
+.document-basis.unknown {
+  border-style: dotted;
+}
+.document-report {
+  min-width: 0;
+  line-height: 1.8;
+  font-size: 1rem;
+}
+.document-report section {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+.document-report section:last-child {
+  border-bottom: 0;
+}
+.document-report h3 {
+  font-size: 1.15rem;
+}
+.document-report p,
+.document-report li {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.document-table {
+  max-width: 100%;
+  overflow: auto;
+  margin: 18px 0;
+}
+.document-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.document-table th,
+.document-table td {
+  min-width: 120px;
+  max-width: 340px;
+  padding: 12px 15px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.document-table th {
+  background: color-mix(in srgb, var(--mint) 8%, transparent);
+}
+.document-outline li {
+  margin: 12px 0;
+}
+.document-outline p {
+  margin: 6px 0;
+}
+.document-outline small {
+  display: inline-block;
+  margin-left: 10px;
+  color: var(--muted);
+}
+dialog:has(.artifact-expanded) {
+  width: min(1700px, 96vw);
+  max-width: 96vw;
+  max-height: 94dvh;
+  padding: clamp(16px, 2vw, 32px);
+}
+.artifact-expanded {
+  min-width: 0;
+}
+.artifact-expanded > h2 {
+  font-size: clamp(1.35rem, 2vw, 2rem);
+}
+.document-format {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.document-format select {
+  width: auto;
+  min-width: 150px;
+}
+.document-print {
+  display: none;
+}
+.quality-review {
+  border-top: 1px solid var(--border);
+  padding: 20px 0 0;
+  margin-top: 20px;
+}
+.quality-review h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.quality-review li {
+  margin: 7px 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .artifact-card {
+    padding: 12px;
+  }
+  .document-actions .btn {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+  .document-canvas {
+    max-height: 380px;
+  }
+  .document-canvas.expanded {
+    max-height: 60dvh;
+  }
+}
+@media print {
+  body[data-print-document] > *:not(.document-print) {
+    display: none !important;
+  }
+  body[data-print-document] > .document-print {
+    display: block !important;
+    color: #152a42;
+    background: white;
+    font: 11pt/1.65 sans-serif;
+    padding: 0;
+  }
+  .document-print h1 {
+    font-size: 22pt;
+  }
+  .document-print h2 {
+    font-size: 17pt;
+  }
+  .document-print h3 {
+    font-size: 14pt;
+    break-after: avoid;
+  }
+  .document-print code {
+    display: block;
+    overflow-wrap: anywhere;
+    font-size: 8pt;
+  }
+  .document-print .document-table {
+    overflow: visible;
+  }
+  .document-print table {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .document-print th,
+  .document-print td {
+    min-width: 0;
+    border-color: #adb8c2;
+    padding: 6pt;
+  }
+  .document-print tr,
+  .document-print .document-attribution {
+    break-inside: avoid;
+  }
+  .document-print .document-attribution,
+  .document-print small {
+    color: #455c73;
+  }
+  @page {
+    size: A4;
+    margin: 18mm;
+  }
+}
+
+.document-direction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  margin-right: 6px;
+}
+.document-direction select {
+  width: auto;
+  padding: 8px;
+  min-height: 38px;
+}
+
+.artifact-card[data-document-visible="false"] .document-flow {
+  animation-play-state: paused;
+}

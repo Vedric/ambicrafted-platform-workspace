@@ -1,0 +1,79 @@
+.guide-lessons {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.guide-walkthrough {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+.guide-video {
+  min-width: 0;
+}
+.guide-video video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  background: #091522;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.guide-media-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.guide-media-controls .btn {
+  flex-shrink: 0;
+}
+.guide-media-controls .btn[aria-pressed="true"] {
+  border-color: var(--mint);
+  color: var(--mint);
+}
+.guide-media-controls .hint {
+  flex: 1 1 240px;
+  margin: 0;
+}
+.guide-transcript {
+  border-top: 1px solid var(--border);
+  padding-top: 15px;
+  margin-top: 16px;
+}
+.guide-transcript summary {
+  cursor: pointer;
+  padding: 6px 0;
+  font-weight: 650;
+}
+.guide-transcript ol {
+  padding-left: 24px;
+}
+.guide-transcript h3 {
+  font-size: 1rem;
+  margin-bottom: 7px;
+}
+.guide-transcript p {
+  font-size: 1rem;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.guide-step {
+  min-width: 0;
+}
+.guide-steps {
+  align-self: start;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 700px) {
+  .guide-lessons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .guide-steps {
+    display: block;
+  }
+}
+@media (max-width: 420px) {
+  .guide-lessons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -15,6 +15,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from sre_agent.graphe import VERSION_CONTRAT
 from sre_agent.modeles import Rapport
 
 from .config import Parametres, dossier_prive
@@ -118,7 +119,7 @@ class Moteur:
             identifiant,
             titre,
             "operation" if operation else "graphe",
-            {"operation": operation} if operation else {},
+            {"operation": operation} if operation else {"version_contrat": VERSION_CONTRAT},
             acteur,
         )
         if alerte:
@@ -127,6 +128,12 @@ class Moteur:
         return resultat
 
     def decider(self, identifiant: str, approuver: bool, acteur: str) -> dict:
+        analyse = self.depot.obtenir(identifiant)
+        if not analyse["reprise_compatible"]:
+            raise Conflit(
+                "Cette analyse utilise un ancien contrat de vérification. Historique conservé. "
+                "Créer une nouvelle analyse et ressaisir l’alerte d’origine avant toute décision."
+            )
         if self.file.full():
             raise Conflit("File pleine. Réessayer après une analyse.")
         resultat = self.depot.changer(

@@ -49,7 +49,7 @@ services:
 
   tempo:
     # Rebuilt from the pinned source with the corrected Go toolchain.
-    image: ambicrafted/tempo:3.0.3-security.20261020
+    image: ambicrafted/tempo:3.0.3-security.20261020-r3
     build:
       context: ./images/tempo
     container_name: tempo
@@ -92,7 +92,7 @@ services:
       retries: 3
 
   grafana:
-    image: ambicrafted/grafana:13.2.4-security.20261020
+    image: ambicrafted/grafana:13.2.4-security.20261020-r4
     build:
       context: ./images/grafana
     container_name: grafana
@@ -143,7 +143,7 @@ services:
 
   qdrant:
     # Local security derivative; immutable base and exact package in Dockerfile.
-    image: ambicrafted/qdrant:1.19.2-security.20261020
+    image: ambicrafted/qdrant:1.19.2-security.20261020-r4
     build:
       context: ./images/qdrant
     container_name: qdrant

@@ -1,6 +1,6 @@
 [project]
 name = "ambicrafted-control"
-version = "0.4.2"
+version = "0.5.0"
 description = "Plan de contrôle privé de la plateforme agentique Ambicrafted."
 requires-python = ">=3.14"
 dependencies = [
@@ -12,7 +12,7 @@ dependencies = [
     "prometheus-client==0.26.0",
     "pypdf==6.19.0",
     "python-dotenv==1.2.3",
-    "sre-agent[graphe]==0.1.0",
+    "sre-agent[graphe]==0.2.0",
     "uvicorn==0.54.0",
 ]
 

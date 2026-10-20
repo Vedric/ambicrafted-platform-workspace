@@ -1,0 +1,10 @@
+{
+  "prometheus": {
+    "version": "13.2.3+ambicrafted.20261020",
+    "sha256": "bfa61c581fb555726cca815121fc05441ac727cef146f59de6f3b41997c961cf"
+  },
+  "tempo": {
+    "version": "13.2.4+ambicrafted.20261020",
+    "sha256": "ad82f3538c3be03b7f43abe6b3953a8d4d4c608043f92b7f8b1cbb288b4b303a"
+  }
+}

@@ -1,9 +1,9 @@
 # Supervised agent qualification
 
 This suite evaluates **one production LangGraph SRE workflow**, not a fictional
-fleet of independent experts. It contains 51 synthetic missions (17 incident,
-17 infrastructure review, 17 change review), 14 small source fixtures, 39
-regression cases and 12 new holdout cases. No fixture contains customer data.
+fleet of independent experts. It contains 69 synthetic missions (23 incident,
+23 infrastructure review, 23 change review), 14 small source fixtures, 63
+regression cases and 6 new holdout cases. No fixture contains customer data.
 The fixture runbooks are **evaluation material**, not deployment instructions.
 Two deliberately contain hostile or obsolete instructions; never install them
 in the workstation's operational corpus.
@@ -53,30 +53,50 @@ uv run --no-project python evals/qualify_agent.py run \
 ```
 
 The output directory must be new. Start with this smoke, then remove `--case`
-to run the 39 regression cases. Use `--repeat 3` to examine variability.
+to run the 63 regression cases. Use `--repeat 3` to examine variability.
 The 2026-10-20 baseline on commit `1fb46446acc80f0203e9f779d09cde75df3eb6a5`
 had 26 regression and 13 holdout cases. All outputs were subsequently inspected
 and informed changes, so all 39 are now explicitly regression cases. Each case
 preserves its `baseline_split_2026_10_20` value.
 
-The 12 new holdout cases were written independently, kept outside the checkout
-with private permissions and withheld from the implementer until the SRE core
-was explicitly frozen. They add four cases per journey, with six grounded and
-six uncertain expectations; none requires abstention. Their expectations were
-checked against the existing source fixtures, not adjusted to model outputs.
-The private pre-integration file SHA-256 is
-`e519ece77ad852b7d39804d81d2ec98d566b00e971329260d9f50cc00c6d9ffa`.
-For a reproducible comparison within this repository, the SHA-256 of the new
-cases in stored order, serialized with
-`json.dumps(cases, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()`,
-is `2a0b72643cde322f5a0c4e639a8242ce967850d76e8ff0727493937fb2b3718e`.
+The twelve holdouts from 20 October were subsequently inspected too. All 51
+previous cases are now regression evidence; their previous split is preserved in
+`pre_review_split_2026_10_21`. Historical qualification reports remain unchanged.
 
-Use `--split holdout` for these 12 cases, or `--split all` for all 51. Empty
-selections are refused. Record the exact frozen commit and inference runtime for
-the first execution; once results inform implementation, these cases become
-regression evidence too. A renamed or previously reviewed example is not an
-independent holdout. This targeted synthetic set does not establish production
-expertise or exhaustive security coverage.
+Twelve new holdout cases were written independently before execution and
+integrated after the SRE core freeze on 21 October: four per journey, six
+grounded and six uncertain. They cover weighted rates, timezone/date boundaries,
+readiness versus restart, user-path latency, effective permissions, missing
+recovery evidence, initContainer privileges, image identity, canary arithmetic,
+expand/contract migrations, recovery clocks and silenced notifications. Their
+expectations were checked against the existing source fixtures, not model
+outputs. The private input SHA-256 is `ea47d2ccc2bfeab08f752f697ef8301724b5d89d93a1b1481c8bf50ae60b9356`.
+The core freeze manifest SHA-256 is
+`1a816d92a6684e1e3859a12c60b280154b08902ab8a22d0237dffb3378572630`.
+
+That first execution retained 5/12 mechanical contracts and 5/12 cases in the
+subsequent engineering AI review; this was not human acceptance. Three cases
+exhausted their budgets after repeated exploration. All twelve are now
+regressions, preserving `pre_progress_split_2026_10_21`; their expectations and
+original failures are retained. [ADR 0043](../../docs/adr/0043-arret-recherche-sans-progres.md)
+records the subsequent bounded stopping policy and its limitations.
+
+Six further holdouts were prepared before the new frozen-source execution, two
+per journey: certificate hostname mismatch, sampling bias, NetworkPolicy
+application, missing restored attachments, counter resets and expected negative
+permission tests. Three require grounded conclusions and three explicit
+uncertainty. Their private input SHA-256 is
+`87f5c3f011135f25802b5ae0d6e573e39fdb5b8194ac57ba22ee55d24e632704`;
+the new core freeze manifest SHA-256 is
+`266f25c7063b5e911681ba638566ee4a27f60b3d49edec7c6b9d757672083570`.
+These hashes establish the prepared inputs, not successful model results.
+
+Use `--split holdout` for these six cases, or `--split all` for all 69.
+Empty selections are refused. Record the exact source state and inference
+runtime for the first execution; once results inform implementation, these
+cases become regression evidence too. A renamed or previously reviewed example
+is not an independent holdout. This targeted synthetic set does not establish
+production expertise or exhaustive security coverage.
 
 Each case is bounded by 240 seconds and 30,000 observed tokens by default; the
 run has a two-hour default wall-clock budget. Both timeouts are configurable.
@@ -131,7 +151,7 @@ failed contracts, incomplete reviews and below-threshold scores fail.
 `run` exits **1** for a contract/execution failure and **2** when mechanical
 contracts pass but expert review remains pending. It never silently gives a
 production pass. `review` exits **0** only for the recorded reviewed scope;
-passing a selected three-case smoke does not qualify all 51 cases or the whole
+passing a selected three-case smoke does not qualify all 69 cases or the whole
 platform. Archive scope, case counts, failures and limitations with the release.
 
 ## Control-plane lifecycle and duration

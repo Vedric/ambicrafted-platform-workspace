@@ -215,6 +215,35 @@ class Client:
             resultat = self.appeler("GET", f"/api/analyses/{resultat['id']}")
         return resultat
 
+    def exporter_artefact(self, conversation: UUID, artefact: UUID, format: str) -> str:
+        """Read and validate the entire scoped document before creating a local file."""
+        from .artefacts import Artefact, exporter_markdown
+
+        try:
+            with self.http.stream(
+                "GET", f"/api/conversations/{conversation}/artefacts/{artefact}/export"
+            ) as response:
+                response.raise_for_status()
+                if response.headers.get("content-type", "").split(";")[0] != "application/json":
+                    raise ValueError("Unexpected document content type")
+                data = bytearray()
+                for chunk in response.iter_bytes():
+                    data.extend(chunk)
+                    if len(data) > 262_144:
+                        raise ValueError("Document export exceeds the response limit")
+            value = Artefact.model_validate_json(bytes(data)).model_dump()
+            if value["id"] != str(artefact):
+                raise ValueError("Document identity differs from the request")
+            return (
+                exporter_markdown(value)
+                if format == "markdown"
+                else json.dumps(value, ensure_ascii=False, indent=2) + "\n"
+            )
+        except httpx.HTTPError, ValueError, RecursionError:
+            raise ErreurCLI(
+                "Export de document refusé ou incomplet. Vérifier la session et les identifiants."
+            ) from None
+
     def dialogue(self, identifiant: UUID, charge: dict) -> dict:
         """Consume bounded NDJSON; only return a complete, saved conversational turn."""
         try:
@@ -233,7 +262,7 @@ class Client:
             for line in payload.splitlines():
                 if not line:
                     continue
-                if len(line) > 65536 or result is not None:
+                if len(line) > 131_072 or result is not None:
                     raise ValueError("Invalid stream frame")
                 event = json.loads(line)
                 if not isinstance(event, dict):
@@ -249,6 +278,13 @@ class Client:
                         or (accumulated and accumulated != event["texte"])
                     ):
                         raise ValueError("Contradictory reply")
+                    from .artefacts import Artefact
+
+                    artefacts = event.get("artefacts", [])
+                    if not isinstance(artefacts, list) or len(artefacts) > 1:
+                        raise ValueError("Invalid artifact count")
+                    for artefact in artefacts:
+                        Artefact.model_validate(artefact)
                     result = event
                 else:
                     raise ValueError("Interrupted reply")
@@ -301,15 +337,24 @@ def analyseur() -> argparse.ArgumentParser:
     cl = ca.add_parser("lister")
     cl.add_argument("--page", type=entier_positif, default=1)
     ca.add_parser("creer")
-    for action in ("voir", "supprimer", "joindre", "dire"):
+    for action in ("voir", "supprimer", "joindre", "dire", "exporter"):
         cc = ca.add_parser(action)
         cc.add_argument("identifiant", type=UUID)
+        if action == "exporter":
+            cc.add_argument("--artefact", type=UUID, required=True)
+            cc.add_argument("--format", choices=("json", "markdown"), default="json")
+            cc.add_argument(
+                "--sortie", type=Path, required=True, help="Nouveau fichier privé, jamais écrasé."
+            )
         if action == "supprimer":
             cc.add_argument("--confirmer", action="store_true", required=True)
         if action in {"joindre", "dire"}:
             cc.add_argument("--fichier", type=Path, required=action == "joindre")
         if action == "dire":
             cc.add_argument("--langue", choices=("en", "fr"), default="en")
+            cc.add_argument(
+                "--format", choices=("auto", "text", "diagram", "report"), default="auto"
+            )
             cc.add_argument("--piece", type=UUID, action="append", default=[])
             cc.add_argument(
                 "--operation-id",
@@ -598,6 +643,11 @@ def executer(args: argparse.Namespace, p: Parametres) -> Any:
             if args.action == "creer":
                 return client.appeler("POST", path)
             path += "/" + str(args.identifiant)
+            if args.action == "exporter":
+                return ecrire_export(
+                    args.sortie,
+                    client.exporter_artefact(args.identifiant, args.artefact, args.format),
+                )
             if args.action == "dire":
                 if len(args.piece) > 8:
                     raise ErreurCLI("Sélectionner au maximum huit pièces jointes.")
@@ -611,6 +661,7 @@ def executer(args: argparse.Namespace, p: Parametres) -> Any:
                         "langue": args.langue,
                         "pieces": [str(value) for value in args.piece],
                         "operation_id": operation,
+                        **({"format": args.format} if args.format != "auto" else {}),
                     },
                 )
             if args.action == "joindre":

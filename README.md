@@ -11,13 +11,20 @@ features, measured acceptance checks and remaining production conditions.
 Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
-Console **0.4.5**, control API **0.4.2**, local speech runtime **0.3.2**.
-See the [0.4.5 delivery report](docs/RELEASE-0.4.5.md) for exact qualification and
-remaining conditions. This is a private, single-operator workspace; it is not a
-multi-tenant commercial service or a zero-vulnerability certification.
-The [20 October qualification](docs/QUALIFICATION-2026-10-20.md) records the
-current hardening, real test results, model-quality limits and blocked image
-release gate. Earlier release reports remain historical evidence.
+Console **0.5.0**, control API **0.5.0**, SRE workflow **0.2.0**, local speech
+runtime **0.3.3**. The [21 October qualification](docs/QUALIFICATION-2026-10-21.md)
+tracks this candidate, its validation and remaining conditions. This is a
+private, single-operator workspace; it is not a multi-tenant commercial service
+or a zero-vulnerability certification. Earlier
+[delivery reports](docs/RELEASE-0.4.5.md) and the
+[20 October qualification](docs/QUALIFICATION-2026-10-20.md) remain historical
+evidence; their image and evaluation counts do not describe this candidate.
+
+AURA supports [saved diagrams and structured reports](docs/AURA-ARTIFACTS.md),
+including source references, SVG/PNG/JSON/Markdown exports and editable memory
+drafts. Their local consistency review is fallible; generated material remains
+a proposal for operator review. The expanded [User guide](docs/GUIDES.md) includes
+local bilingual video lessons, optional captions and complete transcripts.
 
 This version adds [saved conversations and documents](docs/CONVERSATIONS.md),
 [dedicated graph memory](docs/MEMORY.md), the [NEXUS MCP gateway](docs/MCP-GATEWAY.md),
@@ -86,7 +93,8 @@ system defaults; old browser device selections are ignored. Change devices in
 your OS settings. **Check microphone & sound** records up to eight seconds and
 replays locally, without uploading the sample. Microphone access requires an
 explicit action and browser permission. See [audio setup](docs/CONSOLE.md#microphone-sound-and-walkthroughs).
-**User guide** contains six narrated MP4 walkthroughs with English/French captions.
+**User guide** contains six workflows in each language: twelve 1080p narrated
+MP4s, four chapters per video, optional captions and complete transcripts.
 AURA keeps its local speech models warm between exchanges, with an idle timeout
 and cancellation cleanup; see [voice operation](docs/VOICE.md).
 
@@ -139,7 +147,7 @@ See [the architecture guide](docs/ARCHITECTURE.md#operational-charts-and-interac
 | MCP runbooks | Four bounded, read-only tools |
 | SRE loop / LangGraph | Local analysis; the graph adds durable human approval |
 | Tempo, Prometheus, Grafana | Local traces, metrics, availability rules and dashboard |
-| Local workflow qualification | 51 synthetic cases through the real graph/MCP: 39 regressions, 12 new holdouts, separate expert review |
+| Local workflow qualification | 69 synthetic cases through the real graph/MCP: 63 regressions, 6 new holdouts; contracts and substantive review are distinct |
 | React / FastAPI console | Authenticated local workspace, bounded jobs, SSE and approvals |
 | Unified CLI / NEXUS MCP | Operator commands, 20 readiness checks, four runbook and eleven read-only control tools |
 | Multilingual ONNX speech / faster-whisper | Offline English/French female speech and transcription on CPU |
@@ -266,4 +274,6 @@ Readiness checks do not establish high availability, exhaustive incident coverag
 or a vulnerability-free system. Historical security reports retain their original
 dates and must not be used as current scan results.
 
-License: Apache-2.0.
+License: Apache-2.0 for project code. Third-party components retain their own
+licenses; see the [diagram layout notice](apps/console/public/notices/README.txt)
+and [audio notices](apps/console/public/audio/NOTICE.md).

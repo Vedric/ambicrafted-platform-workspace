@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Database, Link2, Plus, Search, Trash2 } from "lucide-react";
 import { api, date } from "../api";
 import { t, useI18n } from "../i18n";
@@ -26,6 +26,8 @@ export default function Memory() {
   useI18n();
   const cache = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [generatedDraft, setGeneratedDraft] = useState(false);
   const [scope, setScope] = useState("personal");
   const [search, setSearch] = useState("");
   const [form, setForm] = useState(false),
@@ -35,6 +37,30 @@ export default function Memory() {
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<Error | null>(null);
+  useEffect(() => {
+    const value: unknown = location.state?.memoryDraft;
+    if (!value || typeof value !== "object") return;
+    const item = value as Record<string, unknown>;
+    if (
+      item.type !== "question" ||
+      typeof item.titre !== "string" ||
+      item.titre.length > 120 ||
+      typeof item.contenu !== "string" ||
+      item.contenu.length > 4000 ||
+      typeof item.source !== "string" ||
+      item.source.length > 500
+    )
+      return;
+    setDraft({
+      titre: item.titre,
+      contenu: item.contenu,
+      source: item.source,
+      type: "question",
+    });
+    setGeneratedDraft(true);
+    setForm(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
   const validScope = /^[a-z0-9][a-z0-9_-]{0,63}$/.test(scope);
   const status = useQuery({
     queryKey: ["memory-status"],
@@ -257,6 +283,13 @@ export default function Memory() {
           }}
         >
           {error && <Erreur erreur={error} />}
+          {generatedDraft && (
+            <p className="notice">
+              {t(
+                "Review this generated summary and choose its scope before saving it to Neo4j. It starts as an open question, not an observation.",
+              )}
+            </p>
+          )}
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -265,13 +298,21 @@ export default function Memory() {
                 () => {
                   setForm(false);
                   setDraft(empty);
+                  setGeneratedDraft(false);
                 },
               );
             }}
           >
-            <p>
-              {t("Memory scope")}: <strong>{scope}</strong>
-            </p>
+            <label>
+              {t("Memory scope")}
+              <input
+                required
+                value={scope}
+                maxLength={64}
+                pattern="[a-z0-9][a-z0-9_\-]{0,63}"
+                onChange={(event) => setScope(event.target.value)}
+              />
+            </label>
             <label>
               {t("Title")}
               <input
@@ -328,7 +369,10 @@ export default function Memory() {
                 "Record a document reference, an analysis ID or the origin of this observation. Do not store passwords or credentials.",
               )}
             </p>
-            <button className="btn primary" disabled={busy}>
+            <button
+              className="btn primary"
+              disabled={busy || !validScope || !status.data?.ready}
+            >
               {t("Save note")}
             </button>
           </form>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -7,6 +7,9 @@ import {
   Check,
   Clipboard,
   Compass,
+  Database,
+  ChartNoAxesCombined,
+  HardDriveDownload,
   GitBranch,
   Network,
   ShieldCheck,
@@ -20,6 +23,27 @@ import {
   playWithAudioOutput,
   useAudioOutput,
 } from "../audio-devices";
+import narration from "../../scripts/guide-script.json";
+import "../guide.css";
+
+const CAPTIONS_KEY = "ambicrafted-guide-captions";
+let captionsPreference = true;
+function readCaptions() {
+  try {
+    const value = localStorage.getItem(CAPTIONS_KEY);
+    return value === null ? captionsPreference : value !== "off";
+  } catch {
+    return captionsPreference;
+  }
+}
+function rememberCaptions(enabled: boolean) {
+  captionsPreference = enabled;
+  try {
+    localStorage.setItem(CAPTIONS_KEY, enabled ? "on" : "off");
+  } catch {
+    /* Keep the current-session preference when storage is blocked. */
+  }
+}
 
 export const TRAINING_EXAMPLE =
   "Training incident: the gateway returns HTTP 504 for 18% of requests since 14:30 UTC. The upstream responds in 120 ms when queried locally; the gateway times out at 5 seconds. A configuration change was applied at 14:20 UTC. No restart or configuration change is authorised. Find the relevant runbook, distinguish facts from hypotheses, quote the exact passages and list the evidence still needed." as const;
@@ -90,6 +114,72 @@ const lessons = [
       ],
     ],
   },
+  {
+    id: "documents",
+    title: "Documents and memory",
+    icon: Database,
+    steps: [
+      [
+        "Create a reviewable document",
+        "Ask AURA for a diagram or report. Describe supplied facts and unknowns; choose a response format only when needed.",
+        "/assistant",
+      ],
+      [
+        "Inspect and export",
+        "Check the complete outline, labels and sources. Download SVG or PNG for diagrams, Markdown or JSON for documents, and use print for a paginated PDF.",
+        "/assistant",
+      ],
+      [
+        "Save memory deliberately",
+        "Prepare a note, review the generated summary, choose a scope and save explicitly. A generated note starts as a question, not an observation.",
+        "/memoire",
+      ],
+    ],
+  },
+  {
+    id: "recovery",
+    title: "Backup and recovery",
+    icon: HardDriveDownload,
+    steps: [
+      [
+        "Protect the working set",
+        "Create a private backup and inspect its final result. Include conversations, documents, missions, runbooks and the configured service data.",
+        "/operations",
+      ],
+      [
+        "Rehearse the restoration",
+        "Test the backup in isolated temporary containers. Keep original data intact; a restore drill does not replace the live databases.",
+        "/operations",
+      ],
+      [
+        "Keep an off-host recovery path",
+        "Configure encrypted export, copy it to a destination you control and test recovery with the separately stored identity. Local success does not verify a remote destination.",
+        "/preparation",
+      ],
+    ],
+  },
+  {
+    id: "observability",
+    title: "Monitor your platform",
+    icon: ChartNoAxesCombined,
+    steps: [
+      [
+        "Check freshness first",
+        "Read the collection time, service status and missing-data indicators before interpreting a chart. A quiet graph is not proof of good health.",
+        "/observabilite",
+      ],
+      [
+        "Compare the right signals",
+        "Inspect queue pressure, latency, failures and backup age together. Check units and time ranges in Grafana before drawing conclusions.",
+        "/sante",
+      ],
+      [
+        "Connect metrics to evidence",
+        "Use architecture to understand dependencies, then correlate actual timestamps and analysis results. Animated architecture flows explain the design; they are not live traffic.",
+        "/architecture",
+      ],
+    ],
+  },
 ] as const satisfies readonly {
   id: string;
   title: MessageKey;
@@ -102,6 +192,14 @@ export function UserGuide() {
   const [selected, setSelected] = useState(0);
   const [copy, setCopy] = useState<"idle" | "done" | "error">("idle");
   const lesson = lessons[selected];
+  const example: MessageKey =
+    lesson.id === "documents"
+      ? "Create a diagram from this synthetic description: a browser sends HTTPS requests to an API; the API queries PostgreSQL. Keep these three components, label the direction of each interaction, and separate supplied context from proposed improvements."
+      : lesson.id === "recovery"
+        ? "Create a recovery review report for a synthetic local platform. Backup location, recovery identity custody and the last restore test date are unknown. List the evidence to collect without claiming that a backup or restore has succeeded."
+        : lesson.id === "observability"
+          ? "Create an observability review from these synthetic facts: the API responds, the latest metric sample is 12 minutes old, and no alert-delivery test is documented. Separate availability, collection freshness and alert delivery; do not infer missing evidence as a failed control."
+          : TRAINING_EXAMPLE;
   const [flow, setFlow] = useState(0);
   const flowSteps: {
     title: MessageKey;
@@ -126,9 +224,9 @@ export function UserGuide() {
     <>
       <Titre
         surligne={t("LEARN BY DOING")}
-        titre={t("Your first mission, step by step.")}
+        titre={t("Practical workflows, from first request to recovery.")}
         texte={t(
-          "Short walkthroughs, real interface recordings and reusable examples. Start small, inspect the evidence, then decide.",
+          "Six narrated walkthroughs in English and French. Inspect the actual interface, practise with synthetic examples and keep control of every decision.",
         )}
       >
         <Link className="btn primary" to="/missions">
@@ -142,7 +240,10 @@ export function UserGuide() {
             key={item.id}
             className={"guide-lesson " + (index === selected ? "active" : "")}
             aria-pressed={index === selected}
-            onClick={() => setSelected(index)}
+            onClick={() => {
+              setSelected(index);
+              setCopy("idle");
+            }}
           >
             <item.icon size={21} />
             <span>{t(item.title)}</span>
@@ -163,6 +264,10 @@ export function UserGuide() {
           />
           <p className="hint">
             {t("Narrated walkthrough · captions available")}
+          </p>
+          <p className="hint">
+            {t("Four chapters · narrated locally · 1080p")}{" "}
+            {t("Use fullscreen to inspect small interface labels.")}
           </p>
           <p className="hint">
             {t(
@@ -188,8 +293,8 @@ export function UserGuide() {
       <section className="panel guide-example">
         <div className="panel-heading">
           <div>
-            <span className="eyebrow">ATLAS · SRE</span>
-            <h2>{t("A working example")}</h2>
+            <span className="eyebrow">{t(lesson.title)}</span>
+            <h2>{t("Synthetic practice request")}</h2>
           </div>
           <GitBranch size={28} />
         </div>
@@ -198,13 +303,13 @@ export function UserGuide() {
             "Synthetic training example. No customer data or production changes.",
           )}
         </p>
-        <blockquote>{t(TRAINING_EXAMPLE)}</blockquote>
+        <blockquote>{t(example)}</blockquote>
         <div className="guide-example-actions">
           <button
             className="btn"
             onClick={async () => {
               try {
-                await navigator.clipboard.writeText(t(TRAINING_EXAMPLE));
+                await navigator.clipboard.writeText(t(example));
                 setCopy("done");
               } catch {
                 setCopy("error");
@@ -214,8 +319,15 @@ export function UserGuide() {
             {copy === "done" ? <Check size={16} /> : <Clipboard size={16} />}
             {copy === "done" ? t("Example copied") : t("Copy the example")}
           </button>
-          <Link className="btn primary" to="/analyses/nouvelle">
-            {t("Start a supervised analysis")}
+          <Link
+            className="btn primary"
+            to={selected < 3 ? "/analyses/nouvelle" : "/assistant"}
+          >
+            {t(
+              selected < 3
+                ? "Start a supervised analysis"
+                : "Practice with AURA",
+            )}
             <ArrowRight size={16} />
           </Link>
         </div>
@@ -230,7 +342,7 @@ export function UserGuide() {
       <section className="panel guide-flow">
         <div className="panel-heading">
           <div>
-            <span className="eyebrow">NEXUS · MCP</span>
+            <span className="eyebrow">MCP</span>
             <h2>{t("Understand MCP")}</h2>
           </div>
           <Link className="text-button" to="/architecture">
@@ -296,12 +408,8 @@ export function UserGuide() {
           {(
             [
               [
-                "Nothing happens when you speak?",
-                "First start recording or a conversation. Confirm microphone permission, then select the right input. If the level stays flat, check your operating system privacy and microphone settings.",
-              ],
-              [
-                "No sound?",
-                "Check the selected output and browser tab mute setting. Some browsers require a click before playback or only support your system default output.",
+                "Check system input and output",
+                "Allow microphone access, check the system input level and verify that the browser tab is not muted. Device selection belongs to your operating system.",
               ],
               [
                 "Why are animations still?",
@@ -328,12 +436,57 @@ function NarratedWalkthrough({
   language: string;
 }) {
   const player = useRef<HTMLVideoElement>(null);
+  const captionTrack = useRef<HTMLTrackElement>(null);
+  const playerId = useId();
+  const [captions, setCaptions] = useState(readCaptions);
+  const [captionError, setCaptionError] = useState(false);
+  const captionChoice = useRef(captions);
+  captionChoice.current = captions;
   const [failed, setFailed] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [outputError, setOutputError] = useState("");
   useAudioOutput(player, (cause) => setOutputError(cause.message));
   const src = `/guides/${lesson.id}-${language}.mp4`;
   useAudioFocus(playing ? "speech" : null);
+  const synchronizeCaptions = () => {
+    for (const track of player.current?.textTracks ?? []) {
+      if (track.kind === "captions")
+        track.mode = captionChoice.current ? "showing" : "disabled";
+    }
+  };
+  useEffect(() => {
+    const tracks = player.current?.textTracks;
+    if (!tracks) return;
+    synchronizeCaptions();
+    const change = () => {
+      const track = Array.from(tracks).find((item) => item.kind === "captions");
+      if (!track) return;
+      const enabled = track.mode === "showing";
+      captionChoice.current = enabled;
+      setCaptions(enabled);
+      rememberCaptions(enabled);
+    };
+    tracks.addEventListener("change", change);
+    return () => tracks.removeEventListener("change", change);
+  }, []);
+  useEffect(() => {
+    const track = captionTrack.current;
+    if (!track) return;
+    // Track errors do not bubble; observe the native element and cached state.
+    const failed = () => setCaptionError(true);
+    const loaded = () => {
+      setCaptionError(false);
+      synchronizeCaptions();
+    };
+    track.addEventListener("error", failed);
+    track.addEventListener("load", loaded);
+    if (track.readyState === 3) failed();
+    else if (track.readyState === 2) loaded();
+    return () => {
+      track.removeEventListener("error", failed);
+      track.removeEventListener("load", loaded);
+    };
+  }, []);
   useEffect(() => {
     const video = player.current;
     // A cached/fast failure can precede React's listener attachment while a
@@ -355,6 +508,7 @@ function NarratedWalkthrough({
   return (
     <>
       <video
+        id={playerId}
         ref={player}
         src={src}
         controls
@@ -381,15 +535,57 @@ function NarratedWalkthrough({
           setFailed(true);
           setPlaying(false);
         }}
+        onLoadedMetadata={synchronizeCaptions}
       >
         <track
-          default
+          ref={captionTrack}
+          default={captions}
           kind="captions"
           src={`/guides/${lesson.id}-${language}.vtt`}
           srcLang={language}
           label={language === "fr" ? "Français" : "English"}
         />
       </video>
+      <div className="guide-media-controls">
+        <button
+          type="button"
+          className="btn"
+          aria-controls={playerId}
+          aria-pressed={captions}
+          onClick={() => {
+            const enabled = !captions;
+            captionChoice.current = enabled;
+            setCaptions(enabled);
+            rememberCaptions(enabled);
+            synchronizeCaptions();
+          }}
+        >
+          {t("Captions")}
+        </button>
+        <span className="hint">
+          {t(
+            "Captions can be switched off. Your choice is remembered for the next walkthrough.",
+          )}
+        </span>
+      </div>
+      {captionError && (
+        <p role="status">
+          {t("Captions are unavailable. The full transcript remains below.")}
+        </p>
+      )}
+      <details className="guide-transcript">
+        <summary>{t("Transcript")}</summary>
+        <ol>
+          {narration[lesson.id][language === "fr" ? "fr" : "en"].map(
+            (paragraph, index) => (
+              <li key={index}>
+                <h3>{t("Chapter {number}", { number: index + 1 })}</h3>
+                <p>{paragraph}</p>
+              </li>
+            ),
+          )}
+        </ol>
+      </details>
       {outputError && <p role="alert">{outputError}</p>}
       {failed && (
         <div role="alert">

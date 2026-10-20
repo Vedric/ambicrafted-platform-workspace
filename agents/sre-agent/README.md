@@ -51,6 +51,29 @@ must match passages actually read from the cited document. A missing source,
 failed/truncated read or invented/paraphrased action causes rejection and an
 explicit gap/escalation. Provenance does not prove operational relevance.
 
+After at least one verified complete read, two consecutive tool turns without a
+new filename/content-hash pair stop further exploration. One structured local
+finalisation uses the original observations and acquired sources, with no tools
+or model-supplied quality evidence. It remains inside the existing budgets and
+passes the same source guard and consistency review. New source versions reset
+this counter; search snippets and repeated old versions do not. This can stop a
+useful search early and does not establish completeness. See
+[ADR 0043](../../docs/adr/0043-arret-recherche-sans-progres.md).
+
+A final **AI consistency review** makes at most one additional local call under
+the same budget. It can reject a materially inconsistent proposal or lower its
+confidence, but cannot add or rewrite actions. Literal-source arithmetic uses
+code with explicit units; its results and review token/latency overhead appear
+in `diagnostic.qualite` (also in the pending approval request). Missing evidence,
+an invalid/unavailable review or a contradicted calculation leads to explicit
+abstention with no actions. A budget overrun still stops the analysis.
+
+This is a fallible review by the same model, not independent verification.
+Correct arithmetic does not prove that the selected populations are comparable,
+or establish causality. Previously read evaluation cases are regressions.
+See [ADR 0041](../../docs/adr/0041-revue-coherence-agent-bornee.md) for supported
+operations, refusal conditions and qualification requirements.
+
 The graph's approval request includes missing evidence and reported injections.
 Pending/rejected reports have `diagnostic=null`. A structured API decision
 requires `{"approuve": true}` with a boolean. A string value such as `"false"`
@@ -66,7 +89,7 @@ never approves. CLI text accepts explicit affirmative tokens; other text refuses
 | `SRE_MAX_TOKENS_TOTAL` | 60,000 observed tokens; allowed range 1–1,000,000 |
 | Completion cap | At most 6,000 tokens per request |
 | `SRE_MAX_DUREE_S` | 1800 per invocation, excluding human waiting |
-| `SRE_TIMEOUT_LLM_S` | 300 per request boundary |
+| `SRE_TIMEOUT_LLM_S` | 300 for the complete HTTP exchange, capped by the run's remaining deadline |
 | Alert size / context size | 20,000 / 100,000 characters |
 | Tool response | 12,000 characters |
 | `QDRANT_COLLECTION` | `runbooks-current` |
@@ -74,6 +97,10 @@ never approves. CLI text accepts explicit affirmative tokens; other text refuses
 Limits are checked before work and at response boundaries. Starting/stopping
 subprocesses and timed-out I/O may add cleanup time. Costs must be finite and
 non-negative. An external transport call with unknown cost stops explicitly.
+An absolute asynchronous HTTP deadline prevents periodically received bytes from
+extending a request indefinitely. Cancellation closes the client before returning;
+when embedded in an existing event loop, a joined worker preserves the synchronous
+API. A disconnected proxy does not prove that upstream model inference has stopped.
 The token ceiling uses actual provider counters, not a tokenizer estimate; the
 last response can overshoot before the run stops. Partial usage is a lower bound
 and absent usage is unknown, not zero. Reports distinguish attempted calls,
@@ -101,6 +128,15 @@ uv run --locked --extra graphe sre-agent-graph --purger --avant 14
 Daily scheduling, backups and restore verification are described in
 [Operations](../../docs/OPERATIONS.md). Old checkpoints written by earlier
 versions may still contain raw alerts until their retention expires.
+
+Checkpoint contract version 3 refuses approval of older pending proposals that
+never passed the consistency review. Their history remains readable with `--etat`;
+restart the analysis with a new thread instead of deleting or migrating the old
+checkpoint. Inventory pending analyses before upgrading a running installation.
+The control API also records the contract version in code-owned options for new
+analyses. Its `reprise_compatible` capability prevents a legacy decision before
+changing history or queueing work. Missing/old markers require a new analysis and
+the original input supplied again by the user; they are never silently upgraded.
 
 ## Development
 

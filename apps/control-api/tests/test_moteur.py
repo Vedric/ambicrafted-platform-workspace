@@ -5,6 +5,7 @@ import json
 import sys
 
 import pytest
+from sre_agent.graphe import VERSION_CONTRAT
 
 from plateforme.depot import Conflit
 
@@ -32,11 +33,11 @@ def test_file_bornee_sans_enregistrement_surnumeraire(moteur):
 
 
 def test_decision_file_pleine_ne_change_pas_statut(moteur):
-    moteur.depot.creer("attente", "Titre", "graphe", {}, "cli")
+    moteur.depot.creer("attente", "Titre", "graphe", {"version_contrat": VERSION_CONTRAT}, "cli")
     moteur.depot.changer("attente", "en_attente_humain")
     for _ in range(moteur.p.taille_file):
         moteur.creer("Titre", "Alerte", "cli")
-    with pytest.raises(Conflit):
+    with pytest.raises(Conflit, match="File pleine"):
         moteur.decider("attente", True, "cli")
     assert moteur.depot.obtenir("attente")["statut"] == "en_attente_humain"
 

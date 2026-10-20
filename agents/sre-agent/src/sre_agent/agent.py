@@ -33,6 +33,13 @@ from .modeles import (
     appliquer_garde_source,
 )
 from .outils import ClientRunbooks, ErreurOutil, executer_outil
+from .qualite import extraction_retenue, verifier_diagnostic
+from .recherche import (
+    CONCLUSION_BORNEE,
+    ProgressionRecherche,
+    lire_finalisation,
+    schema_finalisation,
+)
 
 # The local model reasons before answering: the output budget has to cover
 # the reasoning AND the JSON, otherwise the response comes back truncated.
@@ -86,6 +93,15 @@ def analyser(alerte: str) -> Rapport:
             rapport.outils_appeles = outils
 
             diagnostic, ecartees = appliquer_garde_source(brut, budget.sources_lues)
+            diagnostic = verifier_diagnostic(
+                diagnostic,
+                rapport.extraction,
+                alerte,
+                budget,
+                appel=appeler_llm,
+                nombre_actions_ecartees=len(ecartees),
+            )
+            rapport.extraction = extraction_retenue(rapport.extraction, diagnostic)
             rapport.diagnostic = diagnostic
             rapport.actions_ecartees_sans_source = ecartees
             rapport.statut = "complet"
@@ -180,22 +196,30 @@ def _raisonner(
     declarations = client.outils_openai()
     appeles: list[str] = []
     relance_tentee = False
+    progression = ProgressionRecherche()
 
     for tour in range(config.MAX_TOURS):
+        finaliser = progression.terminee
+        contexte = (
+            messages + [{"role": "user", "content": CONCLUSION_BORNEE}] if finaliser else messages
+        )
         reponse = appeler_llm(
             alias=config.ALIAS_RAISONNEMENT,
-            messages=prompts.avec_observations_originales(messages, alerte),
+            messages=prompts.avec_observations_originales(contexte, alerte),
             classification=Classification.CONFIDENTIEL,
             budget=budget,
-            tache="raisonnement",
-            # The tools stay declared even once the budget is spent.
-            # Removing them would make the model answer without having
-            # consulted them, and that degraded answer would be returned
-            # as a diagnosis. The budget must be held against the agent at
-            # the moment it tries to exceed it, not dodged beforehand.
-            outils=declarations,
+            tache="finalisation_recherche" if finaliser else "raisonnement",
+            # Only demonstrated stagnation after verified reads disables tools.
+            # Budget exhaustion alone never grants a finalisation bypass.
+            outils=None if finaliser else declarations,
+            schema_json=schema_finalisation() if finaliser else None,
             max_tokens=MAX_TOKENS_RAISONNEMENT,
         )
+
+        if finaliser:
+            if reponse.appels_outils:
+                raise ErreurPasserelle("La finalisation bornée ne peut pas appeler d'outil.")
+            return lire_finalisation(reponse.contenu), appeles
 
         if reponse.appels_outils:
             messages.append(_message_assistant(reponse.message))
@@ -212,6 +236,7 @@ def _raisonner(
                         "content": prompts.message_resultat_outil(nom, resultat),
                     }
                 )
+            progression.observer(budget.sources_lues)
             continue
 
         try:

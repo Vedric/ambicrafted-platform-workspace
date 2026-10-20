@@ -4,6 +4,7 @@ import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from .artefacts import MAX_ARTEFACTS, Artefact
 from .depot import Conflit, Depot, Introuvable, maintenant
 
 MAX_STORAGE = 96 * 1024 * 1024
@@ -34,9 +35,15 @@ class Conversations:
                     empreinte TEXT NOT NULL,
                     PRIMARY KEY(conversation_id, operation_id)
                 );
+                CREATE TABLE IF NOT EXISTS artefacts_conversation (
+                    id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL,
+                    operation_id TEXT NOT NULL, donnees TEXT NOT NULL,
+                    cree_le TEXT NOT NULL, UNIQUE(conversation_id, operation_id)
+                );
                 CREATE INDEX IF NOT EXISTS conversations_date ON conversations(maj_le DESC,id);
                 CREATE INDEX IF NOT EXISTS messages_conversation_parent ON messages_conversation(conversation_id,numero);
                 CREATE INDEX IF NOT EXISTS pieces_conversation_parent ON pieces_conversation(conversation_id);
+                CREATE INDEX IF NOT EXISTS artefacts_conversation_parent ON artefacts_conversation(conversation_id);
             """)
 
     @staticmethod
@@ -53,6 +60,9 @@ class Conversations:
         ).fetchone()[0]
         used += c.execute(
             "SELECT coalesce(sum(length(CAST(donnees AS BLOB))),0) FROM pieces_conversation"
+        ).fetchone()[0]
+        used += c.execute(
+            "SELECT coalesce(sum(length(CAST(donnees AS BLOB))),0) FROM artefacts_conversation"
         ).fetchone()[0]
         if used + ajout > MAX_STORAGE:
             raise Conflit(
@@ -104,12 +114,24 @@ class Conversations:
                 "SELECT * FROM messages_conversation WHERE conversation_id=? ORDER BY numero DESC LIMIT 100",
                 (identifiant,),
             ).fetchall()
+            artefacts = {
+                row["operation_id"]: Artefact.model_validate_json(row["donnees"]).model_dump()
+                for row in c.execute(
+                    "SELECT operation_id,donnees FROM artefacts_conversation WHERE conversation_id=?",
+                    (identifiant,),
+                )
+            }
             result["messages"] = [
                 {
+                    "id": row["numero"],
+                    "operation_id": row["operation_id"],
                     "role": row["role"],
                     "content": row["contenu"],
                     "cree_le": row["cree_le"],
                     "usage": json.loads(row["usage"]) if row["usage"] else None,
+                    "artefacts": [artefacts[row["operation_id"]]]
+                    if row["role"] == "assistant" and row["operation_id"] in artefacts
+                    else [],
                 }
                 for row in reversed(rows)
             ]
@@ -138,7 +160,12 @@ class Conversations:
         with self.depot.connexion() as c:
             c.execute("BEGIN IMMEDIATE")
             self._existe(c, identifiant)
-            for table in ("messages_conversation", "pieces_conversation", "requetes_conversation"):
+            for table in (
+                "messages_conversation",
+                "pieces_conversation",
+                "requetes_conversation",
+                "artefacts_conversation",
+            ):
                 c.execute(f"DELETE FROM {table} WHERE conversation_id=?", (identifiant,))
             c.execute("DELETE FROM conversations WHERE id=?", (identifiant,))
 
@@ -146,7 +173,12 @@ class Conversations:
         before = (datetime.now(UTC) - timedelta(days=jours)).isoformat()
         with self.depot.connexion() as c:
             c.execute("BEGIN IMMEDIATE")
-            for table in ("messages_conversation", "pieces_conversation", "requetes_conversation"):
+            for table in (
+                "messages_conversation",
+                "pieces_conversation",
+                "requetes_conversation",
+                "artefacts_conversation",
+            ):
                 c.execute(
                     f"DELETE FROM {table} WHERE conversation_id IN (SELECT id FROM conversations WHERE maj_le < ?)",
                     (before,),
@@ -202,18 +234,62 @@ class Conversations:
                     raise Conflit(
                         "This operation ID was used for a different message. Start a new request."
                     )
+            artefact = c.execute(
+                "SELECT donnees FROM artefacts_conversation WHERE conversation_id=? AND operation_id=?",
+                (identifiant, operation),
+            ).fetchone()
             return (
                 {
                     "texte": row["contenu"],
                     "usage": json.loads(row["usage"]) if row["usage"] else None,
                     "local": True,
                     "actions_executees": False,
+                    "artefacts": [Artefact.model_validate_json(artefact[0]).model_dump()]
+                    if artefact
+                    else [],
                 }
                 if row
                 else None
             )
 
-    def contexte(self, identifiant: str, question: str, pieces: list[str]) -> list[dict]:
+    def obtenir_artefact(self, identifiant: str, artefact_id: str) -> dict:
+        with self.depot.connexion() as c:
+            self._existe(c, identifiant)
+            row = c.execute(
+                "SELECT donnees FROM artefacts_conversation WHERE conversation_id=? AND id=?",
+                (identifiant, artefact_id),
+            ).fetchone()
+            if not row:
+                raise Introuvable("Artifact not found in this conversation.")
+            return Artefact.model_validate_json(row[0]).model_dump()
+
+    def precedent_artefact(self, identifiant: str) -> dict | None:
+        with self.depot.connexion() as c:
+            self._existe(c, identifiant)
+            row = c.execute(
+                "SELECT donnees FROM artefacts_conversation WHERE conversation_id=? ORDER BY cree_le DESC,id DESC LIMIT 1",
+                (identifiant,),
+            ).fetchone()
+            return Artefact.model_validate_json(row[0]).model_dump() if row else None
+
+    def capacite_artefact(self, identifiant: str):
+        with self.depot.connexion() as c:
+            self._existe(c, identifiant)
+            if (
+                c.execute(
+                    "SELECT count(*) FROM artefacts_conversation WHERE conversation_id=?",
+                    (identifiant,),
+                ).fetchone()[0]
+                >= MAX_ARTEFACTS
+            ):
+                raise Conflit(
+                    "This conversation reached its artifact limit. Start a new conversation."
+                )
+            self._quota(c, 65_536 + 24_000)
+
+    def contexte(
+        self, identifiant: str, question: str, pieces: list[str], *, tracabilite: bool = False
+    ) -> list[dict]:
         with self.depot.connexion() as c:
             self._existe(c, identifiant)
             self._quota(c, len(question.encode()) + 24_000)
@@ -234,7 +310,17 @@ class Conversations:
             for row in rows:
                 text = row["contenu"][: min(4000, remaining)]
                 if text:
-                    messages.append({"role": row["role"], "content": text})
+                    messages.append(
+                        {
+                            "role": row["role"],
+                            "content": text,
+                            **(
+                                {"_source_truncated": len(text) < len(row["contenu"])}
+                                if tracabilite
+                                else {}
+                            ),
+                        }
+                    )
                 remaining -= len(text)
             messages.reverse()
             content: list[dict] = [{"type": "text", "text": question}]
@@ -286,6 +372,11 @@ class Conversations:
         resultat: dict,
         empreinte: str | None = None,
     ):
+        documents = resultat.get("artefacts", [])
+        if not isinstance(documents, list) or len(documents) > 1:
+            raise ValueError("One artifact at most per conversation turn")
+        artefact = Artefact.model_validate(documents[0]) if documents else None
+        serialized = artefact.model_dump_json() if artefact else ""
         with self.depot.connexion() as c:
             c.execute("BEGIN IMMEDIATE")
             self._existe(c, identifiant)
@@ -294,7 +385,18 @@ class Conversations:
                 (identifiant, operation),
             ).fetchone():
                 return
-            self._quota(c, len((question + resultat["texte"]).encode()))
+            self._quota(c, len((question + resultat["texte"] + serialized).encode()))
+            if (
+                artefact
+                and c.execute(
+                    "SELECT count(*) FROM artefacts_conversation WHERE conversation_id=?",
+                    (identifiant,),
+                ).fetchone()[0]
+                >= MAX_ARTEFACTS
+            ):
+                raise Conflit(
+                    "This conversation reached its artifact limit. Start a new conversation."
+                )
             if empreinte is not None:
                 c.execute(
                     "INSERT INTO requetes_conversation VALUES(?,?,?)",
@@ -312,6 +414,11 @@ class Conversations:
                         operation,
                         json.dumps(resultat.get("usage")) if role == "assistant" else None,
                     ),
+                )
+            if artefact:
+                c.execute(
+                    "INSERT INTO artefacts_conversation VALUES(?,?,?,?,?)",
+                    (artefact.id, identifiant, operation, serialized, date),
                 )
             count = c.execute(
                 "SELECT count(*) FROM messages_conversation WHERE conversation_id=?", (identifiant,)

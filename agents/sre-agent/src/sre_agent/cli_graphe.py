@@ -36,8 +36,8 @@ import sys
 import uuid
 
 from . import config, graphe
-from .cli import rendre, rendre_budget
-from .modeles import Rapport
+from .cli import rendre, rendre_budget, rendre_qualite
+from .modeles import QualiteDiagnostic, Rapport
 
 CODES = {
     "complet": 0,
@@ -206,6 +206,8 @@ def rendre_graphe(rapport: Rapport, thread_id: str, chemin_db: str) -> str:
             lignes += [f"  · {a}" for a in ecartees]
         if outils := demande.get("outils_appeles"):
             lignes += ["", "OUTILS APPELÉS : " + ", ".join(outils)]
+        if qualite := demande.get("qualite"):
+            lignes += ["", rendre_qualite(QualiteDiagnostic.model_validate(qualite))]
         b = demande.get("budget") or {}
         if b:
             lignes += ["", rendre_budget(b)]

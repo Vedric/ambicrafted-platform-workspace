@@ -7,6 +7,7 @@ RUN apt-get update \
         gzip=1.13-1+deb13u1 \
         libc-bin=2.41-12+deb13u4 \
         libc6=2.41-12+deb13u4 \
+        liblzma5=5.8.1-1+deb13u2 \
         libpcre2-8-0=10.46-1~deb13u2 \
         libsqlite3-0=3.46.1-7+deb13u2 \
         perl-base=5.40.1-6+deb13u1 \
@@ -20,10 +21,17 @@ RUN tar -xzf /tmp/source.tar.gz --strip-components=1 -C /src \
 COPY web-ui-package.json package.json
 COPY web-ui-package-lock.json package-lock.json
 COPY web-ui.patch /tmp/web-ui.patch
+COPY build-dependencies.check.mjs ./build-dependencies.check.mjs
+COPY redirects-security.check.mjs ./redirects-security.check.mjs
 ENV VITE_OFFLINE=true
 RUN patch --batch --fuzz=0 -p1 < /tmp/web-ui.patch \
-    && npm ci --no-fund --no-audit
-RUN --network=none npm test -- --run --maxWorkers=2 \
+    && chown -R node:node /src
+# Native watcher quotas are per UID; do not share the host root quota or run
+# npm lifecycle scripts as root. The resulting runtime remains UID 65532.
+USER node
+RUN npm ci --no-fund --no-audit
+RUN --network=none node --test build-dependencies.check.mjs redirects-security.check.mjs \
+    && npm test -- --run --maxWorkers=2 \
     && npm run build-qdrant \
     && npm sbom --sbom-format spdx > dist/qdrant-web-ui.spdx.json
 
@@ -39,7 +47,7 @@ FROM patched AS runtime-libraries
 # and copyright files. The distroless base supplies the matching Debian libc.
 RUN test "$(dpkg --print-architecture)" = amd64 \
     && test "$(dpkg-query -W -f='${Version}' libunwind8)" = 1.8.1-0.1 \
-    && test "$(dpkg-query -W -f='${Version}' liblzma5)" = 5.8.1-1+deb13u1 \
+    && test "$(dpkg-query -W -f='${Version}' liblzma5)" = 5.8.1-1+deb13u2 \
     && mkdir -p /runtime/var/lib/dpkg/status.d /runtime/qdrant/storage /runtime/qdrant/snapshots \
     && for package in libunwind8 liblzma5; do \
         dpkg-query -L "$package" | while IFS= read -r file; do \

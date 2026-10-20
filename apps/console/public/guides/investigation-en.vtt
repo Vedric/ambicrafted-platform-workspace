@@ -1,13 +1,63 @@
 WEBVTT
 
-1
-00:00:00.000 --> 00:00:05.586
-Describe a synthetic incident and submit a supervised analysis.
+00:00:00.000 --> 00:00:05.849
+Start a supervised analysis with a synthetic
+incident. Give it a useful title and
 
-2
-00:00:05.586 --> 00:00:10.562
-Read the proposal and inspect its sources before deciding.
+00:00:05.849 --> 00:00:11.843
+separate observations from hypotheses. In
+this example, database connections appear
 
-3
-00:00:10.562 --> 00:00:18.648
-Your decision is recorded. Approval does not execute remediation.
+00:00:11.843 --> 00:00:17.548
+exhausted, but a cause has not yet been
+established. Specify that no restart or
+
+00:00:17.548 --> 00:00:20.075
+configuration change is authorized.
+
+00:00:20.903 --> 00:00:26.882
+After submitting, inspect the proposal and
+the status of the investigation. Check the
+
+00:00:26.882 --> 00:00:32.580
+quoted runbook passages, missing evidence
+and the limits of the local consistency
+
+00:00:32.580 --> 00:00:38.419
+review. A plausible explanation is not an
+observed root cause. This tutorial uses a
+
+00:00:38.419 --> 00:00:42.428
+deterministic response to make the sequence
+reproducible.
+
+00:00:43.244 --> 00:00:49.228
+Open the rejection dialog when the proposal
+is not sufficiently supported. Read the
+
+00:00:49.228 --> 00:00:55.429
+decision before confirming it. Approval or
+rejection records a human decision; it does
+
+00:00:55.429 --> 00:01:01.414
+not execute remediation commands. A refused
+proposal must remain visible instead of
+
+00:01:01.414 --> 00:01:05.019
+being silently rewritten as an approved
+diagnosis.
+
+00:01:05.866 --> 00:01:11.796
+Return to the analysis history and reopen
+the completed record. Review its status,
+
+00:01:11.796 --> 00:01:17.871
+evidence and export options. Share an export
+only after checking that it contains no
+
+00:01:17.871 --> 00:01:24.018
+secrets or client data beyond its intended
+audience. Use a separate analysis when new
+
+00:01:24.018 --> 00:01:26.766
+observations change the investigation.

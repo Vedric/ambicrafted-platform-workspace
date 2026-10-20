@@ -4,7 +4,7 @@
   "source_url": "https://github.com/grafana/grafana/archive/af4a33e3786594ad72f72d97e6744010330c2977.tar.gz",
   "source_sha256": "60eed311bdf954198742a2a73f86d305c10a71f7a932b3e4f94ceaf566989ee3",
   "compiler": "go1.27.3",
-  "build_version": "13.2.4+ambicrafted.20261020",
+  "build_version": "13.2.4+ambicrafted.20261020.r2",
   "dependencies": {
     "github.com/getkin/kin-openapi": "v0.149.0",
     "github.com/santhosh-tekuri/jsonschema/v6": "v6.0.3"
@@ -12,5 +12,16 @@
   "go_mod_sha256": "6b5fe768dd60007f7dbb7b30a28b3c4ad0596cd179e747edd27275db325fd219",
   "go_sum_sha256": "9df9d3bc91c69dbea45632447c4d88190f5e8a18ee7a768be585dfa1780dd2b2",
   "patch": "core-dependencies.patch",
-  "scope": "Rebuilt OSS backend only; original upstream frontend assets and signed plugin packages preserved."
+  "scope": "OSS backend rebuilt with bounded private distribution authority; upstream frontend and builtin panels preserved; only Prometheus and Tempo rebuilt data sources included.",
+  "signature_patch": "distribution-signature.patch",
+  "signature_implementation": "distribution_signature.go",
+  "authority": {
+    "fingerprint": "9927b7037e53a8156725792ff5fdd4382c05e115",
+    "key_id": "f5fdd4382c05e115",
+    "root_urls": [
+      "http://localhost:3000/",
+      "http://127.0.0.1:3000/"
+    ],
+    "policy": "distribution-manifests.json"
+  }
 }

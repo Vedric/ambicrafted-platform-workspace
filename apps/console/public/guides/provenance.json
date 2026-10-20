@@ -2,262 +2,763 @@
   "source": "Playwright recording of the actual disposable UI, with local AURA narration aligned to caption cues",
   "data": "Synthetic demonstration; analysis and transcription responses in the recorded tutorial are fixtures. No client data.",
   "audio_notice": "../audio/NOTICE.md",
+  "script_sha256": "48917367c0a6a7a61990a5d081adf6a675669de8bf2224a652be1d79e997559e",
+  "captions": "Optional WebVTT with proportional phrase timing; no burned-in captions.",
+  "capture_notice": "Native recording frame rate is preserved in each clip record; the MP4 is resampled to 30 fps.",
   "clips": [
     {
       "lesson": "first-steps",
       "language": "en",
-      "duration_seconds": 12.9,
-      "bytes": 1465795,
-      "sha256": "f274a80959e4d41b26ab6270b4c076b7c29a216dc23fd2e2f720102134da04c5",
+      "duration_seconds": 82.74,
+      "bytes": 7360402,
+      "sha256": "f0d849e9836afb2371907e3d45ddaa01ce929af5a17751dda5a7bfbe686be8e4",
       "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
       "cues": [
         {
-          "start": 5.8555000000069414e-05,
-          "text": "Welcome to your private workspace. Choose your language and theme."
+          "start": 3.4148000000186583e-05,
+          "text": "Begin in the private welcome page, then enter your workspace. This recording uses the real interface with disposable synthetic data. Choose English or French and a comfortable theme. You can pause this guide, change playback speed and turn captions off without changing the narration."
         },
         {
-          "start": 5.425297326,
-          "text": "Check Readiness before starting a mission."
+          "start": 20.200518910000003,
+          "text": "Open Readiness before a new task. Read the individual checks and their explanations, including local inference, document isolation and recovery prerequisites. A responding service is useful evidence of availability at this moment; it does not establish that every workflow is correct or that recovery has been tested."
         },
         {
-          "start": 8.901705046000002,
-          "text": "Choose a mission and describe observed facts."
+          "start": 42.692136779,
+          "text": "Choose a mission that matches your work: incident investigation, platform engineering, security or architecture. Write the observed symptoms, their time window and any known changes. Keep client work in a separate private environment and remove secrets from the request before submitting it."
+        },
+        {
+          "start": 62.332358228,
+          "text": "Finally, inspect the runbook library. Read the actual source content and check its relevance to your situation. The same control API is available from the terminal. Start with the status and readiness commands, and keep the interface open to review progress, sources and decisions."
         }
       ],
       "file": "first-steps-en.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "78a26f02c145f64ab2ba8d3301fbc67a5051fbe7ac140518655ed08d4d3d84f6",
+      "recording_sha256": "caa017d81750d58e5ecfb0b55733a218af18d0b7ececfde3ee3fa45336553b4c",
       "video_codec": "h264",
       "audio_codec": "aac",
-      "audio_rms": 0.060994,
+      "audio_rms": 0.069908,
       "narration": [
         {
           "file": "first-steps-en-0.wav",
-          "text": "Welcome to your private workspace. Choose your language and theme.",
-          "duration": 4.625
+          "text": "Begin in the private welcome page, then enter your workspace. This recording uses the real interface with disposable synthetic data. Choose English or French and a comfortable theme. You can pause this guide, change playback speed and turn captions off without changing the narration.",
+          "duration": 19.4
         },
         {
           "file": "first-steps-en-1.wav",
-          "text": "Check Readiness before starting a mission.",
-          "duration": 2.675
+          "text": "Open Readiness before a new task. Read the individual checks and their explanations, including local inference, document isolation and recovery prerequisites. A responding service is useful evidence of availability at this moment; it does not establish that every workflow is correct or that recovery has been tested.",
+          "duration": 21.675
         },
         {
           "file": "first-steps-en-2.wav",
-          "text": "Choose a mission and describe observed facts.",
-          "duration": 3.15
+          "text": "Choose a mission that matches your work: incident investigation, platform engineering, security or architecture. Write the observed symptoms, their time window and any known changes. Keep client work in a separate private environment and remove secrets from the request before submitting it.",
+          "duration": 18.825
+        },
+        {
+          "file": "first-steps-en-3.wav",
+          "text": "Finally, inspect the runbook library. Read the actual source content and check its relevance to your situation. The same control API is available from the terminal. Start with the status and readiness commands, and keep the interface open to review progress, sources and decisions.",
+          "duration": 19.475
         }
       ]
     },
     {
       "lesson": "voice",
       "language": "en",
-      "duration_seconds": 21.42,
-      "bytes": 1826195,
-      "sha256": "10892f7c0751cf20d902792134e334ec25d94abbbe05c679e983deb58bb1c0ce",
+      "duration_seconds": 85.15,
+      "bytes": 5498661,
+      "sha256": "076f997f09c9785fda0f3550c7ff15e04fd0206e9543782b43940549edbca8a4",
       "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
       "cues": [
         {
-          "start": 0.0019285710000003747,
-          "text": "AURA uses your system microphone and speakers. Open Check microphone and sound to test your audio before talking."
+          "start": 0.0027929449999937787,
+          "text": "Open AURA and select Check microphone and sound. The application uses your system audio devices. Allow microphone access in the browser, then check the input level. This tutorial uses a synthetic microphone signal and transcript; it cannot verify your physical microphone or speakers."
         },
         {
-          "start": 8.754505911999999,
-          "text": "Record a draft, then review its transcription. This transcript is synthetic."
+          "start": 21.178777952000004,
+          "text": "Select Record, speak a short request, then finish recording. The recognized words appear as an editable draft. Review names, numbers and technical terms before sending. If no words appear, check operating system microphone permissions and the selected system input before starting again."
         },
         {
-          "start": 15.005572774,
-          "text": "Send reviewed text to AURA. Conversation cannot approve an operation."
+          "start": 41.430207374000005,
+          "text": "Send the reviewed message and read the answer. AURA can discuss your context, but a conversation cannot authorize a maintenance operation. For hands-free turns, start a conversation explicitly and stop it when finished. Page changes, hidden tabs and Escape interrupt capture or playback."
+        },
+        {
+          "start": 61.806139697000006,
+          "text": "Use conversation history to reopen saved exchanges. Attach only the documents needed for the question and check their extraction. Text remains available when audio is unavailable. This guide demonstrates interface behavior with controlled responses, not model accuracy or successful audio capture on your device."
         }
       ],
       "file": "voice-en.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "dcc7d94b0dbc0609c4ec051dda92b8915e95d84d508ba1b55051e6af1828f3b1",
+      "recording_sha256": "5c80e020a06233b5dca7efaba4e0e6c9c94ba6a2c06038655c527b5fcc4bf4c0",
       "video_codec": "h264",
       "audio_codec": "aac",
-      "audio_rms": 0.064847,
+      "audio_rms": 0.069106,
       "narration": [
         {
           "file": "voice-en-0.wav",
-          "text": "AURA uses your system microphone and speakers. Open Check microphone and sound to test your audio before talking.",
-          "duration": 7.95
+          "text": "Open AURA and select Check microphone and sound. The application uses your system audio devices. Allow microphone access in the browser, then check the input level. This tutorial uses a synthetic microphone signal and transcript; it cannot verify your physical microphone or speakers.",
+          "duration": 20.375
         },
         {
           "file": "voice-en-1.wav",
-          "text": "Record a draft, then review its transcription. This transcript is synthetic.",
-          "duration": 5.45
+          "text": "Select Record, speak a short request, then finish recording. The recognized words appear as an editable draft. Review names, numbers and technical terms before sending. If no words appear, check operating system microphone permissions and the selected system input before starting again.",
+          "duration": 19.45
         },
         {
           "file": "voice-en-2.wav",
-          "text": "Send reviewed text to AURA. Conversation cannot approve an operation.",
-          "duration": 5.55
+          "text": "Send the reviewed message and read the answer. AURA can discuss your context, but a conversation cannot authorize a maintenance operation. For hands-free turns, start a conversation explicitly and stop it when finished. Page changes, hidden tabs and Escape interrupt capture or playback.",
+          "duration": 19.575
+        },
+        {
+          "file": "voice-en-3.wav",
+          "text": "Use conversation history to reopen saved exchanges. Attach only the documents needed for the question and check their extraction. Text remains available when audio is unavailable. This guide demonstrates interface behavior with controlled responses, not model accuracy or successful audio capture on your device.",
+          "duration": 22.15
         }
       ]
     },
     {
       "lesson": "investigation",
       "language": "en",
-      "duration_seconds": 18.65,
-      "bytes": 1113373,
-      "sha256": "73db70f861ba07672331170ec6950e782d5ec1e6c2371f8b04c49f408f6e15a2",
+      "duration_seconds": 87.64,
+      "bytes": 4087730,
+      "sha256": "f31304f44e5abeed02906c7c0bd35e1ca4a320476ef2844b7424322dc508c4ae",
       "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
       "cues": [
         {
-          "start": 4.106000000319909e-06,
-          "text": "Describe a synthetic incident and submit a supervised analysis."
+          "start": 1.2777999974787235e-05,
+          "text": "Start a supervised analysis with a synthetic incident. Give it a useful title and separate observations from hypotheses. In this example, database connections appear exhausted, but a cause has not yet been established. Specify that no restart or configuration change is authorized."
         },
         {
-          "start": 5.585927490000002,
-          "text": "Read the proposal and inspect its sources before deciding."
+          "start": 20.903237597,
+          "text": "After submitting, inspect the proposal and the status of the investigation. Check the quoted runbook passages, missing evidence and the limits of the local consistency review. A plausible explanation is not an observed root cause. This tutorial uses a deterministic response to make the sequence reproducible."
         },
         {
-          "start": 10.562444669999998,
-          "text": "Your decision is recorded. Approval does not execute remediation."
+          "start": 43.243792856999995,
+          "text": "Open the rejection dialog when the proposal is not sufficiently supported. Read the decision before confirming it. Approval or rejection records a human decision; it does not execute remediation commands. A refused proposal must remain visible instead of being silently rewritten as an approved diagnosis."
+        },
+        {
+          "start": 65.86578072699997,
+          "text": "Return to the analysis history and reopen the completed record. Review its status, evidence and export options. Share an export only after checking that it contains no secrets or client data beyond its intended audience. Use a separate analysis when new observations change the investigation."
         }
       ],
       "file": "investigation-en.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "c24ef9dde884ed4252b218bfb59ae680be8f76efe0c3c2d5cf5f427084afe968",
+      "recording_sha256": "e881b54fbd4033facc825c4980c61c678eea69b6af6dfcf3657aef9b03e8d549",
       "video_codec": "h264",
       "audio_codec": "aac",
-      "audio_rms": 0.059154,
+      "audio_rms": 0.06912,
       "narration": [
         {
           "file": "investigation-en-0.wav",
-          "text": "Describe a synthetic incident and submit a supervised analysis.",
-          "duration": 4.75
+          "text": "Start a supervised analysis with a synthetic incident. Give it a useful title and separate observations from hypotheses. In this example, database connections appear exhausted, but a cause has not yet been established. Specify that no restart or configuration change is authorized.",
+          "duration": 20.075
         },
         {
           "file": "investigation-en-1.wav",
-          "text": "Read the proposal and inspect its sources before deciding.",
-          "duration": 4.175
+          "text": "After submitting, inspect the proposal and the status of the investigation. Check the quoted runbook passages, missing evidence and the limits of the local consistency review. A plausible explanation is not an observed root cause. This tutorial uses a deterministic response to make the sequence reproducible.",
+          "duration": 21.525
         },
         {
           "file": "investigation-en-2.wav",
-          "text": "Your decision is recorded. Approval does not execute remediation.",
-          "duration": 5.425
+          "text": "Open the rejection dialog when the proposal is not sufficiently supported. Read the decision before confirming it. Approval or rejection records a human decision; it does not execute remediation commands. A refused proposal must remain visible instead of being silently rewritten as an approved diagnosis.",
+          "duration": 21.775
+        },
+        {
+          "file": "investigation-en-3.wav",
+          "text": "Return to the analysis history and reopen the completed record. Review its status, evidence and export options. Share an export only after checking that it contains no secrets or client data beyond its intended audience. Use a separate analysis when new observations change the investigation.",
+          "duration": 20.9
+        }
+      ]
+    },
+    {
+      "lesson": "recovery",
+      "language": "en",
+      "duration_seconds": 87.77,
+      "bytes": 4463458,
+      "sha256": "057cf785d90b58e728c8a4f7f1323ba7e6317425a5e4e82b3296f9fce927dc54",
+      "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
+      "cues": [
+        {
+          "start": 9.772000019438565e-06,
+          "text": "Open Operations to find backup and restoration checks. Before maintenance, identify the data you need to protect: conversations and documents, mission records, runbooks, local memory and service data. A local backup may contain confidential information and must remain in private storage."
+        },
+        {
+          "start": 21.412784491,
+          "text": "Choose Back up now and inspect the confirmation dialog. In normal use, confirming queues a recorded operation. This walkthrough cancels instead: no real backup is created by the recording. After a real operation, inspect its final result rather than assuming that a click means success."
+        },
+        {
+          "start": 42.515308038000015,
+          "text": "Open Test backup and review its purpose: restore a backup into isolated temporary containers and check its inventory. This is distinct from replacing live databases. Keep the original volumes for rollback. A successful local drill does not prove that a remote encrypted copy is accessible."
+        },
+        {
+          "start": 64.16982562300004,
+          "text": "Revisit Readiness and the recovery documentation before an upgrade. Configure an age recipient, export to your chosen off-host location and test with the recovery identity kept separately. Destination setup and custody of that identity remain operator tasks. Never paste a key into chat or a tutorial recording."
+        }
+      ],
+      "file": "recovery-en.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "4d56a623c1526e55739a1ca2803935ab5dcd4dab50c1ca887dae7b99c9c2f92c",
+      "recording_sha256": "fc4df23075a453016c2ec7212eaf0f8bf677668c772b4477ab68d8883047830e",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.070068,
+      "narration": [
+        {
+          "file": "recovery-en-0.wav",
+          "text": "Open Operations to find backup and restoration checks. Before maintenance, identify the data you need to protect: conversations and documents, mission records, runbooks, local memory and service data. A local backup may contain confidential information and must remain in private storage.",
+          "duration": 20.6
+        },
+        {
+          "file": "recovery-en-1.wav",
+          "text": "Choose Back up now and inspect the confirmation dialog. In normal use, confirming queues a recorded operation. This walkthrough cancels instead: no real backup is created by the recording. After a real operation, inspect its final result rather than assuming that a click means success.",
+          "duration": 20.275
+        },
+        {
+          "file": "recovery-en-2.wav",
+          "text": "Open Test backup and review its purpose: restore a backup into isolated temporary containers and check its inventory. This is distinct from replacing live databases. Keep the original volumes for rollback. A successful local drill does not prove that a remote encrypted copy is accessible.",
+          "duration": 20.825
+        },
+        {
+          "file": "recovery-en-3.wav",
+          "text": "Revisit Readiness and the recovery documentation before an upgrade. Configure an age recipient, export to your chosen off-host location and test with the recovery identity kept separately. Destination setup and custody of that identity remain operator tasks. Never paste a key into chat or a tutorial recording.",
+          "duration": 22.725
+        }
+      ]
+    },
+    {
+      "lesson": "observability",
+      "language": "en",
+      "duration_seconds": 87.43,
+      "bytes": 5454423,
+      "sha256": "595ca1a9f8a003ffbb2ce781d765abe6ba4b935197e61f27596b910431643971",
+      "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
+      "cues": [
+        {
+          "start": 7.775000005494804e-06,
+          "text": "Open Observability and read the collection timestamp before interpreting the charts. Check service availability, queue pressure and recent activity together. These are synthetic metrics in this tutorial. A quiet graph can mean low activity, a stale collector or a missing signal; it does not automatically mean good health."
+        },
+        {
+          "start": 22.155524864999986,
+          "text": "Inspect the service health details and compare them with Readiness. Separate an unavailable endpoint from an unhealthy dependency or a model error. Latency values describe the measured window, not a permanent service guarantee. Look for repeated changes rather than drawing a conclusion from one point."
+        },
+        {
+          "start": 43.26177091999998,
+          "text": "Explore the dashboard links for Grafana, metrics and traces. Access uses your local monitoring configuration. Check units, legends, time ranges and missing-data indicators before comparing values. A service being up does not prove that every panel is current or that an external alert has been delivered."
+        },
+        {
+          "start": 64.718028246,
+          "text": "Open the architecture view to understand how requests, tools, memory and observability connect. Its animated flows explain the design; they are not live packet traces. Correlate an investigation with actual timestamps and recorded results, then return to the relevant service or analysis to inspect the evidence."
+        }
+      ],
+      "file": "observability-en.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "b273dfb4460cead75d72eb659993b6d8d1938bd146618da7ac1372fcc4f0a654",
+      "recording_sha256": "87410c740c167f110bc73c35153da0fdbbc9f371007e6e9dd3766f81e1d98688",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.069201,
+      "narration": [
+        {
+          "file": "observability-en-0.wav",
+          "text": "Open Observability and read the collection timestamp before interpreting the charts. Check service availability, queue pressure and recent activity together. These are synthetic metrics in this tutorial. A quiet graph can mean low activity, a stale collector or a missing signal; it does not automatically mean good health.",
+          "duration": 21.35
+        },
+        {
+          "file": "observability-en-1.wav",
+          "text": "Inspect the service health details and compare them with Readiness. Separate an unavailable endpoint from an unhealthy dependency or a model error. Latency values describe the measured window, not a permanent service guarantee. Look for repeated changes rather than drawing a conclusion from one point.",
+          "duration": 20.3
+        },
+        {
+          "file": "observability-en-2.wav",
+          "text": "Explore the dashboard links for Grafana, metrics and traces. Access uses your local monitoring configuration. Check units, legends, time ranges and missing-data indicators before comparing values. A service being up does not prove that every panel is current or that an external alert has been delivered.",
+          "duration": 20.65
+        },
+        {
+          "file": "observability-en-3.wav",
+          "text": "Open the architecture view to understand how requests, tools, memory and observability connect. Its animated flows explain the design; they are not live packet traces. Correlate an investigation with actual timestamps and recorded results, then return to the relevant service or analysis to inspect the evidence.",
+          "duration": 21.85
         }
       ]
     },
     {
       "lesson": "first-steps",
       "language": "fr",
-      "duration_seconds": 13.67,
-      "bytes": 1650367,
-      "sha256": "ff1808c1688e428d98fc815aaa48001eee8da591f33e4a1163289251b8190700",
+      "duration_seconds": 84.82,
+      "bytes": 8106562,
+      "sha256": "7a0ffa739eed3b02f81b01e20d77365d1750de28cc2bffbd368f2b8fb2b55708",
       "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
       "cues": [
         {
-          "start": 6.572999998752494e-06,
-          "text": "Bienvenue dans votre espace privé. Choisissez la langue et le thème."
+          "start": 4.896000027656555e-06,
+          "text": "Commencez sur la page d’accueil privée, puis ouvrez votre espace de travail. Cet enregistrement montre la véritable interface avec des données fictives et jetables. Choisissez le français ou l’anglais et un thème confortable. Vous pouvez mettre le guide en pause, modifier sa vitesse et masquer les sous-titres sans couper la narration."
         },
         {
-          "start": 5.400672310000002,
-          "text": "Vérifiez la préparation avant une mission."
+          "start": 21.6256014840001,
+          "text": "Ouvrez Préparation avant une nouvelle tâche. Lisez chaque contrôle et son explication, notamment l’inférence locale, l’isolation des documents et les prérequis de restauration. Un service qui répond constitue un indice de disponibilité à cet instant. Cela ne prouve ni la justesse de tous les parcours ni une restauration réussie."
         },
         {
-          "start": 9.226159252000006,
-          "text": "Choisissez une mission et décrivez les faits observés."
+          "start": 43.90847550400009,
+          "text": "Choisissez une mission adaptée à votre activité : investigation d’incident, ingénierie de plateforme, sécurité ou architecture. Décrivez les symptômes observés, leur période et les changements connus. Isolez les travaux clients dans un environnement privé distinct et retirez les secrets avant d’envoyer votre demande."
+        },
+        {
+          "start": 64.82462336299999,
+          "text": "Consultez enfin la bibliothèque de procédures. Lisez les sources et vérifiez leur pertinence pour votre situation. La même interface de contrôle reste accessible dans le terminal. Commencez par les commandes de statut et de préparation, puis suivez les preuves et les décisions dans l’interface."
         }
       ],
       "file": "first-steps-fr.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "f01070267644242b59be692caef595e5bca57e9c964378ca0a74ac77748d1f68",
+      "recording_sha256": "fab3101b650ccb45f79050e4296479956b8d9a223595ca66343b4d645f67bc46",
       "video_codec": "h264",
       "audio_codec": "aac",
-      "audio_rms": 0.093664,
+      "audio_rms": 0.098387,
       "narration": [
         {
           "file": "first-steps-fr-0.wav",
-          "text": "Bienvenue dans votre espace privé. Choisissez la langue et le thème.",
-          "duration": 4.6
+          "text": "Commencez sur la page d’accueil privée, puis ouvrez votre espace de travail. Cet enregistrement montre la véritable interface avec des données fictives et jetables. Choisissez le français ou l’anglais et un thème confortable. Vous pouvez mettre le guide en pause, modifier sa vitesse et masquer les sous-titres sans couper la narration.",
+          "duration": 20.825
         },
         {
           "file": "first-steps-fr-1.wav",
-          "text": "Vérifiez la préparation avant une mission.",
-          "duration": 3.025
+          "text": "Ouvrez Préparation avant une nouvelle tâche. Lisez chaque contrôle et son explication, notamment l’inférence locale, l’isolation des documents et les prérequis de restauration. Un service qui répond constitue un indice de disponibilité à cet instant. Cela ne prouve ni la justesse de tous les parcours ni une restauration réussie.",
+          "duration": 21.475
         },
         {
           "file": "first-steps-fr-2.wav",
-          "text": "Choisissez une mission et décrivez les faits observés.",
-          "duration": 3.6
+          "text": "Choisissez une mission adaptée à votre activité : investigation d’incident, ingénierie de plateforme, sécurité ou architecture. Décrivez les symptômes observés, leur période et les changements connus. Isolez les travaux clients dans un environnement privé distinct et retirez les secrets avant d’envoyer votre demande.",
+          "duration": 20.1
+        },
+        {
+          "file": "first-steps-fr-3.wav",
+          "text": "Consultez enfin la bibliothèque de procédures. Lisez les sources et vérifiez leur pertinence pour votre situation. La même interface de contrôle reste accessible dans le terminal. Commencez par les commandes de statut et de préparation, puis suivez les preuves et les décisions dans l’interface.",
+          "duration": 19.1
         }
       ]
     },
     {
       "lesson": "voice",
       "language": "fr",
-      "duration_seconds": 22.1,
-      "bytes": 1829712,
-      "sha256": "ab36e7a7aa83aa0eb8ce48db3e82378558d3c2c3cf494554bbee82d7f25b84ef",
+      "duration_seconds": 83.67,
+      "bytes": 6477934,
+      "sha256": "64c7918b867f28db0002da5202c591c5049ee8001036e11408bfc1e9e7ebf8cf",
       "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
       "cues": [
         {
-          "start": 0.0023498819999949773,
-          "text": "AURA utilise le microphone et les haut-parleurs par défaut. Ouvrez Vérifier le microphone et le son pour tester votre audio avant de parler."
+          "start": 0.0014175250000553205,
+          "text": "Ouvrez AURA, puis Vérifier le microphone et le son. L’application utilise les périphériques audio du système. Autorisez le microphone dans le navigateur et observez le niveau d’entrée. Ce tutoriel emploie un signal et une transcription simulés : il ne vérifie pas votre microphone physique ni vos haut-parleurs."
         },
         {
-          "start": 9.756637589000006,
-          "text": "Enregistrez puis relisez la transcription. Ici, elle est simulée."
+          "start": 20.627033681,
+          "text": "Choisissez Enregistrer, prononcez une demande courte, puis terminez l’enregistrement. Les mots reconnus apparaissent dans un brouillon modifiable. Relisez les noms, les chiffres et les termes techniques avant l’envoi. Si aucun mot n’apparaît, vérifiez les autorisations du système et son entrée audio."
         },
         {
-          "start": 15.407161124000005,
-          "text": "Envoyez le texte relu à AURA. La conversation ne valide aucune opération."
+          "start": 39.75292276999995,
+          "text": "Envoyez le texte relu, puis examinez la réponse. AURA peut discuter du contexte, mais une conversation ne peut pas autoriser une opération de maintenance. Pour enchaîner les échanges vocaux, démarrez explicitement une conversation. Arrêtez-la ensuite ; changer de page, masquer l’onglet ou appuyer sur Échap interrompt l’audio."
+        },
+        {
+          "start": 61.754341479000054,
+          "text": "Utilisez l’historique pour retrouver les échanges enregistrés. Joignez uniquement les documents utiles et contrôlez leur extraction. Le texte reste disponible même si l’audio échoue. Cette démonstration explique le fonctionnement avec des réponses contrôlées ; elle ne mesure pas la qualité du modèle ni votre matériel audio."
         }
       ],
       "file": "voice-fr.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "598948feceef81e539b1aa0723614df041d52f9af6bafa02049bacc00cb7b381",
+      "recording_sha256": "10bc31d609040bb05095369402430ee421bcce73933f85189f7b5563b45293fe",
       "video_codec": "h264",
       "audio_codec": "aac",
-      "audio_rms": 0.095951,
+      "audio_rms": 0.098484,
       "narration": [
         {
           "file": "voice-fr-0.wav",
-          "text": "AURA utilise le microphone et les haut-parleurs par défaut. Ouvrez Vérifier le microphone et le son pour tester votre audio avant de parler.",
-          "duration": 8.95
+          "text": "Ouvrez AURA, puis Vérifier le microphone et le son. L’application utilise les périphériques audio du système. Autorisez le microphone dans le navigateur et observez le niveau d’entrée. Ce tutoriel emploie un signal et une transcription simulés : il ne vérifie pas votre microphone physique ni vos haut-parleurs.",
+          "duration": 19.825
         },
         {
           "file": "voice-fr-1.wav",
-          "text": "Enregistrez puis relisez la transcription. Ici, elle est simulée.",
-          "duration": 4.85
+          "text": "Choisissez Enregistrer, prononcez une demande courte, puis terminez l’enregistrement. Les mots reconnus apparaissent dans un brouillon modifiable. Relisez les noms, les chiffres et les termes techniques avant l’envoi. Si aucun mot n’apparaît, vérifiez les autorisations du système et son entrée audio.",
+          "duration": 18.325
         },
         {
           "file": "voice-fr-2.wav",
-          "text": "Envoyez le texte relu à AURA. La conversation ne valide aucune opération.",
-          "duration": 5.85
+          "text": "Envoyez le texte relu, puis examinez la réponse. AURA peut discuter du contexte, mais une conversation ne peut pas autoriser une opération de maintenance. Pour enchaîner les échanges vocaux, démarrez explicitement une conversation. Arrêtez-la ensuite ; changer de page, masquer l’onglet ou appuyer sur Échap interrompt l’audio.",
+          "duration": 21.2
+        },
+        {
+          "file": "voice-fr-3.wav",
+          "text": "Utilisez l’historique pour retrouver les échanges enregistrés. Joignez uniquement les documents utiles et contrôlez leur extraction. Le texte reste disponible même si l’audio échoue. Cette démonstration explique le fonctionnement avec des réponses contrôlées ; elle ne mesure pas la qualité du modèle ni votre matériel audio.",
+          "duration": 20.75
         }
       ]
     },
     {
       "lesson": "investigation",
       "language": "fr",
-      "duration_seconds": 17.15,
-      "bytes": 1164581,
-      "sha256": "ee8eb53c9c1091e5306baadd353b0abea0f63ece734c3d5f4815e3a3c1fc1c43",
+      "duration_seconds": 82.75,
+      "bytes": 4194662,
+      "sha256": "753f97bb0f891ae4d5a3a9232ac637eef5358b7ba802e0a1ff1b784f7f6b1ebc",
       "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
       "cues": [
         {
-          "start": 5.384000003687106e-06,
-          "text": "Décrivez un incident fictif et lancez une analyse supervisée."
+          "start": 6.741999997757375e-06,
+          "text": "Lancez une analyse supervisée à partir d’un incident fictif. Donnez-lui un titre utile et séparez les observations des hypothèses. Ici, les connexions à la base semblent saturées, mais la cause n’est pas établie. Précisez qu’aucun redémarrage ni changement de configuration n’est autorisé."
         },
         {
-          "start": 5.236716908000002,
-          "text": "Lisez la proposition et ses sources avant de décider."
+          "start": 19.801654693000017,
+          "text": "Après l’envoi, examinez la proposition et l’état de l’investigation. Contrôlez les passages cités, les preuves manquantes et les limites de la revue de cohérence locale. Une explication plausible n’est pas une cause observée. La réponse du tutoriel est déterministe pour rendre ce parcours reproductible."
         },
         {
-          "start": 9.660995699999999,
-          "text": "Votre décision est enregistrée. Elle ne lance aucune remédiation."
+          "start": 40.74066298300004,
+          "text": "Ouvrez la fenêtre de rejet si la proposition manque de preuves. Relisez votre décision avant de la confirmer. Une approbation ou un refus enregistre une décision humaine, sans exécuter de commande de remédiation. La proposition refusée doit rester identifiable dans l’historique."
+        },
+        {
+          "start": 60.60344419800001,
+          "text": "Revenez à la liste des analyses et rouvrez le résultat. Examinez son état, ses preuves et les options d’export. Avant de partager un fichier, vérifiez son contenu et son destinataire. Si de nouvelles observations changent le contexte, démarrez une nouvelle analyse plutôt que de présenter une ancienne conclusion comme actuelle."
         }
       ],
       "file": "investigation-fr.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "d674e6b9879bf5fa9442dbfdd6ccea55d4074b1f4602e9df104f8f45a7836bb2",
+      "recording_sha256": "cb9225a3ed5daca2ed8498f212bf8753b78a8bc1d9d46b23098e3fd0051d8051",
       "video_codec": "h264",
       "audio_codec": "aac",
-      "audio_rms": 0.087011,
+      "audio_rms": 0.098453,
       "narration": [
         {
           "file": "investigation-fr-0.wav",
-          "text": "Décrivez un incident fictif et lancez une analyse supervisée.",
-          "duration": 4.4
+          "text": "Lancez une analyse supervisée à partir d’un incident fictif. Donnez-lui un titre utile et séparez les observations des hypothèses. Ici, les connexions à la base semblent saturées, mais la cause n’est pas établie. Précisez qu’aucun redémarrage ni changement de configuration n’est autorisé.",
+          "duration": 18.975
         },
         {
           "file": "investigation-fr-1.wav",
-          "text": "Lisez la proposition et ses sources avant de décider.",
-          "duration": 3.625
+          "text": "Après l’envoi, examinez la proposition et l’état de l’investigation. Contrôlez les passages cités, les preuves manquantes et les limites de la revue de cohérence locale. Une explication plausible n’est pas une cause observée. La réponse du tutoriel est déterministe pour rendre ce parcours reproductible.",
+          "duration": 20.125
         },
         {
           "file": "investigation-fr-2.wav",
-          "text": "Votre décision est enregistrée. Elle ne lance aucune remédiation.",
-          "duration": 4.825
+          "text": "Ouvrez la fenêtre de rejet si la proposition manque de preuves. Relisez votre décision avant de la confirmer. Une approbation ou un refus enregistre une décision humaine, sans exécuter de commande de remédiation. La proposition refusée doit rester identifiable dans l’historique.",
+          "duration": 19.025
+        },
+        {
+          "file": "investigation-fr-3.wav",
+          "text": "Revenez à la liste des analyses et rouvrez le résultat. Examinez son état, ses preuves et les options d’export. Avant de partager un fichier, vérifiez son contenu et son destinataire. Si de nouvelles observations changent le contexte, démarrez une nouvelle analyse plutôt que de présenter une ancienne conclusion comme actuelle.",
+          "duration": 21.275
+        }
+      ]
+    },
+    {
+      "lesson": "recovery",
+      "language": "fr",
+      "duration_seconds": 85.6,
+      "bytes": 5027132,
+      "sha256": "e1a5e663770bebd8cc2cdf35e3ed0e71780f38a7c89c0936024204b30eada8fb",
+      "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
+      "cues": [
+        {
+          "start": 1.1572999996133148e-05,
+          "text": "Ouvrez Opérations pour retrouver la sauvegarde et les contrôles de restauration. Avant une maintenance, identifiez les données à protéger : conversations, documents, analyses, procédures, mémoire locale et données des services. Une sauvegarde peut contenir des informations confidentielles ; conservez-la dans un stockage privé."
+        },
+        {
+          "start": 21.391485358000036,
+          "text": "Choisissez Sauvegarder maintenant et examinez la confirmation. En usage normal, elle place une opération traçable dans la file. Ce tutoriel annule cette fenêtre : aucune sauvegarde réelle n’est créée pendant l’enregistrement. Après une véritable exécution, vérifiez le résultat final plutôt que le seul clic."
+        },
+        {
+          "start": 42.695137416000016,
+          "text": "Ouvrez Tester la sauvegarde et lisez son objectif : restaurer dans des conteneurs temporaires isolés, puis vérifier l’inventaire. Cela ne remplace pas les bases actives. Conservez les volumes originaux pour un retour arrière. Un test local réussi ne prouve pas qu’une copie chiffrée distante est accessible."
+        },
+        {
+          "start": 63.36881757900002,
+          "text": "Revenez à Préparation et à la documentation de reprise avant une mise à jour. Configurez un destinataire de chiffrement, exportez vers un emplacement externe choisi, puis testez avec une identité conservée séparément. La destination et la garde de cette identité relèvent de vous. Ne collez jamais une clé dans la conversation."
+        }
+      ],
+      "file": "recovery-fr.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "1f7bff9bbb4c7d530cf275771b5fd1b337117a568ea536329c2529177efc3ec5",
+      "recording_sha256": "2f961f7a858fd100b39d4828dbf2dd931c48394d05a50f3d064831c965136832",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.098632,
+      "narration": [
+        {
+          "file": "recovery-fr-0.wav",
+          "text": "Ouvrez Opérations pour retrouver la sauvegarde et les contrôles de restauration. Avant une maintenance, identifiez les données à protéger : conversations, documents, analyses, procédures, mémoire locale et données des services. Une sauvegarde peut contenir des informations confidentielles ; conservez-la dans un stockage privé.",
+          "duration": 20.575
+        },
+        {
+          "file": "recovery-fr-1.wav",
+          "text": "Choisissez Sauvegarder maintenant et examinez la confirmation. En usage normal, elle place une opération traçable dans la file. Ce tutoriel annule cette fenêtre : aucune sauvegarde réelle n’est créée pendant l’enregistrement. Après une véritable exécution, vérifiez le résultat final plutôt que le seul clic.",
+          "duration": 20.475
+        },
+        {
+          "file": "recovery-fr-2.wav",
+          "text": "Ouvrez Tester la sauvegarde et lisez son objectif : restaurer dans des conteneurs temporaires isolés, puis vérifier l’inventaire. Cela ne remplace pas les bases actives. Conservez les volumes originaux pour un retour arrière. Un test local réussi ne prouve pas qu’une copie chiffrée distante est accessible.",
+          "duration": 19.85
+        },
+        {
+          "file": "recovery-fr-3.wav",
+          "text": "Revenez à Préparation et à la documentation de reprise avant une mise à jour. Configurez un destinataire de chiffrement, exportez vers un emplacement externe choisi, puis testez avec une identité conservée séparément. La destination et la garde de cette identité relèvent de vous. Ne collez jamais une clé dans la conversation.",
+          "duration": 21.375
+        }
+      ]
+    },
+    {
+      "lesson": "observability",
+      "language": "fr",
+      "duration_seconds": 82,
+      "bytes": 5774427,
+      "sha256": "d954e4b1e416ee31bb7c2400a22bd5e7e17eef5c4f98e57ac5e8c3a1029a670c",
+      "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
+      "cues": [
+        {
+          "start": 8.788999984972179e-06,
+          "text": "Ouvrez Observabilité et lisez l’heure de collecte avant d’interpréter les graphiques. Examinez ensemble la disponibilité, la pression de la file et l’activité récente. Les mesures de ce tutoriel sont fictives. Un graphique calme peut refléter une faible activité, une collecte ancienne ou une donnée absente."
+        },
+        {
+          "start": 20.70383276499994,
+          "text": "Inspectez la santé détaillée des services, puis comparez-la à Préparation. Distinguez une adresse inaccessible, une dépendance dégradée et une erreur du modèle. Une latence décrit une mesure sur une période ; elle ne garantit pas durablement le service. Cherchez des évolutions répétées avant de conclure."
+        },
+        {
+          "start": 41.10970669799997,
+          "text": "Explorez les liens vers les tableaux de bord, les métriques et les traces. Leur accès dépend de votre configuration locale. Contrôlez les unités, les légendes, la période et les données manquantes. Un service disponible ne prouve pas que chaque graphique est récent ni qu’une alerte externe a été reçue."
+        },
+        {
+          "start": 60.83575705499994,
+          "text": "Ouvrez l’architecture pour comprendre les liens entre requêtes, outils, mémoire et observabilité. Les flux animés expliquent la conception ; ils ne représentent pas des paquets réseau en temps réel. Corrélez une investigation avec ses horodatages et ses résultats enregistrés, puis examinez les preuves du service concerné."
+        }
+      ],
+      "file": "observability-fr.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "4358698ee92b15de0aab9fd3f26da7a9b9397de7a3e2b4747cc3538776c87d72",
+      "recording_sha256": "751f2a5d7f98700cfcfb4a73f241b5a651f37c4e22e7b6c764aafb696248f7fe",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.099285,
+      "narration": [
+        {
+          "file": "observability-fr-0.wav",
+          "text": "Ouvrez Observabilité et lisez l’heure de collecte avant d’interpréter les graphiques. Examinez ensemble la disponibilité, la pression de la file et l’activité récente. Les mesures de ce tutoriel sont fictives. Un graphique calme peut refléter une faible activité, une collecte ancienne ou une donnée absente.",
+          "duration": 19.9
+        },
+        {
+          "file": "observability-fr-1.wav",
+          "text": "Inspectez la santé détaillée des services, puis comparez-la à Préparation. Distinguez une adresse inaccessible, une dépendance dégradée et une erreur du modèle. Une latence décrit une mesure sur une période ; elle ne garantit pas durablement le service. Cherchez des évolutions répétées avant de conclure.",
+          "duration": 19.6
+        },
+        {
+          "file": "observability-fr-2.wav",
+          "text": "Explorez les liens vers les tableaux de bord, les métriques et les traces. Leur accès dépend de votre configuration locale. Contrôlez les unités, les légendes, la période et les données manquantes. Un service disponible ne prouve pas que chaque graphique est récent ni qu’une alerte externe a été reçue.",
+          "duration": 18.925
+        },
+        {
+          "file": "observability-fr-3.wav",
+          "text": "Ouvrez l’architecture pour comprendre les liens entre requêtes, outils, mémoire et observabilité. Les flux animés expliquent la conception ; ils ne représentent pas des paquets réseau en temps réel. Corrélez une investigation avec ses horodatages et ses résultats enregistrés, puis examinez les preuves du service concerné.",
+          "duration": 20.25
+        }
+      ]
+    },
+    {
+      "lesson": "documents",
+      "language": "en",
+      "duration_seconds": 93.28,
+      "bytes": 10520248,
+      "sha256": "895cbff7469c2515a6f422c6e8342f333ca18fd439f8a9d54ad9a6229cc46fde",
+      "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
+      "cues": [
+        {
+          "start": 1.53010000001359e-05,
+          "text": "Open AURA and request a diagram directly, or choose Diagram in the response format selector. Describe the components and the direction of each interaction. Our synthetic example contains a browser, an API and PostgreSQL. The saved document belongs to this conversation and remains a draft to review."
+        },
+        {
+          "start": 22.850462317,
+          "text": "Open the document workspace, inspect labels and use zoom or actual size to read the graph. Examine its complete outline and source references. Supplied context means attribution to your request, not verified infrastructure. Export SVG for a scalable diagram or PNG for a bounded image; JSON preserves the structured data."
+        },
+        {
+          "start": 47.967318901,
+          "text": "Next request a report that separates supplied facts, unknowns and proposed checks. Read every section and table. Missing information must remain unknown rather than becoming an invented result. Markdown preserves readable text, while printing offers a paginated PDF. Reopen history to recover the saved document."
+        },
+        {
+          "start": 72.192296019,
+          "text": "Prepare a memory note only when the result is worth retaining. The form opens with an unverified summary as a question. Review the text, choose a scope and save explicitly. Nothing is automatically written to Neo4j. Cancel the form if the content should remain only in this conversation."
+        }
+      ],
+      "file": "documents-en.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "5580cb6fe072a51419051cd120db49badfc466ee42965e5b76029f88ee89d8b4",
+      "recording_sha256": "2a3a8079591a6432e3e1f3821fc18d951a351572716f41219121e2c0c839b188",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.069673,
+      "narration": [
+        {
+          "file": "documents-en-0.wav",
+          "text": "Open AURA and request a diagram directly, or choose Diagram in the response format selector. Describe the components and the direction of each interaction. Our synthetic example contains a browser, an API and PostgreSQL. The saved document belongs to this conversation and remains a draft to review.",
+          "duration": 22.05
+        },
+        {
+          "file": "documents-en-1.wav",
+          "text": "Open the document workspace, inspect labels and use zoom or actual size to read the graph. Examine its complete outline and source references. Supplied context means attribution to your request, not verified infrastructure. Export SVG for a scalable diagram or PNG for a bounded image; JSON preserves the structured data.",
+          "duration": 24.3
+        },
+        {
+          "file": "documents-en-2.wav",
+          "text": "Next request a report that separates supplied facts, unknowns and proposed checks. Read every section and table. Missing information must remain unknown rather than becoming an invented result. Markdown preserves readable text, while printing offers a paginated PDF. Reopen history to recover the saved document.",
+          "duration": 23.425
+        },
+        {
+          "file": "documents-en-3.wav",
+          "text": "Prepare a memory note only when the result is worth retaining. The form opens with an unverified summary as a question. Review the text, choose a scope and save explicitly. Nothing is automatically written to Neo4j. Cancel the form if the content should remain only in this conversation.",
+          "duration": 20.2
+        }
+      ]
+    },
+    {
+      "lesson": "documents",
+      "language": "fr",
+      "duration_seconds": 87.22,
+      "bytes": 9452506,
+      "sha256": "75c831f79d3b847accac545bd96d82c69f1ab667f06b728f6cb0d0871372f8e2",
+      "page_errors": [],
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "captions_burned_in": false,
+      "cues": [
+        {
+          "start": 2.8958999999986192e-05,
+          "text": "Ouvrez AURA et demandez directement un diagramme, ou choisissez Diagramme dans le format de réponse. Décrivez les composants et le sens de leurs échanges. L’exemple fictif comprend un navigateur, une interface de programmation et PostgreSQL. Le document est enregistré dans cette conversation et doit être relu."
+        },
+        {
+          "start": 20.874951072,
+          "text": "Ouvrez l’espace du document, examinez les libellés et utilisez le zoom ou la taille réelle. Consultez le plan complet et les références des sources. Un contexte fourni ne constitue pas une infrastructure vérifiée. Exportez le schéma en format vectoriel ou en image ; le fichier de données conserve sa structure."
+        },
+        {
+          "start": 42.116002480999995,
+          "text": "Demandez ensuite un rapport séparant faits fournis, inconnues et vérifications proposées. Relisez chaque section et tableau. Une information manquante doit rester inconnue, sans devenir un résultat inventé. Le texte s’exporte en Markdown ; l’impression permet un document paginé. L’historique retrouve les livrables enregistrés."
+        },
+        {
+          "start": 64.465581336,
+          "text": "Préparez une note mémoire uniquement si le résultat mérite d’être conservé. Le formulaire propose un résumé non vérifié, classé comme question. Relisez-le, choisissez son périmètre et enregistrez explicitement. Aucune note n’est ajoutée automatiquement au graphe. Vous pouvez annuler pour garder le contenu dans la conversation seulement."
+        }
+      ],
+      "file": "documents-fr.mp4",
+      "width": 1920,
+      "height": 1080,
+      "source_fps": "25",
+      "encoded_fps": 30,
+      "caption_sha256": "9e6b7cf3bf3efab3df4f94355f0538f94eb1c6b559ec311411fa3a101a613883",
+      "recording_sha256": "a6ea7db51ed56a4b04c3f6c4c81cb64a20a084fa4f5fed798017851c793f8e18",
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_rms": 0.09916,
+      "narration": [
+        {
+          "file": "documents-fr-0.wav",
+          "text": "Ouvrez AURA et demandez directement un diagramme, ou choisissez Diagramme dans le format de réponse. Décrivez les composants et le sens de leurs échanges. L’exemple fictif comprend un navigateur, une interface de programmation et PostgreSQL. Le document est enregistré dans cette conversation et doit être relu.",
+          "duration": 20.075
+        },
+        {
+          "file": "documents-fr-1.wav",
+          "text": "Ouvrez l’espace du document, examinez les libellés et utilisez le zoom ou la taille réelle. Consultez le plan complet et les références des sources. Un contexte fourni ne constitue pas une infrastructure vérifiée. Exportez le schéma en format vectoriel ou en image ; le fichier de données conserve sa structure.",
+          "duration": 20.425
+        },
+        {
+          "file": "documents-fr-2.wav",
+          "text": "Demandez ensuite un rapport séparant faits fournis, inconnues et vérifications proposées. Relisez chaque section et tableau. Une information manquante doit rester inconnue, sans devenir un résultat inventé. Le texte s’exporte en Markdown ; l’impression permet un document paginé. L’historique retrouve les livrables enregistrés.",
+          "duration": 21.55
+        },
+        {
+          "file": "documents-fr-3.wav",
+          "text": "Préparez une note mémoire uniquement si le résultat mérite d’être conservé. Le formulaire propose un résumé non vérifié, classé comme question. Relisez-le, choisissez son périmètre et enregistrez explicitement. Aucune note n’est ajoutée automatiquement au graphe. Vous pouvez annuler pour garder le contenu dans la conversation seulement.",
+          "duration": 21.875
         }
       ]
     }

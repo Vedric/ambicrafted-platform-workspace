@@ -607,3 +607,18 @@ See [the measured release report](RELEASE-0.4.3.md) and
 use prerecorded synthetic speech; they cannot certify a physical microphone or a
 listener's judgment of naturalness. The local pipeline remains sequential, with
 measurable recognition/synthesis latency rather than a subsecond realtime guarantee.
+
+
+## Expanded guide library (console 0.5.0 / speech 0.3.3)
+
+The current [User guide](GUIDES.md) replaces the six short historical clips with
+twelve native 1080p MP4s: six workflows, each recorded in English and French.
+Each has four chapters, optional WebVTT captions, a complete transcript and
+locally generated narration. The provenance distinguishes actual UI recordings
+from deterministic synthetic inference. Captions are not burned into the video;
+the Guide control and native player share a persistent preference.
+
+The English phoneme adapter now handles the pinned vocabulary's missing syllabic
+consonants in common words, with offline synthesis/transcription checks. This
+is a narrow pronunciation compatibility correction, not a new trained voice.
+The guide documents the approximation, source references and rebuild procedure.

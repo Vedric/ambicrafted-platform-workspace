@@ -1,0 +1,63 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:05.349
+Open Operations to find backup and
+restoration checks. Before maintenance,
+
+00:00:05.349 --> 00:00:10.770
+identify the data you need to protect:
+conversations and documents, mission
+
+00:00:10.770 --> 00:00:16.263
+records, runbooks, local memory and service
+data. A local backup may contain
+
+00:00:16.263 --> 00:00:20.600
+confidential information and must remain in
+private storage.
+
+00:00:21.413 --> 00:00:26.428
+Choose Back up now and inspect the
+confirmation dialog. In normal use,
+
+00:00:26.428 --> 00:00:32.732
+confirming queues a recorded operation. This
+walkthrough cancels instead: no real backup
+
+00:00:32.732 --> 00:00:38.750
+is created by the recording. After a real
+operation, inspect its final result rather
+
+00:00:38.750 --> 00:00:41.688
+than assuming that a click means success.
+
+00:00:42.515 --> 00:00:48.413
+Open Test backup and review its purpose:
+restore a backup into isolated temporary
+
+00:00:48.413 --> 00:00:54.821
+containers and check its inventory. This is
+distinct from replacing live databases. Keep
+
+00:00:54.821 --> 00:01:00.719
+the original volumes for rollback. A
+successful local drill does not prove that a
+
+00:01:00.719 --> 00:01:03.340
+remote encrypted copy is accessible.
+
+00:01:04.170 --> 00:01:09.851
+Revisit Readiness and the recovery
+documentation before an upgrade. Configure
+
+00:01:09.851 --> 00:01:16.049
+an age recipient, export to your chosen
+off-host location and test with the recovery
+
+00:01:16.049 --> 00:01:22.542
+identity kept separately. Destination setup
+and custody of that identity remain operator
+
+00:01:22.542 --> 00:01:26.895
+tasks. Never paste a key into chat or a
+tutorial recording.

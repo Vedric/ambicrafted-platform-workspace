@@ -152,9 +152,11 @@ Choose the intended input/output in Windows/Linux/macOS audio settings first.
 4. Welcome audio, music, AURA and guide videos use the same system output. Check
    tab volume and system volume if silent. A browser may require a click before
    autoplay: use **Listen to my welcome** or the video play control.
-5. The guide contains six locally narrated MP4s, with English/French captions and
-   native video controls. Demonstrations use synthetic data and simulated agent
-   responses; they explain the workflow without claiming model accuracy.
+5. Open **User guide** for narrated, locally served walkthroughs. Choose the
+   interface language, use native play, volume, speed and fullscreen controls,
+   and switch captions on or off. Each lesson has a complete text transcript.
+   Demonstrations use synthetic data and simulated agent responses; they explain
+   the workflow without claiming model accuracy.
 
 The UI language and speech language are independent. AURA's resident local voice
 worker reduces repeated model startup after the first exchange. It releases its
@@ -446,13 +448,13 @@ to Docker operations grants substantial authority on the host and belongs only
 to the trusted local operator. The current deployment deliberately has no
 public ingress, multi-user authorization or unattended remediation.
 
-The [20 October candidate qualification](QUALIFICATION-2026-10-20.md) records
-56 HIGH occurrences in signed Grafana plugins and one in Qdrant's frontend
-dependency inventory. The release security gate remains failed; these candidate
-results do not assert that the running workstation was upgraded. The
-[26 September assessment](SECURITY-RELEASE-2026-09-26.md), including its
-166 HIGH count and conditional private-workstation decision, is historical.
-Remote or mutually untrusted use remains outside the supported scope.
+The [21 October candidate qualification](QUALIFICATION-2026-10-21.md) records
+corrected Grafana, Qdrant and Tempo builds, exact validation and remaining image
+findings. A successful scan is only one release condition. Historical
+[20 October counts](QUALIFICATION-2026-10-20.md) and the
+[26 September assessment](SECURITY-RELEASE-2026-09-26.md) remain available;
+they do not describe this candidate. Remote or mutually untrusted use remains
+outside the supported scope.
 
 
 ### Background sound and natural speech
@@ -465,3 +467,31 @@ AURA speech takes priority; microphone recording mutes the music. Escape stops i
 An explicit browser gesture may be needed after reload. See [Voice](VOICE.md) for
 qualification limits and [the audio notice](../apps/console/public/audio/NOTICE.md)
 for the CC0 composition and separate voice licenses.
+
+## Saved diagrams and reports
+
+Select **Diagram** or **Report** beside the AURA conversation composer, or use an
+explicit creation request in Auto mode. A document is published only after both
+local generation and bounded consistency review complete. Their shared ceiling
+is 180 seconds; this is not the short spoken-turn latency. Failure leaves the
+request available for a deliberate retry and publishes no partial document.
+
+Diagrams open at readable scale in a scrollable canvas. Use fullscreen, zoom,
+Fit, or the horizontal/vertical presentation control for larger architectures.
+The renderer measures and wraps text, separates groups and labels, and refuses
+invalid layouts. Its 8-second worker deadline includes font readiness. Large
+graphs stay scrollable instead of silently shrinking their labels. Motion
+respects the same accessibility preference as the rest of the console.
+
+SVG and PNG exports contain the complete diagram, legend and source references.
+PNG has a 12-megapixel / 8,192-pixel-per-side bound; use SVG if that bound is
+exceeded. JSON and Markdown use the authenticated saved document. Print / Save
+PDF exports the selected report or complete diagram text outline, without the
+rest of the conversation. Sources are references, not verification badges.
+
+**Prepare memory note** opens an editable question in the memory form. Review the
+scope, wording and source before saving; generation alone never writes Neo4j.
+The [artifact contract and CLI guide](AURA-ARTIFACTS.md) describes limits,
+provenance, retention, exports and failure behavior. Layout is performed locally
+using [elkjs and its upstream license](../apps/console/public/notices/README.txt);
+no diagram is sent to an external rendering service.

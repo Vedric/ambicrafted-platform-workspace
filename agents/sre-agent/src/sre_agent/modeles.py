@@ -117,6 +117,23 @@ class ClassificationAlerte(BaseModel):
         return tri
 
 
+class QualiteDiagnostic(BaseModel):
+    """Application-produced evidence about a fallible AI consistency review."""
+
+    statut: Literal["revue_ia_sans_ecart_bloquant", "abstention"]
+    ecarts: list[str] = Field(default_factory=list)
+    calculs: list[str] = Field(default_factory=list)
+    extraction_ecartee: bool = False
+    latence_ms: int = 0
+    tokens_entree: int = 0
+    tokens_sortie: int = 0
+    limite: str = (
+        "Revue IA faillible, sans vérification directe du système. "
+        "Les calculs vérifient les valeurs citées, pas leur pertinence ni leur authenticité. "
+        "Validation humaine requise."
+    )
+
+
 class Diagnostic(BaseModel):
     """The deliverable. Produced by the final reasoning, validated by code."""
 
@@ -131,6 +148,7 @@ class Diagnostic(BaseModel):
         description="Nom du fichier runbook qui fonde les actions, ou null si "
         "aucun runbook ne les fonde.",
     )
+    qualite: QualiteDiagnostic | None = None
 
 
 class Rapport(BaseModel):

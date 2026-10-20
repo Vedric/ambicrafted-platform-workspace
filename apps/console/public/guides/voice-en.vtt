@@ -1,13 +1,62 @@
 WEBVTT
 
-1
-00:00:00.002 --> 00:00:08.755
-AURA uses your system microphone and speakers. Open Check microphone and sound to test your audio before talking.
+00:00:00.003 --> 00:00:05.876
+Open AURA and select Check microphone and
+sound. The application uses your system
 
-2
-00:00:08.755 --> 00:00:15.006
-Record a draft, then review its transcription. This transcript is synthetic.
+00:00:05.876 --> 00:00:11.822
+audio devices. Allow microphone access in
+the browser, then check the input level.
 
-3
-00:00:15.006 --> 00:00:21.418
-Send reviewed text to AURA. Conversation cannot approve an operation.
+00:00:11.822 --> 00:00:18.058
+This tutorial uses a synthetic microphone
+signal and transcript; it cannot verify your
+
+00:00:18.058 --> 00:00:20.378
+physical microphone or speakers.
+
+00:00:21.179 --> 00:00:26.726
+Select Record, speak a short request, then
+finish recording. The recognized words
+
+00:00:26.726 --> 00:00:32.616
+appear as an editable draft. Review names,
+numbers and technical terms before sending.
+
+00:00:32.616 --> 00:00:38.232
+If no words appear, check operating system
+microphone permissions and the selected
+
+00:00:38.232 --> 00:00:40.629
+system input before starting again.
+
+00:00:41.430 --> 00:00:47.151
+Send the reviewed message and read the
+answer. AURA can discuss your context, but a
+
+00:00:47.151 --> 00:00:52.941
+conversation cannot authorize a maintenance
+operation. For hands-free turns, start a
+
+00:00:52.941 --> 00:00:58.455
+conversation explicitly and stop it when
+finished. Page changes, hidden tabs and
+
+00:00:58.455 --> 00:01:01.005
+Escape interrupt capture or playback.
+
+00:01:01.806 --> 00:01:07.827
+Use conversation history to reopen saved
+exchanges. Attach only the documents needed
+
+00:01:07.827 --> 00:01:13.634
+for the question and check their extraction.
+Text remains available when audio is
+
+00:01:13.634 --> 00:01:18.723
+unavailable. This guide demonstrates
+interface behavior with controlled
+
+00:01:18.723 --> 00:01:23.956
+responses, not model accuracy or successful
+audio capture on your device.

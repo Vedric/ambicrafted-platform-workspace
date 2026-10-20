@@ -35,13 +35,30 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0022](0022-passerelle-mcp-locale.md) | One local MCP gateway and measured usage budgets | Accepted; private local scope | 2026-09-27 | NEXUS routes bounded read-only profiles; ATLAS keeps four tools and reports usage coverage honestly. |
 | [0023](0023-conversations-voix-et-memoire.md) | Local conversations, speech and explicit graph context | Accepted for local private scope | 2026-09-27 | Bounded saved dialogue, document extraction, default audio and scoped operator memory. |
 | [0024](0024-veille-technologique-publique.md) | Cached public technology watch | Accepted for local private scope | 2026-09-27 | Fixed public feeds, local bilingual summaries, dated sources and a 72-hour refresh cycle. |
-
 | [0025](0025-voix-conversationnelle-et-ambiance.md) | Conversational voice and subordinate ambient audio | Accepted | 2026-09-27 | Multilingual local synthesis, technical phonemes, an original score and explicit audio priority. |
 | [0026](0026-precision-reconnaissance-francaise.md) | French recognition precision | Accepted | 2026-09-28 | Preserve French words with float32 inference and fixed cross-CPU regression audio. |
+| [0027](0027-browser-audio-routing.md) | Browser-local audio routing | Superseded by 0031 | 2026-09-28 | Explicit device selection at the time; system defaults restored in 0031. |
+| [0028](0028-reactivite-conversation-et-mouvement.md) | Conversation responsiveness and continuous motion | Accepted | 2026-09-28 | Bounded spoken turns, cancellation and visible motion. |
+| [0029](0029-preferences-mouvement-explicites.md) | Explicit motion preferences | Accepted | 2026-09-29 | Shared motion state with an explicit operator override. |
+| [0030](0030-observabilite-privee.md) | Private operational telemetry | Accepted | 2026-09-29 | Aggregate collection, bilingual Grafana and freshness-aware alerts. |
+| [0031](0031-moteur-vocal-resident.md) | Warm local voice and system audio defaults | Accepted | 2026-09-29 | Resident speech worker; supersedes routing in 0027. |
+| [0032](0032-isolation-systeme-des-documents.md) | OS-enforced document extraction | Accepted for private Linux/WSL | 2026-10-20 | Rootless namespaces, read-only parser filesystem and native syscall policy. |
+| [0033](0033-recuperation-privee-verifiable.md) | Verifiable private recovery | Implemented | 2026-10-20 | Source inventory, encrypted export and nonempty restore drills. |
+| [0034](0034-qualification-agentique-et-cycle-de-vie.md) | Separate workflow and lifecycle qualification | Accepted | 2026-10-20 | Real local graph/MCP scenarios and separate expert review. |
+| [0035](0035-neo4j-memoire-ubi10.md) | Dedicated Neo4j memory profile | Qualified separately | 2026-10-20 | Vendor UBI10 runtime, explicit Parquet exclusion and logical rollback. |
+| [0036](0036-grafana-source-et-plugins-signes.md) | Grafana rebuild and official signed plugins | Affected choice superseded by 0042 | 2026-10-20 | Pinned core remediation with original official plugin signatures. |
+| [0037](0037-maintenance-images-et-verrou-release.md) | Corrective images and release gate | Accepted | 2026-10-20 | Source-verified derivatives and publication gated by CI and image security. |
+| [0038](0038-observations-originales-et-sorties-contraintes.md) | Original observations and constrained output | Implemented; semantic limits remain | 2026-10-20 | Ephemeral original observations retained across triage and final reasoning. |
+| [0039](0039-selection-volumes-reprise.md) | Explicit volume selection for recovery | Accepted | 2026-10-20 | Private volume selection separates candidate promotion from rollback data. |
+| [0040](0040-artefacts-conversation-locaux.md) | Typed local conversation artifacts | Implemented; qualification recorded separately | 2026-10-20 | Bounded diagrams/reports, atomic history, local exports and explicit memory drafts. |
+| [0041](0041-revue-coherence-agent-bornee.md) | Bounded agent consistency review | Implemented; qualification recorded separately | 2026-10-21 | Exhaustive proposition references, rejection-only review and absolute HTTP deadline. |
+| [0042](0042-distribution-grafana-privee-corrigee.md) | Minimal Grafana distribution with bounded private signatures | Candidate qualification | 2026-10-21 | Only required corrected plugins, exact compiled manifest trust and real loader refusals. |
+
+| [0043](0043-arret-recherche-sans-progres.md) | Bound repeated source exploration | Implemented; qualification recorded separately | 2026-10-21 | One structured finalisation after two rounds without new verified source identities; budgets unchanged. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0026, then the current README and security document;
+- **Current behavior**: 0009–0043, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [MCP gateway](../MCP-GATEWAY.md), [voice](../VOICE.md) and
@@ -66,16 +83,3 @@ written honestly; every ADR here names what its decision costs.
 
 State what was **verified**, and how. A consequence that has not been
 observed is written as a prediction, not as a result.
-
-- [0028 — Conversation responsiveness and continuous motion](0028-reactivite-conversation-et-mouvement.md): bounded spoken turns, local preparation, cancellation and visible motion.
-
-- [0029 — Explicit motion preferences](0029-preferences-mouvement-explicites.md): truthful motion controls, explicit override and shared CSS/React state.
-
-- [0030 — Private operational telemetry](0030-observabilite-privee.md): aggregate collection, bilingual Grafana views and freshness-aware alerts.
-- [0031 — Warm local voice and system defaults](0031-moteur-vocal-resident.md): bounded resident speech worker; supersedes audio routing in ADR 0027.
-- [0032 — OS-enforced document extraction](0032-isolation-systeme-des-documents.md): mandatory rootless namespaces, read-only parser filesystem and native syscall policy, with no unsafe fallback.
-- [0033 — Verifiable private recovery](0033-recuperation-privee-verifiable.md): source inventory, encrypted export and nonempty synthetic restoration.
-- [0034 — Workflow and lifecycle qualification](0034-qualification-agentique-et-cycle-de-vie.md): real local graph/MCP scenarios, separate expert review and bounded reliability exercises.
-- [0035 — Dedicated Neo4j memory profile](0035-neo4j-memoire-ubi10.md): vendor UBI10 runtime, explicit Parquet exclusion and tested logical rollback.
-- [0037 — Corrective images and release gate](0037-maintenance-images-et-verrou-release.md): source-verified derivatives, independent image scans and publication gated by both CI and security.
-- [0036 — Grafana source rebuild and signed plugins](0036-grafana-source-et-plugins-signes.md): pinned backend remediation, intact official plugin signatures and explicit residual release blockers.

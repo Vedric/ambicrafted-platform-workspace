@@ -34,7 +34,11 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-firefox-critical",
-      testMatch: "**/e2e-critical-paths.spec.ts",
+      testMatch: [
+        "**/e2e-critical-paths.spec.ts",
+        "**/e2e-artifacts.spec.ts",
+        "**/e2e-guides.spec.ts",
+      ],
       use: {
         ...devices["Desktop Firefox"],
         viewport: { width: 1440, height: 1000 },
@@ -45,6 +49,8 @@ export default defineConfig({
       testMatch: [
         "**/e2e-critical-paths.spec.ts",
         "**/e2e-motion-preferences.spec.ts",
+        "**/e2e-artifacts.spec.ts",
+        "**/e2e-guides.spec.ts",
       ],
       use: {
         ...devices["Desktop Safari"],

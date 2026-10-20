@@ -1,38 +1,86 @@
 {
   "first-steps": {
     "en": [
-      "Welcome to your private workspace. Choose your language and theme.",
-      "Check Readiness before starting a mission.",
-      "Choose a mission and describe observed facts."
+      "Begin in the private welcome page, then enter your workspace. This recording uses the real interface with disposable synthetic data. Choose English or French and a comfortable theme. You can pause this guide, change playback speed and turn captions off without changing the narration.",
+      "Open Readiness before a new task. Read the individual checks and their explanations, including local inference, document isolation and recovery prerequisites. A responding service is useful evidence of availability at this moment; it does not establish that every workflow is correct or that recovery has been tested.",
+      "Choose a mission that matches your work: incident investigation, platform engineering, security or architecture. Write the observed symptoms, their time window and any known changes. Keep client work in a separate private environment and remove secrets from the request before submitting it.",
+      "Finally, inspect the runbook library. Read the actual source content and check its relevance to your situation. The same control API is available from the terminal. Start with the status and readiness commands, and keep the interface open to review progress, sources and decisions."
     ],
     "fr": [
-      "Bienvenue dans votre espace privé. Choisissez la langue et le thème.",
-      "Vérifiez la préparation avant une mission.",
-      "Choisissez une mission et décrivez les faits observés."
+      "Commencez sur la page d’accueil privée, puis ouvrez votre espace de travail. Cet enregistrement montre la véritable interface avec des données fictives et jetables. Choisissez le français ou l’anglais et un thème confortable. Vous pouvez mettre le guide en pause, modifier sa vitesse et masquer les sous-titres sans couper la narration.",
+      "Ouvrez Préparation avant une nouvelle tâche. Lisez chaque contrôle et son explication, notamment l’inférence locale, l’isolation des documents et les prérequis de restauration. Un service qui répond constitue un indice de disponibilité à cet instant. Cela ne prouve ni la justesse de tous les parcours ni une restauration réussie.",
+      "Choisissez une mission adaptée à votre activité : investigation d’incident, ingénierie de plateforme, sécurité ou architecture. Décrivez les symptômes observés, leur période et les changements connus. Isolez les travaux clients dans un environnement privé distinct et retirez les secrets avant d’envoyer votre demande.",
+      "Consultez enfin la bibliothèque de procédures. Lisez les sources et vérifiez leur pertinence pour votre situation. La même interface de contrôle reste accessible dans le terminal. Commencez par les commandes de statut et de préparation, puis suivez les preuves et les décisions dans l’interface."
     ]
   },
   "voice": {
     "en": [
-      "AURA uses your system microphone and speakers. Open Check microphone and sound to test your audio before talking.",
-      "Record a draft, then review its transcription. This transcript is synthetic.",
-      "Send reviewed text to AURA. Conversation cannot approve an operation."
+      "Open AURA and select Check microphone and sound. The application uses your system audio devices. Allow microphone access in the browser, then check the input level. This tutorial uses a synthetic microphone signal and transcript; it cannot verify your physical microphone or speakers.",
+      "Select Record, speak a short request, then finish recording. The recognized words appear as an editable draft. Review names, numbers and technical terms before sending. If no words appear, check operating system microphone permissions and the selected system input before starting again.",
+      "Send the reviewed message and read the answer. AURA can discuss your context, but a conversation cannot authorize a maintenance operation. For hands-free turns, start a conversation explicitly and stop it when finished. Page changes, hidden tabs and Escape interrupt capture or playback.",
+      "Use conversation history to reopen saved exchanges. Attach only the documents needed for the question and check their extraction. Text remains available when audio is unavailable. This guide demonstrates interface behavior with controlled responses, not model accuracy or successful audio capture on your device."
     ],
     "fr": [
-      "AURA utilise le microphone et les haut-parleurs par défaut. Ouvrez Vérifier le microphone et le son pour tester votre audio avant de parler.",
-      "Enregistrez puis relisez la transcription. Ici, elle est simulée.",
-      "Envoyez le texte relu à AURA. La conversation ne valide aucune opération."
+      "Ouvrez AURA, puis Vérifier le microphone et le son. L’application utilise les périphériques audio du système. Autorisez le microphone dans le navigateur et observez le niveau d’entrée. Ce tutoriel emploie un signal et une transcription simulés : il ne vérifie pas votre microphone physique ni vos haut-parleurs.",
+      "Choisissez Enregistrer, prononcez une demande courte, puis terminez l’enregistrement. Les mots reconnus apparaissent dans un brouillon modifiable. Relisez les noms, les chiffres et les termes techniques avant l’envoi. Si aucun mot n’apparaît, vérifiez les autorisations du système et son entrée audio.",
+      "Envoyez le texte relu, puis examinez la réponse. AURA peut discuter du contexte, mais une conversation ne peut pas autoriser une opération de maintenance. Pour enchaîner les échanges vocaux, démarrez explicitement une conversation. Arrêtez-la ensuite ; changer de page, masquer l’onglet ou appuyer sur Échap interrompt l’audio.",
+      "Utilisez l’historique pour retrouver les échanges enregistrés. Joignez uniquement les documents utiles et contrôlez leur extraction. Le texte reste disponible même si l’audio échoue. Cette démonstration explique le fonctionnement avec des réponses contrôlées ; elle ne mesure pas la qualité du modèle ni votre matériel audio."
     ]
   },
   "investigation": {
     "en": [
-      "Describe a synthetic incident and submit a supervised analysis.",
-      "Read the proposal and inspect its sources before deciding.",
-      "Your decision is recorded. Approval does not execute remediation."
+      "Start a supervised analysis with a synthetic incident. Give it a useful title and separate observations from hypotheses. In this example, database connections appear exhausted, but a cause has not yet been established. Specify that no restart or configuration change is authorized.",
+      "After submitting, inspect the proposal and the status of the investigation. Check the quoted runbook passages, missing evidence and the limits of the local consistency review. A plausible explanation is not an observed root cause. This tutorial uses a deterministic response to make the sequence reproducible.",
+      "Open the rejection dialog when the proposal is not sufficiently supported. Read the decision before confirming it. Approval or rejection records a human decision; it does not execute remediation commands. A refused proposal must remain visible instead of being silently rewritten as an approved diagnosis.",
+      "Return to the analysis history and reopen the completed record. Review its status, evidence and export options. Share an export only after checking that it contains no secrets or client data beyond its intended audience. Use a separate analysis when new observations change the investigation."
     ],
     "fr": [
-      "Décrivez un incident fictif et lancez une analyse supervisée.",
-      "Lisez la proposition et ses sources avant de décider.",
-      "Votre décision est enregistrée. Elle ne lance aucune remédiation."
+      "Lancez une analyse supervisée à partir d’un incident fictif. Donnez-lui un titre utile et séparez les observations des hypothèses. Ici, les connexions à la base semblent saturées, mais la cause n’est pas établie. Précisez qu’aucun redémarrage ni changement de configuration n’est autorisé.",
+      "Après l’envoi, examinez la proposition et l’état de l’investigation. Contrôlez les passages cités, les preuves manquantes et les limites de la revue de cohérence locale. Une explication plausible n’est pas une cause observée. La réponse du tutoriel est déterministe pour rendre ce parcours reproductible.",
+      "Ouvrez la fenêtre de rejet si la proposition manque de preuves. Relisez votre décision avant de la confirmer. Une approbation ou un refus enregistre une décision humaine, sans exécuter de commande de remédiation. La proposition refusée doit rester identifiable dans l’historique.",
+      "Revenez à la liste des analyses et rouvrez le résultat. Examinez son état, ses preuves et les options d’export. Avant de partager un fichier, vérifiez son contenu et son destinataire. Si de nouvelles observations changent le contexte, démarrez une nouvelle analyse plutôt que de présenter une ancienne conclusion comme actuelle."
+    ]
+  },
+  "documents": {
+    "en": [
+      "Open AURA and request a diagram directly, or choose Diagram in the response format selector. Describe the components and the direction of each interaction. Our synthetic example contains a browser, an API and PostgreSQL. The saved document belongs to this conversation and remains a draft to review.",
+      "Open the document workspace, inspect labels and use zoom or actual size to read the graph. Examine its complete outline and source references. Supplied context means attribution to your request, not verified infrastructure. Export SVG for a scalable diagram or PNG for a bounded image; JSON preserves the structured data.",
+      "Next request a report that separates supplied facts, unknowns and proposed checks. Read every section and table. Missing information must remain unknown rather than becoming an invented result. Markdown preserves readable text, while printing offers a paginated PDF. Reopen history to recover the saved document.",
+      "Prepare a memory note only when the result is worth retaining. The form opens with an unverified summary as a question. Review the text, choose a scope and save explicitly. Nothing is automatically written to Neo4j. Cancel the form if the content should remain only in this conversation."
+    ],
+    "fr": [
+      "Ouvrez AURA et demandez directement un diagramme, ou choisissez Diagramme dans le format de réponse. Décrivez les composants et le sens de leurs échanges. L’exemple fictif comprend un navigateur, une interface de programmation et PostgreSQL. Le document est enregistré dans cette conversation et doit être relu.",
+      "Ouvrez l’espace du document, examinez les libellés et utilisez le zoom ou la taille réelle. Consultez le plan complet et les références des sources. Un contexte fourni ne constitue pas une infrastructure vérifiée. Exportez le schéma en format vectoriel ou en image ; le fichier de données conserve sa structure.",
+      "Demandez ensuite un rapport séparant faits fournis, inconnues et vérifications proposées. Relisez chaque section et tableau. Une information manquante doit rester inconnue, sans devenir un résultat inventé. Le texte s’exporte en Markdown ; l’impression permet un document paginé. L’historique retrouve les livrables enregistrés.",
+      "Préparez une note mémoire uniquement si le résultat mérite d’être conservé. Le formulaire propose un résumé non vérifié, classé comme question. Relisez-le, choisissez son périmètre et enregistrez explicitement. Aucune note n’est ajoutée automatiquement au graphe. Vous pouvez annuler pour garder le contenu dans la conversation seulement."
+    ]
+  },
+  "recovery": {
+    "en": [
+      "Open Operations to find backup and restoration checks. Before maintenance, identify the data you need to protect: conversations and documents, mission records, runbooks, local memory and service data. A local backup may contain confidential information and must remain in private storage.",
+      "Choose Back up now and inspect the confirmation dialog. In normal use, confirming queues a recorded operation. This walkthrough cancels instead: no real backup is created by the recording. After a real operation, inspect its final result rather than assuming that a click means success.",
+      "Open Test backup and review its purpose: restore a backup into isolated temporary containers and check its inventory. This is distinct from replacing live databases. Keep the original volumes for rollback. A successful local drill does not prove that a remote encrypted copy is accessible.",
+      "Revisit Readiness and the recovery documentation before an upgrade. Configure an age recipient, export to your chosen off-host location and test with the recovery identity kept separately. Destination setup and custody of that identity remain operator tasks. Never paste a key into chat or a tutorial recording."
+    ],
+    "fr": [
+      "Ouvrez Opérations pour retrouver la sauvegarde et les contrôles de restauration. Avant une maintenance, identifiez les données à protéger : conversations, documents, analyses, procédures, mémoire locale et données des services. Une sauvegarde peut contenir des informations confidentielles ; conservez-la dans un stockage privé.",
+      "Choisissez Sauvegarder maintenant et examinez la confirmation. En usage normal, elle place une opération traçable dans la file. Ce tutoriel annule cette fenêtre : aucune sauvegarde réelle n’est créée pendant l’enregistrement. Après une véritable exécution, vérifiez le résultat final plutôt que le seul clic.",
+      "Ouvrez Tester la sauvegarde et lisez son objectif : restaurer dans des conteneurs temporaires isolés, puis vérifier l’inventaire. Cela ne remplace pas les bases actives. Conservez les volumes originaux pour un retour arrière. Un test local réussi ne prouve pas qu’une copie chiffrée distante est accessible.",
+      "Revenez à Préparation et à la documentation de reprise avant une mise à jour. Configurez un destinataire de chiffrement, exportez vers un emplacement externe choisi, puis testez avec une identité conservée séparément. La destination et la garde de cette identité relèvent de vous. Ne collez jamais une clé dans la conversation."
+    ]
+  },
+  "observability": {
+    "en": [
+      "Open Observability and read the collection timestamp before interpreting the charts. Check service availability, queue pressure and recent activity together. These are synthetic metrics in this tutorial. A quiet graph can mean low activity, a stale collector or a missing signal; it does not automatically mean good health.",
+      "Inspect the service health details and compare them with Readiness. Separate an unavailable endpoint from an unhealthy dependency or a model error. Latency values describe the measured window, not a permanent service guarantee. Look for repeated changes rather than drawing a conclusion from one point.",
+      "Explore the dashboard links for Grafana, metrics and traces. Access uses your local monitoring configuration. Check units, legends, time ranges and missing-data indicators before comparing values. A service being up does not prove that every panel is current or that an external alert has been delivered.",
+      "Open the architecture view to understand how requests, tools, memory and observability connect. Its animated flows explain the design; they are not live packet traces. Correlate an investigation with actual timestamps and recorded results, then return to the relevant service or analysis to inspect the evidence."
+    ],
+    "fr": [
+      "Ouvrez Observabilité et lisez l’heure de collecte avant d’interpréter les graphiques. Examinez ensemble la disponibilité, la pression de la file et l’activité récente. Les mesures de ce tutoriel sont fictives. Un graphique calme peut refléter une faible activité, une collecte ancienne ou une donnée absente.",
+      "Inspectez la santé détaillée des services, puis comparez-la à Préparation. Distinguez une adresse inaccessible, une dépendance dégradée et une erreur du modèle. Une latence décrit une mesure sur une période ; elle ne garantit pas durablement le service. Cherchez des évolutions répétées avant de conclure.",
+      "Explorez les liens vers les tableaux de bord, les métriques et les traces. Leur accès dépend de votre configuration locale. Contrôlez les unités, les légendes, la période et les données manquantes. Un service disponible ne prouve pas que chaque graphique est récent ni qu’une alerte externe a été reçue.",
+      "Ouvrez l’architecture pour comprendre les liens entre requêtes, outils, mémoire et observabilité. Les flux animés expliquent la conception ; ils ne représentent pas des paquets réseau en temps réel. Corrélez une investigation avec ses horodatages et ses résultats enregistrés, puis examinez les preuves du service concerné."
     ]
   }
 }

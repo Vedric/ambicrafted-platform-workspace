@@ -44,26 +44,33 @@ class Contracts(unittest.TestCase):
         return qualification.check_report(case or self.case, report, self.corpus)
 
     def test_reviewed_cases_are_regression_with_baseline_split_preserved(self):
-        self.assertEqual(len(self.cases), 51)
+        self.assertEqual(len(self.cases), 69)
         self.assertEqual(
             {
                 name: sum(c["journey"] == name for c in self.cases)
                 for name in ("sre", "infrastructure", "change")
             },
-            {"sre": 17, "infrastructure": 17, "change": 17},
+            {"sre": 23, "infrastructure": 23, "change": 23},
         )
         historical = [c for c in self.cases if "baseline_split_2026_10_20" in c]
         self.assertEqual(len(historical), 39)
         self.assertTrue(all(c["split"] == "regression" for c in historical))
-        self.assertEqual(sum(c["split"] == "regression" for c in self.cases), 39)
-        self.assertEqual(sum(c["split"] == "holdout" for c in self.cases), 12)
+        self.assertEqual(sum(c["split"] == "regression" for c in self.cases), 63)
+        reviewed = [c for c in self.cases if "pre_review_split_2026_10_21" in c]
+        self.assertEqual(len(reviewed), 51)
+        self.assertTrue(all(c["split"] == "regression" for c in reviewed))
+        self.assertEqual(sum(c["split"] == "holdout" for c in self.cases), 6)
+        progress = [c for c in self.cases if "pre_progress_split_2026_10_21" in c]
+        self.assertEqual(len(progress), 63)
+        self.assertEqual(sum(c["pre_progress_split_2026_10_21"] == "holdout" for c in progress), 12)
+        self.assertTrue(all(c["split"] == "regression" for c in progress))
         for journey in ("sre", "infrastructure", "change"):
             self.assertEqual(
                 sum(
                     c["split"] == "holdout" and c["journey"] == journey
                     for c in self.cases
                 ),
-                4,
+                2,
             )
         self.assertEqual(
             sum(c["baseline_split_2026_10_20"] == "holdout" for c in historical), 13

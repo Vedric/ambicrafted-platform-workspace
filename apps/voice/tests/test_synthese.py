@@ -82,3 +82,23 @@ assert all(value == expected[language] for value, language in zip(actual, langua
     # ONNX device discovery can warn about a virtual PCI path on hosted runners.
     # The regression concerns eSpeak corruption, not unrelated hardware notices.
     assert "Invalid instruction" not in result.stderr
+
+
+@pytest.mark.parametrize("native,expected", [("ɹɪtn̩", "ɹɪtən"), ("bɒtl̩", "bɒtəl")])
+def test_english_syllabic_sonorants_keep_a_vocalic_nucleus(monkeypatch, native, expected):
+    from piper.phonemize_espeak import EspeakPhonemizer
+
+    monkeypatch.setattr(EspeakPhonemizer, "phonemize", lambda *args: [list(native)])
+    vocabulary = {char: index for index, char in enumerate(set(expected))}
+    assert phonemiser("written bottle", "en", vocabulary) == [expected]
+    with pytest.raises(ErreurVoix, match="prononciation"):
+        phonemiser("Une phrase française", "fr", vocabulary)
+
+
+@pytest.mark.parametrize("native", ["m̩", "n̥", "l̃", "a☃"])
+def test_other_diacritics_are_not_silently_removed(monkeypatch, native):
+    from piper.phonemize_espeak import EspeakPhonemizer
+
+    monkeypatch.setattr(EspeakPhonemizer, "phonemize", lambda *args: [list(native)])
+    with pytest.raises(ErreurVoix, match="prononciation"):
+        phonemiser("Synthetic boundary", "en", {char: index for index, char in enumerate(" mnləa")})

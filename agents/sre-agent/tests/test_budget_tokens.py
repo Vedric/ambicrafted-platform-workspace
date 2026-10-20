@@ -27,7 +27,7 @@ def repondre(monkeypatch):
                 },
             )
 
-        monkeypatch.setattr(llm.httpx, "post", post)
+        monkeypatch.setattr(llm, "_poster_borne", post)
         return appels
 
     return installer
@@ -122,7 +122,7 @@ def test_usage_invalide_refuse_sans_inventer_mesure(monkeypatch, valeur):
         def json(self):
             return {"usage": {"prompt_tokens": valeur}, "choices": [{"message": {"content": "{}"}}]}
 
-    monkeypatch.setattr(llm.httpx, "post", lambda *_a, **_k: Reponse())
+    monkeypatch.setattr(llm, "_poster_borne", lambda *_a, **_k: Reponse())
     budget = Budget(10, 1)
     with pytest.raises(llm.ErreurPasserelle, match="mal formée"):
         appeler(budget)
@@ -187,7 +187,7 @@ def test_tentative_sans_mesures_reste_inconnue_et_checkpointable(monkeypatch, er
             else httpx.Response(200, headers={"x-litellm-response-cost": "NaN"})
         )
 
-    monkeypatch.setattr(llm.httpx, "post", repondre)
+    monkeypatch.setattr(llm, "_poster_borne", repondre)
     budget = Budget(config.MAX_APPELS_OUTILS, config.MAX_COUT_USD)
     avant = graphe._instantane(budget)
     with pytest.raises(llm.ErreurPasserelle) as capture:
@@ -212,7 +212,7 @@ def test_cout_local_absent_pas_zero_et_cout_zero_explicitement_mesure(monkeypatc
             ),
         ]
     )
-    monkeypatch.setattr(llm.httpx, "post", lambda *_a, **_k: next(reponses))
+    monkeypatch.setattr(llm, "_poster_borne", lambda *_a, **_k: next(reponses))
     budget = Budget(10, 1)
     appeler(budget)
     assert budget.resume()["cout_usd"] is None

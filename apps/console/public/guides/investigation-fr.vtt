@@ -1,13 +1,63 @@
 WEBVTT
 
-1
-00:00:00.000 --> 00:00:05.237
-Décrivez un incident fictif et lancez une analyse supervisée.
+00:00:00.000 --> 00:00:05.706
+Lancez une analyse supervisée à partir d’un
+incident fictif. Donnez-lui un titre utile
 
-2
-00:00:05.237 --> 00:00:09.661
-Lisez la proposition et ses sources avant de décider.
+00:00:05.706 --> 00:00:11.146
+et séparez les observations des hypothèses.
+Ici, les connexions à la base semblent
 
-3
-00:00:09.661 --> 00:00:17.150
-Votre décision est enregistrée. Elle ne lance aucune remédiation.
+00:00:11.146 --> 00:00:16.852
+saturées, mais la cause n’est pas établie.
+Précisez qu’aucun redémarrage ni changement
+
+00:00:16.852 --> 00:00:18.975
+de configuration n’est autorisé.
+
+00:00:19.802 --> 00:00:25.284
+Après l’envoi, examinez la proposition et
+l’état de l’investigation. Contrôlez les
+
+00:00:25.284 --> 00:00:31.034
+passages cités, les preuves manquantes et
+les limites de la revue de cohérence locale.
+
+00:00:31.034 --> 00:00:36.517
+Une explication plausible n’est pas une
+cause observée. La réponse du tutoriel est
+
+00:00:36.517 --> 00:00:39.927
+déterministe pour rendre ce parcours
+reproductible.
+
+00:00:40.741 --> 00:00:46.669
+Ouvrez la fenêtre de rejet si la proposition
+manque de preuves. Relisez votre décision
+
+00:00:46.669 --> 00:00:52.735
+avant de la confirmer. Une approbation ou un
+refus enregistre une décision humaine, sans
+
+00:00:52.735 --> 00:00:58.525
+exécuter de commande de remédiation. La
+proposition refusée doit rester identifiable
+
+00:00:58.525 --> 00:00:59.766
+dans l’historique.
+
+00:01:00.603 --> 00:01:06.233
+Revenez à la liste des analyses et rouvrez
+le résultat. Examinez son état, ses preuves
+
+00:01:06.233 --> 00:01:11.601
+et les options d’export. Avant de partager
+un fichier, vérifiez son contenu et son
+
+00:01:11.601 --> 00:01:17.231
+destinataire. Si de nouvelles observations
+changent le contexte, démarrez une nouvelle
+
+00:01:17.231 --> 00:01:21.878
+analyse plutôt que de présenter une ancienne
+conclusion comme actuelle.

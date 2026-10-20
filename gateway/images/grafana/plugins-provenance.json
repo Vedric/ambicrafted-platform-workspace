@@ -1,40 +1,76 @@
 {
   "upstream": "grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f",
   "architecture": "linux/amd64",
-  "checked_at": "2026-10-20",
-  "inherited_plugins": {
-    "elasticsearch": "12.9.2",
-    "grafana-postgresql-datasource": "13.0.4",
-    "grafana-pyroscope-datasource": "13.0.7",
-    "influxdb": "13.1.7",
-    "jaeger": "13.0.5",
-    "loki": "13.2.2",
-    "mssql": "13.0.7",
-    "mysql": "13.1.4",
-    "prometheus": "13.2.3",
-    "tempo": "13.2.4",
-    "zipkin": "12.4.9"
-  },
+  "checked_at": "2026-10-21",
+  "distribution": "Ambicrafted local distribution; not Grafana Labs signed",
+  "removed_unused_plugins": [
+    "elasticsearch",
+    "grafana-postgresql-datasource",
+    "grafana-pyroscope-datasource",
+    "influxdb",
+    "jaeger",
+    "loki",
+    "mssql",
+    "mysql",
+    "opentsdb",
+    "stackdriver",
+    "zipkin"
+  ],
+  "inherited_plugins": {},
   "plugins": [
     {
-      "id": "opentsdb",
-      "version": "13.0.5",
-      "source": "https://grafana.com/api/plugins/opentsdb/versions/13.0.5/download?os=linux&arch=amd64",
-      "sha256": "ae51e0a76901de07860777f5b992fe3924206181f4c99287a9d840710682bf24",
-      "zip_root": "opentsdb",
-      "bytes": 9602830,
-      "grafanaDependency": ">=12.3.0-0",
-      "signatureType": "grafana"
+      "id": "prometheus",
+      "version": "13.2.3+ambicrafted.20261020",
+      "repository": "https://github.com/grafana/grafana-prometheus-datasource",
+      "commit": "6d21418acde6ce31c9f7a6418a88758842a881bb",
+      "source_url": "https://codeload.github.com/grafana/grafana-prometheus-datasource/tar.gz/6d21418acde6ce31c9f7a6418a88758842a881bb",
+      "source_sha256": "24b1f2ed395438a5574102b166314be621259431fbae3f04ae66b55a143f1c13",
+      "archive_url": "https://grafana.com/api/plugins/prometheus/versions/13.2.3/download?os=linux&arch=amd64",
+      "archive_sha256": "8bdd6583e398f84d497dabec0287563b9eee471d711dea08a21482db5cd5a294",
+      "derived_version": "13.2.3+ambicrafted.20261020",
+      "upstream_version": "13.2.3",
+      "signatureType": "private",
+      "manifest_sha256": "bfa61c581fb555726cca815121fc05441ac727cef146f59de6f3b41997c961cf",
+      "compiler": "go1.27.3",
+      "go_mod_sha256": "8e8a739a16027c21e640ec6a783a31fb10767e667ad06d7bbf92410e817b0e3b",
+      "go_sum_sha256": "7614b0f216bd3b88e4d47ccf57d36c11c84b2ef3f728a813893b4d58f60325f6"
     },
     {
-      "id": "stackdriver",
-      "version": "12.6.3",
-      "source": "https://grafana.com/api/plugins/stackdriver/versions/12.6.3/download?os=linux&arch=amd64",
-      "sha256": "3288d1bb06330449e7335346667ea7c74e5367c0d32390396c93ee54c89900cb",
-      "zip_root": "stackdriver",
-      "bytes": 10908378,
-      "grafanaDependency": ">=12.3.0-0",
-      "signatureType": "grafana"
+      "id": "tempo",
+      "version": "13.2.4+ambicrafted.20261020",
+      "repository": "https://github.com/grafana/grafana-tempo-datasource",
+      "commit": "cdacb742bae90fbf62c48c5cca0eacdc08fd2acd",
+      "source_url": "https://codeload.github.com/grafana/grafana-tempo-datasource/tar.gz/cdacb742bae90fbf62c48c5cca0eacdc08fd2acd",
+      "source_sha256": "fdef6e02f81297dc9c26cd13c735fba011e31fa90bc08a6b231489251016238f",
+      "archive_url": "https://grafana.com/api/plugins/tempo/versions/13.2.4/download?os=linux&arch=amd64",
+      "archive_sha256": "a89fa4ee83a61e58dac30eae3ce42ae6f677545d05e419b88f0a6f5f6cfdf8e7",
+      "derived_version": "13.2.4+ambicrafted.20261020",
+      "upstream_version": "13.2.4",
+      "signatureType": "private",
+      "manifest_sha256": "ad82f3538c3be03b7f43abe6b3953a8d4d4c608043f92b7f8b1cbb288b4b303a",
+      "compiler": "go1.27.3",
+      "go_mod_sha256": "b01e4ea043f56047ad4e35e79281c2bb8f8d169ce5afa16993ab41b614600e53",
+      "go_sum_sha256": "ced9bdaefb1e638f39aad8ff7ea08fb8a2152a898d0020d11e985d9e75acaac4"
     }
-  ]
+  ],
+  "authority": {
+    "fingerprint": "9927b7037e53a8156725792ff5fdd4382c05e115",
+    "key_id": "f5fdd4382c05e115",
+    "root_urls": [
+      "http://localhost:3000/",
+      "http://127.0.0.1:3000/"
+    ],
+    "policy": "distribution-manifests.json"
+  },
+  "live_usage_review": {
+    "datasource_types": {
+      "prometheus": 2,
+      "tempo": 2
+    },
+    "dashboards": 6,
+    "content_panels": 102,
+    "alert_rules": 0,
+    "additional_plugin_panels": 0,
+    "scope": "read-only authenticated inventory before promotion; credentials and endpoints not recorded"
+  }
 }

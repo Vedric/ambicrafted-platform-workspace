@@ -1,13 +1,65 @@
 WEBVTT
 
-1
-00:00:00.002 --> 00:00:09.757
-AURA utilise le microphone et les haut-parleurs par défaut. Ouvrez Vérifier le microphone et le son pour tester votre audio avant de parler.
+00:00:00.001 --> 00:00:04.958
+Ouvrez AURA, puis Vérifier le microphone et
+le son. L’application utilise les
 
-2
-00:00:09.757 --> 00:00:15.407
-Enregistrez puis relisez la transcription. Ici, elle est simulée.
+00:00:04.958 --> 00:00:10.686
+périphériques audio du système. Autorisez le
+microphone dans le navigateur et observez le
 
-3
-00:00:15.407 --> 00:00:22.102
-Envoyez le texte relu à AURA. La conversation ne valide aucune opération.
+00:00:10.686 --> 00:00:16.029
+niveau d’entrée. Ce tutoriel emploie un
+signal et une transcription simulés : il ne
+
+00:00:16.029 --> 00:00:19.826
+vérifie pas votre microphone physique ni vos
+haut-parleurs.
+
+00:00:20.627 --> 00:00:24.747
+Choisissez Enregistrer, prononcez une
+demande courte, puis terminez
+
+00:00:24.747 --> 00:00:29.544
+l’enregistrement. Les mots reconnus
+apparaissent dans un brouillon modifiable.
+
+00:00:29.544 --> 00:00:34.648
+Relisez les noms, les chiffres et les termes
+techniques avant l’envoi. Si aucun mot
+
+00:00:34.648 --> 00:00:38.952
+n’apparaît, vérifiez les autorisations du
+système et son entrée audio.
+
+00:00:39.753 --> 00:00:44.987
+Envoyez le texte relu, puis examinez la
+réponse. AURA peut discuter du contexte,
+
+00:00:44.987 --> 00:00:50.746
+mais une conversation ne peut pas autoriser
+une opération de maintenance. Pour enchaîner
+
+00:00:50.746 --> 00:00:56.111
+les échanges vocaux, démarrez explicitement
+une conversation. Arrêtez-la ensuite ;
+
+00:00:56.111 --> 00:01:00.953
+changer de page, masquer l’onglet ou appuyer
+sur Échap interrompt l’audio.
+
+00:01:01.754 --> 00:01:07.232
+Utilisez l’historique pour retrouver les
+échanges enregistrés. Joignez uniquement les
+
+00:01:07.232 --> 00:01:12.194
+documents utiles et contrôlez leur
+extraction. Le texte reste disponible même
+
+00:01:12.194 --> 00:01:17.542
+si l’audio échoue. Cette démonstration
+explique le fonctionnement avec des réponses
+
+00:01:17.542 --> 00:01:22.504
+contrôlées ; elle ne mesure pas la qualité
+du modèle ni votre matériel audio.

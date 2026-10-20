@@ -1,13 +1,63 @@
 WEBVTT
 
-1
-00:00:00.000 --> 00:00:05.425
-Welcome to your private workspace. Choose your language and theme.
+00:00:00.000 --> 00:00:05.592
+Begin in the private welcome page, then
+enter your workspace. This recording uses
 
-2
-00:00:05.425 --> 00:00:08.902
-Check Readiness before starting a mission.
+00:00:05.592 --> 00:00:11.184
+the real interface with disposable synthetic
+data. Choose English or French and a
 
-3
-00:00:08.902 --> 00:00:12.904
-Choose a mission and describe observed facts.
+00:00:11.184 --> 00:00:17.260
+comfortable theme. You can pause this guide,
+change playback speed and turn captions off
+
+00:00:17.260 --> 00:00:19.400
+without changing the narration.
+
+00:00:20.201 --> 00:00:25.999
+Open Readiness before a new task. Read the
+individual checks and their explanations,
+
+00:00:25.999 --> 00:00:31.176
+including local inference, document
+isolation and recovery prerequisites. A
+
+00:00:31.176 --> 00:00:36.767
+responding service is useful evidence of
+availability at this moment; it does not
+
+00:00:36.767 --> 00:00:41.876
+establish that every workflow is correct or
+that recovery has been tested.
+
+00:00:42.692 --> 00:00:47.464
+Choose a mission that matches your work:
+incident investigation, platform
+
+00:00:47.464 --> 00:00:53.281
+engineering, security or architecture. Write
+the observed symptoms, their time window and
+
+00:00:53.281 --> 00:00:58.510
+any known changes. Keep client work in a
+separate private environment and remove
+
+00:00:58.510 --> 00:01:01.517
+secrets from the request before submitting
+it.
+
+00:01:02.332 --> 00:01:08.077
+Finally, inspect the runbook library. Read
+the actual source content and check its
+
+00:01:08.077 --> 00:01:13.751
+relevance to your situation. The same
+control API is available from the terminal.
+
+00:01:13.751 --> 00:01:19.075
+Start with the status and readiness
+commands, and keep the interface open to
+
+00:01:19.075 --> 00:01:21.807
+review progress, sources and decisions.
