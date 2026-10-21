@@ -162,6 +162,29 @@ The platform's container correction is described in its trust-policy build
 documentation. A host that still trusts this root remains an outstanding host
 security action even if every platform image passes its scan.
 
+## Commit signing and GitHub identity
+
+The delivery commits are SSH-signed and their signatures verify against the
+workstation's existing public key. GitHub reports `unknown_key` for `56fa3771`:
+local cryptographic verification is distinct from GitHub's account-identity
+verification. The current CLI authorization lacks `admin:ssh_signing_key`, so
+no account key was added during qualification.
+
+The account owner can register the matching **public** key as a signing key.
+Check its fingerprint first; choose the actual public-key path for this machine:
+
+```sh
+ssh-keygen -lf ~/.ssh/id_ed25519_github.pub
+gh auth refresh --hostname github.com --scopes admin:ssh_signing_key
+gh ssh-key add ~/.ssh/id_ed25519_github.pub --type signing --title "Workstation signing"
+```
+
+The authorization refresh is interactive. Upload only the `.pub` file, never
+the private key. Then inspect GitHub's commit verification result. Signing does
+not establish code correctness or successful CI. See the official
+[GitHub signing setup](https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key)
+and [signing-key CLI options](https://cli.github.com/manual/gh_ssh-key_add).
+
 Official references: [bubblewrap](https://github.com/containers/bubblewrap),
 [Ubuntu package](https://packages.ubuntu.com/noble/bubblewrap),
 [age v1.3.1](https://github.com/FiloSottile/age/releases/tag/v1.3.1),

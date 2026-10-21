@@ -125,6 +125,13 @@ the official database again on 21 October at 00:00 UTC returned exactly the
 same database bytes. This database predates the CA disclosure below; the
 separate trust-store tests establish that correction, not the scanner count.
 
+The independent [hosted image workflow on `8f31ccbe`](https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/39517739747)
+also completed **8/8 jobs successfully**, with the same severity totals. Its OCI
+and root-filesystem identities differ from the local builds and are retained
+separately; hosted results are not substituted for the exact local images used
+for promotion. That run did not preserve the scanner database timestamp. The
+follow-up workflow now retains database metadata and hashes alongside reports.
+
 | Corrected derivative | Individual scan: Critical / High / Medium / Low / Unknown | Qualification |
 |---|---|---|
 | Grafana 13.2.4, r4 | 0 / 0 / 0 / 0 / 1 | Rebuilt core and required plugin backends; positive and negative signature checks; real Prometheus/Tempo queries and dashboard rendering |
@@ -196,6 +203,13 @@ AVX2 subset overlaps those tests; it is not nine additional unique cases.
 Dependency audits cover runtime dependencies according to the CI contract.
 Build byte identity on one host is not a cross-platform reproducibility claim.
 
+Clean candidate `56fa37712abfaecee7861a311f4114f4bf5f30b8` was prepared with
+four new locked Python environments and a new npm install. Its production
+source, locks, media, image inputs and maintenance scripts are identical to
+`8f31ccbe`; the changes affect browser tests, scan-provenance reporting and
+documentation. Its 271 console unit tests, build, browser-test typing, formatting
+and npm audit passed again. All 79 built console files match the earlier build.
+
 An independent artifact API review also exercised cancellation/retry, concurrent
 deletion, changing quotas and stream setup failure. Those checks overlap the API
 suite and must not be summed as independent coverage.
@@ -209,8 +223,17 @@ The follow-up tests share only one real authenticated session cookie in memory
 per Guide worker, keep each browser context and local storage fresh, trigger an
 actual failed video playback and observe a new request on retry, and scroll the
 restored diagram into view before checking its layout. Authentication limits
-and product behavior remain unchanged. The initial failures are retained; the
-release evidence must report the corrected full matrix separately.
+and product behavior remain unchanged. The initial failures are retained.
+
+The corrected full matrix on clean `56fa3771` then passed **226/226 cases**:
+35 Firefox, 78 desktop Chromium, 78 mobile Chromium and 35 WebKit. There were
+no retries, skips or flaky outcomes. The video retry now runs in all three
+engines. The native projects took approximately 10.1 minutes and WebKit 3.7
+minutes. The clone stayed clean and its build remained byte-identical to
+`8f31ccbe`. WebKit used isolated Linux dependencies and software H.264 decoding;
+the host loader cache was unchanged. These are browser-engine tests and mobile
+emulation, not physical-device or Safari-product certification. Inference in
+this browser suite is deliberately synthetic; real-model results are above.
 
 Media validation checks twelve unique bilingual assets, narration decoding,
 chapter durations and hashes. Browser tests exercise saved documents, geometry,
@@ -235,6 +258,41 @@ after completion. A previous run or a development virtual environment cannot
 supply that evidence for a new commit. Component-level evidence can be reused
 only when its source, locks and build inputs are verified unchanged; that is
 not described as rerunning the earlier test on a later commit.
+
+## Hosted CI and publication blocker
+
+The [application CI on `8f31ccbe`](https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/39517724451)
+completed seven jobs successfully; its console job was cancelled when the
+follow-up commit was pushed. The overall run is **cancelled**, not successful.
+The four Python installation logs confirm certifi 2026.10.19 and, for the API,
+Pillow 13.0.0; their runtime dependency audits succeeded.
+
+The [CI on `56fa3771`](https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/39520019662)
+failed before any of its eight jobs executed a step. GitHub's annotation cites
+failed recent account payments or a spending limit and directs the account owner
+to **Billing & plans**. This is a hosting-account blocker, not an executed test
+failure. It still means there is no successful hosted application CI for that
+candidate. Local qualification is reported separately, never as a replacement
+green GitHub status.
+
+Application CI now runs on pull requests and pushes to `main`, with explicit
+manual dispatch available before opening a PR. The release workflow invokes the
+same jobs for a tag. This removes duplicate branch-push/PR runs and duplicate
+standalone tag runs; it changes neither the jobs nor their acceptance criteria.
+It does not resolve the account's billing restriction.
+
+Private workstation deployment can be assessed from the exact local evidence and
+recovery gates under the operator's authorization. The release workflow remains
+unchanged: both application and image qualifications must succeed before it can
+create a release draft. No manual release publication or gate bypass is justified
+by the billing failure. Once the account is corrected, rerun qualification for
+the exact intended tag, inspect its reports and review the generated draft before
+publishing. [Delivery review and operational outcome](https://github.com/Vedric/ambicrafted-platform-workspace/pull/70).
+
+The commits are locally verified SSH signatures, but GitHub reports an unknown
+signing key for `56fa3771`. Registering the matching public key needs an account
+authorization scope unavailable to this session. This is documented separately
+from functional/security qualification in [host setup](HOST-TOOLS.md#commit-signing-and-github-identity).
 
 ## Conditions for use and release
 
