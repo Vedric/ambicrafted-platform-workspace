@@ -4,6 +4,13 @@ name: Sécurité des images
 on:
   workflow_call:
   workflow_dispatch:
+    inputs:
+      service:
+        description: Image to audit manually (release and scheduled runs always audit all)
+        type: choice
+        required: true
+        default: all
+        options: [all, litellm, postgres, tempo, prometheus, grafana, qdrant, platform-metrics, neo4j]
   schedule:
     - cron: "23 5 * * 1"
 
@@ -23,7 +30,11 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
-        service: [litellm, postgres, tempo, prometheus, grafana, qdrant, platform-metrics, neo4j]
+        # A called workflow inherits its caller's workflow name and event.
+        # Only a direct manual invocation may narrow the immutable allowlist.
+        # Unknown selections resolve to null and fail matrix validation; input
+        # text is never interpolated into JSON or a shell command.
+        service: ${{ fromJSON('{"all":["litellm","postgres","tempo","prometheus","grafana","qdrant","platform-metrics","neo4j"],"litellm":["litellm"],"postgres":["postgres"],"tempo":["tempo"],"prometheus":["prometheus"],"grafana":["grafana"],"qdrant":["qdrant"],"platform-metrics":["platform-metrics"],"neo4j":["neo4j"]}')[(github.workflow == 'Sécurité des images' && github.event_name == 'workflow_dispatch' && inputs.service) || 'all'] }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

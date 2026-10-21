@@ -57,10 +57,11 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0044](0044-retrait-cible-racine-emsign-g3.md) | Exact emSign ECC G3 distrust across runtime trust stores | Accepted for the candidate; deployment is separate | 2026-10-21 | Exact-root distrust with preserved unaffected roots, package inventories and native trust verification. |
 | [0045](0045-arret-stdio-mcp-annulable.md) | Cancellable local MCP stdio and backend cleanup | Accepted | 2026-10-21 | Bounded cancellable transport, descriptor ownership and same-task backend cleanup. |
 | [0046](0046-diagnostic-erreurs-documents.md) | Safe document failure diagnostics | Accepted | 2026-10-21 | Finite typed categories and private operation correlation; acceptance and model quality unchanged. |
+| [0047](0047-ci-ciblee-et-runners.md) | Targeted manual image audits and runner restraint | Accepted | 2026-10-21 | Manual allowlisted service selection; full scheduled/release inventory and isolated runner policy. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0046, then the current README and security document;
+- **Current behavior**: 0009–0047, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [MCP gateway](../MCP-GATEWAY.md), [voice](../VOICE.md) and

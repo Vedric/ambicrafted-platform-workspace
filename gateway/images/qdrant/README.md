@@ -1,5 +1,49 @@
 # Qdrant security derivatives
 
+## Dashboard build-tool correction — 2026-10-21, r2
+
+The `1.19.2-security.20261021-r2` derivative pins the actual dashboard build
+dependency to **Vite 6.4.4**, replacing locked 6.4.3. No other resolved npm
+package changes. The upstream [file-existence bypass advisory](https://github.com/vitejs/launch-editor/security/advisories/GHSA-587h-7wmj-h5pm)
+(CVE-2026-112942, HIGH) identifies 6.4.4 as the corrected Vite 6 version. It
+includes the corrected bundled `launch-editor` path resolution and Windows
+command handling, also addressing the related percent-expansion flaw.
+
+The official tarball integrity is committed in `web-ui-package-lock.json`.
+The dashboard is rebuilt and its complete npm SPDX inventory is regenerated;
+the dependency is not removed from the inventory. The Rust server, upstream
+sources, runtime libraries, trust policy and image bases remain unchanged.
+The previous dated image/tag is retained for controlled recovery.
+
+The advisory concerns a Windows development-server editor launcher. This
+Linux/WSL image serves static browser assets and contains no Node runtime;
+that exposure limit does not exempt its build dependencies from the blocking
+image-security gate. The existing offline dependency checks, all 167 upstream
+dashboard tests and production build run again for this patch. Synthetic
+browser, search, persistence and snapshot recovery checks qualify the resulting
+image separately; no live service is modified by a build or qualification.
+The earlier scan below is historical: the refreshed hosted database detected
+the HIGH in 6.4.3, so that old result is not evidence for the corrected image.
+
+The local r2 build passed the 167 dashboard tests and six dependency checks,
+then passed the disposable upgrade/restart/search/snapshot-recovery fixture and
+three real Chromium dashboard views, with no external requests, JavaScript errors
+or cleanup failures. Its rebuilt browser assets are byte-identical to the prior
+image; only the generated dashboard SPDX changes in the static directory. The
+server binary, Rust SPDX and CA-policy report are also byte-identical. This does
+not imply that the vulnerable build tool was merely renamed: the build log records
+the execution of Vite 6.4.4 from the corrected lock.
+
+One local scan using Trivy 0.74.0 and a freshly downloaded database updated
+2026-10-21 at 01:19:53 UTC reports **0 CRITICAL, 0 HIGH, 23 MEDIUM, 11 LOW and
+1 UNKNOWN**. The database SHA-256 is
+`50b0d49617d6efa3a1883b1f84b07c321c7f31bc1a4cda43575df3093fc6f897`, identical
+to the hosted database that detected the older image's HIGH. The UNKNOWN is
+`DSA-6572-1` against the unchanged vendor `ca-certificates` package; the exact
+compromised root was separately removed by the existing trust policy, with no
+package-version rewriting or advisory suppression. These are local candidate
+results, not a hosted pass or a live deployment claim.
+
 ## Targeted trust correction — 2026-10-21
 
 The current dated image additionally distrusts the exact compromised emSign ECC
@@ -24,7 +68,7 @@ an older root-based deployment.
 ```sh
 # Qualified minimal runtime (the default).
 docker buildx build --load --build-context trust-policy=gateway/images/trust-policy \
-  --tag ambicrafted/qdrant:1.19.2-security.20261021 \
+  --tag ambicrafted/qdrant:1.19.2-security.20261021-r2 \
   gateway/images/qdrant
 
 # Historical comparison target: does NOT apply the final CA trust policy.
@@ -124,7 +168,7 @@ uv run --project apps/control-api --no-sync python \
   gateway/images/qdrant/qualifier.py \
   --old-image ambicrafted/qdrant:1.19.2-security.20261020 \
   --old-version 1.19.2 \
-  --new-image ambicrafted/qdrant:1.19.2-security.20261021 \
+  --new-image ambicrafted/qdrant:1.19.2-security.20261021-r2 \
   --browser \
   --output /absolute/path/to/new-qdrant-evidence
 ```

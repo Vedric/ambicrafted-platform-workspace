@@ -155,7 +155,7 @@ services:
 
   qdrant:
     # Local security derivative; immutable base and exact package in Dockerfile.
-    image: ambicrafted/qdrant:1.19.2-security.20261021
+    image: ambicrafted/qdrant:1.19.2-security.20261021-r2
     build:
       context: ./images/qdrant
       additional_contexts:

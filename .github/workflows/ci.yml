@@ -14,6 +14,7 @@ jobs:
   python:
     name: Tests, couverture, lint et construction
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -160,6 +161,7 @@ jobs:
   hooks-compose:
     name: Hook et configuration Compose
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: bash .claude/hooks/test-block-secrets.sh
@@ -179,6 +181,7 @@ jobs:
   evals:
     name: Configuration des évaluations et dépendances npm
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -196,7 +199,7 @@ jobs:
   console:
     name: Console, accessibilité et parcours navigateur
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: apps/console

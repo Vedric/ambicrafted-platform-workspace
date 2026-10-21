@@ -52,6 +52,10 @@ reuses both image and functional checks; a version tag can create a draft only
 after both pass. It does not publish automatically. A completed functional CI
 run alone is not an image-security sign-off.
 
+For deliberate CI usage, targeted manual image audits and the current runner
+decision, see [CI operations](CI.md). Scheduled and release audits retain the
+complete eight-image inventory.
+
 The provisioned data sources use `Plateforme Tempo` and `Plateforme Prometheus`
 with stable UIDs. Older sources named `Tempo` and `Prometheus` remain available
 so their generated UIDs and existing dashboards are preserved during upgrades.
