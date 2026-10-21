@@ -635,17 +635,15 @@
   animation: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  :where(:root:not([data-motion-mode="full"]))
-    .insight-metric-panel
-    .metric-fill {
+  :where(:root) .insight-metric-panel .metric-fill {
     animation: none !important;
   }
-  :where(:root:not([data-motion-mode="full"])) .chart-line {
+  :where(:root) .chart-line {
     animation: none;
   }
-  :where(:root:not([data-motion-mode="full"])) .ring-arc,
-  :where(:root:not([data-motion-mode="full"])) .probe-track i,
-  :where(:root:not([data-motion-mode="full"])) .chart-dot {
+  :where(:root) .ring-arc,
+  :where(:root) .probe-track i,
+  :where(:root) .chart-dot {
     transition: none;
   }
 }

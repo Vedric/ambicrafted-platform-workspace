@@ -55,7 +55,7 @@ function snapshot(core: Locator) {
 }
 
 for (const route of ["/welcome", "/", "/assistant"]) {
-  test(`AURA keeps visibly moving at rest on ${route}, then honors pause and explicit full motion`, async ({
+  test(`AURA keeps visibly moving at rest on ${route}, then honors live device reduction`, async ({
     page,
   }) => {
     const errors: string[] = [];
@@ -76,9 +76,7 @@ for (const route of ["/welcome", "/", "/assistant"]) {
     expect(later.running).toBe(first.running);
     expect(later.signal).toBe("0"); // Decorative motion is not fabricated audio.
 
-    await page
-      .getByRole("button", { name: "Pause animations", exact: true })
-      .click();
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await core.scrollIntoViewIfNeeded();
     await expect(core).toHaveAttribute("data-resting", "true");
     await expect.poll(async () => (await snapshot(core)).running).toBe(0);
@@ -86,9 +84,7 @@ for (const route of ["/welcome", "/", "/assistant"]) {
     await page.waitForTimeout(250);
     expect(await snapshot(core)).toEqual(paused);
 
-    await page
-      .getByRole("button", { name: "Enable animations", exact: true })
-      .click();
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     await core.scrollIntoViewIfNeeded();
     await expect
       .poll(async () => (await snapshot(core)).running)
@@ -97,21 +93,16 @@ for (const route of ["/welcome", "/", "/assistant"]) {
       .poll(async () => (await snapshot(core)).ring)
       .not.toBe(paused.ring);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await expect(core).toHaveAttribute("data-resting", "false");
-    await expect
-      .poll(async () => (await snapshot(core)).running)
-      .toBe(first.running);
+    await expect(core).toHaveAttribute("data-resting", "true");
+    await expect.poll(async () => (await snapshot(core)).running).toBe(0);
     expect(errors).toEqual([]);
   });
 }
 
-test("full-motion AURA still suspends offscreen and resumes when visible again", async ({
+test("automatic AURA motion suspends offscreen and resumes when visible again", async ({
   page,
 }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.addInitScript(() =>
-    localStorage.setItem("ambicrafted-motion-mode", "full"),
-  );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await open(page, "/assistant");
   const core = page.locator(".neural-core").first();
   await core.scrollIntoViewIfNeeded();

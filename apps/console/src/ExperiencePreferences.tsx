@@ -1,26 +1,19 @@
 import { AmbientAudioControl } from "./AmbientAudio";
 import { createContext, useContext, useState } from "react";
-import { Moon, Sun, Sparkles, Columns3, BookOpen } from "lucide-react";
+import { Moon, Sun, Columns3, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LanguageSelector, t, useI18n } from "./i18n";
-import {
-  type MotionMode,
-  useSystemReducedMotionPreference,
-} from "./motion-preferences";
 
 export const ExperiencePreferences = createContext({
   theme: "dark",
-  motionMode: "system" as MotionMode,
   density: "comfortable",
   setTheme: (_value: string) => {},
-  setMotionMode: (_value: MotionMode) => {},
   setDensity: (_value: string) => {},
 });
 
 export function WorkspacePreferences() {
   useI18n();
   const preferences = useContext(ExperiencePreferences);
-  const reduced = useSystemReducedMotionPreference();
   const [welcome, setWelcome] = useState(() => {
     try {
       return localStorage.getItem("ambicrafted-welcome-audio") !== "off";
@@ -49,7 +42,7 @@ export function WorkspacePreferences() {
           <h2>{t("Make yourself at home.")}</h2>
           <p>
             {t(
-              "Appearance, movement and language follow you through this browser. Operational limits are managed separately.",
+              "Appearance and language follow you through this browser. Animations respect your device’s reduced-motion setting. Operational limits are managed separately.",
             )}
           </p>
           <fieldset className="preference-group">
@@ -95,37 +88,6 @@ export function WorkspacePreferences() {
               </button>
             </div>
           </fieldset>
-          <div className="preference-row">
-            <div>
-              <strong>
-                <Sparkles size={17} />
-                {t("Animation settings")}
-              </strong>
-              <p>
-                {preferences.motionMode === "full"
-                  ? t("Full animations are enabled in this browser.")
-                  : preferences.motionMode === "paused"
-                    ? t("Animations are paused in this browser.")
-                    : reduced
-                      ? t("Reduced motion is enabled on your device")
-                      : t(
-                          "Fades, flow diagrams and subtle interaction effects.",
-                        )}
-              </p>
-            </div>
-            <select
-              className="motion-mode-select"
-              aria-label={t("Animation settings")}
-              value={preferences.motionMode}
-              onChange={(event) =>
-                preferences.setMotionMode(event.target.value as MotionMode)
-              }
-            >
-              <option value="system">{t("Follow device settings")}</option>
-              <option value="full">{t("Full animations")}</option>
-              <option value="paused">{t("Pause animations")}</option>
-            </select>
-          </div>
           <div className="preference-row">
             <div>
               <strong>

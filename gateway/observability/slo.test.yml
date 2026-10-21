@@ -1,0 +1,424 @@
+{
+  "rule_files": [
+    "alerts.yml",
+    "slo.yml"
+  ],
+  "evaluation_interval": "15s",
+  "tests": [
+    {
+      "name": "No telemetry or activity never produces healthy SLI or a budget",
+      "interval": "15s",
+      "input_series": [],
+      "promql_expr_test": [
+        {
+          "expr": "ambicrafted:slo_observed_ratio7d",
+          "eval_time": "10m",
+          "exp_samples": []
+        },
+        {
+          "expr": "ambicrafted:slo_budget_remaining7d",
+          "eval_time": "10m",
+          "exp_samples": []
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "10m",
+          "alertname": "PlatformSLOBurnFast",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "10m",
+          "alertname": "PlatformSLOBurnSlow",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "Separate HTTP transport, delivery and latency; exclude probes refusals and cancellations honestly",
+      "interval": "15s",
+      "input_series": [
+        {
+          "series": "up{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_snapshot_timestamp_seconds{job=\"platform\",instance=\"fixture\"}",
+          "values": "0+15x1600"
+        },
+        {
+          "series": "ambicrafted_control_api_scrape_success{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"success\"}",
+          "values": "0+99x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"server_error\"}",
+          "values": "0+1x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"client_error\"}",
+          "values": "0+1000x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"health\",outcome=\"success\"}",
+          "values": "0+10000x1600"
+        },
+        {
+          "series": "ambicrafted_aura_operations_total{job=\"platform\",format=\"text\",outcome=\"success\"}",
+          "values": "0+99x1600"
+        },
+        {
+          "series": "ambicrafted_aura_operations_total{job=\"platform\",format=\"text\",outcome=\"error\"}",
+          "values": "0+1x1600"
+        },
+        {
+          "series": "ambicrafted_aura_operations_total{job=\"platform\",format=\"text\",outcome=\"cancelled\"}",
+          "values": "0+1000x1600"
+        },
+        {
+          "series": "ambicrafted_aura_operation_duration_seconds_count{job=\"platform\",format=\"text\",outcome=\"success\"}",
+          "values": "0+99x1600"
+        },
+        {
+          "series": "ambicrafted_aura_operation_duration_seconds_bucket{job=\"platform\",format=\"text\",outcome=\"success\",le=\"30.0\"}",
+          "values": "0+90x1600"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "ambicrafted:slo_observed_ratio7d{slo=\"http_transport\"}",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "ambicrafted:slo_observed_ratio7d{slo=\"http_transport\"}",
+              "value": 0.99
+            }
+          ]
+        },
+        {
+          "expr": "ambicrafted:slo_observed_ratio7d{slo=\"aura_delivery\"}",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "ambicrafted:slo_observed_ratio7d{slo=\"aura_delivery\"}",
+              "value": 0.99
+            }
+          ]
+        },
+        {
+          "expr": "ambicrafted:slo_observed_ratio7d{slo=\"aura_latency\"}",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "ambicrafted:slo_observed_ratio7d{slo=\"aura_latency\"}",
+              "value": 0.9090909090909091
+            }
+          ]
+        },
+        {
+          "expr": "ambicrafted:slo_budget_remaining7d",
+          "eval_time": "10m",
+          "exp_samples": []
+        }
+      ]
+    },
+    {
+      "name": "HTTP200 stream failures are visible only in the application delivery SLI",
+      "interval": "15s",
+      "input_series": [
+        {
+          "series": "up{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_snapshot_timestamp_seconds{job=\"platform\",instance=\"fixture\"}",
+          "values": "0+15x1600"
+        },
+        {
+          "series": "ambicrafted_control_api_scrape_success{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"success\"}",
+          "values": "0+100x100"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"server_error\"}",
+          "values": "0+0x100"
+        },
+        {
+          "series": "ambicrafted_aura_operations_total{job=\"platform\",format=\"text\",outcome=\"success\"}",
+          "values": "0+0x100"
+        },
+        {
+          "series": "ambicrafted_aura_operations_total{job=\"platform\",format=\"text\",outcome=\"error\"}",
+          "values": "0+100x100"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "ambicrafted:slo_observed_ratio7d{slo=\"http_transport\"}",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "ambicrafted:slo_observed_ratio7d{slo=\"http_transport\"}",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "expr": "ambicrafted:slo_observed_ratio7d{slo=\"aura_delivery\"}",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "ambicrafted:slo_observed_ratio7d{slo=\"aura_delivery\"}",
+              "value": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Single low-volume failure remains visible without burn alert",
+      "interval": "15s",
+      "input_series": [
+        {
+          "series": "up{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_snapshot_timestamp_seconds{job=\"platform\",instance=\"fixture\"}",
+          "values": "0+15x1600"
+        },
+        {
+          "series": "ambicrafted_control_api_scrape_success{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"success\"}",
+          "values": "0+0x300"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"server_error\"}",
+          "values": "0 1+0x300"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "ambicrafted:slo_observed_ratio7d{slo=\"http_transport\"}",
+          "eval_time": "10m",
+          "exp_samples": [
+            {
+              "labels": "ambicrafted:slo_observed_ratio7d{slo=\"http_transport\"}",
+              "value": 0
+            }
+          ]
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "63m",
+          "alertname": "PlatformSLOBurnFast",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "63m",
+          "alertname": "PlatformSLOBurnSlow",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "Fast burn requires both full windows and recovers when the short window clears",
+      "interval": "15s",
+      "input_series": [
+        {
+          "series": "up{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_snapshot_timestamp_seconds{job=\"platform\",instance=\"fixture\"}",
+          "values": "0+15x1600"
+        },
+        {
+          "series": "ambicrafted_control_api_scrape_success{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"success\"}",
+          "values": "0+99x248 24652+100x200"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"server_error\"}",
+          "values": "0+1x248 248+0x200"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "30m",
+          "alertname": "PlatformSLOBurnFast",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "63m",
+          "alertname": "PlatformSLOBurnFast",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "slo": "http_transport",
+                "severity": "critical"
+              },
+              "exp_annotations": {
+                "summary": "Observed http_transport error budget is burning quickly",
+                "description": "Seven-day operating objective: projected 2 percent in one hour at this burn rate if traffic is comparable across windows. This is not measured budget spend under changing traffic. Both windows have at least 20 eligible events and complete collection. Low-volume cases need direct review. This is not an external paging delivery guarantee.",
+                "runbook_url": "http://localhost:8787/guide",
+                "dashboard_url": "http://localhost:3000/d/plateforme-slo"
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "75m",
+          "alertname": "PlatformSLOBurnFast",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "Exporter outage suppresses stale burn data",
+      "interval": "15s",
+      "input_series": [
+        {
+          "series": "up{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x248 0+0x200"
+        },
+        {
+          "series": "ambicrafted_snapshot_timestamp_seconds{job=\"platform\",instance=\"fixture\"}",
+          "values": "0+15x1600"
+        },
+        {
+          "series": "ambicrafted_control_api_scrape_success{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"success\"}",
+          "values": "0+99x248 24652+100x200"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"server_error\"}",
+          "values": "0+1x248 248+0x200"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "64m",
+          "alertname": "PlatformSLOBurnFast",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "Slow burn needs the six-hour window and clears after its short window recovers",
+      "interval": "15s",
+      "input_series": [
+        {
+          "series": "up{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_snapshot_timestamp_seconds{job=\"platform\",instance=\"fixture\"}",
+          "values": "0+15x1600"
+        },
+        {
+          "series": "ambicrafted_control_api_scrape_success{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"success\"}",
+          "values": "0+99x1448 143452+100x200"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"server_error\"}",
+          "values": "0+1x1448 1448+0x200"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "5h",
+          "alertname": "PlatformSLOBurnSlow",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "6h3m",
+          "alertname": "PlatformSLOBurnSlow",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "slo": "http_transport",
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "Observed http_transport error budget is burning quickly",
+                "description": "Seven-day operating objective: projected 5 percent in six hours at this burn rate if traffic is comparable across windows. This is not measured budget spend under changing traffic. Both windows have at least 20 eligible events and complete collection. Low-volume cases need direct review. This is not an external paging delivery guarantee.",
+                "runbook_url": "http://localhost:8787/guide",
+                "dashboard_url": "http://localhost:3000/d/plateforme-slo"
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "6h35m",
+          "alertname": "PlatformSLOBurnSlow",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "Counter restart preserves the ratio instead of producing a negative request rate",
+      "interval": "15s",
+      "input_series": [
+        {
+          "series": "up{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_snapshot_timestamp_seconds{job=\"platform\",instance=\"fixture\"}",
+          "values": "0+15x1600"
+        },
+        {
+          "series": "ambicrafted_control_api_scrape_success{job=\"platform\",instance=\"fixture\"}",
+          "values": "1+0x1600"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"success\"}",
+          "values": "0+99x40 0+99x60"
+        },
+        {
+          "series": "ambicrafted_http_requests_total{job=\"platform\",group=\"assistant\",outcome=\"server_error\"}",
+          "values": "0+1x40 0+1x60"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "ambicrafted:slo_observed_ratio7d{slo=\"http_transport\"}",
+          "eval_time": "20m",
+          "exp_samples": [
+            {
+              "labels": "ambicrafted:slo_observed_ratio7d{slo=\"http_transport\"}",
+              "value": 0.99
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "group_eval_order": [
+    "ambicrafted-recording",
+    "ambicrafted-slo-recording",
+    "ambicrafted-slo-alerts",
+    "ambicrafted-operations"
+  ]
+}

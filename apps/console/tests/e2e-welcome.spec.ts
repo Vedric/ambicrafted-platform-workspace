@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("public welcome offers keyboard entry and a pausable decorative ticker", async ({
+test("public welcome offers keyboard entry and an automatically animated decorative ticker", async ({
   page,
 }) => {
   await page.goto("/welcome");
@@ -29,19 +29,13 @@ test("public welcome offers keyboard entry and a pausable decorative ticker", as
           ).length,
     );
   await expect.poll(running).toBeGreaterThan(0);
-  // Automatic mode follows live device changes before an explicit selection.
+  // Decorative motion follows live accessibility preferences.
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect.poll(running).toBe(0);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect.poll(running).toBeGreaterThan(0);
-  await page.getByRole("button", { name: "Pause animations" }).click();
-  await expect.poll(running).toBe(0);
-  await page.getByRole("button", { name: "Enable animations" }).click();
-  await expect.poll(running).toBeGreaterThan(0);
+  await expect(page.locator(".motion-control")).toHaveCount(0);
   await page.emulateMedia({ reducedMotion: "reduce" });
-  // Enable explicitly opts into full movement, including the ticker.
-  await expect.poll(running).toBeGreaterThan(0);
-  await page.getByRole("button", { name: "Pause animations" }).click();
   await expect.poll(running).toBe(0);
   expect(
     await page.evaluate(

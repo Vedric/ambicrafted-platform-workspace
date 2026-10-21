@@ -2,7 +2,7 @@
   "uid": "plateforme-sre",
   "title": "Ambicrafted · Mission control · EN",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "editable": false,
   "tags": [
     "ambicrafted",
@@ -48,6 +48,33 @@
       "type": "link",
       "icon": "dashboard",
       "url": "/d/plateforme-infrastructure",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false
+    },
+    {
+      "title": "Reliability & budgets",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/plateforme-slo",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false
+    },
+    {
+      "title": "Browser & conversation",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/plateforme-experience",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false
+    },
+    {
+      "title": "Traces & correlation",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/plateforme-traces",
       "keepTime": true,
       "includeVars": true,
       "targetBlank": false
@@ -99,6 +126,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -185,6 +213,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -275,6 +304,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -357,6 +387,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -452,6 +483,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -543,6 +575,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -555,6 +588,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -646,6 +680,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -689,7 +724,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -743,6 +778,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -774,7 +810,6 @@
           "color": {
             "mode": "palette-classic"
           },
-          "decimals": 1,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -786,7 +821,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -853,6 +888,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -884,7 +920,7 @@
           "color": {
             "mode": "palette-classic"
           },
-          "decimals": 1,
+          "decimals": 3,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -904,7 +940,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -958,6 +994,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1001,7 +1038,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -1055,6 +1092,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1067,6 +1105,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1110,7 +1149,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -1164,6 +1203,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1215,7 +1255,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -1269,6 +1309,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"

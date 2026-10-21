@@ -201,7 +201,7 @@ test("architecture health fails closed while its explanatory map remains usable"
   await accessible(page);
 });
 
-test("scroll entrances run in both directions and respect pause and an explicit full motion choice", async ({
+test("scroll entrances run in both directions and follow device motion reduction", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -235,7 +235,7 @@ test("scroll entrances run in both directions and respect pause and an explicit 
   await page.waitForTimeout(100); // allow the native intersection observer to record exit
   await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
   await expect.poll(entries).toContain("up:0.12");
-  await page.getByRole("button", { name: "Pause animations" }).click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator(".scroll-progress")).toHaveCount(0);
   const pausedCount = (await entries()).length;
   await page.evaluate(() =>
@@ -246,9 +246,9 @@ test("scroll entrances run in both directions and respect pause and an explicit 
   );
   await page.waitForTimeout(100);
   expect((await entries()).length).toBe(pausedCount);
-  await page.getByRole("button", { name: "Enable animations" }).click();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect(page.locator(".scroll-progress")).toHaveCount(1);
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(page.locator(".scroll-progress")).toHaveCount(1);
+  await expect(page.locator(".scroll-progress")).toHaveCount(0);
   await expect(page.locator(".insights")).toBeVisible();
 });

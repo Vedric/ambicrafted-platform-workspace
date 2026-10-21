@@ -137,19 +137,6 @@ textarea {
 [data-theme="light"] .hero-panel .btn.primary {
   color: white;
 }
-.icon-button.motion-control {
-  width: auto;
-  min-width: 36px;
-  padding-inline: 10px;
-  gap: 7px;
-  white-space: nowrap;
-  font-size: 0.75rem;
-  color: var(--mint);
-}
-.motion-control[data-motion-active="false"] {
-  color: var(--amber);
-  border: 1px dashed var(--amber);
-}
 .mission-filters {
   display: flex;
   flex-wrap: wrap;
@@ -1159,9 +1146,6 @@ textarea {
   max-width: 170px;
   flex-shrink: 0;
 }
-.preference-row .motion-mode-select {
-  max-width: min(100%, 270px);
-}
 .preference-switch {
   display: inline-flex;
   align-items: center;
@@ -1509,7 +1493,7 @@ textarea {
   animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
-  :where(:root:not([data-motion-mode="full"])) .guide-flow-path button::after {
+  :where(:root) .guide-flow-path button::after {
     animation: none;
   }
 }

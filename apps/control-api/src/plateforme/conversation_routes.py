@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import sqlite3
+from contextlib import aclosing
 from typing import Literal
 from uuid import UUID
 
@@ -20,6 +21,7 @@ from .depot import Conflit, Introuvable
 from .documents import extraire
 from .erreurs_document import CodeErreurDocument, ErreurDocument, categorie_erreur_document
 from .memoire import SCOPE
+from .tracage import Operation, etape
 
 journal_documents = logging.getLogger("plateforme.documents")
 
@@ -27,12 +29,13 @@ journal_documents = logging.getLogger("plateforme.documents")
 class ReponseDialogue(StreamingResponse):
     """Own the inference lease even if sending headers fails before iteration starts."""
 
-    def __init__(self, events, verrou):
+    def __init__(self, events, verrou, operation=None):
         super().__init__(
             events, media_type="application/x-ndjson", headers={"X-Accel-Buffering": "no"}
         )
         self.events = events
         self.verrou = verrou
+        self.operation = operation
 
     async def __call__(self, scope, receive, send):
         try:
@@ -42,6 +45,8 @@ class ReponseDialogue(StreamingResponse):
                 await self.events.aclose()
             finally:
                 self.verrou.release()
+                if self.operation:
+                    self.operation.terminer("cancelled")
 
 
 class ChargeConversation(BaseModel):
@@ -71,7 +76,7 @@ class ContexteMemoire(ChargeConversation):
     identifiant: UUID
 
 
-def routes(p, auth, moteur, depot, memoire) -> APIRouter:
+def routes(p, auth, moteur, depot, memoire, tracage) -> APIRouter:
     router = APIRouter(prefix="/api/conversations")
     store = Conversations(depot)
     store.purger()
@@ -168,7 +173,11 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
     @router.post("/{identifiant}/messages")
     async def envoyer(request: Request, identifiant: UUID, charge: Tour):
         auth.acteur(request, mutation=True)
-        auth.limiter("dialogue", maximum=8)
+        try:
+            auth.limiter("dialogue", maximum=8)
+        except HTTPException:
+            tracage.mesures.admission.labels("rate_limit").inc()
+            raise
         conversation_id, operation_id = str(identifiant), str(charge.operation_id)
         empreinte = hashlib.sha256(
             json.dumps(
@@ -185,12 +194,14 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
         ).hexdigest()
         completed = store.deja_termine(conversation_id, operation_id, empreinte)
         if completed:
+            tracage.mesures.replayed.inc()
 
             async def cached():
                 yield json.dumps({"type": "done", **completed}, ensure_ascii=False) + "\n"
 
             return StreamingResponse(cached(), media_type="application/x-ndjson")
         if moteur.inference.locked() or not moteur.file.empty():
+            tracage.mesures.admission.labels("busy").inc()
             raise HTTPException(
                 409, "The local engine is busy. Try again when the current task finishes."
             )
@@ -209,6 +220,7 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
             )
         # Acquired before headers, held until generation is complete or the browser disconnects.
         await moteur.inference.acquire()
+        operation = Operation(tracage, format, vocal=charge.vocal, operation_id=operation_id)
 
         async def events():
             try:
@@ -225,17 +237,30 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
                             sources,
                         )
                     else:
-                        async for event in flux_dialogue(
-                            p, messages, charge.langue, **({"vocal": True} if charge.vocal else {})
-                        ):
-                            yield event
+                        async with aclosing(
+                            flux_dialogue(
+                                p,
+                                messages,
+                                charge.langue,
+                                **({"vocal": True} if charge.vocal else {}),
+                            )
+                        ) as stream:
+                            async for event in stream:
+                                yield event
 
-                async for event in produire():
+                source = produire()
+                while True:
+                    # Never retain ContextVar tokens across a yield to Starlette's send task.
+                    with operation.activer():
+                        event = await anext(source, None)
+                    if event is None:
+                        break
                     if event["type"] == "done":
                         try:
-                            store.enregistrer_tour(
-                                conversation_id, operation_id, charge.message, event, empreinte
-                            )
+                            with operation.activer(), etape("document.store"):
+                                store.enregistrer_tour(
+                                    conversation_id, operation_id, charge.message, event, empreinte
+                                )
                         except (
                             ValueError,
                             KeyError,
@@ -250,8 +275,19 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
                             if format != "text":
                                 raise ErreurDocument(CodeErreurDocument.STOCKAGE) from None
                             raise
-                    yield json.dumps(event, ensure_ascii=False) + "\n"
-            except asyncio.CancelledError:
+                    public = {
+                        **event,
+                        **({"trace_id": operation.trace_id} if operation.trace_id else {}),
+                    }
+                    yield json.dumps(public, ensure_ascii=False) + "\n"
+                    if event["type"] == "token" and event.get("text"):
+                        operation.token()
+                    if event["type"] == "done":
+                        operation.terminer("success")
+                if not operation.fini:
+                    operation.terminer("error")
+            except asyncio.CancelledError, GeneratorExit:
+                operation.terminer("cancelled")
                 raise
             except (
                 httpx.HTTPError,
@@ -271,14 +307,30 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
                 if format != "text":
                     code = categorie_erreur_document(error)
                     diagnostic["code"] = code.value
+                    tracage.mesures.document_failures.labels(code.value).inc()
                     journal_documents.warning(
-                        json.dumps({"category": code.value, "operation_id": operation_id})
+                        json.dumps(
+                            {
+                                "category": code.value,
+                                "operation_id": operation_id,
+                                **({"trace_id": operation.trace_id} if operation.trace_id else {}),
+                            }
+                        )
                     )
+                operation.terminer(
+                    "timeout"
+                    if isinstance(error, (TimeoutError, httpx.TimeoutException))
+                    or (
+                        isinstance(error, ErreurDocument) and error.code == CodeErreurDocument.DELAI
+                    )
+                    else "error"
+                )
                 yield (
                     json.dumps(
                         {
                             "type": "error",
                             **diagnostic,
+                            **({"trace_id": operation.trace_id} if operation.trace_id else {}),
                             "message": (
                                 "The local document could not be completed or validated. Retry or simplify the request; no partial artifact was saved."
                                 if format != "text"
@@ -288,7 +340,15 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
                     )
                     + "\n"
                 )
+            except BaseException:
+                operation.terminer("error")
+                raise
+            finally:
+                # Close the upstream iterator on disconnect, while keeping its parent context.
+                if "source" in locals():
+                    with operation.activer():
+                        await source.aclose()
 
-        return ReponseDialogue(events(), moteur.inference)
+        return ReponseDialogue(events(), moteur.inference, operation)
 
     return router

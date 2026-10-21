@@ -26,22 +26,14 @@ Desktop and mobile layouts are checked with Playwright after typography changes.
 The welcome screen, overview and AURA use a consistent visual identity. Ambient
 motion uses transforms and opacity; pointer parallax applies only to a mouse.
 Offscreen orbital scenes and background tabs pause their CSS animations.
-The header displays **Motion on / Motion off** (French: **Animations actives /
-Animations en pause**) on Welcome, the public guide and in the workspace.
-Click **Enable animations** to explicitly enable full motion in this browser,
-including when the device requests reduced motion. Click **Pause animations** to
-stop it. In **Settings → Appearance → Animation settings**, **Follow device
-settings** restores the default accessibility behavior; **Full animations** and
-**Pause animations** are explicit choices. The effective state is shared by CSS,
-AURA, charts, architecture paths, scroll fades and page transitions. AURA still
-pauses offscreen and tabs still suspend while hidden.
-
-A previous saved pause is preserved and shown clearly; select **Enable animations**
-once to recover. The choice survives reloads and synchronizes between tabs using
-the same origin. Different browsers, `localhost` and `127.0.0.1` have independent
-browser storage. If persistence is blocked, controls still work in the current tab.
-After updating, reload the page to load the new assets. See
-[the motion correction report](RELEASE-0.4.4.md). Navigation remains available by keyboard, with a command menu on
+Animations are automatic; there is no Motion on/off button or appearance setting.
+Old browser overrides are removed. The operating system's reduced-motion setting
+remains authoritative for accessibility. AURA, charts, architecture paths, scroll
+fades and page transitions share that preference. Offscreen scenes and hidden
+tabs pause to avoid unnecessary rendering. See
+[ADR 0048](adr/0048-observabilite-correlee-et-mouvement.md) for this change;
+older motion reports describe their historical release behavior.
+After updating, reload the page to load the new assets. Navigation remains available by keyboard, with a command menu on
 `Ctrl+K` / `Cmd+K`, a focus-trapped mobile menu and a skip-to-content link.
 
 The overview's **Operational pulse** charts show recorded activity over seven or
@@ -55,7 +47,7 @@ they are not model response times or an availability SLO.
 Select a path and a component to inspect its purpose and boundaries. Animated
 connections illustrate the documented design; service-health labels use live probes.
 Scroll fades work in either direction without moving interactive controls. They stop
-with motion preferences, hidden tabs or keyboard focus. They do not gate access to content.
+with the system reduced-motion preference, hidden tabs or keyboard focus. They do not gate access to content.
 
 ## Install and start
 

@@ -228,8 +228,8 @@ export const experienceFr = {
   "First start recording or a conversation. Confirm microphone permission, then select the right input. If the level stays flat, check your operating system privacy and microphone settings.":
     "Démarrez d’abord un enregistrement ou une conversation. Vérifiez l’autorisation du microphone puis sélectionnez la bonne entrée. Si le niveau reste plat, vérifiez la confidentialité et les réglages microphone du système.",
   "Why are animations still?": "Pourquoi les animations sont-elles immobiles ?",
-  "Enable animations in the header, or choose Full animations in Settings → Appearance. Follow device settings respects reduced motion; hidden tabs and offscreen AURA always pause.":
-    "Activez les animations dans l’en-tête, ou choisissez Animations complètes dans Réglages → Apparence. Suivre les réglages de l’appareil respecte la réduction du mouvement ; les onglets masqués et AURA hors écran restent en pause.",
+  "Animations are active automatically. Your device’s reduced-motion setting is respected; hidden tabs and offscreen AURA pause to save resources.":
+    "Les animations sont actives automatiquement. Le réglage de réduction du mouvement de votre appareil est respecté ; les onglets masqués et AURA hors écran se mettent en pause pour économiser les ressources.",
   "Reduced motion is enabled on your device":
     "La réduction du mouvement est activée sur votre appareil",
   "Animation settings": "Réglages des animations",
@@ -258,8 +258,8 @@ export const experienceFr = {
     "Configurez cette limite opérationnelle avec SRE_MAX_TOKENS_TOTAL puis redémarrez le service. Le CLI et l’interface utilisent la même valeur.",
   "Workspace preferences": "Préférences de l’espace",
   "Make yourself at home.": "Un espace à votre mesure.",
-  "Appearance, movement and language follow you through this browser. Operational limits are managed separately.":
-    "L’apparence, les animations et la langue vous suivent dans ce navigateur. Les limites opérationnelles sont gérées séparément.",
+  "Appearance and language follow you through this browser. Animations respect your device’s reduced-motion setting. Operational limits are managed separately.":
+    "L’apparence et la langue vous suivent dans ce navigateur. Les animations respectent le réglage de réduction du mouvement de votre appareil. Les limites opérationnelles sont gérées séparément.",
   Daylight: "Clarté",
   Midnight: "Nuit",
   "Layout density": "Densité de l’interface",
@@ -338,4 +338,23 @@ export const experienceFr = {
   "Use this context with AURA": "Utiliser ce contexte avec AURA",
   Source: "Source",
   Title: "Titre",
+  "Collection overview": "Vue de la collecte",
+  "Operational monitoring": "Supervision opérationnelle",
+  "Reliability, experience & traces": "Fiabilité, expérience et traces",
+  "Failed targets": "Cibles en échec",
+  "No targets reported": "Aucune cible remontée",
+  "Follow service reliability, browser experience and request traces, then inspect the underlying infrastructure.":
+    "Suivez la fiabilité des services, l’expérience navigateur et les traces des requêtes, puis inspectez l’infrastructure.",
+  "Last refresh": "Dernière actualisation",
+  "Reliability & SLOs": "Fiabilité et SLOs",
+  "Error ratios, request latency and availability targets with explicit measurement windows.":
+    "Taux d’erreur, latence des requêtes et objectifs de disponibilité avec fenêtres de mesure explicites.",
+  "Browser experience": "Expérience navigateur",
+  "LCP, INP and CLS from the first visible period of initially authenticated documents. Missing data stays missing.":
+    "LCP, INP et CLS de la première période visible des documents initialement authentifiés. Une mesure absente reste absente.",
+  "Request traces": "Traces des requêtes",
+  "Follow request duration and service boundaries without collecting prompts, documents or conversation text.":
+    "Suivez la durée des requêtes et les frontières des services sans collecter de prompts, de documents ou de texte de conversation.",
+  "Metrics are collected locally. Browser samples contain only a metric, a fixed route category and a numeric value; no page content or full URLs.":
+    "Les métriques sont collectées localement. Les mesures du navigateur contiennent uniquement une métrique, une catégorie de route fixe et une valeur numérique, sans contenu ni URL complète.",
 } as const;

@@ -39,15 +39,13 @@ local semantic search, measured readiness, operational charts, an interactive
 architecture guide, observability and maintenance operations. AURA is its local
 AI voice/text assistant. The welcome page,
 workspace, forms and navigation share the same visual design, keyboard controls,
-light/dark themes and pausable motion. Fonts and browser assets are hosted locally.
+light/dark themes and automatic motion. Fonts and browser assets are hosted locally.
 Larger text and controls support reading across the workspace. Sections receive
-finite entry accents when scrolling down or back up; motion can be paused and
-follows the operating system's reduced-motion preference by default. **Motion on /
-Motion off** in the header shows the actual state. Select **Enable animations**
-to explicitly enable full movement, or choose **Follow device settings / Full
-animations / Pause animations** in **Settings → Appearance**. The choice persists
-and synchronizes between tabs on the same origin. See the
-[motion controls correction](docs/RELEASE-0.4.4.md).
+finite entry accents when scrolling down or back up. Animations run automatically
+and respect the operating system's reduced-motion accessibility setting. There
+is no Motion on/off control; old persisted overrides are removed. Offscreen and
+hidden-page animations pause to avoid inactive work. See the
+[current motion and observability decision](docs/adr/0048-observabilite-correlee-et-mouvement.md).
 Interface language is selectable between English and French, defaults to English,
 and persists in the browser independently of AURA's conversation language.
 The target remains one trusted operator on this workstation.
@@ -98,12 +96,13 @@ MP4s, four chapters per video, optional captions and complete transcripts.
 AURA keeps its local speech models warm between exchanges, with an idle timeout
 and cancellation cleanup; see [voice operation](docs/VOICE.md).
 
-[Grafana monitoring](docs/MONITORING.md) offers three operational views in English
-and French, covering service health, agentic activity, voice latency, Linux/GPU
-resources and backup freshness. It distinguishes missing data from zero activity.
+[Grafana monitoring](docs/MONITORING.md) offers six operational views in English
+and French: service health, agentic activity, infrastructure, reliability and error
+budgets, browser experience, and traces with metric correlation. It distinguishes
+missing data from zero activity. See the [qualification and limits](docs/OBSERVABILITY-2026-10-21.md).
 AURA now breathes, pulses and rotates continuously while visible, including Welcome
 and Overview. Page entrances fade again in both scroll directions; reduced-motion
-and pause controls remain available. Before starting a spoken conversation, the
+follows the operating system setting. Before starting a spoken conversation, the
 local model is prepared without opening the microphone. Spoken turns end after a
 brief pause and are limited to 30 seconds; manual recordings still allow 90 seconds.
 Spoken replies favor one to three short sentences.

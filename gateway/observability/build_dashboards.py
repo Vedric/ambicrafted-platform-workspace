@@ -4,6 +4,9 @@ import argparse
 import json
 from pathlib import Path
 
+import dashboard_details
+from slo_definitions import OBJECTIVES, write_rules
+
 ROOT = Path(__file__).parent / "grafana/json"
 DS = {"type": "prometheus", "uid": "prometheus"}
 FRESH = " and on() (max(ambicrafted:telemetry_fresh) == 1)"
@@ -13,6 +16,9 @@ VIEWS = [
     ("plateforme-sre", "Mission control", "Centre de contrôle"),
     ("plateforme-agentic", "Agents & AURA", "Agents et AURA"),
     ("plateforme-infrastructure", "Infrastructure", "Infrastructure"),
+    ("plateforme-slo", "Reliability & budgets", "Fiabilité et budgets"),
+    ("plateforme-experience", "Browser & conversation", "Navigateur et conversation"),
+    ("plateforme-traces", "Traces & correlation", "Traces et corrélation"),
 ]
 
 
@@ -26,7 +32,7 @@ class Dashboard:
             # including words such as Infrastructure shared by both languages.
             "title": "Ambicrafted · " + self.t(title) + " · " + lang.upper(),
             "schemaVersion": 39,
-            "version": 2,
+            "version": 3,
             "editable": False,
             "tags": ["ambicrafted", "local", lang],
             "timezone": "browser",
@@ -149,6 +155,7 @@ class Dashboard:
         unit="short",
         help_text="",
         thresholds=None,
+        decimals=None,
     ):
         defaults = {
             "unit": unit,
@@ -166,12 +173,18 @@ class Dashboard:
                 }
             ],
             "color": {"mode": "palette-classic"},
-            "decimals": 1,
+            "decimals": decimals
+            if decimals is not None
+            else (3 if unit == "percentunit" else 1),
             "thresholds": {
                 "mode": "absolute",
                 "steps": [{"color": "green", "value": None}],
             },
         }
+        # Let Grafana adapt precision at low traffic instead of rounding a
+        # non-zero personal-workstation request rate to an apparent zero.
+        if decimals is None and unit in {"reqps", "ops"}:
+            defaults.pop("decimals")
         if thresholds:
             defaults["thresholds"]["steps"] = [
                 {"color": c, "value": v} for v, c in thresholds
@@ -180,7 +193,7 @@ class Dashboard:
         if kind == "timeseries":
             defaults["custom"] = {
                 "drawStyle": "line",
-                "lineInterpolation": "smooth",
+                "lineInterpolation": "linear",
                 "lineWidth": 2,
                 "fillOpacity": 12,
                 "gradientMode": "opacity",
@@ -270,6 +283,7 @@ class Dashboard:
                     "editorMode": "code",
                     "range": kind != "stat",
                     "instant": kind == "stat",
+                    "exemplar": kind == "timeseries" and "traces_spanmetrics" in expr,
                     "datasource": DS,
                 }
             )
@@ -769,14 +783,55 @@ def infrastructure(lang):
     return d
 
 
+def reliability(lang):
+    return dashboard_details.reliability(Dashboard, OBJECTIVES, lang)
+
+
+def experience(lang):
+    return dashboard_details.experience(Dashboard, API, lang)
+
+
+def correlation(lang):
+    return dashboard_details.correlation(Dashboard, lang)
+
+
+def validate(dashboard):
+    """Reject invalid native layouts before provisioning can hide a panel."""
+    occupied = set()
+    identifiers = set()
+    for panel in dashboard.panels:
+        if panel["id"] in identifiers or not panel["title"].strip():
+            raise ValueError("Panel IDs and nonempty titles must be unique")
+        identifiers.add(panel["id"])
+        x, y, w, h = (panel["gridPos"][key] for key in ("x", "y", "w", "h"))
+        if x < 0 or y < 0 or w < 1 or h < 1 or x + w > 24:
+            raise ValueError("Panel outside the Grafana grid")
+        cells = {(a, b) for a in range(x, x + w) for b in range(y, y + h)}
+        if cells & occupied:
+            raise ValueError("Overlapping dashboard panels")
+        occupied.update(cells)
+        for target in panel.get("targets", []):
+            if not target.get("expr") or not target.get("refId"):
+                raise ValueError("Missing metric expression or query reference")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
+    write_rules(args.check)
     titles, identifiers = set(), set()
     for lang in ("en", "fr"):
-        for make in (overview, agentic, infrastructure):
+        for make in (
+            overview,
+            agentic,
+            infrastructure,
+            reliability,
+            experience,
+            correlation,
+        ):
             dashboard = make(lang)
+            validate(dashboard)
             if dashboard.uid in identifiers or dashboard.data["title"] in titles:
                 raise SystemExit(
                     "Grafana provisioning requires unique dashboard UIDs and titles"

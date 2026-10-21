@@ -1,0 +1,155 @@
+/* Scoped operational navigation: real collection data, no decorative charts. */
+.observability-page {
+  min-width: 0;
+}
+.observability-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 32px;
+  padding: clamp(22px, 3vw, 36px);
+  background:
+    radial-gradient(
+      ellipse at 0 0,
+      color-mix(in srgb, var(--mint) 9%, transparent),
+      transparent 65%
+    ),
+    var(--panel);
+}
+.observability-summary h2 {
+  margin: 8px 0 12px;
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+}
+.observability-summary p {
+  margin: 0;
+  max-width: 62ch;
+}
+.observability-kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 0;
+}
+.observability-kpis > div {
+  padding-left: 18px;
+  border-left: 2px solid var(--border);
+}
+.observability-kpis > div:last-child {
+  grid-column: 1 / -1;
+}
+.observability-kpis dt {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.observability-kpis dd {
+  font-size: 2rem;
+  font-weight: 750;
+  margin: 3px 0 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.observability-kpis dd small {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.observability-kpis .observability-refresh {
+  font-size: 0.9rem;
+  font-weight: 550;
+}
+.observability-kpis .observability-unknown {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.observability-kpis .observability-kpi-note {
+  display: block;
+  font-size: 0.8rem;
+  margin-top: 3px;
+}
+.observability-page .monitoring-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.observability-page .observability-card {
+  --card-accent: var(--mint);
+  border-top: 2px solid
+    color-mix(in srgb, var(--card-accent) 65%, var(--border));
+  min-width: 0;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card-accent) 5%, transparent),
+      transparent 65%
+    ),
+    var(--panel);
+}
+.observability-page .observability-card-1 {
+  --card-accent: var(--purple);
+}
+.observability-page .observability-card-2 {
+  --card-accent: #8fcef8;
+}
+:root[data-theme="light"] .observability-page .observability-card-2 {
+  --card-accent: #176293;
+}
+.observability-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--card-accent);
+}
+.observability-card-top > svg {
+  padding: 10px;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-alt);
+}
+.observability-page .observability-card-number {
+  margin: 0;
+  color: var(--muted);
+  font:
+    500 0.8rem "JetBrains Mono Variable",
+    monospace;
+}
+.observability-page .observability-card > span {
+  color: var(--card-accent);
+}
+.observability-page .observability-card:hover {
+  border-color: var(--card-accent);
+}
+.observability-card:focus-visible {
+  outline: 2px solid var(--card-accent);
+  outline-offset: 4px;
+}
+.observability-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.85rem;
+  margin: 0 0 24px;
+}
+.observability-note svg {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  color: var(--mint);
+}
+@media (max-width: 1150px) {
+  .observability-page .monitoring-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .observability-summary {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+@media (max-width: 600px) {
+  .observability-page .monitoring-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .observability-page .observability-card:hover {
+    transform: none;
+  }
+}

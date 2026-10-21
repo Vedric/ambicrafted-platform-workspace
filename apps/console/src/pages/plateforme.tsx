@@ -13,6 +13,9 @@ import {
   Gauge,
   GitBranch,
   LockKeyhole,
+  Layers3,
+  MousePointer2,
+  Target,
   Search,
   ShieldCheck,
   SquareTerminal,
@@ -28,6 +31,7 @@ import {
 } from "../api";
 import { Erreur, Chargement, Vide, Titre, Modal } from "../ui";
 import { WorkspacePreferences } from "../ExperiencePreferences";
+import "../observability.css";
 
 const indexStatusLabels: Record<string, string> = {
   get green() {
@@ -402,8 +406,10 @@ export function Observabilite() {
       }>("/observabilite"),
     refetchInterval: 15000,
   });
+  const targetsReported = !q.error && Boolean(q.data?.cibles.length);
+  const unknownCollection = q.isPending ? "—" : t("Unknown");
   return (
-    <>
+    <div className="observability-page">
       <Titre
         surligne={t("OBSERVABILITY")}
         titre={t("Observability")}
@@ -420,8 +426,90 @@ export function Observabilite() {
           <Gauge size={17} /> {t("Open Grafana")} <ExternalLink size={14} />
         </a>
       </Titre>
+      <section
+        className="observability-summary panel"
+        aria-label={t("Collection overview")}
+      >
+        <div className="observability-summary-copy">
+          <span className="eyebrow">{t("Operational monitoring")}</span>
+          <h2>{t("Reliability, experience & traces")}</h2>
+          <p>
+            {t(
+              "Follow service reliability, browser experience and request traces, then inspect the underlying infrastructure.",
+            )}
+          </p>
+        </div>
+        <dl className="observability-kpis">
+          <div>
+            <dt>{t("Collecting")}</dt>
+            <dd>
+              {targetsReported ? (
+                <>
+                  {number(
+                    q.data!.cibles.filter((c) => c.sante === "up").length,
+                  )}
+                  <small> / {number(q.data!.cibles.length)}</small>
+                </>
+              ) : (
+                <span className="observability-unknown">
+                  {unknownCollection}
+                </span>
+              )}
+              {q.data && !q.data.cibles.length && (
+                <small className="observability-kpi-note">
+                  {t("No targets reported")}
+                </small>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("Failed targets")}</dt>
+            <dd>
+              {targetsReported ? (
+                number(q.data!.cibles.filter((c) => c.sante !== "up").length)
+              ) : (
+                <span className="observability-unknown">
+                  {unknownCollection}
+                </span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("Last refresh")}</dt>
+            <dd className="observability-refresh">
+              {q.dataUpdatedAt
+                ? date(new Date(q.dataUpdatedAt).toISOString())
+                : "—"}
+            </dd>
+          </div>
+        </dl>
+      </section>
       <div className="monitoring-grid">
         {[
+          {
+            uid: "plateforme-slo",
+            title: t("Reliability & SLOs"),
+            text: t(
+              "Error ratios, request latency and availability targets with explicit measurement windows.",
+            ),
+            icon: Target,
+          },
+          {
+            uid: "plateforme-experience",
+            title: t("Browser experience"),
+            text: t(
+              "LCP, INP and CLS from the first visible period of initially authenticated documents. Missing data stays missing.",
+            ),
+            icon: MousePointer2,
+          },
+          {
+            uid: "plateforme-traces",
+            title: t("Request traces"),
+            text: t(
+              "Follow request duration and service boundaries without collecting prompts, documents or conversation text.",
+            ),
+            icon: Layers3,
+          },
           {
             uid: "plateforme-sre",
             title: t("Mission control dashboard"),
@@ -446,15 +534,23 @@ export function Observabilite() {
             ),
             icon: Gauge,
           },
-        ].map(({ uid, title, text, icon: Icon }) => (
+        ].map(({ uid, title, text, icon: Icon }, index) => (
           <a
-            className="panel monitoring-card"
+            className={
+              "panel monitoring-card observability-card observability-card-" +
+              (index % 3)
+            }
             href={dashboard(uid)}
             key={uid}
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Icon size={26} aria-hidden="true" />
+            <div className="observability-card-top">
+              <Icon size={25} aria-hidden="true" />
+              <span className="observability-card-number" aria-hidden="true">
+                0{index + 1}
+              </span>
+            </div>
             <h2>{title}</h2>
             <p>{text}</p>
             <span>
@@ -463,6 +559,12 @@ export function Observabilite() {
           </a>
         ))}
       </div>
+      <p className="observability-note">
+        <ShieldCheck size={17} aria-hidden="true" />
+        {t(
+          "Metrics are collected locally. Browser samples contain only a metric, a fixed route category and a numeric value; no page content or full URLs.",
+        )}
+      </p>
       {q.isPending ? (
         <Chargement />
       ) : q.error ? (
@@ -473,7 +575,9 @@ export function Observabilite() {
             <div className="panel-heading">
               <h2>{t("Prometheus collection")}</h2>
               <span className="tag">
-                {countLabel(q.data!.cibles.length, "target")}
+                {q.data!.cibles.length
+                  ? countLabel(q.data!.cibles.length, "target")
+                  : t("Unknown")}
               </span>
             </div>
             <div className="targets">
@@ -498,7 +602,7 @@ export function Observabilite() {
                 ))
               ) : (
                 <Vide
-                  titre={t("No targets available")}
+                  titre={t("No targets reported")}
                   texte={t("Check Prometheus on the System health page.")}
                 />
               )}
@@ -536,7 +640,7 @@ export function Observabilite() {
           </section>
         </>
       )}
-    </>
+    </div>
   );
 }
 const operations = [
@@ -886,7 +990,7 @@ export function Parametres() {
           </p>
           <p className="hint">
             {t(
-              "Change the theme or pause animations from the top bar. Your choices are saved in this browser. Animation settings lets you follow your device preference or explicitly enable full movement.",
+              "Change the theme from the top bar. Your choice is saved in this browser. Animations run automatically and respect your device’s reduced-motion setting.",
             )}
           </p>
         </section>

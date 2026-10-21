@@ -147,19 +147,11 @@ test("private landing, refused login, keyboard entry and accessible layout", asy
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect(scene).toHaveAttribute("data-resting", "false");
   await expect.poll(runningOrbitAnimations).toBeGreaterThan(0);
-  await page.mouse.move(0, 0);
-  await page.getByRole("button", { name: "Pause animations" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-motion", "paused");
-  await expect(
-    page.getByRole("button", { name: "Enable animations" }),
-  ).toBeVisible();
+  await expect(page.locator(".motion-control")).toHaveCount(0);
   await page.reload();
-  await expect(page.locator("html")).toHaveAttribute("data-motion", "paused");
-  await expect(
-    page.getByRole("button", { name: "Enable animations" }),
-  ).toBeVisible();
-  await expect(scene).toBeVisible();
-  await expect.poll(runningOrbitAnimations).toBe(0);
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "enabled");
+  await scene.scrollIntoViewIfNeeded();
+  await expect.poll(runningOrbitAnimations).toBeGreaterThan(0);
   await page.getByLabel("Welcome back").fill("Invalid synthetic password");
   await page
     .getByRole("button", { name: "Enter workspace", exact: true })
@@ -178,14 +170,8 @@ test("private landing, refused login, keyboard entry and accessible layout", asy
       exact: true,
     }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Enable animations" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Enable animations" }).click();
+  await expect(page.locator(".motion-control")).toHaveCount(0);
   await expect(page.locator("html")).toHaveAttribute("data-motion", "enabled");
-  await expect(
-    page.getByRole("button", { name: "Pause animations" }),
-  ).toBeVisible();
   await expect(
     page.getByRole("heading", {
       name: "Your intelligence, in motion.",

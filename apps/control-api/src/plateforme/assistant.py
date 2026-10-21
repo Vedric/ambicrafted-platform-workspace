@@ -8,6 +8,7 @@ from fastapi import HTTPException
 
 from .config import Parametres, lire_environnement
 from .services import json_borne
+from .tracage import entetes_trace, tracer_flux
 
 SYSTEME = """You are AURA, the expert local AI assistant for the private Ambicrafted platform.
 Be transparent that you are an AI assistant, not a human. Your name is AURA.
@@ -112,6 +113,7 @@ def usage_reel(reponse: dict) -> dict[str, int | None]:
     }
 
 
+@tracer_flux
 async def flux_dialogue(
     p: Parametres, messages: list[dict], langue: str = "en", vocal: bool = False
 ):
@@ -129,7 +131,10 @@ async def flux_dialogue(
         client.stream(
             "POST",
             "http://127.0.0.1:4000/v1/chat/completions",
-            headers={"Authorization": "Bearer " + valeurs.get("CONFIDENTIAL_KEY", "")},
+            headers={
+                "Authorization": "Bearer " + valeurs.get("CONFIDENTIAL_KEY", ""),
+                **entetes_trace(),
+            },
             json={
                 "model": "local",
                 "messages": [{"role": "system", "content": systeme}, *messages],
@@ -198,7 +203,10 @@ async def dialoguer(
                 client,
                 "POST",
                 "http://127.0.0.1:4000/v1/chat/completions",
-                headers={"Authorization": "Bearer " + valeurs.get("CONFIDENTIAL_KEY", "")},
+                headers={
+                    "Authorization": "Bearer " + valeurs.get("CONFIDENTIAL_KEY", ""),
+                    **entetes_trace(),
+                },
                 json={
                     "model": "local",
                     "messages": [{"role": "system", "content": systeme}, *messages],

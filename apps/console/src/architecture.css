@@ -596,9 +596,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  :where(:root:not([data-motion-mode="full"])) .architecture-page *,
-  :where(:root:not([data-motion-mode="full"])) .architecture-page *::before,
-  :where(:root:not([data-motion-mode="full"])) .architecture-page *::after {
+  :where(:root) .architecture-page *,
+  :where(:root) .architecture-page *::before,
+  :where(:root) .architecture-page *::after {
     animation: none !important;
     transition: none !important;
   }

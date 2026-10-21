@@ -1,7 +1,6 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
-  MotionModePreference,
   useMotionSettings,
   useReducedMotionPreference,
 } from "./motion-preferences";
@@ -32,78 +31,58 @@ function reduce(value: boolean) {
   });
 }
 
-it("follows live device changes by default without storing an explicit choice", () => {
-  localStorage.setItem("ambicrafted-motion", "enabled");
+it("enables motion automatically and follows live device changes without persistence", () => {
   const { result } = renderHook(useMotionSettings);
-  expect(result.current.mode).toBe("system");
   expect(result.current.enabled).toBe(true);
+  expect(document.documentElement.dataset.motion).toBe("enabled");
   reduce(true);
   expect(result.current.enabled).toBe(false);
   expect(document.documentElement.dataset.motion).toBe("paused");
   reduce(false);
   expect(result.current.enabled).toBe(true);
-  expect(document.documentElement.dataset.motion).toBe("enabled");
-  expect(localStorage.getItem("ambicrafted-motion-mode")).toBeNull();
+  expect(localStorage.length).toBe(0);
 });
 
-it("honors an explicit full selection, persists it and can return to system mode", () => {
+it.each(["paused", "full", "system", "invalid"])(
+  "removes obsolete %s overrides without altering appearance or audio preferences",
+  (mode) => {
+    localStorage.setItem("ambicrafted-motion-mode", mode);
+    localStorage.setItem("ambicrafted-motion", "paused");
+    localStorage.setItem("ambicrafted-theme", "light");
+    localStorage.setItem("ambicrafted-welcome-audio", "off");
+    document.documentElement.dataset.motionMode = "full";
+    const first = renderHook(useMotionSettings);
+    expect(first.result.current.enabled).toBe(true);
+    expect(localStorage.getItem("ambicrafted-motion-mode")).toBeNull();
+    expect(localStorage.getItem("ambicrafted-motion")).toBeNull();
+    expect(document.documentElement.dataset.motionMode).toBeUndefined();
+    expect(localStorage.getItem("ambicrafted-theme")).toBe("light");
+    expect(localStorage.getItem("ambicrafted-welcome-audio")).toBe("off");
+    first.unmount();
+    reduce(true);
+    expect(renderHook(useMotionSettings).result.current.enabled).toBe(false);
+  },
+);
+
+it("does not let a saved full override bypass the OS on first render", () => {
+  localStorage.setItem("ambicrafted-motion-mode", "full");
   reduce(true);
-  const first = renderHook(useMotionSettings);
-  act(() => first.result.current.setMode("full"));
-  expect(first.result.current.enabled).toBe(true);
-  expect(document.documentElement.dataset.motionMode).toBe("full");
-  first.unmount();
-  const { result } = renderHook(useMotionSettings);
-  expect(result.current.mode).toBe("full");
-  expect(result.current.enabled).toBe(true);
-  act(() => result.current.setMode("system"));
-  expect(result.current.enabled).toBe(false);
-  reduce(false);
-  expect(result.current.enabled).toBe(true);
+  expect(renderHook(useMotionSettings).result.current.enabled).toBe(false);
+  expect(renderHook(useReducedMotionPreference).result.current).toBe(true);
 });
 
-it("preserves a previous pause until an explicit selection takes precedence", () => {
-  localStorage.setItem("ambicrafted-motion", "paused");
-  const first = renderHook(useMotionSettings);
-  expect(first.result.current.mode).toBe("paused");
-  reduce(true);
-  reduce(false);
-  expect(first.result.current.enabled).toBe(false);
-  act(() => first.result.current.setMode("full"));
-  first.unmount();
+it("honors the device even if storage access and migration are blocked", () => {
+  for (const method of ["getItem", "removeItem", "setItem"] as const)
+    vi.spyOn(Storage.prototype, method).mockImplementation(() => {
+      throw new DOMException("Storage unavailable", "SecurityError");
+    });
   const { result } = renderHook(useMotionSettings);
   expect(result.current.enabled).toBe(true);
-  act(() => result.current.setMode("paused"));
   reduce(true);
-  reduce(false);
-  expect(result.current.enabled).toBe(false);
-});
-
-it("ignores invalid saved values and remains usable when persistence fails", () => {
-  localStorage.setItem("ambicrafted-motion-mode", "invalid");
-  const { result } = renderHook(useMotionSettings);
-  expect(result.current.mode).toBe("system");
-  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-    throw new DOMException("Storage unavailable", "SecurityError");
-  });
-  act(() => result.current.setMode("full"));
-  reduce(true);
-  expect(result.current.enabled).toBe(true);
-  act(() => result.current.setMode("paused"));
   expect(result.current.enabled).toBe(false);
 });
 
-it("defaults safely when saved preferences cannot be read", () => {
-  vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-    throw new DOMException("Storage unavailable", "SecurityError");
-  });
-  reduce(true);
-  const { result } = renderHook(useMotionSettings);
-  expect(result.current.mode).toBe("system");
-  expect(result.current.enabled).toBe(false);
-});
-
-it("synchronizes explicit preferences and a storage reset from another tab", () => {
+it("ignores obsolete overrides written by another open tab", () => {
   const { result } = renderHook(useMotionSettings);
   act(() => {
     localStorage.setItem("ambicrafted-motion-mode", "paused");
@@ -114,37 +93,16 @@ it("synchronizes explicit preferences and a storage reset from another tab", () 
       }),
     );
   });
-  expect(result.current.enabled).toBe(false);
+  expect(result.current.enabled).toBe(true);
+  reduce(true);
   act(() => {
-    sessionStorage.setItem("ambicrafted-motion-mode", "full");
+    localStorage.setItem("ambicrafted-motion-mode", "full");
     window.dispatchEvent(
       new StorageEvent("storage", {
         key: "ambicrafted-motion-mode",
-        storageArea: sessionStorage,
+        storageArea: localStorage,
       }),
     );
   });
-  expect(result.current.mode).toBe("paused");
-  act(() => {
-    localStorage.clear();
-    window.dispatchEvent(
-      new StorageEvent("storage", { key: null, storageArea: localStorage }),
-    );
-  });
-  expect(result.current.mode).toBe("system");
-  expect(result.current.enabled).toBe(true);
-});
-
-it("applies the full override to component hooks while retaining the system default", () => {
-  reduce(true);
-  const automatic = renderHook(useReducedMotionPreference);
-  expect(automatic.result.current).toBe(true);
-  const full = renderHook(useReducedMotionPreference, {
-    wrapper: ({ children }) => (
-      <MotionModePreference.Provider value="full">
-        {children}
-      </MotionModePreference.Provider>
-    ),
-  });
-  expect(full.result.current).toBe(false);
+  expect(result.current.enabled).toBe(false);
 });

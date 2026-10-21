@@ -17,6 +17,7 @@ from .artefacts_revue import revoir_artefact, usage_cumule
 from .config import lire_environnement
 from .erreurs_document import CodeErreurDocument, sortie_document
 from .services import json_borne
+from .tracage import entetes_trace, etape
 
 MAX_ARTEFACT = 65_536
 MAX_ARTEFACTS = 20
@@ -357,12 +358,12 @@ async def generer_artefact(p, messages, langue, format, conversation, operation,
         asyncio.timeout(180),
         httpx.AsyncClient(timeout=180, trust_env=False, follow_redirects=False) as client,
     ):
-        with sortie_document(CodeErreurDocument.SORTIE_INVALIDE):
+        with etape("document.generate"), sortie_document(CodeErreurDocument.SORTIE_INVALIDE):
             result = await json_borne(
                 client,
                 "POST",
                 "http://127.0.0.1:4000/v1/chat/completions",
-                headers={"Authorization": "Bearer " + key},
+                headers={"Authorization": "Bearer " + key, **entetes_trace()},
                 json={
                     "model": "local",
                     "messages": [{"role": "system", "content": prompt}, *messages],
@@ -396,7 +397,8 @@ async def generer_artefact(p, messages, langue, format, conversation, operation,
                     "sources": sources,
                 }
             ).model_dump()
-        review = await revoir_artefact(client, key, messages, artifact)
+        with etape("document.review"):
+            review = await revoir_artefact(client, key, messages, artifact)
     return {
         "type": "done",
         "texte": artifact["summary"],

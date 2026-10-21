@@ -37,8 +37,6 @@ import {
   Menu,
   Network,
   Moon,
-  Pause,
-  Play,
   Plus,
   Search,
   Settings2,
@@ -55,11 +53,8 @@ import WelcomeVoice from "./WelcomeVoice";
 import { WelcomeUpdates } from "./WelcomeUpdates";
 import { ExperiencePreferences } from "./ExperiencePreferences";
 import { ScrollExperience } from "./ScrollExperience";
-import {
-  MotionModePreference,
-  useMotionSettings,
-  useSystemReducedMotionPreference,
-} from "./motion-preferences";
+import { useMotionSettings } from "./motion-preferences";
+import { useNavigationTelemetry } from "./navigation-telemetry";
 const Missions = lazy(() =>
   import("./pages/missions").then((module) => ({ default: module.Missions })),
 );
@@ -293,13 +288,7 @@ export default function App() {
   const [theme, setTheme] = useState(() =>
     readPreference("ambicrafted-theme", "dark"),
   );
-  const {
-    mode: motionMode,
-    setMode: setMotionMode,
-    enabled: motionEnabled,
-  } = useMotionSettings();
-  const toggleAnimations = () =>
-    setMotionMode(motionEnabled ? "paused" : "full");
+  const { enabled: motionEnabled } = useMotionSettings();
   const [density, setDensity] = useState(() =>
     readPreference("ambicrafted-density", "comfortable") === "compact"
       ? "compact"
@@ -369,6 +358,7 @@ export default function App() {
   useEffect(() => {
     definirCsrf(session.data?.csrf || null);
   }, [session.data]);
+  useNavigationTelemetry(session.data?.connecte, currentRoute.pathname);
   useEffect(() => {
     // Enter each workspace at its heading, including sign-in from a scrolled
     // welcome page. Query filters and in-page anchors preserve their position.
@@ -384,168 +374,121 @@ export default function App() {
   const notifier = (message: string, erreur = false) =>
     setToast({ message, erreur });
   return (
-    <MotionModePreference.Provider value={motionMode}>
-      <ExperiencePreferences.Provider
-        value={{
-          theme,
-          setTheme,
-          motionMode,
-          setMotionMode,
-          density,
-          setDensity,
-        }}
-      >
-        <AmbientAudioProvider>
-          <MotionPreference.Provider value={motionEnabled}>
-            <ScrollExperience routeKey={currentRoute.pathname} />
-            <MotionConfig reducedMotion={motionEnabled ? "never" : "always"}>
-              <ToastContext.Provider value={notifier}>
-                {ticketPending || session.isPending ? (
-                  <Chargement />
-                ) : session.isError ? (
-                  <main className="fatal">
-                    <Logo />
-                    <Erreur
-                      erreur={session.error}
-                      recommencer={() => session.refetch()}
-                    />
+    <ExperiencePreferences.Provider
+      value={{
+        theme,
+        setTheme,
+        density,
+        setDensity,
+      }}
+    >
+      <AmbientAudioProvider>
+        <MotionPreference.Provider value={motionEnabled}>
+          <ScrollExperience routeKey={currentRoute.pathname} />
+          <MotionConfig reducedMotion={motionEnabled ? "never" : "always"}>
+            <ToastContext.Provider value={notifier}>
+              {ticketPending || session.isPending ? (
+                <Chargement />
+              ) : session.isError ? (
+                <main className="fatal">
+                  <Logo />
+                  <Erreur
+                    erreur={session.error}
+                    recommencer={() => session.refetch()}
+                  />
+                </main>
+              ) : !session.data?.connecte &&
+                currentRoute.pathname === "/guide" ? (
+                <div className="public-guide">
+                  <header className="public-guide-header">
+                    <Link to="/welcome" aria-label={t("Ambicrafted home")}>
+                      <Logo />
+                    </Link>
+                    <LanguageSelector />
+                    <Link className="btn" to="/welcome">
+                      {t("Enter workspace")}
+                      <ArrowRight size={16} />
+                    </Link>
+                  </header>
+                  <main className="page-scene">
+                    <Suspense fallback={<Chargement />}>
+                      <UserGuide />
+                    </Suspense>
                   </main>
-                ) : !session.data?.connecte &&
-                  currentRoute.pathname === "/guide" ? (
-                  <div className="public-guide">
-                    <header className="public-guide-header">
-                      <Link to="/welcome" aria-label={t("Ambicrafted home")}>
-                        <Logo />
+                </div>
+              ) : session.data?.connecte &&
+                currentRoute.pathname !== "/welcome" ? (
+                <>
+                  {!session.data.mot_de_passe && (
+                    <div className="browser-access-notice" role="status">
+                      <LockKeyhole size={18} aria-hidden="true" />
+                      <span>
+                        {t("Keep browser access after this session ends.")}
+                      </span>
+                      <Link
+                        to="/parametres#browser-access"
+                        className="text-button"
+                      >
+                        {t("Set up browser access")} <ArrowRight size={16} />
                       </Link>
-                      <LanguageSelector />
-                      <AnimationControl
-                        enabled={motionEnabled}
-                        toggle={toggleAnimations}
-                      />
-                      <Link className="btn" to="/welcome">
-                        {t("Enter workspace")}
-                        <ArrowRight size={16} />
-                      </Link>
-                    </header>
-                    <main className="page-scene">
-                      <Suspense fallback={<Chargement />}>
-                        <UserGuide />
-                      </Suspense>
-                    </main>
-                  </div>
-                ) : session.data?.connecte &&
-                  currentRoute.pathname !== "/welcome" ? (
-                  <>
-                    {!session.data.mot_de_passe && (
-                      <div className="browser-access-notice" role="status">
-                        <LockKeyhole size={18} aria-hidden="true" />
-                        <span>
-                          {t("Keep browser access after this session ends.")}
-                        </span>
-                        <Link
-                          to="/parametres#browser-access"
-                          className="text-button"
-                        >
-                          {t("Set up browser access")} <ArrowRight size={16} />
-                        </Link>
-                      </div>
-                    )}
-                    <Cadre
-                      theme={theme}
-                      changerTheme={() =>
-                        setTheme(theme === "dark" ? "light" : "dark")
-                      }
-                      animations={motionEnabled}
-                      motionEnabled={motionEnabled}
-                      changerAnimations={toggleAnimations}
-                    />
-                  </>
-                ) : (
-                  <AccueilPublic
-                    connecte={session.data?.connecte || false}
-                    motDePasse={session.data?.mot_de_passe || false}
-                    erreur={ticketErreur}
-                    animations={motionEnabled}
-                    changerAnimations={toggleAnimations}
+                    </div>
+                  )}
+                  <Cadre
                     theme={theme}
                     changerTheme={() =>
                       setTheme(theme === "dark" ? "light" : "dark")
                     }
+                    motionEnabled={motionEnabled}
                   />
-                )}
-                <AnimatePresence>
-                  {toast && (
-                    <motion.div
-                      role={toast.erreur ? "alert" : "status"}
-                      className={"toast " + (toast.erreur ? "toast-error" : "")}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 16 }}
+                </>
+              ) : (
+                <AccueilPublic
+                  connecte={session.data?.connecte || false}
+                  motDePasse={session.data?.mot_de_passe || false}
+                  erreur={ticketErreur}
+                  theme={theme}
+                  changerTheme={() =>
+                    setTheme(theme === "dark" ? "light" : "dark")
+                  }
+                />
+              )}
+              <AnimatePresence>
+                {toast && (
+                  <motion.div
+                    role={toast.erreur ? "alert" : "status"}
+                    className={"toast " + (toast.erreur ? "toast-error" : "")}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 16 }}
+                  >
+                    {toast.erreur ? <XCircle size={20} /> : <Check size={20} />}
+                    <span>{systemText(toast.message)}</span>
+                    <button
+                      aria-label={t("Dismiss notification")}
+                      onClick={() => setToast(null)}
                     >
-                      {toast.erreur ? (
-                        <XCircle size={20} />
-                      ) : (
-                        <Check size={20} />
-                      )}
-                      <span>{systemText(toast.message)}</span>
-                      <button
-                        aria-label={t("Dismiss notification")}
-                        onClick={() => setToast(null)}
-                      >
-                        <X size={16} />
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </ToastContext.Provider>
-            </MotionConfig>
-          </MotionPreference.Provider>
-        </AmbientAudioProvider>
-      </ExperiencePreferences.Provider>
-    </MotionModePreference.Provider>
-  );
-}
-function AnimationControl({
-  enabled,
-  toggle,
-}: {
-  enabled: boolean;
-  toggle: () => void;
-}) {
-  useI18n();
-  const reduced = useSystemReducedMotionPreference();
-  const label = enabled ? t("Pause animations") : t("Enable animations");
-  return (
-    <button
-      className="icon-button motion-control"
-      onClick={toggle}
-      aria-label={label}
-      title={
-        !enabled && reduced
-          ? t("Reduced motion is enabled on your device")
-          : label
-      }
-      data-motion-active={enabled}
-    >
-      {enabled ? <Pause size={16} /> : <Play size={16} />}
-      <span>{enabled ? t("Motion on") : t("Motion off")}</span>
-    </button>
+                      <X size={16} />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </ToastContext.Provider>
+          </MotionConfig>
+        </MotionPreference.Provider>
+      </AmbientAudioProvider>
+    </ExperiencePreferences.Provider>
   );
 }
 function AccueilPublic({
   connecte = false,
   motDePasse,
   erreur,
-  animations,
-  changerAnimations,
   theme,
   changerTheme,
 }: {
   connecte?: boolean;
   motDePasse: boolean;
   erreur: Error | null;
-  animations: boolean;
-  changerAnimations: () => void;
   theme: string;
   changerTheme: () => void;
 }) {
@@ -577,7 +520,6 @@ function AccueilPublic({
             <LockKeyhole size={14} /> {t("PRIVATE WORKSPACE")}
           </span>
           <AmbientAudioControl />
-          <AnimationControl enabled={animations} toggle={changerAnimations} />
           <button
             className="icon-button"
             onClick={changerTheme}
@@ -765,14 +707,10 @@ function AccueilPublic({
 function Cadre({
   theme,
   changerTheme,
-  animations,
-  changerAnimations,
   motionEnabled,
 }: {
   theme: string;
   changerTheme: () => void;
-  animations: boolean;
-  changerAnimations: () => void;
   motionEnabled: boolean;
 }) {
   useI18n();
@@ -940,7 +878,6 @@ function Cadre({
               <LockKeyhole size={13} /> {t("PRIVATE")}
             </span>
             <AmbientAudioControl />
-            <AnimationControl enabled={animations} toggle={changerAnimations} />
             <button
               className="icon-button"
               onClick={changerTheme}

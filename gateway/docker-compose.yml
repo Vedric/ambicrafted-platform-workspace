@@ -85,11 +85,13 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
       - --storage.tsdb.retention.time=14d
       - --storage.tsdb.retention.size=2GB
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./observability/slo.yml:/etc/prometheus/slo.yml:ro
       - promdata:/prometheus
     ports:
       - "127.0.0.1:9090:9090"

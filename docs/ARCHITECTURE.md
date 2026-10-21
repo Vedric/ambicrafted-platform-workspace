@@ -17,7 +17,7 @@ observability, maintenance and settings. English/French interface selection
 defaults to English and persists in browser storage; it changes UI text and
 formatting without translating stored client content or changing voice language.
 Locally served fonts/assets, responsive navigation, a keyboard command menu and
-pausable/reduced motion apply throughout the interface.
+automatic motion with system accessibility reduction applies throughout the interface.
 
 The authenticated `/architecture` route adds an explorable guide to those
 components. The overview's charts use the existing control API aggregates;
@@ -107,7 +107,7 @@ direction; the page keeps native scrolling and a decorative progress indicator.
 The animation does not change document layout or leave content hidden.
 
 Scroll observation is bounded, uses viewport intersections and schedules progress
-updates on demand. Focused content is not animated. Pause, reduced-motion changes,
+updates on demand. Focused content is not animated. System reduced-motion changes,
 hidden tabs and route cleanup cancel the relevant effects; the architecture's
 animated connections also stop outside the viewport. These behaviors support
 accessibility and limit inactive work, but do not constitute a universal frame-rate

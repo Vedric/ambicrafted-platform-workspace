@@ -1,0 +1,610 @@
+{
+  "groups": [
+    {
+      "name": "ambicrafted-slo-recording",
+      "interval": "15s",
+      "rules": [
+        {
+          "record": "ambicrafted:slo_target",
+          "expr": "vector(0.999)",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_observation_valid",
+          "expr": "((max(ambicrafted:telemetry_fresh) * max(ambicrafted_control_api_scrape_success{job=\"platform\"})) and on() (count(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=~\"success|server_error\"}) > 0)) or vector(0)",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_coverage7d",
+          "expr": "clamp_max(sum_over_time(ambicrafted:slo_observation_valid{slo=\"http_transport\"}[7d]) / 40320, 1)",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events5m",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=~\"success|server_error\"}[5m]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events5m",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=\"success\"}[5m]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio5m",
+          "expr": "(clamp_min((ambicrafted:slo_events5m{slo=\"http_transport\"} - ambicrafted:slo_good_events5m{slo=\"http_transport\"}), 0) / ambicrafted:slo_events5m{slo=\"http_transport\"}) and (ambicrafted:slo_events5m{slo=\"http_transport\"} > 0)",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn5m",
+          "expr": "ambicrafted:slo_bad_ratio5m{slo=\"http_transport\"} / (1 - ambicrafted:slo_target{slo=\"http_transport\"})",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events30m",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=~\"success|server_error\"}[30m]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events30m",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=\"success\"}[30m]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio30m",
+          "expr": "(clamp_min((ambicrafted:slo_events30m{slo=\"http_transport\"} - ambicrafted:slo_good_events30m{slo=\"http_transport\"}), 0) / ambicrafted:slo_events30m{slo=\"http_transport\"}) and (ambicrafted:slo_events30m{slo=\"http_transport\"} > 0)",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn30m",
+          "expr": "ambicrafted:slo_bad_ratio30m{slo=\"http_transport\"} / (1 - ambicrafted:slo_target{slo=\"http_transport\"})",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events1h",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=~\"success|server_error\"}[1h]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events1h",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=\"success\"}[1h]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio1h",
+          "expr": "(clamp_min((ambicrafted:slo_events1h{slo=\"http_transport\"} - ambicrafted:slo_good_events1h{slo=\"http_transport\"}), 0) / ambicrafted:slo_events1h{slo=\"http_transport\"}) and (ambicrafted:slo_events1h{slo=\"http_transport\"} > 0)",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn1h",
+          "expr": "ambicrafted:slo_bad_ratio1h{slo=\"http_transport\"} / (1 - ambicrafted:slo_target{slo=\"http_transport\"})",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events6h",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=~\"success|server_error\"}[6h]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events6h",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=\"success\"}[6h]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio6h",
+          "expr": "(clamp_min((ambicrafted:slo_events6h{slo=\"http_transport\"} - ambicrafted:slo_good_events6h{slo=\"http_transport\"}), 0) / ambicrafted:slo_events6h{slo=\"http_transport\"}) and (ambicrafted:slo_events6h{slo=\"http_transport\"} > 0)",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn6h",
+          "expr": "ambicrafted:slo_bad_ratio6h{slo=\"http_transport\"} / (1 - ambicrafted:slo_target{slo=\"http_transport\"})",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events7d",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=~\"success|server_error\"}[7d]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events7d",
+          "expr": "sum(increase(ambicrafted_http_requests_total{job=\"platform\",group=~\"analyses|conversations|speech_recognition|speech_synthesis|assistant|memory|knowledge\",outcome=\"success\"}[7d]))",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio7d",
+          "expr": "(clamp_min((ambicrafted:slo_events7d{slo=\"http_transport\"} - ambicrafted:slo_good_events7d{slo=\"http_transport\"}), 0) / ambicrafted:slo_events7d{slo=\"http_transport\"}) and (ambicrafted:slo_events7d{slo=\"http_transport\"} > 0)",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_observed_ratio7d",
+          "expr": "1 - ambicrafted:slo_bad_ratio7d{slo=\"http_transport\"}",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_budget_remaining7d",
+          "expr": "(1 - ambicrafted:slo_bad_ratio7d{slo=\"http_transport\"} / (1 - ambicrafted:slo_target{slo=\"http_transport\"})) and on(slo) (ambicrafted:slo_coverage7d{slo=\"http_transport\"} >= 1)",
+          "labels": {
+            "slo": "http_transport"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_target",
+          "expr": "vector(0.99)",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_observation_valid",
+          "expr": "((max(ambicrafted:telemetry_fresh) * max(ambicrafted_control_api_scrape_success{job=\"platform\"})) and on() (count(ambicrafted_aura_operations_total{job=\"platform\",outcome=~\"success|error|timeout\"}) > 0)) or vector(0)",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_coverage7d",
+          "expr": "clamp_max(sum_over_time(ambicrafted:slo_observation_valid{slo=\"aura_delivery\"}[7d]) / 40320, 1)",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events5m",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=~\"success|error|timeout\"}[5m]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events5m",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=\"success\"}[5m]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio5m",
+          "expr": "(clamp_min((ambicrafted:slo_events5m{slo=\"aura_delivery\"} - ambicrafted:slo_good_events5m{slo=\"aura_delivery\"}), 0) / ambicrafted:slo_events5m{slo=\"aura_delivery\"}) and (ambicrafted:slo_events5m{slo=\"aura_delivery\"} > 0)",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn5m",
+          "expr": "ambicrafted:slo_bad_ratio5m{slo=\"aura_delivery\"} / (1 - ambicrafted:slo_target{slo=\"aura_delivery\"})",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events30m",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=~\"success|error|timeout\"}[30m]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events30m",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=\"success\"}[30m]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio30m",
+          "expr": "(clamp_min((ambicrafted:slo_events30m{slo=\"aura_delivery\"} - ambicrafted:slo_good_events30m{slo=\"aura_delivery\"}), 0) / ambicrafted:slo_events30m{slo=\"aura_delivery\"}) and (ambicrafted:slo_events30m{slo=\"aura_delivery\"} > 0)",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn30m",
+          "expr": "ambicrafted:slo_bad_ratio30m{slo=\"aura_delivery\"} / (1 - ambicrafted:slo_target{slo=\"aura_delivery\"})",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events1h",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=~\"success|error|timeout\"}[1h]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events1h",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=\"success\"}[1h]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio1h",
+          "expr": "(clamp_min((ambicrafted:slo_events1h{slo=\"aura_delivery\"} - ambicrafted:slo_good_events1h{slo=\"aura_delivery\"}), 0) / ambicrafted:slo_events1h{slo=\"aura_delivery\"}) and (ambicrafted:slo_events1h{slo=\"aura_delivery\"} > 0)",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn1h",
+          "expr": "ambicrafted:slo_bad_ratio1h{slo=\"aura_delivery\"} / (1 - ambicrafted:slo_target{slo=\"aura_delivery\"})",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events6h",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=~\"success|error|timeout\"}[6h]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events6h",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=\"success\"}[6h]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio6h",
+          "expr": "(clamp_min((ambicrafted:slo_events6h{slo=\"aura_delivery\"} - ambicrafted:slo_good_events6h{slo=\"aura_delivery\"}), 0) / ambicrafted:slo_events6h{slo=\"aura_delivery\"}) and (ambicrafted:slo_events6h{slo=\"aura_delivery\"} > 0)",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn6h",
+          "expr": "ambicrafted:slo_bad_ratio6h{slo=\"aura_delivery\"} / (1 - ambicrafted:slo_target{slo=\"aura_delivery\"})",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events7d",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=~\"success|error|timeout\"}[7d]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events7d",
+          "expr": "sum(increase(ambicrafted_aura_operations_total{job=\"platform\",outcome=\"success\"}[7d]))",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio7d",
+          "expr": "(clamp_min((ambicrafted:slo_events7d{slo=\"aura_delivery\"} - ambicrafted:slo_good_events7d{slo=\"aura_delivery\"}), 0) / ambicrafted:slo_events7d{slo=\"aura_delivery\"}) and (ambicrafted:slo_events7d{slo=\"aura_delivery\"} > 0)",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_observed_ratio7d",
+          "expr": "1 - ambicrafted:slo_bad_ratio7d{slo=\"aura_delivery\"}",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_budget_remaining7d",
+          "expr": "(1 - ambicrafted:slo_bad_ratio7d{slo=\"aura_delivery\"} / (1 - ambicrafted:slo_target{slo=\"aura_delivery\"})) and on(slo) (ambicrafted:slo_coverage7d{slo=\"aura_delivery\"} >= 1)",
+          "labels": {
+            "slo": "aura_delivery"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_target",
+          "expr": "vector(0.95)",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_observation_valid",
+          "expr": "((max(ambicrafted:telemetry_fresh) * max(ambicrafted_control_api_scrape_success{job=\"platform\"})) and on() (count(ambicrafted_aura_operation_duration_seconds_count{job=\"platform\",outcome=\"success\"}) > 0)) or vector(0)",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_coverage7d",
+          "expr": "clamp_max(sum_over_time(ambicrafted:slo_observation_valid{slo=\"aura_latency\"}[7d]) / 40320, 1)",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events5m",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_count{job=\"platform\",outcome=\"success\"}[5m]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events5m",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_bucket{job=\"platform\",outcome=\"success\",le=\"30.0\"}[5m]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio5m",
+          "expr": "(clamp_min((ambicrafted:slo_events5m{slo=\"aura_latency\"} - ambicrafted:slo_good_events5m{slo=\"aura_latency\"}), 0) / ambicrafted:slo_events5m{slo=\"aura_latency\"}) and (ambicrafted:slo_events5m{slo=\"aura_latency\"} > 0)",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn5m",
+          "expr": "ambicrafted:slo_bad_ratio5m{slo=\"aura_latency\"} / (1 - ambicrafted:slo_target{slo=\"aura_latency\"})",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events30m",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_count{job=\"platform\",outcome=\"success\"}[30m]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events30m",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_bucket{job=\"platform\",outcome=\"success\",le=\"30.0\"}[30m]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio30m",
+          "expr": "(clamp_min((ambicrafted:slo_events30m{slo=\"aura_latency\"} - ambicrafted:slo_good_events30m{slo=\"aura_latency\"}), 0) / ambicrafted:slo_events30m{slo=\"aura_latency\"}) and (ambicrafted:slo_events30m{slo=\"aura_latency\"} > 0)",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn30m",
+          "expr": "ambicrafted:slo_bad_ratio30m{slo=\"aura_latency\"} / (1 - ambicrafted:slo_target{slo=\"aura_latency\"})",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events1h",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_count{job=\"platform\",outcome=\"success\"}[1h]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events1h",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_bucket{job=\"platform\",outcome=\"success\",le=\"30.0\"}[1h]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio1h",
+          "expr": "(clamp_min((ambicrafted:slo_events1h{slo=\"aura_latency\"} - ambicrafted:slo_good_events1h{slo=\"aura_latency\"}), 0) / ambicrafted:slo_events1h{slo=\"aura_latency\"}) and (ambicrafted:slo_events1h{slo=\"aura_latency\"} > 0)",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn1h",
+          "expr": "ambicrafted:slo_bad_ratio1h{slo=\"aura_latency\"} / (1 - ambicrafted:slo_target{slo=\"aura_latency\"})",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events6h",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_count{job=\"platform\",outcome=\"success\"}[6h]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events6h",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_bucket{job=\"platform\",outcome=\"success\",le=\"30.0\"}[6h]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio6h",
+          "expr": "(clamp_min((ambicrafted:slo_events6h{slo=\"aura_latency\"} - ambicrafted:slo_good_events6h{slo=\"aura_latency\"}), 0) / ambicrafted:slo_events6h{slo=\"aura_latency\"}) and (ambicrafted:slo_events6h{slo=\"aura_latency\"} > 0)",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_burn6h",
+          "expr": "ambicrafted:slo_bad_ratio6h{slo=\"aura_latency\"} / (1 - ambicrafted:slo_target{slo=\"aura_latency\"})",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_events7d",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_count{job=\"platform\",outcome=\"success\"}[7d]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_good_events7d",
+          "expr": "sum(increase(ambicrafted_aura_operation_duration_seconds_bucket{job=\"platform\",outcome=\"success\",le=\"30.0\"}[7d]))",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_bad_ratio7d",
+          "expr": "(clamp_min((ambicrafted:slo_events7d{slo=\"aura_latency\"} - ambicrafted:slo_good_events7d{slo=\"aura_latency\"}), 0) / ambicrafted:slo_events7d{slo=\"aura_latency\"}) and (ambicrafted:slo_events7d{slo=\"aura_latency\"} > 0)",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_observed_ratio7d",
+          "expr": "1 - ambicrafted:slo_bad_ratio7d{slo=\"aura_latency\"}",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        },
+        {
+          "record": "ambicrafted:slo_budget_remaining7d",
+          "expr": "(1 - ambicrafted:slo_bad_ratio7d{slo=\"aura_latency\"} / (1 - ambicrafted:slo_target{slo=\"aura_latency\"})) and on(slo) (ambicrafted:slo_coverage7d{slo=\"aura_latency\"} >= 1)",
+          "labels": {
+            "slo": "aura_latency"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ambicrafted-slo-alerts",
+      "interval": "15s",
+      "rules": [
+        {
+          "alert": "PlatformSLOBurnFast",
+          "expr": "(ambicrafted:slo_burn5m{slo=\"http_transport\"} > 3.36) and (ambicrafted:slo_burn1h{slo=\"http_transport\"} > 3.36) and (ambicrafted:slo_events5m{slo=\"http_transport\"} >= 20) and (ambicrafted:slo_events1h{slo=\"http_transport\"} >= 20) and (ambicrafted:slo_observation_valid{slo=\"http_transport\"} == 1) and (min_over_time(ambicrafted:slo_observation_valid{slo=\"http_transport\"}[1h]) == 1) and (count_over_time(ambicrafted:slo_observation_valid{slo=\"http_transport\"}[1h]) >= 240)",
+          "for": "2m",
+          "labels": {
+            "severity": "critical",
+            "slo": "http_transport"
+          },
+          "annotations": {
+            "summary": "Observed {{ $labels.slo }} error budget is burning quickly",
+            "description": "Seven-day operating objective: projected 2 percent in one hour at this burn rate if traffic is comparable across windows. This is not measured budget spend under changing traffic. Both windows have at least 20 eligible events and complete collection. Low-volume cases need direct review. This is not an external paging delivery guarantee.",
+            "runbook_url": "http://localhost:8787/guide",
+            "dashboard_url": "http://localhost:3000/d/plateforme-slo"
+          }
+        },
+        {
+          "alert": "PlatformSLOBurnSlow",
+          "expr": "(ambicrafted:slo_burn30m{slo=\"http_transport\"} > 1.4) and (ambicrafted:slo_burn6h{slo=\"http_transport\"} > 1.4) and (ambicrafted:slo_events30m{slo=\"http_transport\"} >= 20) and (ambicrafted:slo_events6h{slo=\"http_transport\"} >= 20) and (ambicrafted:slo_observation_valid{slo=\"http_transport\"} == 1) and (min_over_time(ambicrafted:slo_observation_valid{slo=\"http_transport\"}[6h]) == 1) and (count_over_time(ambicrafted:slo_observation_valid{slo=\"http_transport\"}[6h]) >= 1440)",
+          "for": "2m",
+          "labels": {
+            "severity": "warning",
+            "slo": "http_transport"
+          },
+          "annotations": {
+            "summary": "Observed {{ $labels.slo }} error budget is burning quickly",
+            "description": "Seven-day operating objective: projected 5 percent in six hours at this burn rate if traffic is comparable across windows. This is not measured budget spend under changing traffic. Both windows have at least 20 eligible events and complete collection. Low-volume cases need direct review. This is not an external paging delivery guarantee.",
+            "runbook_url": "http://localhost:8787/guide",
+            "dashboard_url": "http://localhost:3000/d/plateforme-slo"
+          }
+        },
+        {
+          "alert": "PlatformSLOBurnFast",
+          "expr": "(ambicrafted:slo_burn5m{slo=\"aura_delivery\"} > 3.36) and (ambicrafted:slo_burn1h{slo=\"aura_delivery\"} > 3.36) and (ambicrafted:slo_events5m{slo=\"aura_delivery\"} >= 20) and (ambicrafted:slo_events1h{slo=\"aura_delivery\"} >= 20) and (ambicrafted:slo_observation_valid{slo=\"aura_delivery\"} == 1) and (min_over_time(ambicrafted:slo_observation_valid{slo=\"aura_delivery\"}[1h]) == 1) and (count_over_time(ambicrafted:slo_observation_valid{slo=\"aura_delivery\"}[1h]) >= 240)",
+          "for": "2m",
+          "labels": {
+            "severity": "critical",
+            "slo": "aura_delivery"
+          },
+          "annotations": {
+            "summary": "Observed {{ $labels.slo }} error budget is burning quickly",
+            "description": "Seven-day operating objective: projected 2 percent in one hour at this burn rate if traffic is comparable across windows. This is not measured budget spend under changing traffic. Both windows have at least 20 eligible events and complete collection. Low-volume cases need direct review. This is not an external paging delivery guarantee.",
+            "runbook_url": "http://localhost:8787/guide",
+            "dashboard_url": "http://localhost:3000/d/plateforme-slo"
+          }
+        },
+        {
+          "alert": "PlatformSLOBurnSlow",
+          "expr": "(ambicrafted:slo_burn30m{slo=\"aura_delivery\"} > 1.4) and (ambicrafted:slo_burn6h{slo=\"aura_delivery\"} > 1.4) and (ambicrafted:slo_events30m{slo=\"aura_delivery\"} >= 20) and (ambicrafted:slo_events6h{slo=\"aura_delivery\"} >= 20) and (ambicrafted:slo_observation_valid{slo=\"aura_delivery\"} == 1) and (min_over_time(ambicrafted:slo_observation_valid{slo=\"aura_delivery\"}[6h]) == 1) and (count_over_time(ambicrafted:slo_observation_valid{slo=\"aura_delivery\"}[6h]) >= 1440)",
+          "for": "2m",
+          "labels": {
+            "severity": "warning",
+            "slo": "aura_delivery"
+          },
+          "annotations": {
+            "summary": "Observed {{ $labels.slo }} error budget is burning quickly",
+            "description": "Seven-day operating objective: projected 5 percent in six hours at this burn rate if traffic is comparable across windows. This is not measured budget spend under changing traffic. Both windows have at least 20 eligible events and complete collection. Low-volume cases need direct review. This is not an external paging delivery guarantee.",
+            "runbook_url": "http://localhost:8787/guide",
+            "dashboard_url": "http://localhost:3000/d/plateforme-slo"
+          }
+        },
+        {
+          "alert": "PlatformSLOBurnFast",
+          "expr": "(ambicrafted:slo_burn5m{slo=\"aura_latency\"} > 3.36) and (ambicrafted:slo_burn1h{slo=\"aura_latency\"} > 3.36) and (ambicrafted:slo_events5m{slo=\"aura_latency\"} >= 20) and (ambicrafted:slo_events1h{slo=\"aura_latency\"} >= 20) and (ambicrafted:slo_observation_valid{slo=\"aura_latency\"} == 1) and (min_over_time(ambicrafted:slo_observation_valid{slo=\"aura_latency\"}[1h]) == 1) and (count_over_time(ambicrafted:slo_observation_valid{slo=\"aura_latency\"}[1h]) >= 240)",
+          "for": "2m",
+          "labels": {
+            "severity": "critical",
+            "slo": "aura_latency"
+          },
+          "annotations": {
+            "summary": "Observed {{ $labels.slo }} error budget is burning quickly",
+            "description": "Seven-day operating objective: projected 2 percent in one hour at this burn rate if traffic is comparable across windows. This is not measured budget spend under changing traffic. Both windows have at least 20 eligible events and complete collection. Low-volume cases need direct review. This is not an external paging delivery guarantee.",
+            "runbook_url": "http://localhost:8787/guide",
+            "dashboard_url": "http://localhost:3000/d/plateforme-slo"
+          }
+        },
+        {
+          "alert": "PlatformSLOBurnSlow",
+          "expr": "(ambicrafted:slo_burn30m{slo=\"aura_latency\"} > 1.4) and (ambicrafted:slo_burn6h{slo=\"aura_latency\"} > 1.4) and (ambicrafted:slo_events30m{slo=\"aura_latency\"} >= 20) and (ambicrafted:slo_events6h{slo=\"aura_latency\"} >= 20) and (ambicrafted:slo_observation_valid{slo=\"aura_latency\"} == 1) and (min_over_time(ambicrafted:slo_observation_valid{slo=\"aura_latency\"}[6h]) == 1) and (count_over_time(ambicrafted:slo_observation_valid{slo=\"aura_latency\"}[6h]) >= 1440)",
+          "for": "2m",
+          "labels": {
+            "severity": "warning",
+            "slo": "aura_latency"
+          },
+          "annotations": {
+            "summary": "Observed {{ $labels.slo }} error budget is burning quickly",
+            "description": "Seven-day operating objective: projected 5 percent in six hours at this burn rate if traffic is comparable across windows. This is not measured budget spend under changing traffic. Both windows have at least 20 eligible events and complete collection. Low-volume cases need direct review. This is not an external paging delivery guarantee.",
+            "runbook_url": "http://localhost:8787/guide",
+            "dashboard_url": "http://localhost:3000/d/plateforme-slo"
+          }
+        }
+      ]
+    }
+  ]
+}

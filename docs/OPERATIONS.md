@@ -36,6 +36,13 @@ configured. Configure a destination only after deciding what metadata may leave.
 The [21 October candidate qualification](QUALIFICATION-2026-10-21.md) records the
 corrected images and current evidence. Its eight-image clean-clone scan has
 zero CRITICAL/HIGH; 42 MEDIUM, 12 LOW and six UNKNOWN occurrences remain visible.
+The subsequent Qdrant security update was installed and verified on 21 October:
+its fresh local scan reports zero CRITICAL/HIGH, 42 MEDIUM, 12 LOW and seven
+UNKNOWN occurrences across the eight images. The earlier six-UNKNOWN snapshot
+is retained as historical evidence; counts must not be mixed across scans.
+Application CI on source `f5ba5017040c27b46c3e12bf1984268ee58b8833` passed eight
+jobs; its targeted Qdrant image job also passed. This does not turn the older
+failed release run into a successful release. See [CI operations](CI.md).
 The former 57 HIGH findings in the [20 October assessment](QUALIFICATION-2026-10-20.md)
 are historical. Neither a scan nor a green readiness page establishes
 that the running workstation has been upgraded. Final-image checks and the
@@ -62,7 +69,7 @@ so their generated UIDs and existing dashboards are preserved during upgrades.
 
 ## Operational dashboards
 
-See [Monitoring](MONITORING.md) for the three bilingual Grafana dashboards,
+See [Monitoring](MONITORING.md) for the six bilingual Grafana views (twelve dashboards),
 `./plateforme observabilite installer`, freshness rules and local alert recovery.
 The exporter has no host port or credential mount. The existing
 `./plateforme observabilite` summary remains compatible; `collecter` explicitly

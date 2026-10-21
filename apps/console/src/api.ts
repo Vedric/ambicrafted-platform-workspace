@@ -1,5 +1,6 @@
 import { parseArtifacts, type DialogueReply } from "./artifacts";
 import { t, getLocale } from "./i18n";
+import type { MesureNavigation } from "./navigation-telemetry";
 export class ErreurAPI extends Error {
   constructor(
     public status: number,
@@ -188,6 +189,24 @@ function errorMessage(detail: unknown, status: number): string {
 }
 export function definirCsrf(valeur: string | null) {
   csrf = valeur || "";
+}
+export async function envoyerMesuresNavigation(
+  samples: MesureNavigation[],
+): Promise<void> {
+  if (!csrf || !samples.length || samples.length > 3) return;
+  // A single bounded, best-effort delivery; telemetry must not retry, read a
+  // response body, show errors or interfere with the authenticated workspace.
+  try {
+    await fetch("/api/telemetrie/navigation", {
+      method: "POST",
+      credentials: "same-origin",
+      keepalive: true,
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      body: JSON.stringify({ samples }),
+    });
+  } catch {
+    /* Offline and unsupported browsers simply provide no sample. */
+  }
 }
 export async function api<T = unknown>(
   chemin: string,

@@ -101,8 +101,8 @@ export const frenchMessages = {
   "Cancel this analysis before deleting it.":
     "Annulez cette analyse avant de la supprimer.",
   Cancelled: "Annulée",
-  "Change the theme or pause animations from the top bar. Your choices are saved in this browser. Animation settings lets you follow your device preference or explicitly enable full movement.":
-    "Changez le thème ou suspendez les animations depuis la barre supérieure. Vos choix sont mémorisés dans ce navigateur. Les réglages des animations permettent de suivre la préférence de votre appareil ou d’activer explicitement tous les mouvements.",
+  "Change the theme from the top bar. Your choice is saved in this browser. Animations run automatically and respect your device’s reduced-motion setting.":
+    "Changez le thème depuis la barre supérieure. Votre choix est mémorisé dans ce navigateur. Les animations sont automatiques et respectent le réglage de réduction du mouvement de votre appareil.",
   "Check Prometheus on the System health page.":
     "Vérifiez Prometheus sur la page Santé du système.",
   "Check cited passages, approval, export and recovery before using client data.":

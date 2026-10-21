@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .assistant import usage_reel
 from .erreurs_document import CodeErreurDocument, ErreurDocument, sortie_document
 from .services import json_borne
+from .tracage import entetes_trace
 
 MAX_ELEMENTS_REVUE = 128
 MAX_REVUE_OCTETS = 131_072
@@ -115,7 +116,7 @@ async def revoir_artefact(client, key: str, messages: list[dict], artifact: dict
                 client,
                 "POST",
                 "http://127.0.0.1:4000/v1/chat/completions",
-                headers={"Authorization": "Bearer " + key},
+                headers={"Authorization": "Bearer " + key, **entetes_trace()},
                 json={
                     "model": "local",
                     "messages": [

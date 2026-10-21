@@ -24,6 +24,7 @@ GROUPS = (
     "memory",
     "knowledge",
     "health",
+    "telemetry",
     "other",
 )
 STATES = (
@@ -46,6 +47,8 @@ def group(path: str) -> str:
     """Never export paths, IDs, queries, customer names or source text as labels."""
     if path.startswith("/api/auth"):
         return "auth"
+    if path.startswith("/api/telemetrie/"):
+        return "telemetry"
     if path.startswith("/api/conversations/") and path.endswith("/messages"):
         return "assistant"
     if path.startswith("/api/voix/transcrire"):
@@ -96,6 +99,76 @@ class Mesures:
             "API responses with status 401 or 403.",
             registry=self.registry,
         )
+        self.aura = Counter(
+            "ambicrafted_aura_operations_total",
+            "Admitted AURA attempts ending technically; never a correctness measurement.",
+            ["format", "outcome"],
+            registry=self.registry,
+        )
+        self.aura_duration = Histogram(
+            "ambicrafted_aura_operation_duration_seconds",
+            "Admitted AURA work through terminal delivery; cancellations separate.",
+            ["format", "outcome"],
+            buckets=BUCKETS,
+            registry=self.registry,
+        )
+        self.first_token = Histogram(
+            "ambicrafted_aura_first_token_seconds",
+            "Time from admission to first nonempty streamed text, excluding capture/playback.",
+            ["mode"],
+            buckets=BUCKETS,
+            registry=self.registry,
+        )
+        self.replayed = Counter(
+            "ambicrafted_aura_replays_total",
+            "Completed idempotent replies reused, not new work.",
+            registry=self.registry,
+        )
+        self.admission = Counter(
+            "ambicrafted_aura_admission_rejections_total",
+            "Requests rejected before inference admission, separate from delivery SLI.",
+            ["reason"],
+            registry=self.registry,
+        )
+        self.document_failures = Counter(
+            "ambicrafted_document_failures_total",
+            "Finite observed document failure categories.",
+            ["code"],
+            registry=self.registry,
+        )
+        self.trace_spans = Counter(
+            "ambicrafted_trace_spans_total",
+            "API spans queued, accepted by local OTLP, failed or dropped; not trace durability.",
+            ["outcome"],
+            registry=self.registry,
+        )
+        self.trace_enabled = Gauge(
+            "ambicrafted_trace_enabled",
+            "Local API trace export enabled; not collector health.",
+            registry=self.registry,
+        )
+        self.web_vitals = Histogram(
+            "ambicrafted_browser_web_vital_seconds",
+            "Client-reported whole-document LCP/INP, initial authenticated route; not soft navigation.",
+            ["metric", "route"],
+            buckets=(0.05, 0.1, 0.2, 0.5, 1, 2, 2.5, 4, 8, 15, 30, 60, 300),
+            registry=self.registry,
+        )
+        self.layout_shift = Histogram(
+            "ambicrafted_browser_layout_shift_ratio",
+            "Client-reported whole-document CLS; missing measurements remain unknown.",
+            ["route"],
+            buckets=(0, 0.01, 0.05, 0.1, 0.15, 0.25, 0.5, 1, 5, 100),
+            registry=self.registry,
+        )
+        for format in ("text", "diagram", "report"):
+            for outcome in ("success", "error", "timeout", "cancelled"):
+                self.aura.labels(format, outcome)
+                self.aura_duration.labels(format, outcome)
+        for outcome in ("queued", "sent", "failed", "dropped"):
+            self.trace_spans.labels(outcome)
+        for reason in ("busy", "rate_limit"):
+            self.admission.labels(reason)
         for name in GROUPS:
             self.active.labels(name).set(0)
             self.duration.labels(name)

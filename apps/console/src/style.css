@@ -3175,9 +3175,9 @@ dialog > p {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  :where(:root:not([data-motion-mode="full"])) *,
-  :where(:root:not([data-motion-mode="full"])) *:before,
-  :where(:root:not([data-motion-mode="full"])) *:after {
+  :where(:root) *,
+  :where(:root) *:before,
+  :where(:root) *:after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;

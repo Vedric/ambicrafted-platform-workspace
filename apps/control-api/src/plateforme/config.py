@@ -75,6 +75,7 @@ class Parametres:
     retention_jours: int = 14
     origine_dev: str = ""
     veille_active: bool = False
+    tracage_actif: bool = False
 
     @property
     def url(self) -> str:
@@ -136,6 +137,7 @@ class Parametres:
             port=port,
             origine_dev=os.environ.get("PLATFORM_DEV_ORIGIN", ""),
             veille_active=valeurs.get("PLATFORM_TECH_WATCH", "1") == "1",
+            tracage_actif=valeurs.get("PLATFORM_TRACING", "1") == "1",
         )
 
     def environnement_agent(self) -> dict[str, str]:

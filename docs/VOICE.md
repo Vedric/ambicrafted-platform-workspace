@@ -1,5 +1,11 @@
 # Private English and French voices
 
+Current motion behavior (21 October): decorative animations run automatically
+when the OS permits motion, with offscreen/hidden-page pauses. The former manual
+Motion on/off setting has been removed; older release sections below describe
+their historical controls. This does not change microphone permission, playback
+or the visible stop control. [Current decision](adr/0048-observabilite-correlee-et-mouvement.md).
+
 The console's local AI assistant, AURA, uses two speech engines in a separate
 Python 3.13 process: a US English female synthetic voice by default, an optional French female voice,
 and speech recognition explicitly configured for the selected language. Short English

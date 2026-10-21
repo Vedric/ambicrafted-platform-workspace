@@ -178,6 +178,8 @@ class FrontiereHTTP:
             "/pieces"
         )
         maximum = 11_300_000 if scope["path"] == "/api/voix/transcrire" or document else 96_000
+        if scope["path"] == "/api/telemetrie/navigation":
+            maximum = 4096
         if longueur > maximum or longueur < 0:
             return await refuser(413, "Requête trop volumineuse.")
         if scope["method"] in {"POST", "PUT", "PATCH", "DELETE"}:

@@ -97,9 +97,9 @@ measured there; it is not a successful test. Use **Check services**, **System
 health** and **Readiness** to investigate the actual installation.
 
 The interface has larger supporting text and can be zoomed with the browser.
-Scrolling down and back up gives sections a brief entry accent. Use **Pause
-animations** in the header for a still workspace, or the operating system's
-reduced-motion setting. These display preferences do not change the incident
+Scrolling down and back up gives sections a brief entry accent. Motion runs
+automatically; use the operating system's reduced-motion accessibility setting
+for a still workspace. There is no application motion toggle. This does not change the incident
 workflow or AURA's audio permissions.
 
 Review the current [dependency findings](DEPENDENCIES.md) and

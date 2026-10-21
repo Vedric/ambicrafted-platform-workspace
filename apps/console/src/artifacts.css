@@ -109,7 +109,7 @@
   stroke-dasharray: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  :root:not([data-motion-mode="full"]) .document-flow {
+  :root .document-flow {
     animation: none;
     stroke-dasharray: none;
   }

@@ -34,6 +34,8 @@ from .securite import (
     verifier_mot_de_passe,
 )
 from .services import Services
+from .telemetrie import routes as telemetry_routes
+from .tracage import Operation, Tracage, etape
 from .veille import Veille
 from .voix import Voix
 
@@ -99,18 +101,24 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
 
     @asynccontextmanager
     async def cycle(app: FastAPI):
-        await moteur.demarrer()
-        watch = asyncio.create_task(veille.boucle()) if p.veille_active else None
         try:
-            voix.nettoyer_apres_arret()
-            yield
+            await moteur.demarrer()
+            if p.tracage_actif:
+                tracage.journaliser()
+            watch = asyncio.create_task(veille.boucle()) if p.veille_active else None
+            try:
+                voix.nettoyer_apres_arret()
+                yield
+            finally:
+                if watch:
+                    watch.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await watch
+                await voix.fermer()
+                await moteur.fermer()
         finally:
-            if watch:
-                watch.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await watch
-            await voix.fermer()
-            await moteur.fermer()
+            # A failed startup or component shutdown must not leak the optional export worker.
+            await asyncio.to_thread(tracage.fermer)
 
     app = FastAPI(
         title="Ambicrafted",
@@ -122,15 +130,18 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
     )
     app.add_middleware(FrontiereHTTP, parametres=p)
     mesures = Mesures()
+    tracage = Tracage(mesures, actif=p.tracage_actif)
     app.add_middleware(MesuresHTTP, mesures=mesures)
     app.state.mesures = mesures
+    app.state.tracage = tracage
     app.state.depot, app.state.auth, app.state.moteur = depot, auth, moteur
     app.state.voix = voix
     app.state.veille = veille
     app.state.memoire = memoire
     app.state.preparation = preparation
-    app.include_router(conversation_routes(p, auth, moteur, depot, memoire))
+    app.include_router(conversation_routes(p, auth, moteur, depot, memoire, tracage))
     app.include_router(memory_routes(memoire, auth))
+    app.include_router(telemetry_routes(auth, mesures))
 
     @app.exception_handler(RequestValidationError)
     async def validation(request, erreur):
@@ -470,20 +481,40 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
     @app.post("/api/assistant/dialogue")
     async def dialogue(request: Request, charge: Dialogue):
         auth.acteur(request, mutation=True)
-        auth.limiter("dialogue", maximum=8)
+        try:
+            auth.limiter("dialogue", maximum=8)
+        except HTTPException:
+            mesures.admission.labels("rate_limit").inc()
+            raise
         if charge.messages[-1].role != "user":
             raise HTTPException(422, "Le dernier message doit être celui de l'opérateur.")
         if moteur.inference.locked() or not moteur.file.empty():
+            mesures.admission.labels("busy").inc()
             raise HTTPException(
                 409, "Le moteur local traite une analyse. Réessayer lorsqu'elle sera terminée."
             )
         async with moteur.inference:
-            return await dialoguer(
-                p,
-                [m.model_dump() for m in charge.messages],
-                charge.langue,
-                **({"vocal": True} if charge.vocal else {}),
-            )
+            operation = Operation(tracage, "text", vocal=charge.vocal)
+            try:
+                with operation.activer(), etape("aura.gateway"):
+                    result = await dialoguer(
+                        p,
+                        [m.model_dump() for m in charge.messages],
+                        charge.langue,
+                        **({"vocal": True} if charge.vocal else {}),
+                    )
+                operation.terminer("success")
+                return {
+                    **result,
+                    **({"trace_id": operation.trace_id} if operation.trace_id else {}),
+                }
+            except asyncio.CancelledError:
+                operation.terminer("cancelled")
+                raise
+            except BaseException:
+                # Legacy dialoguer deliberately collapses upstream errors into HTTP503.
+                operation.terminer("error")
+                raise
 
     @app.get("/{chemin:path}")
     async def console(chemin: str):

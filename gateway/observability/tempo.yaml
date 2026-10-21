@@ -22,6 +22,10 @@ storage:
       path: /var/tempo/wal
 
 metrics_generator:
+  processor:
+    span_metrics:
+      # Local model calls can last minutes; keep their tails measurable.
+      histogram_buckets: [0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10, 20, 30, 60, 120, 300]
   registry:
     external_labels:
       source: tempo

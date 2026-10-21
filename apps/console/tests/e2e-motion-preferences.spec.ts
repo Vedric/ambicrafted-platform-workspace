@@ -5,7 +5,7 @@ async function open(page: Page, legacy = "enabled", route = "/welcome") {
     localStorage.setItem("ambicrafted-welcome-audio", "off");
     localStorage.setItem("ambicrafted-motion", value);
   }, legacy);
-  // Motion readiness is asserted through real controls, clocks and opacity
+  // Motion readiness is asserted through real clocks, visibility and opacity
   // below. Firefox can leave window.load pending after the UI has rendered.
   if (route === "/welcome")
     return page.goto(route, { waitUntil: "domcontentloaded" });
@@ -37,23 +37,17 @@ async function coreState(page: Page) {
     });
 }
 
-test("the same explicit choice drives architecture flows and operator pause", async ({
+test("architecture flows animate automatically and follow live device reduction", async ({
   page,
 }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await open(page, "enabled", "/architecture");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await open(page, "paused", "/architecture");
   const canvas = page.locator(".architecture-canvas");
   if (page.viewportSize()!.width <= 900) {
-    // Phones use the accessible component list, not an invisible SVG flow.
     await expect(page.locator(".architecture-mobile-list")).toBeVisible();
     await expect(canvas).toBeHidden();
     await page.setViewportSize({ width: 1024, height: 900 });
   }
-  await canvas.scrollIntoViewIfNeeded();
-  await expect(canvas).toHaveAttribute("data-motion", "off");
-  await page
-    .getByRole("button", { name: "Enable animations", exact: true })
-    .click();
   await canvas.scrollIntoViewIfNeeded();
   await expect(canvas).toHaveAttribute("data-motion", "on");
   const flow = page.locator(".architecture-flow").first();
@@ -61,158 +55,122 @@ test("the same explicit choice drives architecture flows and operator pause", as
     flow.evaluate((element) => getComputedStyle(element).strokeDashoffset);
   const first = await offset();
   await expect.poll(offset).not.toBe(first);
-  await expect(flow).toHaveCSS("animation-play-state", "running");
-  await page
-    .getByRole("button", { name: "Pause animations", exact: true })
-    .click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(canvas).toHaveAttribute("data-motion", "off");
   await expect
     .poll(() =>
       flow.evaluate(
         (element) =>
-          element
-            .getAnimations()
-            .filter((animation) => animation.playState === "running").length,
+          element.getAnimations().filter((a) => a.playState === "running")
+            .length,
       ),
     )
     .toBe(0);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(canvas).toHaveAttribute("data-motion", "on");
+  await expect(flow).toHaveCSS("animation-play-state", "running");
 });
 
-test("the actual motion state is visible and Enable overrides device reduction across reloads", async ({
+test("old pause preferences migrate to automatic motion across reloads", async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await open(page);
-  const enable = page.getByRole("button", {
-    name: "Enable animations",
-    exact: true,
-  });
-  await expect(enable).toHaveText("Motion off");
-  await expect(page.locator("html")).toHaveAttribute("data-motion", "paused");
-  await expect.poll(async () => (await coreState(page)).running).toBe(0);
-  await enable.focus();
-  await page.keyboard.press("Enter");
-  const core = page.locator(".neural-core").first();
-  await core.scrollIntoViewIfNeeded();
-  await expect
-    .poll(async () => (await coreState(page)).running)
-    .toBeGreaterThanOrEqual(8);
-  const before = await coreState(page);
-  await expect
-    .poll(async () => (await coreState(page)).ring)
-    .not.toBe(before.ring);
-  await expect(
-    page.getByRole("button", { name: "Pause animations", exact: true }),
-  ).toHaveText("Motion on");
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await core.scrollIntoViewIfNeeded();
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-motion-mode",
-    "full",
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() =>
+    localStorage.setItem("ambicrafted-motion-mode", "paused"),
   );
-  await expect
-    .poll(async () => (await coreState(page)).running)
-    .toBeGreaterThanOrEqual(8);
-  await page
-    .getByRole("button", { name: "Pause animations", exact: true })
-    .click();
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await expect(enable).toHaveText("Motion off");
-  await expect.poll(async () => (await coreState(page)).running).toBe(0);
+  await open(page, "paused");
+  const core = page.locator(".neural-core").first();
+  for (let visit = 0; visit < 2; visit++) {
+    if (visit) await page.reload({ waitUntil: "domcontentloaded" });
+    await core.scrollIntoViewIfNeeded();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-motion",
+      "enabled",
+    );
+    await expect
+      .poll(async () => (await coreState(page)).running)
+      .toBeGreaterThanOrEqual(8);
+    const before = await coreState(page);
+    await expect
+      .poll(async () => (await coreState(page)).ring)
+      .not.toBe(before.ring);
+    await expect(page.locator(".motion-control")).toHaveCount(0);
+    expect(
+      await page.evaluate(() => [
+        localStorage.getItem("ambicrafted-motion-mode"),
+        localStorage.getItem("ambicrafted-motion"),
+      ]),
+    ).toEqual([null, null]);
+  }
   expect(errors).toEqual([]);
 });
 
-test("settings can restore automatic device behavior after an explicit override", async ({
+test("old full preferences cannot override reduced motion or hide content", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.setViewportSize({ width: 320, height: 1000 });
-  await open(page, "enabled", "/parametres");
-  const setting = page.getByRole("combobox", {
-    name: "Animation settings",
-    exact: true,
-  });
-  await expect(setting).toHaveValue("system");
-  await setting.selectOption("full");
-  await expect(page.locator("html")).toHaveAttribute("data-motion", "enabled");
-  await expect(page.locator(".scroll-progress")).toHaveCSS("position", "fixed");
-  await page.locator("#cli-settings").scrollIntoViewIfNeeded();
-  await expect(page.locator(".scroll-progress")).toBeVisible();
-  await setting.selectOption("system");
+  await page.addInitScript(() =>
+    localStorage.setItem("ambicrafted-motion-mode", "full"),
+  );
+  await open(page);
+  const core = page.locator(".neural-core").first();
+  await core.scrollIntoViewIfNeeded();
   await expect(page.locator("html")).toHaveAttribute("data-motion", "paused");
+  await expect.poll(async () => (await coreState(page)).running).toBe(0);
+  await expect(page.locator(".landing-copy h1")).toHaveCSS("opacity", "1");
   await expect(page.locator(".scroll-progress")).toHaveCount(0);
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await expect(page.locator("html")).toHaveAttribute("data-motion", "enabled");
-  await setting.selectOption("paused");
+  await expect
+    .poll(async () => (await coreState(page)).running)
+    .toBeGreaterThanOrEqual(8);
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(async () => (await coreState(page)).running).toBe(0);
+});
+
+test("settings retain theme, language and responsive controls without a motion toggle", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 1000 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await expect(page.locator("html")).toHaveAttribute("data-motion", "paused");
-  await expect(setting).toHaveValue("paused");
-  for (const language of ["fr", "en"]) {
+  await open(page, "paused", "/parametres");
+  await expect(page.locator("#appearance")).toBeVisible();
+  await expect(
+    page.getByRole("combobox", { name: "Animation settings", exact: true }),
+  ).toHaveCount(0);
+  for (const [language, theme] of [
+    ["en", "light"],
+    ["fr", "dark"],
+  ]) {
     await page.locator(".topbar .language-selector").selectOption(language);
-    await expect(page.locator(".topbar .motion-control")).toBeInViewport();
+    await page
+      .locator(".theme-option-" + (theme === "light" ? "day" : "night"))
+      .click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-motion",
+      "enabled",
+    );
+    await expect(
+      page.locator(".motion-control, .motion-mode-select"),
+    ).toHaveCount(0);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
   }
-});
-
-test("a previous pause is recoverable and the choice reaches other open tabs", async ({
-  page,
-  context,
-}) => {
-  await open(page, "paused");
-  await expect(
-    page.getByRole("button", { name: "Enable animations", exact: true }),
-  ).toHaveText("Motion off");
-  const other = await context.newPage();
-  await other.goto("/welcome", { waitUntil: "domcontentloaded" });
-  await expect(other.locator("html")).toHaveAttribute("data-motion", "paused");
-  await page
-    .getByRole("button", { name: "Enable animations", exact: true })
-    .click();
-  await expect(other.locator("html")).toHaveAttribute(
-    "data-motion-mode",
-    "full",
-  );
-  await other
-    .getByRole("button", { name: "Pause animations", exact: true })
-    .click();
-  await expect(page.locator("html")).toHaveAttribute("data-motion", "paused");
-  await other.close();
-  await page.setViewportSize({ width: 320, height: 1000 });
-  await page
-    .getByRole("combobox", { name: "Interface language" })
-    .selectOption("fr");
-  await expect(page.locator(".motion-control")).toHaveText(
-    "Animations en pause",
-  );
-  await page.locator(".motion-control").click();
-  await expect(page.locator(".motion-control")).toHaveText(
-    "Animations actives",
-  );
-  const controls = page.locator(".landing-controls > *");
-  for (const control of await controls.all()) {
-    if (!(await control.isVisible())) continue;
-    const bounds = await control.boundingBox();
-    expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
-  }
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
-});
-
-test("full mode restores native scroll fades despite a reduced-motion device", async ({
-  page,
-}) => {
+  await page.locator("#cli-settings").scrollIntoViewIfNeeded();
+  await expect(page.locator(".scroll-progress")).toBeVisible();
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".scroll-progress")).toHaveCount(0);
+});
+
+test("native scroll fades run automatically despite old paused preferences", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => {
     const native = HTMLElement.prototype.animate;
     const samples: { direction: string; opacity: number; finished: boolean }[] =
@@ -248,10 +206,7 @@ test("full mode restores native scroll fades despite a reduced-motion device", a
       return animation;
     };
   });
-  await open(page);
-  await page
-    .getByRole("button", { name: "Enable animations", exact: true })
-    .click();
+  await open(page, "paused");
   await expect(page.locator("#connexion-privee")).toBeAttached();
   await page.evaluate(() => document.fonts.ready);
   await page.locator(".landing-guide-link").scrollIntoViewIfNeeded();

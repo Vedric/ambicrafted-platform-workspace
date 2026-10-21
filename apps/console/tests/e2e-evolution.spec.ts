@@ -522,7 +522,7 @@ test("interface language persists and leaves operator input and speech language 
   ).toBeVisible();
 });
 
-test("AURA measures a real synthetic microphone, supports motion pause and reviews manual transcription", async ({
+test("AURA measures a real synthetic microphone, follows device motion reduction and reviews manual transcription", async ({
   page,
 }) => {
   await syntheticSpeech(page);
@@ -551,16 +551,14 @@ test("AURA measures a real synthetic microphone, supports motion pause and revie
       ),
     )
     .toBeGreaterThan(0.1);
-  await page.getByRole("button", { name: "Pause animations" }).click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(core).toHaveAttribute("data-resting", "true");
   await expect(
     page.getByRole("button", { name: "Stop recording", exact: true }),
   ).toBeEnabled();
-  await page.getByRole("button", { name: "Enable animations" }).click();
-  await page.emulateMedia({ reducedMotion: "reduce" });
   await core.scrollIntoViewIfNeeded();
-  // Enable is an explicit full-motion choice, including during real capture.
-  await expect(core).toHaveAttribute("data-resting", "false");
+  // Accessibility affects decoration, never microphone capture or its controls.
+  await expect(core).toHaveAttribute("data-resting", "true");
   await page
     .getByRole("button", { name: "Stop recording", exact: true })
     .click();

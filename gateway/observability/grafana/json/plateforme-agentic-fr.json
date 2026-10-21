@@ -2,7 +2,7 @@
   "uid": "plateforme-agentic-fr",
   "title": "Ambicrafted · Agents et AURA · FR",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "editable": false,
   "tags": [
     "ambicrafted",
@@ -48,6 +48,33 @@
       "type": "link",
       "icon": "dashboard",
       "url": "/d/plateforme-infrastructure-fr",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false
+    },
+    {
+      "title": "Fiabilité et budgets",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/plateforme-slo-fr",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false
+    },
+    {
+      "title": "Navigateur et conversation",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/plateforme-experience-fr",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false
+    },
+    {
+      "title": "Traces et corrélation",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/plateforme-traces-fr",
       "keepTime": true,
       "includeVars": true,
       "targetBlank": false
@@ -99,6 +126,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -181,6 +209,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -263,6 +292,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -345,6 +375,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -440,6 +471,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -483,7 +515,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -537,6 +569,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -580,7 +613,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -647,6 +680,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -690,7 +724,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -744,6 +778,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -787,7 +822,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -841,6 +876,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -872,7 +908,6 @@
           "color": {
             "mode": "palette-classic"
           },
-          "decimals": 1,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -884,7 +919,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -938,6 +973,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -981,7 +1017,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -1048,6 +1084,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1130,6 +1167,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1212,6 +1250,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1294,6 +1333,7 @@
           "editorMode": "code",
           "range": false,
           "instant": true,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1376,6 +1416,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1388,6 +1429,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1431,7 +1473,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
@@ -1485,6 +1527,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1497,6 +1540,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1509,6 +1553,7 @@
           "editorMode": "code",
           "range": true,
           "instant": false,
+          "exemplar": false,
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1552,7 +1597,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 12,
             "gradientMode": "opacity",
