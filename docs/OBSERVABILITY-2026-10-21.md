@@ -38,7 +38,7 @@ hosted CI run or proof of installation on another machine.
 | Final console visuals | Four light/dark desktop/mobile variants passed accessibility and overflow checks |
 | Alert rules | Ten existing and eight new fixtures passed, including missing data, failed delivery inside HTTP 200, low volume, collection loss, fast/slow burn recovery and counter restart |
 | Independent SLO review | 17 additional counterexamples passed; dense seven-day simulation was not run because the pinned promtool loader caps an individual input series at 10,000 samples |
-| Grafana integration | 103 distinct queries accepted, 90 SLO rules evaluated, real OTLP traces, Tempo-generated span/service metrics, remote-write exemplars and Grafana trace-ID correlation checked |
+| Grafana integration | 103 distinct queries accepted, 90 rules evaluated: 78 SLO rules (72 recording and six alerting) plus 12 existing rules; real OTLP traces, Tempo-generated span/service metrics, remote-write exemplars and Grafana trace-ID correlation checked |
 
 Grafana qualification covers 48 language/theme/viewport variants using isolated
 synthetic traffic. After correcting CLS precision and low-rate rounding, the

@@ -11,12 +11,18 @@ async function login(page: Page) {
   await page.goto("/assistant#session=" + (await response.json()).ticket);
   await expect(page.getByLabel("Your message")).toBeEditable();
 }
-async function create(page: Page, format: "diagram" | "report") {
+function artifactPrefix(format: "diagram" | "report", scenario = "") {
+  const attempt = scenario
+    ? ` ${scenario} ${test.info().repeatEachIndex}/${test.info().retry}`
+    : "";
+  return `Synthetic ${format} ${test.info().project.name}${attempt}`;
+}
+async function create(page: Page, format: "diagram" | "report", scenario = "") {
   await page.getByLabel("Response format").selectOption(format);
   await page
     .getByLabel("Your message")
     .fill(
-      `Synthetic ${format} ${test.info().project.name}: describe UI, local investigation and human approval.`,
+      `${artifactPrefix(format, scenario)}: describe UI, local investigation and human approval.`,
     );
   await page.getByRole("button", { name: "Send", exact: true }).click();
   const card = page.locator(".artifact-card");
@@ -24,13 +30,15 @@ async function create(page: Page, format: "diagram" | "report") {
   return card;
 }
 
-test("real saved document renders a safe measurable graph, exports and survives reopening", async ({
+// Separate rendering/export/persistence contracts keep cold WebKit setup and
+// real downloads within the same 30s limit without weakening motion or retries.
+test("saved diagram renders safely, fits its workspace and exports SVG", async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await login(page);
-  const card = await create(page, "diagram");
+  const card = await create(page, "diagram", "render-svg");
   const svg = card.locator("svg.document-diagram");
   await expect(svg).toBeAttached();
   await expect(svg.locator("[data-diagram-node]")).toHaveCount(4);
@@ -85,6 +93,23 @@ test("real saved document renders a safe measurable graph, exports and survives 
   expect(body).not.toMatch(
     /<script|<foreignObject|<image|<animate|onload=|<style/,
   );
+  await modal.getByRole("button", { name: "Close", exact: true }).click();
+  expect(errors).toEqual([]);
+});
+
+test("saved diagram exports a nonempty PNG with a valid image signature", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await login(page);
+  const card = await create(page, "diagram", "export-png");
+  await expect(card.locator("svg.document-diagram")).toBeAttached();
+  await card
+    .getByRole("button", { name: "Open document", exact: true })
+    .click();
+  const modal = page.getByRole("dialog", { name: "Document workspace" });
+  await expect(modal).toBeVisible();
   const pngDownload = page.waitForEvent("download");
   await modal
     .getByRole("button", { name: "Download PNG", exact: true })
@@ -95,13 +120,24 @@ test("real saved document renders a safe measurable graph, exports and survives 
   );
   expect(png.length).toBeGreaterThan(10_000);
   await modal.getByRole("button", { name: "Close", exact: true }).click();
+  expect(errors).toEqual([]);
+});
+
+test("saved diagram survives history reopening and preserves JSON provenance", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await login(page);
+  const card = await create(page, "diagram", "restore-json");
+  await expect(card.locator("svg.document-diagram")).toBeAttached();
   const id = await card.getAttribute("data-artifact-id");
   await page
     .getByRole("button", { name: "Conversation history", exact: true })
     .click();
   await page
     .getByLabel("Search conversations")
-    .fill(`Synthetic diagram ${test.info().project.name}`);
+    .fill(artifactPrefix("diagram", "restore-json"));
   await page
     .locator(".history-list > div")
     .first()

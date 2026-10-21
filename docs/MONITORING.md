@@ -128,6 +128,17 @@ not the truth of a model's conclusions.
 
 ## Installation
 
+The three monitoring containers run as non-root users. Their public, tracked
+bind configurations must be readable by those users: normally `0644` for the
+files and `0755` for their directories. This covers `prometheus.yml`, `alerts.yml`,
+`slo.yml`, `tempo.yaml`, and the Grafana `dashboards`, `datasources` and `json`
+directories under `gateway/observability`. A checkout or rollback performed with
+`umask 077` can recreate these files as `0600`, causing startup failures with
+`permission denied`. Verify their contents against the intended Git commit
+before correcting only these public paths. Never apply recursive permission
+changes to `gateway`, secrets, untracked files or data volumes. Keep private
+configuration files at `0600`.
+
 Build and configure the console/API through the normal installation first, then:
 
 ```sh
