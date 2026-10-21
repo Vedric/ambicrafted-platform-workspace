@@ -125,27 +125,3 @@ test("all six narrated guides decode audio and advance native playback", async (
     }
   }
 });
-
-test("guide playback failure offers a working retry and stops when changing lessons", async ({
-  page,
-}) => {
-  await login(page);
-  await page.route("**/guides/first-steps-en.mp4", (route) => route.abort());
-  await page.goto("/guide");
-  await expect(page.getByRole("alert")).toContainText("Video unavailable");
-  await page.unroute("**/guides/first-steps-en.mp4");
-  await page.getByRole("button", { name: "Reload video" }).click();
-  const video = page.locator("video");
-  await expect
-    .poll(() => video.evaluate((v) => (v as HTMLVideoElement).readyState))
-    .toBeGreaterThan(1);
-  await video.evaluate((v) => (v as HTMLVideoElement).play());
-  await expect
-    .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))
-    .toBeGreaterThan(0.1);
-  await page.getByRole("button", { name: /Talk with AURA/ }).click();
-  await expect(video).toHaveAttribute("src", "/guides/voice-en.mp4");
-  expect(await video.evaluate((v) => (v as HTMLVideoElement).paused)).toBe(
-    true,
-  );
-});

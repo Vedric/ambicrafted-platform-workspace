@@ -1,14 +1,46 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Cookie, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import chapterStarts from "../src/guide-chapters.json" with { type: "json" };
 
-async function login(page: Page) {
-  const response = await page.request.post("/api/auth/ticket", {
-    headers: { Authorization: "Bearer " + process.env.PLATFORM_E2E_KEY },
-    data: {},
+// Media tests share one real authenticated session, never localStorage or pages.
+// Creating a ticket for every short clip would exceed the real 20/minute guard.
+let guideCookies: Cookie[] = [];
+test.beforeAll(async ({ browser }, info) => {
+  const context = await browser.newContext({
+    baseURL: info.project.use.baseURL,
   });
-  expect(response.ok()).toBe(true);
-  await page.goto("/guide#session=" + (await response.json()).ticket);
+  try {
+    const response = await context.request.post("/api/auth/ticket", {
+      headers: { Authorization: "Bearer " + process.env.PLATFORM_E2E_KEY },
+      data: {},
+    });
+    expect(response.ok()).toBe(true);
+    const page = await context.newPage();
+    await page.goto("/guide#session=" + (await response.json()).ticket);
+    await expect
+      .poll(
+        async () =>
+          (await (await context.request.get("/api/auth")).json()).connecte,
+      )
+      .toBe(true);
+    guideCookies = (await context.cookies()).filter(
+      (cookie) => cookie.name === "ambicrafted_session",
+    );
+    expect(guideCookies.length).toBe(1);
+    expect(guideCookies[0].httpOnly).toBe(true);
+  } finally {
+    await context.close();
+  }
+});
+test.afterAll(() => {
+  guideCookies = [];
+});
+
+async function login(page: Page) {
+  await page.context().addCookies(guideCookies);
+  const auth = await page.request.get("/api/auth");
+  expect((await auth.json()).connecte).toBe(true);
+  await page.goto("/guide");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 }
 const captionMode = (page: Page) =>
@@ -282,4 +314,49 @@ test("the browser decodes audible narration through Web Audio", async ({
   expect(result.duration).toBeGreaterThan(60);
   expect(Number.isFinite(result.rms)).toBe(true);
   expect(result.rms).toBeGreaterThan(0.005);
+});
+
+test("guide playback failure offers a working retry and stops when changing lessons", async ({
+  page,
+}) => {
+  await login(page);
+  await page.route("**/guides/first-steps-en.mp4", (route) => route.abort());
+  await page.goto("/guide");
+  const video = page.locator("video");
+  await video.scrollIntoViewIfNeeded();
+  // Loading is on demand: exercise a real failed play before retrying it.
+  const rejected = await video.evaluate(async (element) => {
+    const player = element as HTMLVideoElement;
+    player.muted = true;
+    try {
+      await player.play();
+      return false;
+    } catch {
+      return true;
+    }
+  });
+  expect(rejected).toBe(true);
+  await expect(page.getByRole("alert")).toContainText("Video unavailable");
+  await page.unroute("**/guides/first-steps-en.mp4");
+  const reloaded = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname === "/guides/first-steps-en.mp4",
+  );
+  await page.getByRole("button", { name: "Reload video" }).click();
+  await reloaded;
+  await expect
+    .poll(() => video.evaluate((v) => (v as HTMLVideoElement).readyState))
+    .toBeGreaterThan(1);
+  expect(await video.evaluate((v) => (v as HTMLVideoElement).paused)).toBe(
+    true,
+  );
+  await video.evaluate((v) => (v as HTMLVideoElement).play());
+  await expect
+    .poll(() => video.evaluate((v) => (v as HTMLVideoElement).currentTime))
+    .toBeGreaterThan(0.1);
+  await page.getByRole("button", { name: /Talk with AURA/ }).click();
+  await expect(video).toHaveAttribute("src", "/guides/voice-en.mp4");
+  expect(await video.evaluate((v) => (v as HTMLVideoElement).paused)).toBe(
+    true,
+  );
 });

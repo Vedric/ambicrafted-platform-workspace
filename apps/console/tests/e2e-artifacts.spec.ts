@@ -109,8 +109,13 @@ test("real saved document renders a safe measurable graph, exports and survives 
     .first()
     .click();
   await expect(
-    page.locator(`[data-artifact-id="${id}"] svg.document-diagram`),
-  ).toBeAttached();
+    page.getByRole("dialog", { name: "Conversation history" }),
+  ).toBeHidden();
+  const restored = page.locator(`[data-artifact-id="${id}"]`);
+  await expect(restored).toHaveCount(1);
+  // Layout is intentionally deferred until this saved card enters the viewport.
+  await restored.scrollIntoViewIfNeeded();
+  await expect(restored.locator("svg.document-diagram")).toBeAttached();
   const jsonDownload = page.waitForEvent("download");
   await card
     .getByRole("button", { name: "Download JSON", exact: true })

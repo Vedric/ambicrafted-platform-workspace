@@ -34,10 +34,10 @@ create local alerts; no Slack, email or other notification destination is
 configured. Configure a destination only after deciding what metadata may leave.
 
 The [21 October candidate qualification](QUALIFICATION-2026-10-21.md) records the
-corrected images and current evidence. Its eight-image development scan has
+corrected images and current evidence. Its eight-image clean-clone scan has
 zero CRITICAL/HIGH; 42 MEDIUM, 12 LOW and six UNKNOWN occurrences remain visible.
 The former 57 HIGH findings in the [20 October assessment](QUALIFICATION-2026-10-20.md)
-are historical. Neither a development scan nor a green readiness page establishes
+are historical. Neither a scan nor a green readiness page establishes
 that the running workstation has been upgraded. Final-image checks and the
 separate deployment/recovery gates still apply. The host's certificate store
 also needs its own [administrative verification](HOST-TOOLS.md#host-certificate-trust-and-uv).

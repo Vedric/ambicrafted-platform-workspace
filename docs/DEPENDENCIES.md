@@ -2,11 +2,11 @@
 
 The current candidate inventory and remaining release gates are documented in
 [the 21 October candidate qualification](QUALIFICATION-2026-10-21.md). The latest
-eight-image development scan reports zero CRITICAL/HIGH, with 42 MEDIUM,
+eight-image scan from clean commit `8f31ccbe` reports zero CRITICAL/HIGH, with 42 MEDIUM,
 12 LOW and six UNKNOWN package/advisory occurrences still visible. Grafana's
 plugin and Qdrant's frontend corrections are qualified separately; the release
 gate still rejects any CRITICAL/HIGH or incomplete scan against the final
-artifacts. This development result does not establish live deployment or hosted
+artifacts. A local scan does not establish live deployment or hosted
 release acceptance. Application Python and npm audits are separate image-scan
 inputs, not substitutes for those scans.
 The [29 September assessment](SECURITY-2026-09-29.md),
@@ -80,6 +80,10 @@ Functional CI passing is therefore not a container security sign-off. Tagged
 releases reuse both workflows and create a draft only when both pass. Complete
 image reports include identity and bounded, redacted preparation failure
 diagnostics. No existing report is reused after a failed scan.
+The workflow also preserves scanner binary/archive hashes and the available
+vulnerability and Java database metadata and hashes. Missing databases are
+explicitly recorded as absent; this provenance file alone never establishes a
+complete or successful scan.
 
 Source rebuilds can exceed a hosted runner's initial free disk space. For the
 Grafana, Prometheus and Tempo jobs only, the workflow verifies that it is on a

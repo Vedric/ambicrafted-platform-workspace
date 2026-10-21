@@ -6,11 +6,13 @@ operator, with loopback services, local confidential inference and explicit
 human decisions. It is not commercial multi-tenant acceptance or a claim that
 all vulnerabilities and reasoning errors have been eliminated.
 
-**Qualification is in progress.** The development results below are evidence of
-specific checks, not fresh-clone CI, hosted Actions, completed live promotion or
-independent human acceptance. The previous deployed baseline is
-`6abed2a248c13c6120f8a5f2a792ff3b32c85d82`. It remains in service until the new
-candidate passes the separate promotion and recovery gates.
+This report attributes each result to its tested source and scope. Local checks,
+hosted Actions, live promotion and independent human acceptance are separate
+evidence. The recovery baseline for this delivery is
+`6abed2a248c13c6120f8a5f2a792ff3b32c85d82`. The
+[repository releases](https://github.com/Vedric/ambicrafted-platform-workspace/releases)
+identify the published commit, hosted workflow results and actual deployment
+outcome; a source checkout alone does not establish which version is in service.
 
 ## Delivered behavior
 
@@ -38,7 +40,7 @@ history is available to later turns in that conversation, within the existing
 limits. This is not autonomous learning or cross-client memory sharing.
 
 The User guide now contains six workflows in each language: twelve native
-1920 × 1080 MP4s of approximately 83–95 seconds, with four chapters each,
+1920 × 1080 MP4s of approximately 82–94 seconds, with four chapters each,
 optional captions, complete transcripts and practical examples. These record
 the real disposable UI with deterministic synthetic responses; they are not
 proof of real-model accuracy or physical microphone/speaker operation. The
@@ -116,9 +118,12 @@ committed in `669c7c5`, not a clean-clone execution of the final candidate.
 
 No finding is suppressed, no inventory is deleted to lower a count, and the
 release image gate still fails on any CRITICAL/HIGH finding or incomplete scan.
-The combined development scan of the eight corrected images reports **0 CRITICAL,
-0 HIGH, 42 MEDIUM, 12 LOW and six UNKNOWN** occurrences. A fresh-clone combined
-scan must still bind the final source and actual image identities before release.
+The combined scan from clean commit `8f31ccbe` binds the eight corrected image
+identities and reports **0 CRITICAL, 0 HIGH, 42 MEDIUM, 12 LOW and six UNKNOWN**
+occurrences. Its database was updated on 20 October at 19:12 UTC. Downloading
+the official database again on 21 October at 00:00 UTC returned exactly the
+same database bytes. This database predates the CA disclosure below; the
+separate trust-store tests establish that correction, not the scanner count.
 
 | Corrected derivative | Individual scan: Critical / High / Medium / Low / Unknown | Qualification |
 |---|---|---|
@@ -167,14 +172,45 @@ action, with the verification and native Ubuntu correction procedure in
 [HOST-TOOLS.md](HOST-TOOLS.md#host-certificate-trust-and-uv); container corrections
 do not silently clear it.
 
-## Verification recorded so far
+## Verification evidence
 
-Development validation includes 259 SRE tests, 697 API tests before the final
-search-stopping addition and 67 API checks after it, plus typing/lint/packaging.
-An independent artifact API review ran 196 existing tests and four counterexamples
-for cancellation/retry, concurrent deletion, changing quotas and stream setup
-failure without establishing a new defect. These overlap the API suite and must
-not be summed as independent coverage.
+Fresh clones of exact commit `8f31ccbe970a689c95ad479551b1927a32481f5d`
+contained no private environment files or inherited virtual environments.
+Locked installations and the workflow checks produced the following results:
+
+| Check | Observed result |
+| --- | --- |
+| Python application suites | 1,156 passed: 259 SRE, 740 API, 48 runbooks, 109 speech |
+| Branch coverage | SRE 88%, API 84%, runbooks 74%, speech 71% |
+| Maintenance and evaluation contracts | 44 maintenance and 11 evaluation tests passed; the 18 scanner tests are already included in the maintenance count |
+| Runtime Python dependency audits | Four projects and three locked scripts: no known findings at audit time |
+| Console | 271 unit tests passed; production build, browser-test typing and npm advisory audit passed |
+| Real offline speech | 25 tests passed on the native CPU path; nine selected regressions passed on a second AVX2 path |
+| Lifecycle exercise | 25 cycles, 306 HTTP requests and three startups; SQLite integrity `ok`; no model calls |
+| Build reproducibility on this host | Three independent locked installs produced the same 79 console build files byte for byte |
+
+The Python suites ran in a network namespace with a negative connectivity
+control. The 25 real-speech tests are intentionally skipped in the ordinary
+speech suite and run separately with pinned, hash-verified model files. The
+AVX2 subset overlaps those tests; it is not nine additional unique cases.
+Dependency audits cover runtime dependencies according to the CI contract.
+Build byte identity on one host is not a cross-platform reproducibility claim.
+
+An independent artifact API review also exercised cancellation/retry, concurrent
+deletion, changing quotas and stream setup failure. Those checks overlap the API
+suite and must not be summed as independent coverage.
+
+The initial complete browser execution on `8f31ccbe` passed 196 of 224 cases,
+including all 34 WebKit cases. Its 28 failures were investigated: 25 exhausted
+the real authentication ticket limiter because each short media case created a
+new session, two expected a video error before requesting on-demand playback,
+and one expected a deferred mobile diagram before scrolling it into view.
+The follow-up tests share only one real authenticated session cookie in memory
+per Guide worker, keep each browser context and local storage fresh, trigger an
+actual failed video playback and observe a new request on retry, and scroll the
+restored diagram into view before checking its layout. Authentication limits
+and product behavior remain unchanged. The initial failures are retained; the
+release evidence must report the corrected full matrix separately.
 
 Media validation checks twelve unique bilingual assets, narration decoding,
 chapter durations and hashes. Browser tests exercise saved documents, geometry,
@@ -194,10 +230,11 @@ exercise took 547.244 seconds. Inference alone was deterministic synthetic
 input. This is local storage/API evidence, not model latency, distributed load
 capacity or a production SLO. Earlier harness mistakes are retained separately.
 
-Fresh-clone checks, hosted CI, combined image scanning, full browser results,
-new model qualification and live promotion/recovery are recorded only after
-they finish. A previous run or a development virtual environment cannot supply
-that evidence for a new commit.
+Hosted workflow and final browser results are linked from the release only
+after completion. A previous run or a development virtual environment cannot
+supply that evidence for a new commit. Component-level evidence can be reused
+only when its source, locks and build inputs are verified unchanged; that is
+not described as rerunning the earlier test on a later commit.
 
 ## Conditions for use and release
 
@@ -213,5 +250,6 @@ that evidence for a new commit.
 - Re-scan exact images and dependencies before publication and after updates.
   A zero HIGH/CRITICAL result does not imply zero vulnerabilities or pentest immunity.
 
-The current evidence supports continuing a supervised personal workspace
-qualification. It does not yet justify a stable commercial-production sign-off.
+The supported use remains a supervised personal workspace. The model-quality,
+host-security and off-host recovery limits above prevent an unconditional
+commercial-production sign-off.

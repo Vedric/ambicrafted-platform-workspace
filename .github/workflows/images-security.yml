@@ -74,6 +74,61 @@ jobs:
             --compose gateway/docker-compose.yml --memory-compose gateway/neo4j-memory.yml \
             --trivy "$TRIVY_BINARY" --output "$IMAGE_REPORTS" --cache "$IMAGE_CACHE" \
             --service "${{ matrix.service }}"
+      - name: Preserve scanner database provenance, including incomplete scans
+        if: always()
+        env:
+          IMAGE_REPORTS: ${{ runner.temp }}/image-security-reports
+          IMAGE_CACHE: ${{ runner.temp }}/image-security-cache
+          TRIVY_DIRECTORY: ${{ runner.temp }}/trivy-0.74.0
+        run: |
+          uv run --no-project --python 3.14 - <<'PYTHON'
+          import hashlib
+          import json
+          import os
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          def digest(path):
+              if path.is_symlink() or not path.is_file():
+                  return None
+              value = hashlib.sha256()
+              with path.open("rb") as stream:
+                  for block in iter(lambda: stream.read(1024 * 1024), b""):
+                      value.update(block)
+              return value.hexdigest()
+
+          reports = Path(os.environ["IMAGE_REPORTS"])
+          cache = Path(os.environ["IMAGE_CACHE"])
+          scanner = Path(os.environ["TRIVY_DIRECTORY"])
+          databases = {}
+          for name, filename in (("db", "trivy.db"), ("java-db", "trivy-java.db")):
+              metadata = cache / name / "metadata.json"
+              record = {"database_sha256": digest(cache / name / filename),
+                        "metadata_sha256": digest(metadata), "metadata": None}
+              if record["metadata_sha256"] is not None:
+                  try:
+                      record["metadata"] = json.loads(metadata.read_text(encoding="utf-8"))
+                  except (ValueError, UnicodeError):
+                      record["metadata_error"] = "Invalid database metadata"
+              record["present"] = record["database_sha256"] is not None
+              databases[name] = record
+          expected_archive = "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a"
+          archive = digest(scanner / "trivy.tar.gz")
+          provenance = {
+              "recorded_at": datetime.now(UTC).isoformat(),
+              "scope": "Scanner inputs only; this record does not assert a complete or passing scan",
+              "scanner": {"declared_version": "0.74.0",
+                          "expected_archive_sha256": expected_archive,
+                          "archive_sha256": archive,
+                          "archive_matches_expected": archive == expected_archive,
+                          "binary_sha256": digest(scanner / "trivy")},
+              "databases": databases,
+          }
+          reports.mkdir(parents=True, exist_ok=True)
+          (reports / "scanner-provenance.json").write_text(
+              json.dumps(provenance, indent=2) + "\n", encoding="utf-8"
+          )
+          PYTHON
       - name: Résumé même en cas de vulnérabilités ou d'erreur
         if: always()
         env:
