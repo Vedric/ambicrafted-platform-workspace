@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import json
+import logging
 import sqlite3
 from typing import Literal
 from uuid import UUID
@@ -17,7 +18,10 @@ from .assistant import flux_dialogue
 from .conversations import Conversations
 from .depot import Conflit, Introuvable
 from .documents import extraire
+from .erreurs_document import CodeErreurDocument, ErreurDocument, categorie_erreur_document
 from .memoire import SCOPE
+
+journal_documents = logging.getLogger("plateforme.documents")
 
 
 class ReponseDialogue(StreamingResponse):
@@ -228,9 +232,24 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
 
                 async for event in produire():
                     if event["type"] == "done":
-                        store.enregistrer_tour(
-                            conversation_id, operation_id, charge.message, event, empreinte
-                        )
+                        try:
+                            store.enregistrer_tour(
+                                conversation_id, operation_id, charge.message, event, empreinte
+                            )
+                        except (
+                            ValueError,
+                            KeyError,
+                            IndexError,
+                            TypeError,
+                            AttributeError,
+                            RecursionError,
+                            Conflit,
+                            Introuvable,
+                            sqlite3.Error,
+                        ):
+                            if format != "text":
+                                raise ErreurDocument(CodeErreurDocument.STOCKAGE) from None
+                            raise
                     yield json.dumps(event, ensure_ascii=False) + "\n"
             except asyncio.CancelledError:
                 raise
@@ -246,12 +265,20 @@ def routes(p, auth, moteur, depot, memoire) -> APIRouter:
                 Conflit,
                 Introuvable,
                 sqlite3.Error,
-            ):
+            ) as error:
                 # No upstream body, source text, stack trace or credential reaches the client.
+                diagnostic = {}
+                if format != "text":
+                    code = categorie_erreur_document(error)
+                    diagnostic["code"] = code.value
+                    journal_documents.warning(
+                        json.dumps({"category": code.value, "operation_id": operation_id})
+                    )
                 yield (
                     json.dumps(
                         {
                             "type": "error",
+                            **diagnostic,
                             "message": (
                                 "The local document could not be completed or validated. Retry or simplify the request; no partial artifact was saved."
                                 if format != "text"

@@ -167,6 +167,36 @@ Reconfigure the state path or replace the stopped directory as a whole, keeping
 the old private directory for rollback. Authenticate again after recovery.
 The restoration test checks copies only; it does not activate restored data.
 
+## Document generation diagnostics
+
+For a failed diagram/report, inspect the NDJSON `error.code` and correlate its
+request `operation_id` with the `plateforme.documents` warning in the private
+console service journal. The structured message contains only `category` and
+`operation_id`; no prompt, source, response body, raw exception, traceback or
+credential is logged. Keep access to the journal private. Existing text-dialogue
+errors retain their original response shape.
+
+| Code | Established boundary and next check |
+| --- | --- |
+| `document_output_invalid` | Generation returned an invalid/incomplete/bounded output, envelope or artifact schema. Inspect the request complexity and supplied information; do not treat a discarded draft as saved. |
+| `document_review_invalid` | Exhaustive review could not be completed within its input bounds, or its response was invalid, unfinished, missing references or contained duplicate/unknown references. No positive review is inferred. |
+| `document_review_rejected` | A valid, complete review returned at least one non-retain verdict. Review the source/request; this fallible reviewer may also reject a useful draft. |
+| `document_timeout` | A typed request/deadline timeout occurred. Check local model/gateway load before a deliberate retry; no automatic retry was added. |
+| `document_upstream` | HTTP/transport failed during either call. Check local gateway availability/authentication privately; this category does not expose or infer its response body. |
+| `document_storage` | Saving the completed turn failed or was refused, including a missing conversation, quota or SQLite failure. Check history and storage before retrying an uncertain operation. |
+| `document_unknown` | The caught failure does not establish a narrower category. Do not guess from the generic public message. |
+
+Prompts, acceptance rules, schemas, call budgets and atomic persistence are
+unchanged. Cancellation remains cancellation. A successful generation/review
+still does not establish factual correctness or expert model quality.
+
+The two original unpublished postpromotion attempts did not retain these categories, so
+their cause remains undetermined. Two separately authorized synthetic diagnostic
+attempts later observed one direction-based review rejection and one accepted
+report. The accepted report overstated uncaptured logs as unavailable; it is not
+a semantic success. These new attempts cannot establish the original causes.
+Raw diagnostic captures stay private and are not part of routine logging.
+
 ## Voice and MCP diagnostics
 
 ```sh

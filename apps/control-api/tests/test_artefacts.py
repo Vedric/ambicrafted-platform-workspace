@@ -115,6 +115,8 @@ def model(monkeypatch, parametres):
         payload = json.loads(request.content)
         state["calls"].append(payload)
         review = payload["response_format"]["json_schema"]["name"] == "document_review"
+        if (boundary := state.get("boundary")) and (response := boundary(request, review)):
+            return response
         if review:
             elements = json.loads(payload["messages"][-1]["content"])["review_elements"]
             decisions = [{"ref": item["ref"], "verdict": "retain"} for item in elements]
@@ -165,6 +167,28 @@ def send(client, bearer, identifier, **changes):
         else []
     )
     return charge, response, events
+
+
+def diagnostic_sur(caplog, response, charge, code, secret):
+    """Observe the actual emitted record, including fields a formatter may hide."""
+    event = json.loads(response.text)
+    assert event == {
+        "type": "error",
+        "code": code,
+        "message": "The local document could not be completed or validated. Retry or simplify the request; no partial artifact was saved.",
+    }
+    records = [record for record in caplog.records if record.name == "plateforme.documents"]
+    assert len(records) == 1
+    record = records[0]
+    assert json.loads(record.getMessage()) == {
+        "category": code,
+        "operation_id": charge["operation_id"],
+    }
+    assert record.exc_info is None and record.exc_text is None and record.stack_info is None
+    assert not record.args
+    assert secret not in response.text + caplog.text
+    assert "PRIVATE_" not in response.text + caplog.text
+    assert charge["message"] not in record.getMessage()
 
 
 @pytest.mark.parametrize(
@@ -301,7 +325,7 @@ def test_operation_identity_is_scoped_to_conversation(client, bearer, model):
 
 @pytest.mark.asyncio
 async def test_cancelled_document_generation_releases_lease_without_partial_save(
-    application, parametres, bearer, model, monkeypatch
+    application, parametres, bearer, model, monkeypatch, caplog
 ):
     started = asyncio.Event()
 
@@ -335,6 +359,7 @@ async def test_cancelled_document_generation_releases_lease_without_partial_save
     assert not application.state.moteur.inference.locked()
     assert store.obtenir(identifier)["total_messages"] == 0
     assert store.precedent_artefact(identifier) is None
+    assert not [record for record in caplog.records if record.name == "plateforme.documents"]
 
 
 def test_sources_preserve_roles_and_actual_clipping(depot):
@@ -411,10 +436,10 @@ def test_local_generation_persistence_export_and_idempotence(
 
 @pytest.mark.parametrize("failure", ["malformed", "length", "source", "upstream", "null", "html"])
 def test_invalid_model_output_never_reports_success_or_persists(
-    client, bearer, application, model, failure
+    client, bearer, application, model, failure, caplog, parametres
 ):
     if failure == "malformed":
-        model["raw"] = "PRIVATE_SYNTHETIC_UPSTREAM_ERROR"
+        model["raw"] = "PRIVATE_SYNTHETIC_UPSTREAM_ERROR " + parametres.cle
     elif failure == "length":
         model["finish"] = "length"
     elif failure == "source":
@@ -426,7 +451,15 @@ def test_invalid_model_output_never_reports_success_or_persists(
     else:
         model["document"]["title"] = "<svg onload='bad()'>"
     identifier = client.post("/api/conversations", headers=bearer, json={}).json()["id"]
-    _, response, events = send(client, bearer, identifier)
+    charge, response, events = send(client, bearer, identifier)
+    diagnostic_sur(
+        caplog,
+        response,
+        charge,
+        "document_upstream" if failure == "upstream" else "document_output_invalid",
+        parametres.cle,
+    )
+    assert len(model["calls"]) == 1
     assert [event["type"] for event in events] == ["error"]
     assert "PRIVATE_SYNTHETIC" not in response.text and "bad()" not in response.text
     assert (
@@ -450,11 +483,12 @@ def test_auth_csrf_and_busy_refuse_before_model(
 
 
 def test_missing_confidential_key_has_no_fallback_or_saved_artifact(
-    client, bearer, parametres, model
+    client, bearer, parametres, model, caplog
 ):
     enregistrer_secret(parametres.racine, "CONFIDENTIAL_KEY", "")
     identifier = client.post("/api/conversations", headers=bearer, json={}).json()["id"]
-    _, _, events = send(client, bearer, identifier)
+    charge, response, events = send(client, bearer, identifier)
+    diagnostic_sur(caplog, response, charge, "document_unknown", parametres.cle)
     assert [event["type"] for event in events] == ["error"]
     assert not model["calls"]
     assert (
@@ -544,7 +578,7 @@ def test_existing_history_migration_and_sqlite_snapshot_roundtrip(depot, tmp_pat
     ],
 )
 def test_review_refuses_inconsistent_or_incomplete_verdicts_atomically(
-    client, bearer, application, model, failure
+    client, bearer, application, model, failure, caplog, parametres
 ):
     def mutate(decisions):
         if failure == "missing":
@@ -563,7 +597,21 @@ def test_review_refuses_inconsistent_or_incomplete_verdicts_atomically(
     else:
         model["review_mutate"] = mutate
     identifier = client.post("/api/conversations", headers=bearer, json={}).json()["id"]
-    _, response, events = send(client, bearer, identifier)
+    charge, response, events = send(client, bearer, identifier)
+    rejected = failure in {
+        "unsupported",
+        "contradiction",
+        "direction",
+        "unknown_as_absence",
+        "uncertain",
+    }
+    diagnostic_sur(
+        caplog,
+        response,
+        charge,
+        "document_review_rejected" if rejected else "document_review_invalid",
+        parametres.cle,
+    )
     assert response.status_code == 200 and events[0]["type"] == "error"
     assert len(model["calls"]) == 2
     history = client.get(f"/api/conversations/{identifier}", headers=bearer).json()
@@ -600,7 +648,9 @@ def test_review_catalog_covers_every_table_cell_and_text_without_model_ids():
     assert any(item["path"].endswith("bullets.0") for item in elements)
 
 
-def test_exhaustive_review_quota_is_enforced_before_second_inference(client, bearer, model):
+def test_exhaustive_review_quota_is_enforced_before_second_inference(
+    client, bearer, model, caplog, parametres
+):
     value = document("report")
     source = value["document"]["sections"][0]
     source["paragraphs"] = ["Unknown observation."] * 6
@@ -611,7 +661,8 @@ def test_exhaustive_review_quota_is_enforced_before_second_inference(client, bea
     ]
     model["document"] = value
     identifier = client.post("/api/conversations", headers=bearer, json={}).json()["id"]
-    _, _, events = send(client, bearer, identifier, format="report")
+    charge, response, events = send(client, bearer, identifier, format="report")
+    diagnostic_sur(caplog, response, charge, "document_review_invalid", parametres.cle)
     assert events[0]["type"] == "error" and len(model["calls"]) == 1
     assert (
         client.get(f"/api/conversations/{identifier}", headers=bearer).json()["total_messages"] == 0
@@ -657,3 +708,93 @@ def test_unicode_dense_artifact_replays_within_the_same_stream_frame_bound(clien
     assert len(cached.content) < 131_072
     assert json.loads(cached.text)["artefacts"] == events[0]["artefacts"]
     assert len(model["calls"]) == 2
+
+
+@pytest.mark.parametrize("review", [False, True])
+@pytest.mark.parametrize("failure", ["http", "connect", "timeout", "json", "envelope"])
+def test_document_error_boundary_is_typed_and_never_logs_sensitive_material(
+    client, bearer, application, model, parametres, caplog, failure, review
+):
+    private = "PRIVATE_UPSTREAM_BODY " + parametres.cle
+
+    def boundary(request, is_review):
+        if is_review != review:
+            return None
+        if failure == "http":
+            return httpx.Response(503, text=private)
+        if failure == "connect":
+            raise httpx.ConnectError(private, request=request)
+        if failure == "timeout":
+            raise httpx.ReadTimeout(private, request=request)
+        if failure == "json":
+            return httpx.Response(200, content=private.encode())
+        return httpx.Response(200, json={"untrusted": private, "choices": []})
+
+    model["boundary"] = boundary
+    identifier = client.post("/api/conversations", headers=bearer, json={}).json()["id"]
+    charge, response, _ = send(client, bearer, identifier)
+    code = (
+        "document_timeout"
+        if failure == "timeout"
+        else "document_upstream"
+        if failure in {"http", "connect"}
+        else "document_review_invalid"
+        if review
+        else "document_output_invalid"
+    )
+    diagnostic_sur(caplog, response, charge, code, parametres.cle)
+    assert len(model["calls"]) == (2 if review else 1)
+    assert not application.state.moteur.inference.locked()
+    assert Conversations(application.state.depot).obtenir(identifier)["total_messages"] == 0
+    with application.state.depot.connexion() as connection:
+        assert connection.execute("SELECT count(*) FROM artefacts_conversation").fetchone()[0] == 0
+
+
+def test_sqlite_rejection_rolls_back_pair_and_reports_storage_without_retry(
+    client, bearer, application, model, caplog, parametres
+):
+    identifier = client.post("/api/conversations", headers=bearer, json={}).json()["id"]
+    with application.state.depot.connexion() as connection:
+        connection.execute(
+            "CREATE TRIGGER reject_document BEFORE INSERT ON artefacts_conversation "
+            "BEGIN SELECT RAISE(ABORT, 'PRIVATE_STORAGE_FAILURE'); END"
+        )
+    charge, response, _ = send(client, bearer, identifier)
+    diagnostic_sur(caplog, response, charge, "document_storage", parametres.cle)
+    assert len(model["calls"]) == 2
+    assert Conversations(application.state.depot).obtenir(identifier)["total_messages"] == 0
+    with application.state.depot.connexion() as connection:
+        assert connection.execute("SELECT count(*) FROM artefacts_conversation").fetchone()[0] == 0
+    assert not application.state.moteur.inference.locked()
+
+
+@pytest.mark.parametrize("exception", [ValueError, KeyError])
+def test_storage_parse_errors_cannot_be_misreported_as_model_validation(
+    client, bearer, application, model, caplog, parametres, monkeypatch, exception
+):
+    def fail(*args, **kwargs):
+        raise exception("PRIVATE_STORAGE " + parametres.cle)
+
+    monkeypatch.setattr(Conversations, "enregistrer_tour", fail)
+    identifier = client.post("/api/conversations", headers=bearer, json={}).json()["id"]
+    charge, response, _ = send(client, bearer, identifier)
+    diagnostic_sur(caplog, response, charge, "document_storage", parametres.cle)
+    assert len(model["calls"]) == 2
+    assert Conversations(application.state.depot).obtenir(identifier)["total_messages"] == 0
+    assert not application.state.moteur.inference.locked()
+
+
+@pytest.mark.parametrize("exception", [ValueError, TimeoutError])
+def test_unclassified_failure_uses_type_and_never_guesses_from_error_prose(
+    client, bearer, application, caplog, parametres, monkeypatch, exception
+):
+    async def fail(*args):
+        raise exception("document_review_rejected PRIVATE_ARBITRARY " + parametres.cle)
+
+    monkeypatch.setattr("plateforme.conversation_routes.generer_artefact", fail)
+    identifier = client.post("/api/conversations", headers=bearer, json={}).json()["id"]
+    charge, response, _ = send(client, bearer, identifier)
+    code = "document_timeout" if exception is TimeoutError else "document_unknown"
+    diagnostic_sur(caplog, response, charge, code, parametres.cle)
+    assert Conversations(application.state.depot).obtenir(identifier)["total_messages"] == 0
+    assert not application.state.moteur.inference.locked()

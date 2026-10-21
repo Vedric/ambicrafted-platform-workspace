@@ -53,12 +53,14 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0040](0040-artefacts-conversation-locaux.md) | Typed local conversation artifacts | Implemented; qualification recorded separately | 2026-10-20 | Bounded diagrams/reports, atomic history, local exports and explicit memory drafts. |
 | [0041](0041-revue-coherence-agent-bornee.md) | Bounded agent consistency review | Implemented; qualification recorded separately | 2026-10-21 | Exhaustive proposition references, rejection-only review and absolute HTTP deadline. |
 | [0042](0042-distribution-grafana-privee-corrigee.md) | Minimal Grafana distribution with bounded private signatures | Candidate qualification | 2026-10-21 | Only required corrected plugins, exact compiled manifest trust and real loader refusals. |
-
 | [0043](0043-arret-recherche-sans-progres.md) | Bound repeated source exploration | Implemented; qualification recorded separately | 2026-10-21 | One structured finalisation after two rounds without new verified source identities; budgets unchanged. |
+| [0044](0044-retrait-cible-racine-emsign-g3.md) | Exact emSign ECC G3 distrust across runtime trust stores | Accepted for the candidate; deployment is separate | 2026-10-21 | Exact-root distrust with preserved unaffected roots, package inventories and native trust verification. |
+| [0045](0045-arret-stdio-mcp-annulable.md) | Cancellable local MCP stdio and backend cleanup | Accepted | 2026-10-21 | Bounded cancellable transport, descriptor ownership and same-task backend cleanup. |
+| [0046](0046-diagnostic-erreurs-documents.md) | Safe document failure diagnostics | Accepted | 2026-10-21 | Finite typed categories and private operation correlation; acceptance and model quality unchanged. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0043, then the current README and security document;
+- **Current behavior**: 0009–0046, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [MCP gateway](../MCP-GATEWAY.md), [voice](../VOICE.md) and

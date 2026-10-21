@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .artefacts_revue import revoir_artefact, usage_cumule
 from .config import lire_environnement
+from .erreurs_document import CodeErreurDocument, sortie_document
 from .services import json_borne
 
 MAX_ARTEFACT = 65_536
@@ -356,44 +357,45 @@ async def generer_artefact(p, messages, langue, format, conversation, operation,
         asyncio.timeout(180),
         httpx.AsyncClient(timeout=180, trust_env=False, follow_redirects=False) as client,
     ):
-        result = await json_borne(
-            client,
-            "POST",
-            "http://127.0.0.1:4000/v1/chat/completions",
-            headers={"Authorization": "Bearer " + key},
-            json={
-                "model": "local",
-                "messages": [{"role": "system", "content": prompt}, *messages],
-                "max_tokens": 6000,
-                "temperature": 0.1,
-                "reasoning_effort": "none",
-                "keep_alive": "24h",
-                "response_format": {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "document_" + format,
-                        "strict": True,
-                        "schema": classe.model_json_schema(),
+        with sortie_document(CodeErreurDocument.SORTIE_INVALIDE):
+            result = await json_borne(
+                client,
+                "POST",
+                "http://127.0.0.1:4000/v1/chat/completions",
+                headers={"Authorization": "Bearer " + key},
+                json={
+                    "model": "local",
+                    "messages": [{"role": "system", "content": prompt}, *messages],
+                    "max_tokens": 6000,
+                    "temperature": 0.1,
+                    "reasoning_effort": "none",
+                    "keep_alive": "24h",
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "document_" + format,
+                            "strict": True,
+                            "schema": classe.model_json_schema(),
+                        },
                     },
                 },
-            },
-        )
-        choice = result["choices"][0]
-        if choice.get("finish_reason") != "stop":
-            raise ValueError("Document generation did not finish normally")
-        text = choice["message"]["content"]
-        if not isinstance(text, str) or len(text.encode()) > MAX_ARTEFACT:
-            raise ValueError("Document output exceeds bounds")
-        document = classe.model_validate_json(text)
-        artifact = Artefact.model_validate(
-            {
-                **document.model_dump(),
-                "id": str(uuid5(NAMESPACE_URL, f"ambicrafted:{conversation}:{operation}")),
-                "schema_version": 1,
-                "type": format,
-                "sources": sources,
-            }
-        ).model_dump()
+            )
+            choice = result["choices"][0]
+            if choice.get("finish_reason") != "stop":
+                raise ValueError("Document generation did not finish normally")
+            text = choice["message"]["content"]
+            if not isinstance(text, str) or len(text.encode()) > MAX_ARTEFACT:
+                raise ValueError("Document output exceeds bounds")
+            document = classe.model_validate_json(text)
+            artifact = Artefact.model_validate(
+                {
+                    **document.model_dump(),
+                    "id": str(uuid5(NAMESPACE_URL, f"ambicrafted:{conversation}:{operation}")),
+                    "schema_version": 1,
+                    "type": format,
+                    "sources": sources,
+                }
+            ).model_dump()
         review = await revoir_artefact(client, key, messages, artifact)
     return {
         "type": "done",

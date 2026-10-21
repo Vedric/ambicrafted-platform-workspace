@@ -123,6 +123,18 @@ fail visibly instead of receiving a partial review. Existing source-context
 bounds still apply. Failure, incomplete coverage, cancellation or a rejecting
 verdict publishes no artifact and saves no partial conversation pair.
 
+Failed document streams retain the existing public error message and add a
+finite `code`: `document_output_invalid`, `document_review_invalid`,
+`document_review_rejected`, `document_timeout`, `document_upstream`,
+`document_storage` or `document_unknown`. These identify the observed failure
+boundary, not an inferred root cause or a claim that a rejected statement is
+wrong. The API emits a warning JSON record containing only `category` and the
+validated `operation_id`. No source, model output, exception text, traceback or
+credential is recorded. Cancellation propagates without being relabelled as a
+document failure. There is no new retry, repair, metric or stored draft.
+See [operational diagnosis](OPERATIONS.md#document-generation-diagnostics) and
+[ADR 0046](adr/0046-diagnostic-erreurs-documents.md).
+
 ## Lifecycle and recovery
 
 Artifacts count toward the existing 96 MiB conversation storage quota. Deleting

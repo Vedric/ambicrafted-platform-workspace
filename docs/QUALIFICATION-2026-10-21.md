@@ -11,8 +11,9 @@ hosted Actions, live promotion and independent human acceptance are separate
 evidence. The recovery baseline for this delivery is
 `6abed2a248c13c6120f8a5f2a792ff3b32c85d82`. The
 [repository releases](https://github.com/Vedric/ambicrafted-platform-workspace/releases)
-identify the published commit, hosted workflow results and actual deployment
-outcome; a source checkout alone does not establish which version is in service.
+identify published versions; [delivery PR 70](https://github.com/Vedric/ambicrafted-platform-workspace/pull/70)
+records the local deployment outcome separately. A source checkout alone does
+not establish which version is in service.
 
 ## Delivered behavior
 
@@ -258,6 +259,49 @@ after completion. A previous run or a development virtual environment cannot
 supply that evidence for a new commit. Component-level evidence can be reused
 only when its source, locks and build inputs are verified unchanged; that is
 not described as rerunning the earlier test on a later commit.
+
+## Installed-instance acceptance and counterexamples
+
+Commit `2a3664b3f506325682bd814c1e2b83473c3b0e55` was installed after a
+quiesced backup, successful isolated restores with both candidate and recovery
+runtimes, and verified copies of seven volumes. Original volumes, configuration,
+environments and UI were retained. All eight running image IDs match the local
+scan evidence. The previously existing rows and checkpoints remained unchanged.
+Synthetic French and English speech was synthesized and transcribed correctly;
+this does not validate physical speakers or a microphone.
+
+The focused installed-instance browser journey exercised the legacy read-only
+analysis, new-analysis form, Guide media/provenance, caption toggle, playback,
+pause and responsive widths. These assertions passed with no JavaScript errors
+or HTTP 5xx. The harness initially failed because its write guard counted two
+blocked automatic model warm-up requests as business writes. That initial result
+is retained. A separate read-only closure established preservation and session
+revocation; it does not relabel the initial harness exit as a successful run.
+
+Functional model acceptance **did not pass**. One synthetic contract-v3 analysis
+reached its human pause with its own checkpoint in 34.87 seconds, using eight
+calls and 26,008 reported tokens, but the result was an **abstention**. One diagram
+request and one report request were not published after 22.21 and 24.25 seconds.
+No partial conversation turn or artifact was saved. Four gateway calls returned
+HTTP 200, but the installed code did not retain the precise failure category;
+these outcomes cannot retrospectively be labelled safe semantic refusals.
+
+A separate, explicitly instrumented diagnostic repeated each synthetic request
+once without business persistence. The diagram passed schema validation but its
+review rejected a worker-to-queue edge labelled "Consumes Jobs". The report was
+accepted by the product, yet changed "no server logs captured" into logs being
+"unavailable". That is a semantic overstatement the automatic review missed.
+Neither a passing schema nor an all-retain review establishes factual correctness.
+These diagnostic results do not establish the cause of the original failures.
+
+The postpromotion backup `20261021T004643Z` restored successfully in isolation:
+18 files, three analyses, two checkpoints, five conversations and 16 messages,
+plus the service stores. The old pending analysis and checkpoint were preserved,
+the source backup stayed unchanged, and no live database was restored. No new
+artifact had been published, so actual artifact restoration and live document
+exports were **not exercised** by this run. Database snapshots are individually
+consistent, not an atomic whole-platform snapshot. The broader disposable API
+and browser export tests remain separate evidence.
 
 ## Hosted CI and publication blocker
 
