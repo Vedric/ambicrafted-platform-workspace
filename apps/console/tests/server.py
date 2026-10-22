@@ -198,6 +198,16 @@ def main():
         application_module.dialoguer = dialoguer_simule
         application_module.preparer_dialogue = preparer_simule
         app = creer_app(p, moteur_classe=MoteurDeterministe)
+        limiter = app.state.auth.limiter
+
+        def limiter_dialogue_fixture(groupe, maximum=5, intervalle=60):
+            # Independent browser journeys share this disposable server. Keep
+            # the real limiter and eight-request bound, but compress its dialogue
+            # window to one second. Production's 60-second guard is qualified
+            # separately by test_production_dialogue_rate_limit_and_recovery.
+            limiter(groupe, maximum, 1 if groupe == "dialogue" else intervalle)
+
+        app.state.auth.limiter = limiter_dialogue_fixture
         uvicorn.run(
             app, host="127.0.0.1", port=8789, access_log=False, log_level="error"
         )

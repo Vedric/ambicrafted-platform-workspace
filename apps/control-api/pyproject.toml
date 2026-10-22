@@ -14,7 +14,7 @@ dependencies = [
     "opentelemetry-sdk==1.45.1",
     "pillow==13.0.0",
     "prometheus-client==0.26.0",
-    "pypdf==6.19.0",
+    "pypdf==6.21.1",
     "python-dotenv==1.2.3",
     "sre-agent[graphe]==0.2.0",
     "uvicorn==0.54.0",

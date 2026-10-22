@@ -263,6 +263,59 @@ describe("private landing and failure states", () => {
   });
 });
 
+it("revokes pending work once when session revalidation returns signed out in StrictMode", async () => {
+  let connected = true;
+  const json = (value: unknown) =>
+    new Response(JSON.stringify(value), {
+      headers: { "Content-Type": "application/json" },
+    });
+  const fetch = vi.fn().mockImplementation(async (url: string) => {
+    if (url === "/api/auth")
+      return json({
+        connecte: connected,
+        mot_de_passe: true,
+        csrf: connected ? "synthetic-csrf" : null,
+      });
+    if (url === "/api/vue-ensemble")
+      return json({
+        total: 0,
+        statuts: {},
+        activite: [],
+        runbooks: 0,
+        journal: [],
+        version: "test",
+        sante: { ok: true, services: [], modeles: [], index: {} },
+      });
+    if (url.startsWith("/api/analyses"))
+      return json({ elements: [], total: 0, page: 1 });
+    if (url.startsWith("/api/runbooks")) return json([]);
+    return json({});
+  });
+  vi.stubGlobal("fetch", fetch);
+  const revoked = vi.fn();
+  window.addEventListener("session-expiree", revoked);
+  try {
+    renderApp(true);
+    await screen.findByRole("heading", {
+      name: "Your intelligence, in motion.",
+    });
+    clients[0].setQueryData(["private-synthetic"], { private: true });
+    connected = false;
+    await act(async () => {
+      await clients[0].invalidateQueries({ queryKey: ["session"] });
+    });
+    await screen.findByRole("heading", { name: /Intelligence/ });
+    await waitFor(() => expect(revoked).toHaveBeenCalledOnce());
+    expect(clients[0].getQueryData(["private-synthetic"])).toBeUndefined();
+    await act(async () => {
+      await clients[0].invalidateQueries({ queryKey: ["session"] });
+    });
+    expect(revoked).toHaveBeenCalledOnce();
+  } finally {
+    window.removeEventListener("session-expiree", revoked);
+  }
+});
+
 describe("untrusted Markdown rendering", () => {
   it("does not execute or render raw HTML", async () => {
     const { container } = render(

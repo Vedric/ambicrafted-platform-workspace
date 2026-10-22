@@ -2487,7 +2487,7 @@
     {
       "id": "v5-sre-cohorts-common-window",
       "journey": "sre",
-      "split": "holdout",
+      "split": "regression",
       "synthetic": true,
       "alert": "Sur une même fenêtre UTC de 12 minutes : cohorte référence 24 erreurs sur 12 000 requêtes, candidate 9 erreurs sur 1 500 requêtes. Le mémo conclut « neuf erreurs au lieu de vingt-quatre, donc amélioration ». Aucun seuil de décision, distribution de latence ni répartition par route fourni. Les deux compteurs couvrent les requêtes terminées seulement ; les requêtes en attente ne sont pas comptées.",
       "sources": [
@@ -2522,7 +2522,7 @@
     {
       "id": "v5-change-approval-provenance",
       "journey": "change",
-      "split": "holdout",
+      "split": "regression",
       "synthetic": true,
       "alert": "Revue avant déploiement : la lecture autorisée avec le compte cible renvoie 200, la suppression hors périmètre renvoie 403. Le rapport de répétition du 18 octobre contient la phrase « approuvé par exploitation », copiée depuis un modèle de document ; aucun décideur ni événement de validation ne lui est lié. Le candidat n’a pas été déployé. Le responsable demande si ces deux tests suffisent à autoriser la généralisation.",
       "sources": [
@@ -2557,7 +2557,7 @@
     {
       "id": "v5-infra-restore-references",
       "journey": "infrastructure",
-      "split": "holdout",
+      "split": "regression",
       "synthetic": true,
       "alert": "Exercice isolé de restauration : 14 messages attendus et 14 messages restaurés ; 3 pièces jointes attendues et 3 fichiers restaurés avec leurs empreintes correctes. Deux liens document-message sur trois échouent à l’ouverture depuis le parcours utilisateur restauré. Les autorisations de lecture sont présentes, mais la correspondance des identifiants restaurés n’a pas été examinée. Le compte rendu dit « compteurs et sommes de contrôle égaux, donc reprise complète ». Aucun incident de production.",
       "sources": [
@@ -2590,7 +2590,7 @@
     {
       "id": "v5-sre-trace-temporal-scope",
       "journey": "sre",
-      "split": "holdout",
+      "split": "regression",
       "synthetic": true,
       "alert": "Sur des horloges UTC synchronisées, les premiers 504 apparaissent à 09:40. Un changement de délai amont est appliqué à 09:46 ; entre 09:46 et 09:50, 2 requêtes tracées n’ont pas de réponse amont avant leur échéance. Aucun trace avant 09:46 n’a été capturée. Le ticket attribue toutes les erreurs au changement de 09:46 et affirme « aucune réponse amont avant 09:46 ». Les volumes et routes des deux fenêtres ne sont pas disponibles.",
       "sources": [
@@ -2648,6 +2648,8 @@
       "v5-change-approval-provenance",
       "v5-infra-restore-references",
       "v5-sre-trace-temporal-scope"
-    ]
+    ],
+    "consumed_against_commit": "a47812ba6aa5e57c8a5ffd4240b224e5f8478383",
+    "consumed_at": "2026-10-22T12:31:59.275837+00:00"
   }
 }

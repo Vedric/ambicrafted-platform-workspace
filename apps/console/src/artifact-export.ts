@@ -67,50 +67,59 @@ export async function exportDiagram(
         "This diagram is too large for a readable PNG. Download the SVG to retain every detail.",
       ),
     );
-  const canvas = document.createElement("canvas");
+  const canvas = document.createElement("canvas"),
+    image = new Image();
   canvas.width = width;
   canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context)
-    throw new Error(t("The document could not be exported. Please try again."));
-  const image = new Image();
-  await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      image.onload = image.onerror = null;
-      image.src = "";
-      reject(
-        new Error(t("The document could not be exported. Please try again.")),
-      );
-    }, 8000);
-    image.onload = () => {
-      clearTimeout(timer);
-      resolve();
-    };
-    image.onerror = () => {
-      clearTimeout(timer);
-      reject(
-        new Error(t("The document could not be exported. Please try again.")),
-      );
-    };
-    // Same-origin content only; img-src already permits data:. No CSP relaxation.
-    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(serialized)}`;
-  });
-  context.drawImage(image, 0, 0);
-  const blob = await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob(
-      (value) =>
-        value
-          ? resolve(value)
-          : reject(
+  try {
+    await exportInSession(async (signal) => {
+      const context = canvas.getContext("2d");
+      if (!context)
+        throw new Error(
+          t("The document could not be exported. Please try again."),
+        );
+      await awaitExport(
+        signal,
+        new Promise<void>((resolve, reject) => {
+          image.onload = () => resolve();
+          image.onerror = () =>
+            reject(
               new Error(
                 t("The document could not be exported. Please try again."),
               ),
-            ),
-      "image/png",
-    ),
-  );
-  download(blob, artifactFileName(artifact, "png"));
-  canvas.width = canvas.height = 0;
+            );
+          // Same-origin content only; img-src already permits data:. No CSP relaxation.
+          image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(serialized)}`;
+        }),
+      );
+      signal.throwIfAborted();
+      context.drawImage(image, 0, 0);
+      const blob = await awaitExport(
+        signal,
+        new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            (value) =>
+              value
+                ? resolve(value)
+                : reject(
+                    new Error(
+                      t(
+                        "The document could not be exported. Please try again.",
+                      ),
+                    ),
+                  ),
+            "image/png",
+          );
+        }),
+      );
+      signal.throwIfAborted();
+      download(blob, artifactFileName(artifact, "png"));
+    }, 8000);
+  } finally {
+    image.onload = image.onerror = null;
+    image.src = "";
+    canvas.width = canvas.height = 0;
+  }
 }
 
 export async function exportStoredDocument(
@@ -118,14 +127,12 @@ export async function exportStoredDocument(
   artifact: Artifact,
   format: "json" | "markdown",
 ) {
-  const controller = new AbortController(),
-    timer = setTimeout(() => controller.abort(), 10_000);
-  try {
+  return exportInSession(async (signal) => {
     const response = await fetch(
       `/api/conversations/${encodeURIComponent(conversation)}/artefacts/${encodeURIComponent(artifact.id)}/export?format=${format}`,
       {
         credentials: "same-origin",
-        signal: controller.signal,
+        signal,
         redirect: "error",
       },
     );
@@ -159,6 +166,9 @@ export async function exportStoredDocument(
       await reader.cancel().catch(() => {});
       reader.releaseLock();
     }
+    // Session revocation can unmount the card while an authorized response is
+    // still arriving. Never turn that stale completion into a private download.
+    signal.throwIfAborted();
     download(
       new Blob(chunks, {
         type:
@@ -168,7 +178,40 @@ export async function exportStoredDocument(
       }),
       artifactFileName(artifact, format === "markdown" ? "md" : "json"),
     );
+  });
+}
+
+/** Every asynchronous export belongs to the currently authenticated workspace. */
+async function exportInSession(
+  operation: (signal: AbortSignal) => Promise<void>,
+  timeout = 10_000,
+) {
+  const controller = new AbortController(),
+    timer = setTimeout(() => controller.abort(), timeout);
+  const expire = () => controller.abort();
+  window.addEventListener("session-expiree", expire);
+  try {
+    await operation(controller.signal);
   } finally {
+    window.removeEventListener("session-expiree", expire);
     clearTimeout(timer);
+  }
+}
+
+/** Native image/canvas operations cannot all be stopped, but their publication can. */
+async function awaitExport<T>(
+  signal: AbortSignal,
+  work: Promise<T>,
+): Promise<T> {
+  let cancel!: () => void;
+  const aborted = new Promise<T>((_resolve, reject) => {
+    cancel = () => reject(signal.reason);
+    signal.addEventListener("abort", cancel, { once: true });
+    if (signal.aborted) cancel();
+  });
+  try {
+    return await Promise.race([work, aborted]);
+  } finally {
+    signal.removeEventListener("abort", cancel);
   }
 }

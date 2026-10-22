@@ -55,11 +55,11 @@ class Contracts(unittest.TestCase):
         historical = [c for c in self.cases if "baseline_split_2026_10_20" in c]
         self.assertEqual(len(historical), 39)
         self.assertTrue(all(c["split"] == "regression" for c in historical))
-        self.assertEqual(sum(c["split"] == "regression" for c in self.cases), 69)
+        self.assertEqual(sum(c["split"] == "regression" for c in self.cases), 73)
         reviewed = [c for c in self.cases if "pre_review_split_2026_10_21" in c]
         self.assertEqual(len(reviewed), 51)
         self.assertTrue(all(c["split"] == "regression" for c in reviewed))
-        self.assertEqual(sum(c["split"] == "holdout" for c in self.cases), 4)
+        self.assertEqual(sum(c["split"] == "holdout" for c in self.cases), 0)
         progress = [c for c in self.cases if "pre_progress_split_2026_10_21" in c]
         self.assertEqual(len(progress), 63)
         self.assertEqual(
@@ -72,7 +72,7 @@ class Contracts(unittest.TestCase):
                     c["split"] == "holdout" and c["journey"] == journey
                     for c in self.cases
                 ),
-                2 if journey == "sre" else 1,
+                0,
             )
         self.assertEqual(
             sum(c["baseline_split_2026_10_20"] == "holdout" for c in historical), 13

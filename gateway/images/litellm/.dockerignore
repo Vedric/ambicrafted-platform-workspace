@@ -2,3 +2,4 @@
 !Dockerfile
 !requirements.txt
 !verify_certifi.py
+!verify_system_trust.py

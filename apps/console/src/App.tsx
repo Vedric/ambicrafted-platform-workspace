@@ -280,6 +280,7 @@ export default function App() {
   );
   const [ticketPending, setTicketPending] = useState(Boolean(ticket));
   const exchange = useRef<Promise<unknown> | null>(null);
+  const connected = useRef(false);
   const [toast, setToast] = useState<{
     message: string;
     erreur: boolean;
@@ -342,6 +343,7 @@ export default function App() {
   }, [client, ticket]);
   useEffect(() => {
     const expirer = () => {
+      connected.current = false;
       definirCsrf(null);
       client.cancelQueries();
       client.removeQueries({ predicate: (q) => q.queryKey[0] !== "session" });
@@ -357,6 +359,11 @@ export default function App() {
   }, [client]);
   useEffect(() => {
     definirCsrf(session.data?.csrf || null);
+    // Session discovery returns HTTP200 even after revocation. Notify pending
+    // exports and clear private caches on that transition too, only once.
+    const expired = connected.current && session.data?.connecte === false;
+    connected.current = session.data?.connecte === true;
+    if (expired) window.dispatchEvent(new Event("session-expiree"));
   }, [session.data]);
   useNavigationTelemetry(session.data?.connecte, currentRoute.pathname);
   useEffect(() => {
@@ -746,6 +753,7 @@ function Cadre({
   const sortir = async () => {
     try {
       await api("/auth/deconnexion", "POST");
+      window.dispatchEvent(new Event("session-expiree"));
       client.clear();
       location.assign("/");
     } catch (e) {

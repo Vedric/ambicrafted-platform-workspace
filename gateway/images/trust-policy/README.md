@@ -45,8 +45,13 @@ Seven images execute `distrust.go` only during their final build. The helper:
 
 It scans only the declared system certificate locations, refuses escaping fixture
 links and unexpectedly large files, and records changed/deleted paths in
-`/usr/share/ambicrafted/ca-distrust.json`. A changed upstream bundle requires review;
-the Dockerfiles never use the helper's `--native-prepared` exception.
+`/usr/share/ambicrafted/ca-distrust.json`. A changed upstream bundle requires review.
+Since 22 October, LiteLLM uses `--native-prepared` only after installing the signed
+Wolfi `ca-certificates-bundle=20260909-r3` package and independently verifying its
+exact bundle hash, 118 effective default OpenSSL anchors and G3 absence.
+That official policy also removes C1/C3; the earlier G3-only root-set assertion
+below applies to the 21 October images. Other images retain the narrow helper
+policy. See [ADR 0049](../../../docs/adr/0049-paquet-ca-wolfi-natif.md).
 The helper and Go toolchain do not enter the final image.
 
 Neo4j's UBI10 runtime instead uses the distribution's native

@@ -15,3 +15,15 @@ The project Apache-2.0 license does not replace licenses of third-party
 components, bundled fonts, speech models or audio. Their original copyright
 and license notices continue to apply. No changes to the elkjs source are
 included in this distribution.
+
+Third-party fonts: Manrope and JetBrains Mono
+
+The unmodified @fontsource-variable/manrope and
+@fontsource-variable/jetbrains-mono 5.3.0 packages supply the console's bundled
+fonts under SIL Open Font License 1.1. Their complete copyright and license
+notices are included as manrope-LICENSE.txt and jetbrains-mono-LICENSE.txt.
+Package integrity is pinned in apps/console/package-lock.json.
+
+Upstream font sources:
+https://github.com/sharanda/manrope
+https://github.com/JetBrains/JetBrainsMono
