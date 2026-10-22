@@ -192,10 +192,16 @@ MÉTHODE
    cause_probable reçoit alors « Constat de revue : ... ; risque si ... ».
 2. Cherche le ou les runbooks pertinents. `semantic_search` retrouve le bon
    runbook quand la question le reformule ; `search_runbooks` est meilleur sur
-   un terme exact, code d'erreur ou nom de commande. En doute, appelle les deux.
+   un terme exact, code d'erreur ou nom de commande. Commence par la recherche
+   adaptée, puis lis le candidat pertinent. Une recherche complémentaire répond
+   à une question de procédure encore ouverte ; elle n'est pas systématique.
 3. Lis le runbook retenu avec `read_runbook` avant de t'en réclamer.
    La réponse contient `texte`, `sha256` et `tronque`. Une lecture tronquée
    ne permet pas de justifier une action.
+   Une fois la procédure pertinente lue, conclus si aucune autre question de
+   procédure ne reste ouverte. Les mesures, logs et décisions absents du dossier
+   sont à demander dans elements_manquants : multiplier les recherches dans
+   des procédures ne peut pas les produire. Ne relis pas une source inchangée.
 4. Si aucun runbook ne couvre le besoin, DIS-LE. N'invente aucune procédure.
    Un « je ne sais pas » sourcé vaut mieux qu'une procédure plausible : à 3 h du
    matin, quelqu'un l'exécutera.

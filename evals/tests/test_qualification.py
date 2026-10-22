@@ -44,25 +44,27 @@ class Contracts(unittest.TestCase):
         return qualification.check_report(case or self.case, report, self.corpus)
 
     def test_reviewed_cases_are_regression_with_baseline_split_preserved(self):
-        self.assertEqual(len(self.cases), 69)
+        self.assertEqual(len(self.cases), 73)
         self.assertEqual(
             {
                 name: sum(c["journey"] == name for c in self.cases)
                 for name in ("sre", "infrastructure", "change")
             },
-            {"sre": 23, "infrastructure": 23, "change": 23},
+            {"sre": 25, "infrastructure": 24, "change": 24},
         )
         historical = [c for c in self.cases if "baseline_split_2026_10_20" in c]
         self.assertEqual(len(historical), 39)
         self.assertTrue(all(c["split"] == "regression" for c in historical))
-        self.assertEqual(sum(c["split"] == "regression" for c in self.cases), 63)
+        self.assertEqual(sum(c["split"] == "regression" for c in self.cases), 69)
         reviewed = [c for c in self.cases if "pre_review_split_2026_10_21" in c]
         self.assertEqual(len(reviewed), 51)
         self.assertTrue(all(c["split"] == "regression" for c in reviewed))
-        self.assertEqual(sum(c["split"] == "holdout" for c in self.cases), 6)
+        self.assertEqual(sum(c["split"] == "holdout" for c in self.cases), 4)
         progress = [c for c in self.cases if "pre_progress_split_2026_10_21" in c]
         self.assertEqual(len(progress), 63)
-        self.assertEqual(sum(c["pre_progress_split_2026_10_21"] == "holdout" for c in progress), 12)
+        self.assertEqual(
+            sum(c["pre_progress_split_2026_10_21"] == "holdout" for c in progress), 12
+        )
         self.assertTrue(all(c["split"] == "regression" for c in progress))
         for journey in ("sre", "infrastructure", "change"):
             self.assertEqual(
@@ -70,7 +72,7 @@ class Contracts(unittest.TestCase):
                     c["split"] == "holdout" and c["journey"] == journey
                     for c in self.cases
                 ),
-                2,
+                2 if journey == "sre" else 1,
             )
         self.assertEqual(
             sum(c["baseline_split_2026_10_20"] == "holdout" for c in historical), 13
@@ -78,6 +80,21 @@ class Contracts(unittest.TestCase):
         self.assertTrue(
             any(c["expected"]["behaviour"] == "abstain" for c in self.cases)
         )
+
+    def test_new_holdout_rubrics_match_the_predevelopment_seal(self):
+        cases = [c for c in self.cases if c.get("sealed_split_2026_10_22") == "holdout"]
+        self.assertEqual(len(cases), 4)
+        self.assertEqual(
+            qualification.digest(
+                json.dumps(
+                    [c["expected"] for c in cases], ensure_ascii=False, sort_keys=True
+                ).encode()
+            ),
+            "31bc68ef5dba292e6e55a8f5051e7c0b6fb89bc721c5ead199ce5c63229463f7",
+        )
+        previous = [c for c in self.cases if "pre_personal_split_2026_10_22" in c]
+        self.assertEqual(len(previous), 69)
+        self.assertTrue(all(c["split"] == "regression" for c in previous))
 
     def test_empty_holdout_does_not_produce_vacuous_acceptance(self):
         with (
