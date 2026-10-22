@@ -262,3 +262,52 @@ def test_commandes_graphes_sans_alerte_dans_argv(moteur):
     assert approuver[-2:] == ["--reprendre", "oui"]
     assert refuser[-2:] == ["--reprendre", "non"]
     assert (moteur.racine / analyse["id"]).stat().st_mode & 0o777 == 0o700
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ignore_term", [False, True])
+async def test_cancel_after_leader_exit_closes_descendant_pipes_and_accepts_next_job(
+    moteur, monkeypatch, tmp_path, ignore_term
+):
+    import contextlib
+    import os
+    import signal
+
+    ready = tmp_path / "descendant-ready"
+    code = f"""import os, signal, sys, time
+from pathlib import Path
+sys.stdin.read()
+if os.fork() == 0:
+    if {ignore_term!r}:
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    Path({str(ready)!r}).write_text(str(os.getpid()))
+    time.sleep(60)
+    os._exit(0)
+print('{{"statut":"complet"}}', flush=True)
+"""
+    commande_python(monkeypatch, moteur, code)
+    await moteur.demarrer()
+    identifier = moteur.creer("Descendant fixture", "Synthetic", "cli")["id"]
+    process = await attendre_processus(moteur, identifier)
+    try:
+        async with asyncio.timeout(3):
+            while process.returncode is None or not ready.exists():
+                await asyncio.sleep(0.005)
+        assert moteur.inference.locked()
+        await moteur.annuler(identifier, "cli")
+        # The exited leader still owns descendant pipe writers. Cancellation
+        # must close them before releasing the serial engine to new work.
+        async with asyncio.timeout(2):
+            await moteur.file.join()
+        assert not moteur.inference.locked()
+        assert moteur.depot.obtenir(identifier)["statut"] == "annule"
+        commande_python(monkeypatch, moteur, 'print(\'{"statut":"complet"}\')')
+        next_id = moteur.creer("Next job", "Synthetic", "cli")["id"]
+        async with asyncio.timeout(3):
+            await moteur.file.join()
+        assert moteur.depot.obtenir(next_id)["statut"] == "complet"
+    finally:
+        # This is the group created by the fixture; never touch another job.
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(process.pid, signal.SIGKILL)
+        await moteur.fermer()

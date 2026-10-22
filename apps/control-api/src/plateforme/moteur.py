@@ -101,15 +101,23 @@ class Moteur:
 
     @staticmethod
     async def terminer(processus: asyncio.subprocess.Process) -> None:
-        if processus.returncode is None:
-            try:
-                os.killpg(processus.pid, signal.SIGTERM)
+        # The leader can exit while descendants still own its stdout/stderr.
+        # A return code therefore does not mean this owned process group is gone.
+        try:
+            os.killpg(processus.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            if processus.returncode is None:
                 await asyncio.wait_for(processus.wait(), 3)
-            except TimeoutError:
+        except TimeoutError:
+            pass
+        finally:
+            # Descendants must not outlive the command, including children that
+            # ignore SIGTERM after their leader has already been reaped.
+            with contextlib.suppress(ProcessLookupError):
                 os.killpg(processus.pid, signal.SIGKILL)
-                await processus.wait()
-            except ProcessLookupError:
-                pass
+        await processus.wait()
 
     def creer(self, titre: str, alerte: str, acteur: str, operation: str = "") -> dict:
         if self.file.full():

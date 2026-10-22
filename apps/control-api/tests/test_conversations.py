@@ -261,3 +261,53 @@ def test_spoken_reply_mode_is_strict_and_part_of_idempotency(client, bearer, mon
     assert calls == [True]
     assert client.post(url, headers=bearer, json={**body, "vocal": False}).status_code == 409
     assert client.post(url, headers=bearer, json={**turn(), "vocal": "true"}).status_code == 422
+
+
+def test_production_dialogue_rate_limit_and_recovery(
+    client, application, session, reply, monkeypatch
+):
+    import time
+    from types import SimpleNamespace
+
+    instant = 1000.0
+    legacy_calls = []
+
+    async def legacy_model(*args):
+        legacy_calls.append(True)
+        return {"texte": "Synthetic legacy answer", "local": True, "actions_executees": False}
+
+    monkeypatch.setattr("plateforme.app.dialoguer", legacy_model)
+    monkeypatch.setattr(
+        "plateforme.securite.time", SimpleNamespace(monotonic=lambda: instant, time=time.time)
+    )
+    identifier = client.post("/api/conversations", headers=session, json={}).json()["id"]
+    endpoint, body = f"/api/conversations/{identifier}/messages", turn()
+    legacy = {"messages": [{"role": "user", "content": "Synthetic legacy request"}]}
+    for index in range(8):
+        response = client.post(
+            "/api/assistant/dialogue" if index % 2 else endpoint,
+            headers=session,
+            json=legacy if index % 2 else body,
+        )
+        assert response.status_code == 200
+    assert len(reply) == 1  # Completed retries only replay stored state.
+    assert len(legacy_calls) == 4
+    instant += 59
+    denied = client.post(endpoint, headers=session, json=turn())
+    assert denied.status_code == 429
+    assert denied.headers["retry-after"] == "60"
+    assert client.post("/api/assistant/dialogue", headers=session, json=legacy).status_code == 429
+    assert len(reply) == 1
+    assert len(legacy_calls) == 4
+    assert (
+        client.get(f"/api/conversations/{identifier}", headers=session).json()["total_messages"]
+        == 2
+    )
+    instant += 2
+    assert client.post(endpoint, headers=session, json=turn()).status_code == 200
+    assert len(reply) == 2
+    assert (
+        client.get(f"/api/conversations/{identifier}", headers=session).json()["total_messages"]
+        == 4
+    )
+    assert not application.state.moteur.inference.locked()

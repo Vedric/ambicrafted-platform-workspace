@@ -54,3 +54,39 @@ def test_lectures_concurrentes_et_consistance(
     record_testsuite_property(
         "lecture_p95_ms", round(statistics.quantiles(latences, n=20)[18] * 1000, 1)
     )
+
+
+def test_concurrent_opposite_browser_decisions_enqueue_exactly_one(client, application, session):
+    from threading import Barrier
+
+    analysis = client.post(
+        "/api/analyses",
+        headers=session,
+        json={"titre": "Concurrent decisions", "alerte": "Synthetic"},
+    ).json()
+    # Only inference is absent: the real stored proposal, session/CSRF checks,
+    # compare-and-set transition and queue must arbitrate conflicting tabs.
+    application.state.depot.changer(analysis["id"], "en_attente_humain")
+    application.state.moteur.file.get_nowait()
+    application.state.moteur.file.task_done()
+    barrier = Barrier(2)
+
+    def decide(approve):
+        barrier.wait(timeout=3)
+        response = client.post(
+            f"/api/analyses/{analysis['id']}/decision",
+            headers=session,
+            json={"approuver": approve},
+        )
+        return approve, response.status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(decide, [True, False]))
+    assert sorted(status for _, status in results) == [202, 409]
+    winning_decision = next(approve for approve, status in results if status == 202)
+    assert application.state.moteur.file.qsize() == 1
+    assert application.state.moteur.file.get_nowait() == (analysis["id"], winning_decision)
+    application.state.moteur.file.task_done()
+    saved = client.get(f"/api/analyses/{analysis['id']}", headers=session).json()
+    assert saved["statut"] == "decision"
+    assert saved["rapport"] is None

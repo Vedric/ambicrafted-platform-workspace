@@ -33,6 +33,23 @@ class Failure(RuntimeError):
 
 
 def fixture(mode: str, decision: str) -> int:
+    if mode == "descendant":
+        # A failed model wrapper can exit while a child keeps the protocol pipes
+        # open. Handshake before exiting so cancellation also tests SIGTERM refusal.
+        read_fd, write_fd = os.pipe()
+        if os.fork() == 0:
+            os.close(read_fd)
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            Path(f"fixture-child-{os.getpid()}").touch(mode=0o600)
+            os.write(write_fd, b"1")
+            os.close(write_fd)
+            time.sleep(60)
+            os._exit(0)
+        os.close(write_fd)
+        os.read(read_fd, 1)
+        os.close(read_fd)
+        print(json.dumps({"statut": "complet"}), flush=True)
+        return 0
     if mode == "slow":
         time.sleep(30)
     if mode == "malformed":
@@ -94,7 +111,7 @@ def serve() -> None:
     class FixtureEngine(Moteur):
         def commande(self, analysis, decision):
             mode = analysis["titre"].split(":", 1)[0]
-            if mode not in {"normal", "slow", "malformed", "budget"}:
+            if mode not in {"normal", "slow", "malformed", "budget", "descendant"}:
                 raise ValueError("Unknown synthetic fixture")
             env = {k: v for k, v in os.environ.items() if k in {"PATH", "HOME", "LANG"}}
             return [
@@ -137,6 +154,8 @@ class Qualification:
         self.startups = 0
         self.samples: deque[dict] = deque(maxlen=3000)
         self.baseline: list[dict] = []
+        self.resource_peaks: dict[str, int] = {}
+        self.descendants_checked = 0
 
     def request(
         self, method: str, route: str, data=None, expected=(200,), authenticated=True
@@ -229,7 +248,7 @@ class Qualification:
         self.request("DELETE", "/api/analyses/" + identifier)
 
     def steady_cycle(self, number: int):
-        kind = number % 5
+        kind = number % 6
         identifier = self.create(
             "malformed"
             if kind == 3
@@ -237,6 +256,8 @@ class Qualification:
             if kind == 4
             else "slow"
             if kind == 2
+            else "descendant"
+            if kind == 5
             else "normal"
         )
         if kind in {0, 1}:
@@ -267,8 +288,15 @@ class Qualification:
                 require(
                     export["rapport"]["diagnostic"] is None, "Rejected diagnosis leaked"
                 )
-        elif kind == 2:
+        elif kind in {2, 5}:
             self.wait(identifier, {"en_cours"})
+            if kind == 5:
+                deadline = time.monotonic() + 3
+                while not list(self.root.glob("fixture-child-*")):
+                    require(
+                        time.monotonic() < deadline, "Descendant fixture did not start"
+                    )
+                    time.sleep(0.01)
             started = time.monotonic()
             self.request("POST", f"/api/analyses/{identifier}/annuler", {})
             self.wait(identifier, {"annule"})
@@ -320,6 +348,7 @@ class Qualification:
         assert self.process
         proc = Path(f"/proc/{self.process.pid}")
         sample = {"elapsed_s": round(time.monotonic() - self.started, 3)}
+        require(proc.exists(), "Disposable API unexpectedly exited")
         if proc.exists():
             fields = {
                 line.split(":", 1)[0]: line.split(":", 1)[1].strip()
@@ -331,6 +360,29 @@ class Qualification:
                 descriptors=len(list((proc / "fd").iterdir())),
                 threads=int(fields["Threads"]),
             )
+            for field in ("rss_kib", "descriptors", "threads"):
+                self.resource_peaks[field] = max(
+                    self.resource_peaks.get(field, 0), sample[field]
+                )
+        # Track children created by this fixture even after their exited leader
+        # makes them invisible in the API's current /proc children list.
+        for marker in self.root.glob("fixture-child-*"):
+            child = Path("/proc") / marker.name.removeprefix("fixture-child-") / "stat"
+            deadline = time.monotonic() + 2
+            while child.exists():
+                try:
+                    state = child.read_text().rsplit(")", 1)[1].split()[0]
+                except FileNotFoundError:
+                    break
+                if state == "Z":
+                    break  # Reparented zombies own no descriptors or execution.
+                require(
+                    time.monotonic() < deadline,
+                    "An owned descendant survived cancellation",
+                )
+                time.sleep(0.01)
+            marker.unlink()
+            self.descendants_checked += 1
         self.samples.append(sample)
         if len(self.baseline) < 5:
             self.baseline.append(sample)
@@ -340,9 +392,9 @@ class Qualification:
     def run(self, seconds: int, interval: float, output: Path):
         self.started = time.monotonic()
         result = {
-            "schema_version": 1,
+            "schema_version": 2,
             "generated_at": datetime.now(UTC).isoformat(),
-            "scope": "real HTTP/API/SQLite/queue/subprocess; deterministic inference; graceful restart",
+            "scope": "real HTTP/API/SQLite/queue/subprocess; deterministic inference; descendant failure; graceful restart",
             "requested_seconds": seconds,
             "model_calls": 0,
             "cycles": 0,
@@ -354,7 +406,7 @@ class Qualification:
             self.queue_and_restart()
             self.sample()
             number = 0
-            while time.monotonic() - self.started < seconds or number < 5:
+            while time.monotonic() - self.started < seconds or number < 6:
                 self.steady_cycle(number)
                 number += 1
                 result["cycles"] = number
@@ -382,9 +434,13 @@ class Qualification:
                     last - first < 64 * 1024, "RSS grew more than the 64 MiB envelope"
                 )
                 require(
-                    max(row["descriptors"] for row in samples)
+                    self.resource_peaks["descriptors"]
                     <= self.baseline[0]["descriptors"] + 24,
                     "File descriptor growth exceeded envelope",
+                )
+                require(
+                    self.resource_peaks["threads"] <= self.baseline[0]["threads"] + 4,
+                    "Thread growth exceeded envelope",
                 )
             self.queue_and_restart()
             self.sample()
@@ -398,12 +454,27 @@ class Qualification:
                 self.stop()
             except Failure as error:
                 result.update(passed=False, failure=str(error))
+            # A failed cancellation probe must not leave its fixture running.
+            # Check its private cwd before touching a PID from an owned marker.
+            for marker in self.root.glob("fixture-child-*"):
+                pid = int(marker.name.removeprefix("fixture-child-"))
+                try:
+                    if Path(f"/proc/{pid}/cwd").resolve(strict=True) == self.root:
+                        os.kill(pid, signal.SIGKILL)
+                        result.update(
+                            passed=False,
+                            failure="Owned descendant required emergency cleanup",
+                        )
+                except (FileNotFoundError, ProcessLookupError):
+                    pass
             result.update(
                 duration_s=round(time.monotonic() - self.started, 3),
                 http_requests=self.requests,
                 startups=self.startups,
                 samples=list(self.samples),
                 resource_baseline=self.baseline,
+                resource_peaks=self.resource_peaks,
+                descendants_checked=self.descendants_checked,
             )
             if self.latencies:
                 ordered = sorted(self.latencies)
