@@ -146,6 +146,22 @@ class ScannerTests(unittest.TestCase):
         )
         self.assertEqual(len(list(self.output.glob("trivy-*.json"))), 7)
 
+    def test_rust_build_headroom_does_not_extend_pulls_or_other_images(self) -> None:
+        for service, context, expected in (
+            ("qdrant", self.root, 2700),
+            ("qdrant", None, 1800),
+            ("postgres", self.root, 1800),
+        ):
+            with self.subTest(service=service, context=context):
+                target = scanner.Target(service, "example/image:1", context)
+                with patch.object(scanner, "command", return_value="timeout") as run:
+                    result = scanner.scan(target, "/verified/trivy", self.output, self.cache)
+                self.assertEqual(run.call_count, 1)
+                self.assertEqual(run.call_args.args[1], expected)
+                self.assertEqual(result.status, "erreur")
+                self.assertIsNone(result.report)
+                self.assertIn("timeout", result.error)
+
     def test_failure_diagnostic_is_bounded_redacted_and_drops_credentials(self) -> None:
         diagnostic = self.root / "failure.log"
         marker = "synthetic-private-credential-123"

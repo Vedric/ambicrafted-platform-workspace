@@ -12,7 +12,7 @@ Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
 Console **0.5.0**, control API **0.5.0**, SRE workflow **0.2.0**, local speech
-runtime **0.3.3**. The [21 October qualification](docs/QUALIFICATION-2026-10-21.md)
+runtime **0.3.3**. The [22 October qualification](docs/QUALIFICATION-2026-10-22.md)
 tracks this candidate, its validation and remaining conditions. This is a
 private, single-operator workspace; it is not a multi-tenant commercial service
 or a zero-vulnerability certification. Earlier
@@ -30,6 +30,8 @@ This version adds [saved conversations and documents](docs/CONVERSATIONS.md),
 [dedicated graph memory](docs/MEMORY.md), the [NEXUS MCP gateway](docs/MCP-GATEWAY.md),
 more natural bilingual speech with English technical pronunciation, and an original
 quiet instrumental. Background music yields to AURA and mutes during recording.
+
+[Documentation index](docs/README.md) · [First personal session](docs/PERSONAL-USE.md) · [Measured qualification](docs/QUALIFICATION-2026-10-22.md)
 
 ## Private console, CLI and voice
 
@@ -146,7 +148,7 @@ See [the architecture guide](docs/ARCHITECTURE.md#operational-charts-and-interac
 | MCP runbooks | Four bounded, read-only tools |
 | SRE loop / LangGraph | Local analysis; the graph adds durable human approval |
 | Tempo, Prometheus, Grafana | Local traces, metrics, availability rules and dashboard |
-| Local workflow qualification | 69 synthetic cases through the real graph/MCP: 63 regressions, 6 new holdouts; contracts and substantive review are distinct |
+| Local workflow qualification | 73 consumed synthetic regression cases through the real graph/MCP; no unseen holdouts remain; contracts and substantive review are distinct |
 | React / FastAPI console | Authenticated local workspace, bounded jobs, SSE and approvals |
 | Unified CLI / NEXUS MCP | Operator commands, 20 readiness checks, four runbook and eleven read-only control tools |
 | Multilingual ONNX speech / faster-whisper | Offline English/French female speech and transcription on CPU |
@@ -266,7 +268,7 @@ missed calendar events are caught up through `Persistent=true`.
 - [Contributing and checks](CONTRIBUTING.md)
 - [Remaining dependency risks](docs/DEPENDENCIES.md)
 
-The [current qualification](docs/QUALIFICATION-2026-10-20.md) records the tested
+The [current qualification](docs/QUALIFICATION-2026-10-22.md) records the tested
 scope and remaining release gates. Private supervised use, functional CI,
 vulnerability remediation and production acceptance are separate conclusions.
 Readiness checks do not establish high availability, exhaustive incident coverage
@@ -275,4 +277,6 @@ dates and must not be used as current scan results.
 
 License: Apache-2.0 for project code. Third-party components retain their own
 licenses; see the [diagram layout notice](apps/console/public/notices/README.txt)
-and [audio notices](apps/console/public/audio/NOTICE.md).
+and [audio notices](apps/console/public/audio/NOTICE.md). The browser notices also
+include the exact Manrope and JetBrains Mono font licenses. A source release does
+not redistribute private runtime images, model weights or operator data.

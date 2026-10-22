@@ -1,8 +1,45 @@
 # Qualified LiteLLM derivative
 
+## Available native-library fixes — 2026-10-22
+
+The `1.104.4-stable-security.20261022.2` derivative upgrades only the four
+installed Wolfi glibc packages from **2.44-r6 to 2.44-r8**, retaining the CA
+and PDF corrections below. Wolfi's [primary security feed](https://packages.wolfi.dev/os/security.json)
+identifies fixes for CVE-2026-8674, CVE-2026-86805, CVE-2026-89092 and
+CVE-2026-95818. They concern resolver, loader and local process behavior;
+the previous sixteen MEDIUM occurrences were four advisories across four
+packages. Their severity was not a reason to leave compatible fixes unapplied.
+
+All four APK archives are pinned by exact URL and SHA-256 in the Dockerfile.
+Wolfi authenticates these archives through its **signed repository index**;
+they do not carry individual APK signatures. APK verifies the index using
+the base image's trusted public keys and authenticates each archive against
+that index. Installation uses a local build-only repository with networking
+disabled. There is no `--allow-untrusted`. A negative check with an empty
+key directory refuses the same repository. The signed index is fetched at
+build time, so removal of a pinned package by the vendor fails the build.
+
+Exact qualified local image:
+`sha256:e35ae0923cb2390347ef3ecec1db023325c28f20059e19f151664ca4f3b0fffc`.
+The same 22 October Trivy database reports **zero findings at all five
+severities**. All 3,515 non-bytecode LiteLLM files match the preceding image;
+the exact native CA bundle, 118 effective OpenSSL anchors and 63 installed
+pypdf wheel files also pass their independent checks. The isolated gateway
+qualifier passes authentication, restricted aliases, key migration, streaming,
+embeddings, structured output, restart, logical rollback and cleanup using
+the corrected PostgreSQL derivative. These are dated local results, not a
+promise that future advisories will remain absent.
+
+```sh
+docker buildx build --load --platform linux/amd64 \
+  --build-context trust-policy=gateway/images/trust-policy \
+  --tag ambicrafted/litellm:1.104.4-stable-security.20261022.2 \
+  gateway/images/litellm
+```
+
 ## PDF dependency correction — 2026-10-22
 
-The current `1.104.4-stable-security.20261022.1` build also upgrades
+The earlier `1.104.4-stable-security.20261022.1` build also upgrades
 `pypdf` **6.19.0 → 6.21.1**. The same version is pinned in the control API.
 The official advisories cover excessive stream-filter memory consumption,
 truncated-xref and cyclic-tree loops, and selection of an unintended Pillow

@@ -44,8 +44,9 @@ uv run --project apps/voice --locked voix-locale statut
 uv run --project apps/voice --locked voix-locale statut --langue fr
 ```
 
-Installation downloads approximately 2.194 GB of public model files
-(1.530 GB additional for the previous bilingual installation). It requires
+The current manifest contains 14 unique public model files totaling
+2,343,252,518 bytes (about 2.35 GB, or 2.18 GiB). Shared aliases reuse the same
+files; obsolete cached weights are not part of this inventory. Installation requires
 network access only for this explicit step. The package's
 `src/voix_locale/modeles.json` records immutable upstream revisions, exact byte
 counts, SHA-256 checksums, aliases and attribution. Downloads are written to

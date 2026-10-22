@@ -33,23 +33,24 @@ The dashboard and rules are versioned under `gateway/observability`. Rules
 create local alerts; no Slack, email or other notification destination is
 configured. Configure a destination only after deciding what metadata may leave.
 
-The [21 October candidate qualification](QUALIFICATION-2026-10-21.md) records the
-corrected images and current evidence. Its eight-image clean-clone scan has
-zero CRITICAL/HIGH; 42 MEDIUM, 12 LOW and six UNKNOWN occurrences remain visible.
-The subsequent Qdrant security update was installed and verified on 21 October:
-its fresh local scan reports zero CRITICAL/HIGH, 42 MEDIUM, 12 LOW and seven
-UNKNOWN occurrences across the eight images. The earlier six-UNKNOWN snapshot
-is retained as historical evidence; counts must not be mixed across scans.
-Application CI on source `f5ba5017040c27b46c3e12bf1984268ee58b8833` passed eight
-jobs; its targeted Qdrant image job also passed. This does not turn the older
-failed release run into a successful release. See [CI operations](CI.md).
-The former 57 HIGH findings in the [20 October assessment](QUALIFICATION-2026-10-20.md)
-are historical. Neither a scan nor a green readiness page establishes
-that the running workstation has been upgraded. Final-image checks and the
-separate deployment/recovery gates still apply. The host's certificate store
-also needs its own [administrative verification](HOST-TOOLS.md#host-certificate-trust-and-uv).
-The [26 September assessment](SECURITY-RELEASE-2026-09-26.md), including its
-166 HIGH count and conditional private-workstation decision, remains historical.
+The [22 October candidate qualification](QUALIFICATION-2026-10-22.md) records
+the source freeze and local tests. Its final eight-image local scan reports zero
+CRITICAL/HIGH, 23 MEDIUM, 9 LOW and 5 UNKNOWN occurrences against the database
+updated at 07:10:52 UTC that day. Exact hosted qualification and installed revision
+belong to the release evidence; a green readiness page does not prove either.
+The earlier dated reports retain their original counts and failed runs. An older
+failed release tag is never relabelled as a success after a later correction.
+The host certificate store needs separate
+[administrative verification](HOST-TOOLS.md#host-certificate-trust-and-uv).
+
+Seven image derivatives changed in this campaign; Tempo's local identity is
+retained. The qualification records all eight exact local tags and IDs, including
+Qdrant `1.19.2-security.20261022-r4`. Its functional runtime checks used Docker's
+default seccomp; a separate upstream io_uring test profile is not a deployment
+setting. Its measured Docker build took 14 minutes 52.8 seconds with an 8.8203 GiB
+Rust compiler cgroup peak, including file cache and with unchanged stages cached.
+Reserve the documented build resources and preserve a recoverable previous data
+generation before updating services. See [compatible image fixes](adr/0052-correctifs-images-compatibles.md).
 
 The manual/weekly [image security workflow](../.github/workflows/images-security.yml)
 builds and scans eight images in independent jobs: the six core services, the

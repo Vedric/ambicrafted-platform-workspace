@@ -18,7 +18,7 @@ RUN --network=none --mount=type=bind,from=wheels,source=/patch,target=/patch,ro 
       --require-hashes --no-deps -r /patch/requirements.txt \
     && /app/.venv/bin/python -c "import aiohttp, yarl, litellm, pypdf; assert aiohttp.__version__ == '3.14.4'; assert yarl.__version__ == '1.25.1'; assert pypdf.__version__ == '6.21.1'" \
     && /app/.venv/bin/python /patch/verify_certifi.py
-LABEL org.opencontainers.image.version="1.104.4-stable-security.20261022.1" \
+LABEL org.opencontainers.image.version="1.104.4-stable-security.20261022.2" \
       org.opencontainers.image.source="https://github.com/BerriAI/litellm"
 
 # Shared, build-only trust policy. No helper/toolchain enters the runtime.
@@ -31,6 +31,16 @@ COPY --from=trust-policy distrust.go distrust_test.go distrusted-emsign-g3.crt V
 RUN --network=none go test -count=1 -v distrust.go distrust_test.go \
     && go build -trimpath -buildvcs=false -o /policy/distrust distrust.go
 
+# Wolfi authenticates these packages through its signed index. APK verifies
+# that signature with the base image keys and matches each package checksum.
+# APK bytes are additionally SHA-256 pinned; installation has no network.
+FROM scratch AS os-packages
+ADD https://packages.wolfi.dev/os/x86_64/APKINDEX.tar.gz /packages/x86_64/APKINDEX.tar.gz
+ADD --checksum=sha256:e38603061dbeea4a647b2d46d454c954e8af89a495f9b2c07b51b590995a7da0 https://packages.wolfi.dev/os/x86_64/glibc-2.44-2.44-r8.apk /packages/x86_64/glibc-2.44-2.44-r8.apk
+ADD --checksum=sha256:fb171f1e6f2ab314b5964e5b1ba5dbabf42ace912744e02c206f7d4bff32b284 https://packages.wolfi.dev/os/x86_64/glibc-2.44-locale-posix-2.44-r8.apk /packages/x86_64/glibc-2.44-locale-posix-2.44-r8.apk
+ADD --checksum=sha256:e0c7e3b457c86a7d672a339a166ee13959356ac8a5b19ab4af5a771fee6c699f https://packages.wolfi.dev/os/x86_64/ld-linux-2.44-2.44-r8.apk /packages/x86_64/ld-linux-2.44-2.44-r8.apk
+ADD --checksum=sha256:553ebdf51c301926dcb62e43396a550a5bfa8f7f5ce0544d59efc91356149695 https://packages.wolfi.dev/os/x86_64/libcrypt1-2.44-2.44-r8.apk /packages/x86_64/libcrypt1-2.44-2.44-r8.apk
+
 FROM application
 USER 0
 # Adopt Wolfi's signed package correction for CVE-2026-111943. APK validates
@@ -39,6 +49,10 @@ RUN --mount=type=bind,from=wheels,source=/patch,target=/patch,ro \
     apk add --no-cache --repositories-file /dev/null --repository https://packages.wolfi.dev/os \
       --upgrade ca-certificates-bundle=20260909-r3 \
     && /app/.venv/bin/python /patch/verify_system_trust.py
+RUN --network=none --mount=type=bind,from=os-packages,source=/packages,target=/packages,ro \
+    apk add --no-network --no-cache --repositories-file /dev/null --repository /packages \
+      --upgrade glibc-2.44=2.44-r8 glibc-2.44-locale-posix=2.44-r8 \
+      ld-linux-2.44=2.44-r8 libcrypt1-2.44=2.44-r8
 # The independently verified native bundle already excludes G3. The shared
 # check still refuses an invalid/empty store or any remaining G3 anchor.
 RUN --network=none --mount=type=bind,from=trust-tools,source=/policy,target=/policy,ro ["/policy/distrust", "--native-prepared", "-report", "/usr/share/ambicrafted/ca-distrust.json"]

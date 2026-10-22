@@ -1,5 +1,38 @@
 # Grafana private security distribution
 
+## Available native-library fixes — 2026-10-22
+
+The `13.2.4-security.20261022.2` derivative upgrades only Alpine musl and
+musl-utils from **1.2.6-r2 to 1.2.6-r3**, the correction for
+CVE-2026-107891 recorded by the [Alpine 3.24 security feed](https://secdb.alpinelinux.org/v3.24/main.json).
+The exact official APK archives are pinned by URL and SHA-256, their
+signatures are verified using the base image keys, and installation runs
+without network access. An empty key directory causes verification to fail.
+Grafana, the two signed plugin bundles and their source/provenance files
+are unchanged: 491 files match the previous image byte for byte.
+
+Exact qualified local image:
+`sha256:74e980c0c95cd1c5367882183adf1d80f60e0175e0df5ab7ea7b1491b483399d`.
+The 22 October Trivy database reports 0 CRITICAL, HIGH, MEDIUM or LOW and
+one UNKNOWN finding, [GO-2026-5932](https://pkg.go.dev/vuln/GO-2026-5932).
+That module-level advisory has no fixed version and concerns the deprecated
+`golang.org/x/crypto/openpgp` package. The compiled Grafana package closure
+excludes that package; the module is retained for other cryptography.
+The finding remains visible rather than being suppressed.
+
+The isolated functional qualifier passes authentication, both plugin
+signatures, twelve provisioned dashboards, 103 panel queries, 90 rules,
+Prometheus and Tempo queries, TraceQL, exemplars, the service graph and
+cleanup. The browser rendering test was not repeated for this libc-only
+change; backend, plugin and frontend bytes remain identical.
+
+```sh
+docker buildx build --load --platform linux/amd64 \
+  --build-context trust-policy=gateway/images/trust-policy \
+  --tag ambicrafted/grafana:13.2.4-security.20261022.2 \
+  gateway/images/grafana
+```
+
 ## Targeted trust correction — 2026-10-21
 
 The current dated image additionally distrusts the exact compromised emSign ECC

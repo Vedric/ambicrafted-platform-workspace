@@ -1,14 +1,42 @@
 # Dependency review
 
 The current candidate inventory and remaining release gates are documented in
-[the 21 October candidate qualification](QUALIFICATION-2026-10-21.md). The latest
-eight-image scan from clean commit `8f31ccbe` reports zero CRITICAL/HIGH, with 42 MEDIUM,
-12 LOW and six UNKNOWN package/advisory occurrences still visible. Grafana's
-plugin and Qdrant's frontend corrections are qualified separately; the release
-gate still rejects any CRITICAL/HIGH or incomplete scan against the final
-artifacts. A local scan does not establish live deployment or hosted
-release acceptance. Application Python and npm audits are separate image-scan
-inputs, not substitutes for those scans.
+[the 22 October candidate qualification](QUALIFICATION-2026-10-22.md). The local
+eight-image inventory qualified on 22 October reports zero CRITICAL/HIGH, with
+23 MEDIUM, 9 LOW and 5 UNKNOWN package/advisory occurrences. Scanner database:
+22 October 07:10:52 UTC. The release gate still rejects CRITICAL/HIGH and incomplete
+scans against rebuilt artifacts; its database and counts can differ from this
+local snapshot. Python audits reject every reported advisory; npm gates reject
+MODERATE or higher findings. Both remain separate from image scans, and all
+findings remain visible. A local result proves neither deployment
+nor a completed hosted release.
+
+The targeted corrections adopt Wolfi's signed native CA package
+`20260909-r3` in LiteLLM and pypdf `6.21.1` in both the API and LiteLLM. The five
+pypdf advisories were four MEDIUM and one LOW in Trivy, which explains why the
+Python audit rejected a package below the image gate's CRITICAL/HIGH threshold.
+No finding was suppressed. See [ADR 0049](adr/0049-paquet-ca-wolfi-natif.md) and
+the current qualification for package/image identities, functional tests and
+remaining findings. The later compatible fixes update LiteLLM's four glibc
+packages, PostgreSQL's musl/zlib and two gosu modules, Grafana's musl, and Neo4j's
+aligned JLine family. Qdrant r4 rebuilds its pinned server with three corrected
+Rust dependencies, retains the rebuilt dashboard and complete native CA store,
+and regenerates inventories from the actual artifacts. Prometheus and the metrics
+exporter also remove the exact Comodo AAA trust anchor. These image corrections
+do not update the host trust store. [ADR 0052](adr/0052-correctifs-images-compatibles.md)
+records the compatibility decision; the qualification contains every final local
+tag and image ID. Earlier intermediate images remain historical evidence.
+
+The final 23 MEDIUM and eight of the nine LOW occurrences belong to Qdrant r4;
+that database offers no fixed version for them. Neo4j retains one LOW record,
+CVE-2026-1337, alongside the vendor's documented LTS backport; the scanner's
+listed fix is in a different release branch. The five UNKNOWN occurrences are
+GO-2026-5932 module-inventory records: Grafana one, Prometheus two, the metrics
+exporter one and Tempo one. No fixed module version is listed. Grafana's compiled
+package closure excludes the deprecated OpenPGP package named by the advisory;
+that narrower finding is not a blanket non-applicability claim for every image.
+UNKNOWN does not mean low risk. Full findings remain visible without suppression.
+
 The [29 September assessment](SECURITY-2026-09-29.md),
 [27 September review](SECURITY-REFINEMENT-2026-09-27.md) and figures below are
 historical snapshots, not the current image inventory.
@@ -51,7 +79,7 @@ primary advisories, exact artifacts, applicability limits, remediation prioritie
 and scan provenance. All findings remain visible; no scanner suppression or
 blanket risk waiver was added. That historical review requested reassessment by
 2026-10-10; the current reassessment is recorded in
-[the 21 October qualification](QUALIFICATION-2026-10-21.md). Repeat scans after
+[the 22 October qualification](QUALIFICATION-2026-10-22.md). Repeat scans after
 each image change and before release.
 
 Loopback bindings, authenticated console, private files and
@@ -86,11 +114,18 @@ explicitly recorded as absent; this provenance file alone never establishes a
 complete or successful scan.
 
 Source rebuilds can exceed a hosted runner's initial free disk space. For the
-Grafana, Prometheus and Tempo jobs only, the workflow verifies that it is on a
+Grafana, Prometheus, Tempo and Qdrant jobs only, the workflow verifies that it is on a
 disposable GitHub-hosted Linux runner, removes four unused preinstalled SDK
 directories, records disk capacity and requires at least 25 GiB free before
 building. It does not clean Docker resources or apply this preparation to a
-workstation or self-hosted runner. A resource failure still fails qualification.
+workstation or self-hosted runner. Qdrant additionally requires 12 GiB RAM and
+retains a 45-minute build ceiling inside the 60-minute job. The local r4 Docker
+command took 14 minutes 52.8 seconds, with a Rust compiler cgroup peak of
+8.8203 GiB including file cache. Its Rust stages compiled from source; unchanged
+dashboard, healthcheck and trust-helper stages used cache. This does not measure
+a fully uncached or hosted build. A resource failure still fails qualification.
+
+<a id="evaluation-dependency-correction--2026-09-29"></a>
 
 ## Historical evaluation dependency correction — 2026-09-29
 

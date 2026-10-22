@@ -40,7 +40,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Space for source rebuilds on disposable hosted runners
-        if: contains(fromJSON('["grafana", "prometheus", "tempo"]'), matrix.service)
+        env:
+          IMAGE_SERVICE: ${{ matrix.service }}
+        if: contains(fromJSON('["grafana", "prometheus", "tempo", "qdrant"]'), matrix.service)
         shell: bash
         run: |
           set -euo pipefail
@@ -48,6 +50,16 @@ jobs:
           # Never apply this preparation to a workstation or self-hosted runner.
           test "$RUNNER_ENVIRONMENT" = github-hosted
           test "$RUNNER_OS" = Linux
+          if test "$IMAGE_SERVICE" = qdrant; then
+            # Measured native release LTO needs headroom for concurrent build stages.
+            # Public standard Linux runners have 16 GiB; private 8 GiB is insufficient
+            # for the qualified headroom. Fail before installing/building anything.
+            qdrant_memory_kib=$(awk '/^MemTotal:/ { print $2 }' /proc/meminfo)
+            if test "$qdrant_memory_kib" -lt 12582912; then
+              printf '%s\n' 'Qdrant source qualification requires at least 12 GiB RAM.' >&2
+              exit 1
+            fi
+          fi
           df -h /
           sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /usr/share/swift /opt/ghc
           df -h /

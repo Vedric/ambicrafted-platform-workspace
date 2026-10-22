@@ -1,5 +1,31 @@
 # Dedicated graph-memory image
 
+## JLine security correction — 2026-10-22
+
+The current image `ambicrafted/neo4j:5.26.32-memory.20261022` updates the three
+installed JLine modules to 3.30.15, together with their declared `jline-native`
+3.30.15 and Jansi 2.4.3 dependencies. These are complete official Maven Central
+artifacts, checked against upstream SHA-512 and pinned by SHA-256 in the build.
+Installed JAR bytes match the five downloaded artifacts. No classes, licenses or
+vulnerability records are rewritten.
+
+[JLine's security advisory](https://github.com/jline/jline3/security/advisories/GHSA-5q95-hrpc-m3w3)
+identifies a configuration-triggered regular-expression denial of service.
+`VerifyJline.java` checks the actual installed history matcher: regex syntax is
+literal, intended wildcards still work, and a long nonmatching entry terminates.
+The original image fails the regex counterexample; the corrected image passes.
+The build runs this test without network access. Separate checks cover
+`cypher-shell --version`, `neo4j-admin --version`, dump help, authenticated memory
+operations, restart persistence, and logical restore into both images.
+
+The 22 October scan reports **0 CRITICAL, 0 HIGH, 0 MEDIUM and 1 LOW**. The LOW
+record is CVE-2026-1337: [Neo4j's 5.26.31 release notes](https://neo4j.com/release-notes/database/neo4j-5-26-31/)
+state that the fix was backported before the installed 5.26.32. Trivy's Maven
+record lists only the newer calendar-version fix. Preserve this raw finding and
+its vendor evidence; no scanner suppression or independent exploit-validation
+claim is made. A major database migration solely to change that version match
+would add compatibility risk without demonstrating a missing fix.
+
 ## Targeted trust correction — 2026-10-21
 
 The current dated image additionally distrusts the exact compromised emSign ECC
@@ -61,12 +87,12 @@ maintained/tested runtime; do not bypass the audit to claim universal portabilit
 From the repository root, with the current control API environment synchronized:
 
 ```sh
-docker build --build-context trust-policy=gateway/images/trust-policy --tag ambicrafted/neo4j:5.26.32-memory.20261021 gateway/images/neo4j
+docker build --build-context trust-policy=gateway/images/trust-policy --tag ambicrafted/neo4j:5.26.32-memory.20261022 gateway/images/neo4j
 uv run --project apps/control-api --no-sync python gateway/images/neo4j/qualifier.py \
   --old-image ambicrafted/neo4j:5.26.31-security.20260927 \
-  --new-image ambicrafted/neo4j:5.26.32-memory.20261021
+  --new-image ambicrafted/neo4j:5.26.32-memory.20261022
 uv run --project apps/control-api --no-sync python scripts/exercer_recuperation.py \
-  --neo4j-image ambicrafted/neo4j:5.26.32-memory.20261021
+  --neo4j-image ambicrafted/neo4j:5.26.32-memory.20261022
 ```
 
 The migration exercise creates a unique disposable named volume, starts the old

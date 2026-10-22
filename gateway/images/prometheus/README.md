@@ -1,5 +1,16 @@
 # Prometheus security rebuild
 
+## Additional native trust correction — 22 October 2026
+
+The current dated image also removes the exact Comodo AAA root required by
+[DSA-6572-1](https://www.debian.org/security/2026/dsa-6572), after the earlier G3
+correction. All other anchors and application executable bytes are unchanged.
+The effective bundle now contains 148 roots; native Go verification accepts AAA
+in the previous image and refuses it in the corrected image, while the unrelated
+control remains accepted. See the [shared policy](../trust-policy/README.md) for
+both fingerprints, provenance and the distinction from a native package update.
+No finding or package inventory is suppressed.
+
 ## Targeted trust correction — 2026-10-21
 
 The current dated image additionally distrusts the exact compromised emSign ECC
@@ -23,10 +34,10 @@ Upstream configuration, rule and HTTP API tests run with the race detector befor
 building. The repository's alert-rule tests remain a separate functional check.
 
 ```sh
-docker buildx build --load --build-context trust-policy=gateway/images/trust-policy -t ambicrafted/prometheus:3.15.0-security.20261021 gateway/images/prometheus
+docker buildx build --load --build-context trust-policy=gateway/images/trust-policy -t ambicrafted/prometheus:3.15.0-security.20261022 gateway/images/prometheus
 docker run --rm --entrypoint promtool \
   --mount "type=bind,source=$PWD/gateway/observability,target=/work,readonly" \
-  --workdir /work ambicrafted/prometheus:3.15.0-security.20261021 test rules alerts.test.yml
+  --workdir /work ambicrafted/prometheus:3.15.0-security.20261022 test rules alerts.test.yml
 ```
 
 The 20 October candidate scan found 0 CRITICAL / 0 HIGH, with two UNKNOWN

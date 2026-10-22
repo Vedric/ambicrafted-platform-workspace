@@ -12,8 +12,9 @@ RUN test "$(uname -m)" = x86_64 \
 
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOTOOLCHAIN=local
 WORKDIR /src
-# Preserve upstream dependency versions and symbol tables for vulnerability
-# analysis. Do not use -s, as documented by gosu's official build instructions.
+# Preserve gosu source and symbol tables, with two explicit dependency fixes.
+# Do not use -s, as documented by gosu's official build instructions.
+COPY go.mod go.sum ./
 RUN /usr/local/go/bin/go mod download \
     && /usr/local/go/bin/go mod verify \
     && /usr/local/go/bin/go test -mod=readonly ./... \
@@ -41,8 +42,18 @@ COPY --from=trust-policy distrust.go distrust_test.go distrusted-emsign-g3.crt V
 RUN --network=none go test -count=1 -v distrust.go distrust_test.go \
     && go build -trimpath -buildvcs=false -o /policy/distrust distrust.go
 
+# Alpine's signed libc and compression fixes. PostgreSQL itself is unchanged.
+FROM scratch AS os-packages
+ADD --checksum=sha256:e142255d0fa397f14318996bc10378093dcc069dc3dd1b6818c8f28a789c21da https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/musl-1.2.6-r3.apk /packages/musl.apk
+ADD --checksum=sha256:47263d05842c5e12d01e0369e5b5bea51733323501c00ca21968a5102de137ca https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/musl-utils-1.2.6-r3.apk /packages/musl-utils.apk
+ADD --checksum=sha256:63aeea03c15a2f9018f81805cfc8aa926bdf5cd68921f22149c2fbb5d0ee9f47 https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/zlib-1.3.2-r1.apk /packages/zlib.apk
+
 FROM application
 USER 0
+RUN --network=none --mount=type=bind,from=os-packages,source=/packages,target=/packages,ro \
+    apk verify /packages/*.apk \
+    && apk add --no-network --no-cache --repositories-file /dev/null /packages/*.apk
 RUN --network=none --mount=type=bind,from=trust-tools,source=/policy,target=/policy,ro ["/policy/distrust", "-report", "/usr/share/ambicrafted/ca-distrust.json"]
 LABEL org.ambicrafted.trust.distrusted-sha256="86a1ecba089c4a8d3bbe2734c612ba341d813e043cf9e8a862cd5c57a36bbe6b"
+LABEL org.opencontainers.image.version="16.15-alpine-security.20261022.2"
 USER 0

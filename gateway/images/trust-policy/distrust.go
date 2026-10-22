@@ -1,4 +1,4 @@
-// Build-only distrust of the exact emSign ECC G3 trust anchor.
+// Build-only distrust of one explicitly selected, fingerprint-pinned trust anchor.
 // No package inventory, certificate verification setting or other root is removed.
 package main
 
@@ -22,6 +22,8 @@ import (
 
 const distrusted = "86a1ecba089c4a8d3bbe2734c612ba341d813e043cf9e8a862cd5c57a36bbe6b"
 
+const distrustedAAA = "d7a7a0fb5d7e2731d771e9484ebcdef71d5f0c3e0a2948782bc83ee0ea699ef4"
+
 var certificate = regexp.MustCompile(`(?s)-----BEGIN (?:TRUSTED )?CERTIFICATE-----.*?-----END (?:TRUSTED )?CERTIFICATE-----`)
 
 func fingerprint(block []byte) (string, error) {
@@ -40,6 +42,10 @@ func fingerprint(block []byte) (string, error) {
 }
 
 func filter(input []byte) ([]byte, []string, int, error) {
+	return filterPinned(input, distrusted)
+}
+
+func filterPinned(input []byte, pinned string) ([]byte, []string, int, error) {
 	var output []byte
 	var preserved []string
 	removed, cursor := 0, 0
@@ -50,7 +56,7 @@ func filter(input []byte) ([]byte, []string, int, error) {
 		if err != nil {
 			return nil, nil, 0, err
 		}
-		if hash == distrusted {
+		if hash == pinned {
 			removed++
 		} else {
 			preserved = append(preserved, hash)
@@ -72,7 +78,14 @@ type Report struct {
 }
 
 func apply(root, bundle string, allowPrepared bool) (Report, error) {
-	report := Report{Fingerprint: distrusted}
+	return applyPinned(root, bundle, allowPrepared, distrusted)
+}
+
+func applyPinned(root, bundle string, allowPrepared bool, pinned string) (Report, error) {
+	report := Report{Fingerprint: pinned}
+	if pinned != distrusted && pinned != distrustedAAA {
+		return report, errors.New("unreviewed distrust fingerprint")
+	}
 	root, err := filepath.Abs(root)
 	if err != nil {
 		return report, err
@@ -147,7 +160,7 @@ func apply(root, bundle string, allowPrepared bool) (Report, error) {
 		if readErr != nil {
 			return report, readErr
 		}
-		output, preserved, removed, filterErr := filter(input)
+		output, preserved, removed, filterErr := filterPinned(input, pinned)
 		if filterErr != nil {
 			return report, fmt.Errorf("%s: %w", path, filterErr)
 		}
@@ -166,7 +179,7 @@ func apply(root, bundle string, allowPrepared bool) (Report, error) {
 			if err = os.WriteFile(path, output, info.Mode().Perm()); err != nil {
 				return report, err
 			}
-			_, after, remains, verifyErr := filter(output)
+			_, after, remains, verifyErr := filterPinned(output, pinned)
 			if verifyErr != nil || remains != 0 || !slices.Equal(after, preserved) {
 				return report, errors.New("unrelated roots changed")
 			}
@@ -202,7 +215,7 @@ func apply(root, bundle string, allowPrepared bool) (Report, error) {
 	if err != nil {
 		return report, err
 	}
-	_, roots, remains, err := filter(input)
+	_, roots, remains, err := filterPinned(input, pinned)
 	if err != nil || remains != 0 || len(roots) == 0 {
 		return report, errors.New("effective CA bundle is invalid")
 	}
@@ -217,9 +230,10 @@ func main() {
 	root := flag.String("root", "/", "Root of the image filesystem")
 	bundle := flag.String("bundle", "/etc/ssl/certs/ca-certificates.crt", "Mandatory effective CA bundle")
 	prepared := flag.Bool("native-prepared", false, "Native distrust was already applied and independently verified")
+	pinned := flag.String("fingerprint", distrusted, "Reviewed DER SHA-256 (emSign G3 by default; Comodo AAA explicitly)")
 	reportPath := flag.String("report", "", "Optional public provenance report")
 	flag.Parse()
-	report, err := apply(*root, *bundle, *prepared)
+	report, err := applyPinned(*root, *bundle, *prepared, *pinned)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -1,5 +1,16 @@
 # Qdrant residual Rust LOW review — 2026-10-21
 
+> Historical review, retained unchanged below. Its recommendation to defer a
+> source rebuild is superseded on 22 October by
+> [ADR 0052](../../../docs/adr/0052-correctifs-images-compatibles.md).
+> The qualified `1.19.2-security.20261022-r4` image rebuilds the real server with
+> rand 0.8.6/0.9.3 and xxhash-rust 0.8.16, regenerates the complete Rust inventory,
+> and removes all three occurrences. Its complete Docker command took 892.843 s;
+> the compiler RUN cgroup peaked at 8.820 GiB, including file cache. Unchanged
+> auxiliary stages used cache. See the [current build evidence](README.md) for
+> scope, targeted tests, default-seccomp functional qualification and remaining
+> scan findings. The statements below describe the 21 October artifact only.
+
 ## Scope and decision proposed
 
 The candidate keeps the official Qdrant 1.19.2 server executable and its complete

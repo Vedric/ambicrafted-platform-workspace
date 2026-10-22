@@ -19,6 +19,25 @@ RUN set -eu; \
         rm "/var/lib/neo4j/lib/${artifact}.jar"; \
     done
 
+# Align the complete installed JLine module family with its security release.
+# Official Maven Central artifacts, SHA-512 checked during qualification, SHA-256
+# pinned here. jline-native and Jansi are the declared runtime dependencies.
+ADD --checksum=sha256:f72f2ce167765b18a7604370963c1413b5bec923a97576b745fbce40a7034fbf https://repo.maven.apache.org/maven2/org/jline/jline-reader/3.30.15/jline-reader-3.30.15.jar /var/lib/neo4j/lib/jline-reader-3.30.15.jar
+ADD --checksum=sha256:eed027d1f63a870c8d0522c067959382ad7d3ccddfd8c7041488432189e0e284 https://repo.maven.apache.org/maven2/org/jline/jline-terminal/3.30.15/jline-terminal-3.30.15.jar /var/lib/neo4j/lib/jline-terminal-3.30.15.jar
+ADD --checksum=sha256:de0a419b6b5aaa6029c0546c7bf79e4ab326f0b9d749283687294b8506dcf545 https://repo.maven.apache.org/maven2/org/jline/jline-terminal-jansi/3.30.15/jline-terminal-jansi-3.30.15.jar /var/lib/neo4j/lib/jline-terminal-jansi-3.30.15.jar
+ADD --checksum=sha256:076f95383993e5241d63704aef06a7d6a1e5233e762cf2b1130b663cfd9f39e4 https://repo.maven.apache.org/maven2/org/jline/jline-native/3.30.15/jline-native-3.30.15.jar /var/lib/neo4j/lib/jline-native-3.30.15.jar
+ADD --checksum=sha256:ec168cf31c4c3849348dfff7a04e90170615f7784f1255ee6747b98a854c04c5 https://repo.maven.apache.org/maven2/org/fusesource/jansi/jansi/2.4.3/jansi-2.4.3.jar /var/lib/neo4j/lib/jansi-2.4.3.jar
+RUN --network=none --mount=type=bind,source=VerifyJline.java,target=/tmp/VerifyJline.java,ro \
+    set -eu; \
+    for module in jline-reader jline-terminal jline-terminal-jansi; do \
+      test -f "/var/lib/neo4j/lib/${module}-3.21.0.jar"; \
+      rm "/var/lib/neo4j/lib/${module}-3.21.0.jar"; \
+    done; \
+    test -f /var/lib/neo4j/lib/jansi-2.4.0.jar; \
+    rm /var/lib/neo4j/lib/jansi-2.4.0.jar; \
+    chmod 0644 /var/lib/neo4j/lib/jline-*-3.30.15.jar /var/lib/neo4j/lib/jansi-2.4.3.jar; \
+    java -cp '/var/lib/neo4j/lib/*' /tmp/VerifyJline.java
+
 # Shared, build-only trust policy. No helper/toolchain enters the runtime.
 FROM golang:1.26.8-bookworm@sha256:a688600ca24f8a4d3ca77f95b0dd40704a9fc787c826660eb7ba0b641b8b175d AS trust-tools
 ADD --checksum=sha256:65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40 https://go.dev/dl/go1.27.3.linux-amd64.tar.gz /tmp/go.tar.gz

@@ -44,9 +44,14 @@ failed; qualify a new candidate when the complete release is ready. Green CI
 permits a draft, followed by review of functional acceptance and remaining
 boundaries. It does not certify model reasoning or authorize a stable label.
 
+Image preparation remains bounded to 30 minutes except the Qdrant Rust source
+build, which has 45 minutes; scanning keeps its separate 11-minute outer bound
+and the entire job still has 60 minutes. A timeout remains a failed gate.
+
 ## Runner decision
 
-Keep standard GitHub-hosted runners for the current private workstation project.
+Keep standard GitHub-hosted runners for the public source repository. The
+installed workstation remains private and is not a CI runner.
 The observed eight-image run on 21 October used 77.42 cumulative runner minutes,
 mostly compiling Grafana, Prometheus and Tempo. This observation alone does not
 justify operating an additional CI host. Actual account-wide usage, allowance,
@@ -59,6 +64,18 @@ Account for provisioning, OS updates, disk/network cost, logs and maintenance.
 Start with measured demand rather than installing a fleet pre-emptively. Never
 register the live platform workstation as a general-purpose CI runner or expose
 its client data, SSH keys, production secrets or Docker daemon to jobs.
+
+The Qdrant source build now also uses the guarded SDK-space preparation and
+requires at least 25 GiB free disk and 12 GiB RAM before building. The measured
+r4 Docker command took 14 minutes 52.8 seconds with an 8.8203 GiB Rust compiler
+cgroup peak, including file cache. Rust compiled from source; unchanged stages
+used cache, so this is not a fully uncached or hosted measurement. See the
+[Qdrant image qualification](../gateway/images/qdrant/README.md); concurrent
+dashboard/tool stages and the runner OS also need headroom. The standard public Linux runner offers 4 CPUs and
+16 GB RAM. The standard private runner's 8 GB does not meet this selected build
+prerequisite: use a sufficiently provisioned disposable runner for a private
+fork, rather than weakening the scan or attaching the live workstation.
+See [GitHub runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 
 The current heavy-image preparation deliberately requires a GitHub-hosted runner
 before deleting preinstalled SDK directories. A future self-hosted design must

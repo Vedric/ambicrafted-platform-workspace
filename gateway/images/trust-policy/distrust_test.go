@@ -138,3 +138,30 @@ func TestRejectMalformedPEM(t *testing.T) {
 		t.Fatal("malformed certificate silently accepted")
 	}
 }
+
+func TestSelectedFingerprintPreservesDefaultRoot(t *testing.T) {
+	bad, good := roots(t)
+	selected, err := fingerprint(good)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := append(append([]byte{}, bad...), good...)
+	out, keep, removed, err := filterPinned(input, selected)
+	if err != nil || removed != 1 || len(keep) != 1 || keep[0] != distrusted || !bytes.Contains(out, bytes.TrimSpace(bad)) {
+		t.Fatalf("fingerprint selection affected unrelated root: %d %v %v", removed, keep, err)
+	}
+}
+
+func TestUnreviewedFingerprintRefusedBeforeMutation(t *testing.T) {
+	bad, good := roots(t)
+	root := t.TempDir()
+	input := append(append([]byte{}, good...), bad...)
+	path := write(t, root, "etc/ssl/certs/ca-certificates.crt", input)
+	if _, err := applyPinned(root, "/etc/ssl/certs/ca-certificates.crt", false, strings.Repeat("0", 64)); err == nil {
+		t.Fatal("unreviewed fingerprint accepted")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(after, input) {
+		t.Fatal("refusal mutated trust store")
+	}
+}

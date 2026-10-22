@@ -185,10 +185,11 @@ qualified environment and private handover/retention arrangements.
 ```
 
 Both aliases call authenticated `GET /api/preparation`; the UI reads the same
-result. Nineteen checks cover installed runtimes, private file permissions,
+result. Twenty checks cover installed runtimes, private file permissions,
 actual loopback API listeners, configured local destinations, live restricted
 model aliases, six services, source/index availability, English/French voice
-artifacts and real handshakes with both MCP servers. No diagnostic sends client
+artifacts, real handshakes with both MCP servers and synthetic document extraction
+inside the mandatory sandbox. No diagnostic sends client
 text to a model, downloads a package or runs a repair command.
 
 Results include timestamps, evidence, required/optional status and per-feature
@@ -230,7 +231,11 @@ journalctl --user -u ambicrafted-console.service --since today
 ```
 
 After a reviewed update or checkout move, rebuild with the locked dependencies,
-run the tests and reinstall with `installer-service --remplacer`. An unrelated
+run the tests and reinstall with `installer-service --remplacer`. Neither that
+option nor `--demarrer` reloads a process that is already running. After current
+work finishes and the [update/rollback checks](OPERATIONS.md#updates-and-rollback)
+pass, explicitly run `systemctl --user restart ambicrafted-console.service`, then
+`./plateforme preparation` and the synthetic UI/CLI acceptance checks. An unrelated
 unit or symlink is not overwritten. To stop and disable the service:
 
 ```sh
@@ -248,9 +253,12 @@ chmod 600 /private/path/alerte.txt
 ./plateforme analyses creer --titre 'Incident PostgreSQL' --fichier /private/path/alerte.txt --attendre
 ./plateforme analyses lister
 ./plateforme analyses voir IDENTIFIANT
-./plateforme analyses approuver IDENTIFIANT --attendre
-./plateforme analyses refuser IDENTIFIANT --attendre
 ```
+
+Choose **one** decision after review. Approve with
+`./plateforme analyses approuver IDENTIFIANT --attendre`, or refuse with
+`./plateforme analyses refuser IDENTIFIANT --attendre`. Neither command runs a
+remediation; approval makes the reviewed diagnostic deliverable available.
 
 Replace `IDENTIFIANT` with the 32-character ID returned by the API. Approve only
 after checking source provenance, applicability, prerequisites and rollback.
@@ -440,9 +448,9 @@ to Docker operations grants substantial authority on the host and belongs only
 to the trusted local operator. The current deployment deliberately has no
 public ingress, multi-user authorization or unattended remediation.
 
-The [21 October candidate qualification](QUALIFICATION-2026-10-21.md) records
-corrected Grafana, Qdrant and Tempo builds, exact validation and remaining image
-findings. A successful scan is only one release condition. Historical
+The [22 October candidate qualification](QUALIFICATION-2026-10-22.md) records
+the eight image identities, exact validation and remaining findings.
+A successful scan is only one release condition. Historical
 [20 October counts](QUALIFICATION-2026-10-20.md) and the
 [26 September assessment](SECURITY-RELEASE-2026-09-26.md) remain available;
 they do not describe this candidate. Remote or mutually untrusted use remains

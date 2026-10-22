@@ -1,5 +1,44 @@
 # PostgreSQL with a rebuilt gosu helper
 
+## Available dependency fixes — 2026-10-22
+
+The `16.15-alpine-security.20261022.2` derivative preserves the exact
+PostgreSQL 16.15 executable and entrypoint, upgrades Alpine musl and
+musl-utils **1.2.6-r2 to 1.2.6-r3** and zlib **1.3.2-r0 to 1.3.2-r1**, and
+rebuilds the same gosu 1.19 source with the existing Go 1.27.3 compiler.
+The [Alpine 3.24 security feed](https://secdb.alpinelinux.org/v3.24/main.json)
+identifies the native fixes as CVE-2026-107891 and CVE-2026-85091.
+The Dockerfile pins all three official APK files by URL and SHA-256, verifies
+their individual signatures with the base image keys, and installs them
+without network access. Removing the trusted keys makes verification fail.
+
+The committed `go.mod` and `go.sum` update only `github.com/moby/sys/user`
+to **v0.4.1** and `golang.org/x/sys` to **v0.44.0**, with the minimum Go
+directive required by those dependencies. The [Moby advisory](https://github.com/moby/sys/security/advisories/GHSA-mjcv-p78q-w5fw)
+describes excessive resource consumption when parsing attacker-controlled
+user/group files. This container uses its packaged files, but a compatible
+fix is available and is installed. The [x/sys correction](https://go.googlesource.com/sys/+/fb1facd76f95fa87c151018200ea5e4892ff115d)
+affects a Windows function, so that advisory does not apply to this Linux
+binary; updating the module also avoids retaining obsolete metadata.
+Go verifies module checksums, the build compares two gosu compilations,
+and the resulting helper successfully switches to PostgreSQL UID 70.
+
+Exact qualified local image:
+`sha256:996e5b41aa3aa9e556c8db65a7ceb08e453b8b2eaa211806311ccee69c76b004`.
+The 22 October Trivy database reports **zero findings at all severities**.
+Nine isolated checks cover 257 fixture rows and their logical checksum,
+reuse of an old-image volume, unchanged server version, process UID, gosu,
+restart, dump/restore, a reverse synthetic restart, and resource cleanup.
+This does not authorize downgrading arbitrary application migrations or
+replace a fresh backup and real-data restore drill before promotion.
+
+```sh
+docker buildx build --load --platform linux/amd64 \
+  --build-context trust-policy=gateway/images/trust-policy \
+  --tag ambicrafted/postgres:16.15-alpine-security.20261022.2 \
+  gateway/images/postgres
+```
+
 ## Targeted trust correction — 2026-10-21
 
 The current dated image additionally distrusts the exact compromised emSign ECC

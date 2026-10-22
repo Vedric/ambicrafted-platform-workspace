@@ -39,7 +39,7 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0026](0026-precision-reconnaissance-francaise.md) | French recognition precision | Accepted | 2026-09-28 | Preserve French words with float32 inference and fixed cross-CPU regression audio. |
 | [0027](0027-browser-audio-routing.md) | Browser-local audio routing | Superseded by 0031 | 2026-09-28 | Explicit device selection at the time; system defaults restored in 0031. |
 | [0028](0028-reactivite-conversation-et-mouvement.md) | Conversation responsiveness and continuous motion | Accepted | 2026-09-28 | Bounded spoken turns, cancellation and visible motion. |
-| [0029](0029-preferences-mouvement-explicites.md) | Explicit motion preferences | Accepted | 2026-09-29 | Shared motion state with an explicit operator override. |
+| [0029](0029-preferences-mouvement-explicites.md) | Explicit motion preferences | Superseded by 0048 | 2026-09-29 | Shared motion state with an explicit operator override. |
 | [0030](0030-observabilite-privee.md) | Private operational telemetry | Accepted | 2026-09-29 | Aggregate collection, bilingual Grafana and freshness-aware alerts. |
 | [0031](0031-moteur-vocal-resident.md) | Warm local voice and system audio defaults | Accepted | 2026-09-29 | Resident speech worker; supersedes routing in 0027. |
 | [0032](0032-isolation-systeme-des-documents.md) | OS-enforced document extraction | Accepted for private Linux/WSL | 2026-10-20 | Rootless namespaces, read-only parser filesystem and native syscall policy. |
@@ -59,10 +59,14 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0046](0046-diagnostic-erreurs-documents.md) | Safe document failure diagnostics | Accepted | 2026-10-21 | Finite typed categories and private operation correlation; acceptance and model quality unchanged. |
 | [0047](0047-ci-ciblee-et-runners.md) | Targeted manual image audits and runner restraint | Accepted | 2026-10-21 | Manual allowlisted service selection; full scheduled/release inventory and isolated runner policy. |
 | [0048](0048-observabilite-correlee-et-mouvement.md) | Correlated local observability and automatic motion | Implementation; qualification separate | 2026-10-21 | Observed seven-day objectives, bounded RUM/traces, explicit log limits and OS accessibility. |
+| [0049](0049-paquet-ca-wolfi-natif.md) | Native Wolfi trust package correction | Qualified locally; hosted release and deployment separate | 2026-10-22 | Signed package, complete CA-bundle identity and real native trust checks. |
+| [0050](0050-recherche-utile-et-correction-non-retenue.md) | Useful source exploration; decline unproven automatic repair | Clarification retained; repair not adopted | 2026-10-22 | Separate missing observations from missing procedures; retain failure evidence and human review. |
+| [0051](0051-deploiement-personnel-hybride.md) | Qualified hybrid personal deployment | Accepted for the private Linux workstation | 2026-10-22 | Eight containers plus native supervised application; public source without public ingress. |
+| [0052](0052-correctifs-images-compatibles.md) | Compatible image corrections beyond the blocking threshold | Qualified personal profile | 2026-10-22 | Native package signatures, aligned runtime dependencies, complete trust stores and explicit residual findings. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0048, then the current README and security document;
+- **Current behavior**: 0009–0052, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [MCP gateway](../MCP-GATEWAY.md), [voice](../VOICE.md) and

@@ -1,9 +1,9 @@
 # Supervised agent qualification
 
 This suite evaluates **one production LangGraph SRE workflow**, not a fictional
-fleet of independent experts. It contains 69 synthetic missions (23 incident,
-23 infrastructure review, 23 change review), 14 small source fixtures, 63
-regression cases and 6 new holdout cases. No fixture contains customer data.
+fleet of independent experts. It contains 73 synthetic missions and 14 small source fixtures. All 73 cases
+have now been inspected and are regression evidence; no unseen holdout remains.
+No fixture contains customer data.
 The fixture runbooks are **evaluation material**, not deployment instructions.
 Two deliberately contain hostile or obsolete instructions; never install them
 in the workstation's operational corpus.
@@ -53,7 +53,7 @@ uv run --no-project python evals/qualify_agent.py run \
 ```
 
 The output directory must be new. Start with this smoke, then remove `--case`
-to run the 63 regression cases. Use `--repeat 3` to examine variability.
+to run the 73 regression cases. Use `--repeat 3` to examine variability.
 The 2026-10-20 baseline on commit `1fb46446acc80f0203e9f779d09cde75df3eb6a5`
 had 26 regression and 13 holdout cases. All outputs were subsequently inspected
 and informed changes, so all 39 are now explicitly regression cases. Each case
@@ -91,12 +91,21 @@ the new core freeze manifest SHA-256 is
 `266f25c7063b5e911681ba638566ee4a27f60b3d49edec7c6b9d757672083570`.
 These hashes establish the prepared inputs, not successful model results.
 
-Use `--split holdout` for these six cases, or `--split all` for all 69.
-Empty selections are refused. Record the exact source state and inference
-runtime for the first execution; once results inform implementation, these
-cases become regression evidence too. A renamed or previously reviewed example
-is not an independent holdout. This targeted synthetic set does not establish
-production expertise or exhaustive security coverage.
+The six cases were inspected and are now regressions. Four additional cases
+were sealed before the 22 October execution (cohort rates, restored references,
+approval provenance and temporal scope). Their expectation SHA-256 is
+`31bc68ef5dba292e6e55a8f5051e7c0b6fb89bc721c5ead199ce5c63229463f7`.
+They retained 2/4 mechanical contracts and 1/4 in subsequent engineering AI
+review; this is not independent human acceptance. The [current qualification](../../docs/QUALIFICATION-2026-10-22.md)
+records the frozen source, observed failures and comparison with the baseline.
+
+All four are now regressions too. Use `--split regression` or `--split all`
+for the 73 currently available cases. `--split holdout` refuses the empty
+selection; prepare and seal genuinely new cases before claiming another unseen
+evaluation. Historical split fields and original failures remain preserved.
+A renamed or previously reviewed example is not an independent holdout. This
+targeted synthetic set does not establish production expertise or exhaustive
+security coverage.
 
 Each case is bounded by 240 seconds and 30,000 observed tokens by default; the
 run has a two-hour default wall-clock budget. Both timeouts are configurable.

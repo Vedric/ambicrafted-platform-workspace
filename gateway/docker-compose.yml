@@ -6,7 +6,7 @@ name: gateway
 services:
   litellm:
     # Stable upstream plus pinned aiohttp/yarl/certifi and exact CA distrust.
-    image: ambicrafted/litellm:1.104.4-stable-security.20261022.1
+    image: ambicrafted/litellm:1.104.4-stable-security.20261022.2
     build:
       context: ./images/litellm
       additional_contexts:
@@ -31,7 +31,7 @@ services:
 
   postgres:
     # Local derivative: pinned gosu rebuild and exact CA distrust.
-    image: ambicrafted/postgres:16.15-alpine-security.20261021
+    image: ambicrafted/postgres:16.15-alpine-security.20261022.2
     build:
       context: ./images/postgres
       additional_contexts:
@@ -74,7 +74,7 @@ services:
       - tempodata:/var/tempo
 
   prometheus:
-    image: ambicrafted/prometheus:3.15.0-security.20261021
+    image: ambicrafted/prometheus:3.15.0-security.20261022
     build:
       context: ./images/prometheus
       additional_contexts:
@@ -102,7 +102,7 @@ services:
       retries: 3
 
   grafana:
-    image: ambicrafted/grafana:13.2.4-security.20261021
+    image: ambicrafted/grafana:13.2.4-security.20261022.2
     build:
       context: ./images/grafana
       additional_contexts:
@@ -131,7 +131,7 @@ services:
 
   platform-metrics:
     profiles: [observability]
-    image: ambicrafted/platform-metrics:1.12.1-security.20261021
+    image: ambicrafted/platform-metrics:1.12.1-security.20261022
     build:
       context: ./images/platform-metrics
       additional_contexts:
@@ -157,7 +157,7 @@ services:
 
   qdrant:
     # Local security derivative; immutable base and exact package in Dockerfile.
-    image: ambicrafted/qdrant:1.19.2-security.20261021-r2
+    image: ambicrafted/qdrant:1.19.2-security.20261022-r4
     build:
       context: ./images/qdrant
       additional_contexts:

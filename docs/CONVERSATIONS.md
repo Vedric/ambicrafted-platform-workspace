@@ -33,6 +33,15 @@ retains its original spoken mode and operation ID. Editing the message, language
 starts a new operation. Source documents and model replies are untrusted content.
 AURA has no action, approval or remediation authority.
 
+Concurrent attempts with the same operation ID do not create two committed
+pairs. If the first response is lost after commit, an exact retry returns the
+saved result. A different payload under the same ID is a conflict. Inspect
+history and the reported error instead of repeatedly creating new operations.
+Explicit logout or a session invalidation observed by the browser discards
+private browser caches and cancels pending document exports.
+The [personal walkthrough](PERSONAL-USE.md) combines
+conversation, document review and recovery in one synthetic first session.
+
 ## From the terminal
 
 ```sh

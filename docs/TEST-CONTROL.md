@@ -5,6 +5,12 @@ It does not certify model quality, browser accessibility, public multi-user depl
 or the absence of all vulnerabilities. The SRE engine, offline speech runtime and
 browser console have their own test suites.
 
+The [22 October qualification](QUALIFICATION-2026-10-22.md) records the current
+source freeze, counts and limits. New regressions reproduce an exited inference
+leader with a pipe-owning descendant, competing approval decisions, conversation
+commit/retry races and browser exports completing after session revocation.
+Historical measurements below retain their original context.
+
 ## Reproduce
 
 Run from the repository root:
@@ -12,9 +18,8 @@ Run from the repository root:
 ```sh
 uv sync --locked --all-extras --project apps/control-api
 cd apps/control-api
-uv run pytest tests -q --junitxml=/tmp/control-tests.xml
-uv run coverage run -m pytest tests
-uv run coverage report
+uv run --no-sync coverage run --branch -m pytest tests -q --junitxml=/tmp/control-tests.xml
+uv run --no-sync coverage report
 ```
 
 `uv run --project apps/control-api pytest` alone does **not** change the working
@@ -44,7 +49,7 @@ operational backup, or accesses the production SQLite state.
 | Local services | Cached health probes, malformed upstream schemas, bounded streaming JSON, strict local embeddings, asymmetric query prefix, absent confidential key and invalid vectors |
 | Voice API | Authentication/CSRF, separate audio body limit, strict base64, decoded size, private temporary files, cleanup on failure/cancellation, concurrency refusal, fragmented subprocess JSON, output bounds and invalid/symbolic/FIFO audio output |
 | Conversation | English/French routing, AURA identity, allowed roles only, bounded history, final user turn, local alias and confidential credential, no tools or action authority, atomic saved conversation pairs, bounded retained context and masked provider errors |
-| Readiness | Nineteen evidence checks, required/optional capabilities, actual IPv4/IPv6 loopback listeners, bounded probes, cache coalescing, dependency failures, secret-free output and authenticated CLI/API parity |
+| Readiness | Twenty evidence checks, required/optional capabilities, actual IPv4/IPv6 loopback listeners, bounded probes, cache coalescing, dependency failures, secret-free output and authenticated CLI/API parity |
 | MCP | Actual subprocess initialization and stdio calls through the authenticated HTTP API; exactly eleven read-only control tools; NEXUS allowlist/profile tests; readiness initializes both real MCP transports; absent configuration is never created by the read-only adapter; an approval tool does not exist; multiple runbooks preserve separate MCP text content blocks |
 | CLI | API parity, bounded private stdin/files, fixed loopback serving, secret-free browser opening, private exports, explicit deletion, systemd command construction and voice commands |
 

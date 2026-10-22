@@ -1,4 +1,4 @@
-# Exact emSign ECC G3 distrust policy
+# Fingerprint-pinned container trust policy
 
 This public build context removes trust in exactly one compromised CA certificate:
 
@@ -7,6 +7,34 @@ This public build context removes trust in exactly one compromised CA certificat
 It is the SHA-256 of the DER-encoded **emSign ECC Root CA - G3**, not its subject
 name. Another certificate with the same name is not removed. The certificate
 fixture is public; no private key or signing credential belongs in this context.
+
+## Current policy — 22 October 2026
+
+The earlier G3-only policy is extended where required by the distribution's
+[DSA-6572-1 advisory](https://www.debian.org/security/2026/dsa-6572). It explicitly
+removes both G3 and **Comodo AAA Services root**, whose exact DER SHA-256 is:
+
+`d7a7a0fb5d7e2731d771e9484ebcdef71d5f0c3e0a2948782bc83ee0ea699ef4`
+
+Qdrant installs Debian's actual `ca-certificates=20250419+deb13u1` package and
+replaces its complete anchors, aliases and generated bundle, with matching
+package records. Merely overlaying new files would leave deleted old anchors
+trusted. Its 150-anchor upstream bundle becomes the verified 148-anchor bundle.
+LiteLLM uses the signed native Wolfi package described in ADR 0049.
+
+Prometheus and the metrics exporter had already removed G3 but still trusted
+AAA. They now invoke the helper a second time with the explicit reviewed AAA
+fingerprint and a separate provenance report. Their 149-anchor bundles become
+148 anchors, with no other root added or removed. The default helper behavior
+is unchanged; an unknown fingerprint is rejected before any mutation, including
+with `--native-prepared`. No arbitrary operator-supplied trust policy is accepted.
+
+Read-only inspection of the actual Tempo, Grafana, PostgreSQL and Neo4j PEM
+stores found both roots absent. Neo4j retains its native Java/p11-kit handling.
+This does not inspect an operator's custom trust override or the host store.
+The older G3-only checks and package-selection rationale below describe the
+21 October images. The current decision supersedes the earlier treatment of
+AAA as unrelated; historical ADRs and scan evidence remain unchanged.
 
 ## Reason and scope
 
@@ -50,8 +78,8 @@ Since 22 October, LiteLLM uses `--native-prepared` only after installing the sig
 Wolfi `ca-certificates-bundle=20260909-r3` package and independently verifying its
 exact bundle hash, 118 effective default OpenSSL anchors and G3 absence.
 That official policy also removes C1/C3; the earlier G3-only root-set assertion
-below applies to the 21 October images. Other images retain the narrow helper
-policy. See [ADR 0049](../../../docs/adr/0049-paquet-ca-wolfi-natif.md).
+below applies to the 21 October images. Prometheus and the metrics exporter additionally apply the explicit AAA policy
+above; the other default helper invocations keep their existing semantics. See [ADR 0049](../../../docs/adr/0049-paquet-ca-wolfi-natif.md).
 The helper and Go toolchain do not enter the final image.
 
 Neo4j's UBI10 runtime instead uses the distribution's native
@@ -94,7 +122,10 @@ The build-only Go tests check exact identity, unrelated/same-name roots, trusted
 PEM metadata, hashed aliases, regeneration entries and refusal of invalid/empty
 stores. Runtime qualification compares old/new root sets and actual verification:
 G3 succeeds before and fails after; the unaffected emSign G1 still succeeds.
-The complete root sets must differ by G3 alone. Go's native system pool is tested
+For the 21 October images, the complete root sets differed by G3 alone.
+For the current Prometheus/exporter update, independent before/after checks also
+require exactly AAA to disappear, and Go's actual default system pool must stop
+accepting that root while preserving the unrelated control. Go's native system pool is tested
 inside every actual old/new image. The Neo4j JVM check runs in the image build.
 Server executables, Grafana signed plugin trees, Qdrant dashboard/SBOM and Neo4j
 JARs are compared against the previous qualified artifacts.

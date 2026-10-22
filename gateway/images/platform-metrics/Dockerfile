@@ -30,5 +30,7 @@ RUN --network=none go test -count=1 -v distrust.go distrust_test.go \
 FROM application
 USER 0
 RUN --network=none --mount=type=bind,from=trust-tools,source=/policy,target=/policy,ro ["/policy/distrust", "-report", "/usr/share/ambicrafted/ca-distrust.json"]
+# DSA-6572-1 also removes this exact Comodo AAA root. Preserve all other anchors.
+RUN --network=none --mount=type=bind,from=trust-tools,source=/policy,target=/policy,ro ["/policy/distrust", "-fingerprint", "d7a7a0fb5d7e2731d771e9484ebcdef71d5f0c3e0a2948782bc83ee0ea699ef4", "-report", "/usr/share/ambicrafted/ca-distrust-aaa.json"]
 LABEL org.ambicrafted.trust.distrusted-sha256="86a1ecba089c4a8d3bbe2734c612ba341d813e043cf9e8a862cd5c57a36bbe6b"
 USER 65534:65534

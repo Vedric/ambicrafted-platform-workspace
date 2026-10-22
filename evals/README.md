@@ -25,8 +25,8 @@ npm run eval:local -- --retrieval lexical \
 
 The launcher forwards arguments to `qualify_agent.py run`, preserving its exit
 code. Exit **2** means mechanical contracts passed but expert review remains
-pending; it is not release acceptance. `CONFIDENTIAL_KEY` must already be loaded
-and only the `local` alias is used. Semantic retrieval requires a disposable
+pending; it is not release acceptance. `CONFIDENTIAL_KEY` must already be loaded.
+Generation uses `local`; semantic retrieval also uses `local-embed` and requires a disposable
 Qdrant on an explicitly supplied nonproduction port; see the qualification guide.
 
 See [the dated validation results](RESULTS-2026-09-26.md), including retrieval
@@ -34,7 +34,7 @@ false positives and the remaining triage limitations.
 
 ## Representative workflow qualification
 
-The [69-case supervised qualification suite](qualification/README.md) runs the
+The [73-case supervised qualification suite](qualification/README.md) runs the
 real LangGraph workflow and NEXUS MCP tools against isolated synthetic sources.
 It separates deterministic safety/provenance contracts from a mandatory expert
 review. It also documents bounded HTTP/process lifecycle and long-duration

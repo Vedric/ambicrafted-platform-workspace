@@ -40,6 +40,13 @@ groups and relationships. Markdown is an escaped text representation suitable
 for review and version control. Visual SVG/PNG/print exports are produced by the
 frontend renderer; they do not contain model-authored SVG or HTML. SVG and PNG preserve the diagram; print/PDF uses the complete text outline or report, rather than shrinking a large graph onto one page.
 
+Asynchronous JSON/Markdown/PNG exports are cancelled when the browser observes
+an invalid session or the operator logs out, including session discovery that
+returns HTTP200 with a disconnected state. A final cancellation check precedes
+the browser download, so late native image/canvas callbacks cannot publish a
+cancelled export. This does not retract files that were already downloaded.
+Reauthenticate and deliberately export again.
+
 Memory is separate. Review the generated material, open the explicit memory
 draft, select the correct scope, edit the note and save it deliberately. The
 default question type prevents an unreviewed suggestion from being presented as

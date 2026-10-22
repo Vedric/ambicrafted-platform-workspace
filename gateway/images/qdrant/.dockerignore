@@ -8,3 +8,4 @@
 !healthcheck_test.go
 !build-dependencies.check.mjs
 !redirects-security.check.mjs
+!server-dependencies.patch

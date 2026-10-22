@@ -322,7 +322,11 @@ def scan(target: Target, trivy: str, output: Path, cache: Path) -> Result:
         else ["docker", "pull", target.image]
     )
     diagnostic = output / f"prepare-{target.service}.log"
-    failure = command(prepare, 1800, diagnostic)
+    # Qdrant now compiles its pinned Rust server and native dependencies. Keep a
+    # bounded preparation budget with room for slower clean hosted builders;
+    # the scan retains its independent timeout and unchanged severity policy.
+    prepare_timeout = 2700 if target.service == "qdrant" and target.context else 1800
+    failure = command(prepare, prepare_timeout, diagnostic)
     if failure:
         result.error = f"Préparation : {failure}"
         result.diagnostic = diagnostic.name
