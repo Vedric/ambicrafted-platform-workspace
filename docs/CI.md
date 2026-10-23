@@ -34,8 +34,10 @@ for GitHub-hosted Ubuntu 24.04 only. It validates the
 [official runner mirror layout](https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/scripts/build/configure-apt-sources.sh),
 prefers the existing HTTPS Ubuntu archive and security mirrors, and retains
 Azure as the final fallback. An unexpected layout fails before privileged writes.
-APT HTTP/HTTPS connection and inactivity timeouts are 30 seconds; this is not a
-total download deadline and does not detect a continuously slow transfer. See
+APT HTTP/HTTPS connection and inactivity timeouts are bounded to 30 seconds;
+an existing stricter positive timeout is honored. The helper reports each actual
+value. This is not a total download deadline and does not detect a continuously
+slow transfer. See
 [APT mirror priorities](https://manpages.debian.org/trixie/apt/apt-transport-mirror.1.en.html)
 and [transport timeouts](https://manpages.debian.org/trixie/apt/apt-transport-http.1.en.html).
 The helper preserves Ubuntu sources, suites, components, signing keys and
@@ -47,6 +49,19 @@ trust settings; only a subsequent hosted run can establish download performance
 and complete browser acceptance. The 25-minute job ceiling and all test gates
 remain unchanged. This preparation must not be run on a personal workstation or
 a self-hosted runner.
+
+Preparation refusals report a fixed guard code. File checks additionally expose
+only the logical target (`sources`, `mirrors` or `timeouts`), numeric UID and
+mode, and file-type/canonical-path booleans; read failures report numeric errno.
+Configuration contents, paths, environment values and arbitrary exception text
+are excluded. These diagnostics identify the failed check without weakening it.
+
+A targeted hosted diagnostic reproduced the initial preparation refusal: the
+runner's effective HTTP and HTTPS timeouts were both 15 seconds, while the first
+helper required exactly 30. The corrected check accepts each positive integer
+from 1 through 30 and rejects missing, duplicate or malformed assignments. This
+fix preserves the stricter runner setting; it does not establish the cause of
+the earlier slow downloads or replace complete browser qualification.
 
 The image workflow normally builds and scans all eight images. A direct manual
 invocation can select one service after a targeted correction:
