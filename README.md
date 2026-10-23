@@ -22,8 +22,9 @@ evidence; their image and evaluation counts do not describe this candidate.
 
 The reference workstation currently has an unresolved
 [Windows/WSL GPU-access incident](docs/HOST-INCIDENT-2026-10-23.md). Source and
-targeted dependency fixes are reviewed separately; personal promotion and release
-remain blocked until generation and the complete gateway checks recover.
+targeted dependency fixes are reviewed separately. Generation and the complete
+gateway checks now pass through a degraded CPU path; GPU access and acceptable
+conversational latency remain unresolved. Personal release acceptance stays blocked.
 
 AURA supports [saved diagrams and structured reports](docs/AURA-ARTIFACTS.md),
 including source references, SVG/PNG/JSON/Markdown exports and editable memory

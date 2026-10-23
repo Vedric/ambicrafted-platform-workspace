@@ -6,8 +6,8 @@ repository protection, completed local tests, hosted release checks and the
 running workstation are separate evidence boundaries.
 
 The dependency corrections below are qualified within their stated scope.
-**Personal promotion and release are not accepted while generation is blocked
-on the reference workstation.** The [host incident](HOST-INCIDENT-2026-10-23.md)
+**Normal personal release acceptance remains blocked by GPU access and degraded
+conversation latency on the reference workstation.** The [host incident](HOST-INCIDENT-2026-10-23.md)
 records the separate Windows/WSL GPU-access failure and the recovery checks.
 
 ## Source publication and repository protection
@@ -112,7 +112,7 @@ scan result.
 
 | Finding group | Current disposition |
 | --- | --- |
-| LiteLLM CVE-2026-114603, MEDIUM | Upstream parser/propagator backport and targeted gateway profile pass; raw finding retained, generation not qualified |
+| LiteLLM CVE-2026-114603, MEDIUM | Upstream parser/propagator backport and full gateway profile pass on CPU; raw finding retained, GPU recovery unqualified |
 | Qdrant, 23 MEDIUM / 8 LOW | No fixed version listed by this database; original scope remains documented |
 | Neo4j CVE-2026-1337, LOW | Vendor-documented LTS backport; raw scanner occurrence retained |
 | Five Go inventory occurrences, UNKNOWN | Retained with their previous applicability limits; no blanket exemption |
@@ -160,7 +160,7 @@ verification, restart persistence, logical rollback and test-resource cleanup.
 The gateway sends actual spans to an isolated Tempo instance. Alias restriction
 checks also execute within the authentication/embedding path.
 
-The full exercise timed out during generation. A narrower diagnostic explicitly
+The earlier full exercise timed out during generation. A narrower diagnostic explicitly
 records `generation_requested=false`, `profile_passed=true` and `passed=false`.
 It therefore cannot satisfy the full gateway or personal-release gate. Direct
 Ollama generation also timed out while embedding remained responsive; the host
@@ -169,9 +169,50 @@ the image qualification.
 
 Five separate qualifier-verdict tests check that the limited profile cannot
 satisfy full acceptance and that missing, substituted or failed required checks
-are rejected. The candidate image manifest intentionally sets its complete
-qualification flag to false; the release assembler refuses it. This is a
-verified release guard, not a suppressed failure.
+are rejected. The earlier candidate image manifest intentionally set its complete
+qualification flag to false; the release assembler refused it. That retained
+manifest and refusal are historical evidence, not overwritten with the later
+full result below.
+
+## Full gateway recovery and trace-arrival correction
+
+After the controlled application recovery described in the
+[host incident](HOST-INCIDENT-2026-10-23.md), real generation worked on CPU.
+The next full gateway run passed embeddings, structured output and streaming,
+then failed its trace-parent assertion. A diagnostic run located the failure:
+the first Tempo response contained only auth/pre-call children; a read 200 ms
+later returned the SERVER span with the exact caller parent and valid state.
+The original verifier stopped polling at any nonempty response, so it evaluated
+a partial export as if delivery had finished. That failed result remains recorded.
+
+The correction keeps the original 60 polls and one-second interval. It waits
+until the caller-parent span is present, then checks its state; a wrong trace ID
+or wrong parent state fails immediately. Schema-scoped extraction treats
+`batches`/`resourceSpans` span collections separately from `links`, which may
+legitimately reference another trace. Malformed identifiers/collections and a
+parent that never arrives are still rejected. There is no retry-until-green for
+an incorrect trace and no timeout increase.
+
+All 17 qualifier tests pass: the five existing acceptance guards and 12 new trace
+cases. Two counter-examples fail on the previous exact verifier, including the
+observed children-before-parent sequence. The unchanged corrected LiteLLM image
+then passes all seven checks in a full 120.878-second isolated run from the
+actual preceding live image `sha256:50bcffed7f60102fde9620be6a9863ce1746fd856f71bf9a36a1d4e088cdd914`:
+authentication, restricted aliases/embeddings/streaming, structured response,
+real parent/state OTLP delivery, restart persistence, separate-volume logical
+rollback and removal of its test resources. No production database is migrated
+by this exercise.
+
+The full report SHA-256 is
+`ba0c4a57a4d7f54d3890ab9d6a4a74a66f025aa0faf8b5daea37f0cbce21dd81`;
+the measured verifier SHA-256 is
+`3fdc98bdc4681006945a1873f2fade7ae070ced966362b73102aa49e879c5b01`.
+It records `generation_requested=true`, `profile_passed=true`, `passed=true`.
+This replaces the earlier limited profile **for this image's functional
+qualification**, not its preserved failure history or the personal operating
+gate. The GPU remains unavailable; the measured real AURA turns take about 70
+seconds on CPU. No healthy-host, responsive-conversation or final-release claim
+follows from the gateway result.
 
 ## Runbooks dependency correction
 
