@@ -107,6 +107,11 @@ Pending asynchronous document downloads are cancelled when the browser observes
 session invalidation or logout, including HTTP200 session discovery returning
 disconnected. They recheck cancellation before publishing a file; this is not
 a fresh server authorization check and cannot retract an existing download.
+Explicit logout first revokes the server session, signals cancellation and
+clears private query state, then navigates within the existing document.
+Tests replay the old cookie, revisit protected routes and release delayed
+private responses after logout. A failed logout request reports an error and
+does not claim successful revocation.
 Cookies intentionally use local HTTP; exposing this server remotely requires
 a separate TLS, identity and authorization design. One-use login links expire
 after 60 seconds; sessions expire after 12 hours. Changing the password revokes

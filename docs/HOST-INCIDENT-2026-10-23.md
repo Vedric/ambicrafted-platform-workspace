@@ -12,6 +12,12 @@ The Windows-side command exited successfully, detected the device and returned
 GPU telemetry. This establishes Windows visibility, not successful execution
 of a Windows inference workload or a complete hardware-health diagnosis.
 
+A read-only follow-up at 14:01 UTC returned the same Linux exit code and
+GPU-access-blocked message. The console and Grafana login page both returned
+HTTP200 and the console service remained active. Those HTTP responses do not
+establish working model generation. No inference request or service mutation
+was made in that follow-up.
+
 A bounded kernel-log query also found 178 occurrences of
 `dxgvmb_send_create_process failed -75` between 11:34:53 and 13:04:16 UTC.
 This is the retrieved window, not an established incident start time. It
@@ -59,12 +65,15 @@ operator's maintenance intervention:
 ```powershell
 nvidia-smi.exe --query-gpu=name,driver_version,memory.total,memory.used --format=csv
 wsl.exe --version
-wsl.exe -e /usr/lib/wsl/lib/nvidia-smi
+wsl.exe --list --verbose
 ```
 
-In the platform's Linux shell, inspect only the recent relevant kernel messages:
+Then use the Linux shell of the distribution that actually hosts the platform;
+the default WSL distribution may be different. Check GPU access there and
+inspect only the recent relevant kernel messages:
 
 ```sh
+/usr/lib/wsl/lib/nvidia-smi
 journalctl -k --since '5 minutes ago' --no-pager --output=cat --grep 'dxgvmb_send_create_process'
 ./plateforme preparation
 ```
@@ -78,6 +87,7 @@ Microsoft's [GPU compute documentation](https://learn.microsoft.com/en-us/window
 describe the Windows-driver/WSL boundary. Do not install a Linux NVIDIA display
 driver inside WSL as a speculative repair. No reboot or driver change is
 represented here as an observed fix.
+Microsoft also documents [listing and selecting WSL distributions](https://learn.microsoft.com/en-us/windows/wsl/basic-commands).
 
 After the host is repaired:
 

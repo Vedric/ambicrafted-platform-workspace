@@ -44,10 +44,60 @@ one thread. The last 10,000 analysis-read samples had p95 21.09 ms and maximum
 Inference was synthetic. The exercise used real HTTP, queues, subprocesses,
 restarts and persistence; it does not establish sustained GPU throughput,
 physical audio behavior or uninterrupted 24-hour service. The application
-API, agent, voice and console sources remain unchanged from the earlier
-complete local qualification, including its 250 Playwright cases. The later
-Runbooks MCP dependency-lock update and image changes require their own evidence;
-they are not silently attributed to that earlier application freeze.
+API, agent and voice sources remain unchanged from that freeze. The console
+logout correction below has a separate qualification; the earlier 250-case
+browser result does not qualify changed browser code. The later Runbooks MCP
+dependency-lock update and image changes also require their own evidence.
+The two-hour exercise remains evidence for its HTTP, persistence and process
+scope, not a browser soak or a later model-generation result.
+
+## Browser logout correction
+
+The [corrective PR's first application run](https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/39959587152)
+completed seven jobs successfully but failed the console gate. Its WebKit
+password/logout scenario produced an uncaught `/api/veille` access-control error
+on the first attempt, then passed on retry. The configured flaky-test gate
+correctly refused that result; no unchanged rerun was used to turn it green.
+
+The retained trace places the error between the start and completion of a
+document reload after a successful logout response. A public welcome query was
+being mounted during document teardown. The correction keeps server-side
+revocation, the session-expiration signal and cache clearing, then returns to
+the welcome page through the existing SPA router with history replacement.
+It removes the document teardown implicated by this trace. It does not suppress
+browser errors, widen a timeout or relax `failOnFlakyTests`.
+
+The new acceptance checks verify that the old cookie is refused, private API
+requests return HTTP401, history navigation and reload remain signed out, and
+a held authorized export cannot become a late download after logout. Unit tests
+also hold private and authenticated-session responses until after revocation,
+then verify they cannot restore the cleared state. A refused logout keeps the
+workspace and reports the failure instead of claiming success.
+
+A deterministic comparison against the old build rejects its document
+replacement while the corrected build preserves the document. The rare original
+WebKit exception was not reproduced locally. Back navigation and reload are
+exercised; a particular native BFCache restoration is not forced or claimed.
+Qualification of the complete corrected console is recorded separately from
+these diagnostic and targeted checks.
+
+A fresh, secret-free clone of signed commit
+`9ca64ebcd8e68f7920134ddefd3e251016e04b4a` passes dependency installation and
+audit, build, browser-test typing, formatting and **304 unit tests**. The full
+configured Playwright matrix passes **254 cases** in 839.522 seconds, with zero
+failed, skipped, flaky or retried cases: 33 Firefox critical paths, 38 WebKit
+critical paths, five Firefox motion cases and 89 Chromium cases each on desktop
+and mobile. Test discovery and execution inventories match exactly.
+
+The source tree and built assets remain unchanged after testing. The private
+receipt is bound by SHA-256
+`fef7fcd3f7b9b47ce1bff12d1bf9f662304f6c8750711bc76ef623d89a80529b`,
+with individual log, result and bundle manifests. Application dependencies and
+assets were installed/built freshly; the pinned browser binaries and extracted
+system libraries were reused. Browser inference is synthetic and physical audio
+hardware is not qualified by this matrix. Final source verification requires
+the complete console tree to match this measured commit; the old console result
+cannot substitute for its new receipt. Hosted checks remain a separate gate.
 
 ## Refreshed image findings
 

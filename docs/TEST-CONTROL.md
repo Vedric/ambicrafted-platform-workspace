@@ -5,10 +5,13 @@ It does not certify model quality, browser accessibility, public multi-user depl
 or the absence of all vulnerabilities. The SRE engine, offline speech runtime and
 browser console have their own test suites.
 
-The [22 October qualification](QUALIFICATION-2026-10-22.md) records the current
-source freeze, counts and limits. New regressions reproduce an exited inference
+The [23 October qualification](QUALIFICATION-2026-10-23.md) records the current
+source boundaries, counts and limits; it extends the
+[22 October application freeze](QUALIFICATION-2026-10-22.md). Regressions reproduce an exited inference
 leader with a pipe-owning descendant, competing approval decisions, conversation
 commit/retry races and browser exports completing after session revocation.
+The later SPA logout correction has separate console evidence: real cookie
+revocation, protected history/reload, late exports and stale session responses.
 Historical measurements below retain their original context.
 
 ## Reproduce
