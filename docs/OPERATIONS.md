@@ -33,15 +33,28 @@ The dashboard and rules are versioned under `gateway/observability`. Rules
 create local alerts; no Slack, email or other notification destination is
 configured. Configure a destination only after deciding what metadata may leave.
 
-The [22 October candidate qualification](QUALIFICATION-2026-10-22.md) records
-the source freeze and local tests. Its final eight-image local scan reports zero
-CRITICAL/HIGH, 23 MEDIUM, 9 LOW and 5 UNKNOWN occurrences against the database
-updated at 07:10:52 UTC that day. Exact hosted qualification and installed revision
-belong to the release evidence; a green readiness page does not prove either.
-The earlier dated reports retain their original counts and failed runs. An older
-failed release tag is never relabelled as a success after a later correction.
-The host certificate store needs separate
+The [23 October qualification](QUALIFICATION-2026-10-23.md) separates source
+publication, repository protection, the completed two-hour lifecycle exercise,
+the fresh dependency findings and remaining release gates. Re-scanning the eight
+images against the 23 October 07:12:39 UTC database reports 0 CRITICAL, 0 HIGH,
+24 MEDIUM, 9 LOW and 5 UNKNOWN occurrences. The new OpenTelemetry advisory needs
+separate treatment in the Runbooks MCP lock and the constrained LiteLLM image;
+see [ADR 0053](adr/0053-retroportage-tracestate-litellm.md). A backported source
+correction retains its raw package-version finding and provenance.
+
+Exact hosted qualification and the installed revision belong to release evidence;
+a green readiness page proves neither. Public source does not expose the local
+services. The earlier dated reports retain their original counts and failed
+runs. A stopped release tag is never moved or relabelled as a success after a
+later correction. The host certificate store needs separate
 [administrative verification](HOST-TOOLS.md#host-certificate-trust-and-uv).
+
+The [23 October reference-host incident](HOST-INCIDENT-2026-10-23.md) blocks
+local generation and personal-release acceptance. The corrected gateway passes
+a targeted embeddings/trace/persistence profile, which explicitly does not
+satisfy the full generation gate. Do not promote it or publish a personal release
+from an embeddings-only result; preserve the previous data generation and rerun
+the full qualification after host recovery.
 
 Seven image derivatives changed in this campaign; Tempo's local identity is
 retained. The qualification records all eight exact local tags and IDs, including

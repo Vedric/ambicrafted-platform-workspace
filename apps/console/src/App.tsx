@@ -725,6 +725,7 @@ function Cadre({
     [palette, setPalette] = useState(false);
   const client = useQueryClient(),
     lieu = useLocation(),
+    navigate = useNavigate(),
     notifier = useToast();
   const titre =
     liens.find((l) => l.chemin === lieu.pathname)?.nom ||
@@ -755,7 +756,9 @@ function Cadre({
       await api("/auth/deconnexion", "POST");
       window.dispatchEvent(new Event("session-expiree"));
       client.clear();
-      location.assign("/");
+      // Keep the cleared session in this document. A full reload races the
+      // public welcome queries against WebKit's document teardown.
+      navigate("/", { replace: true });
     } catch (e) {
       notifier((e as Error).message, true);
     }

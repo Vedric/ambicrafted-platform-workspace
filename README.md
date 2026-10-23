@@ -12,13 +12,18 @@ Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
 Console **0.5.0**, control API **0.5.0**, SRE workflow **0.2.0**, local speech
-runtime **0.3.3**. The [22 October qualification](docs/QUALIFICATION-2026-10-22.md)
+runtime **0.3.3**. The [23 October qualification](docs/QUALIFICATION-2026-10-23.md)
 tracks this candidate, its validation and remaining conditions. This is a
 private, single-operator workspace; it is not a multi-tenant commercial service
 or a zero-vulnerability certification. Earlier
 [delivery reports](docs/RELEASE-0.4.5.md) and the
 [20 October qualification](docs/QUALIFICATION-2026-10-20.md) remain historical
 evidence; their image and evaluation counts do not describe this candidate.
+
+The reference workstation currently has an unresolved
+[Windows/WSL GPU-access incident](docs/HOST-INCIDENT-2026-10-23.md). Source and
+targeted dependency fixes are reviewed separately; personal promotion and release
+remain blocked until generation and the complete gateway checks recover.
 
 AURA supports [saved diagrams and structured reports](docs/AURA-ARTIFACTS.md),
 including source references, SVG/PNG/JSON/Markdown exports and editable memory
@@ -31,7 +36,7 @@ This version adds [saved conversations and documents](docs/CONVERSATIONS.md),
 more natural bilingual speech with English technical pronunciation, and an original
 quiet instrumental. Background music yields to AURA and mutes during recording.
 
-[Documentation index](docs/README.md) · [First personal session](docs/PERSONAL-USE.md) · [Measured qualification](docs/QUALIFICATION-2026-10-22.md)
+[Documentation index](docs/README.md) · [First personal session](docs/PERSONAL-USE.md) · [Measured qualification](docs/QUALIFICATION-2026-10-23.md)
 
 ## Private console, CLI and voice
 
@@ -268,7 +273,7 @@ missed calendar events are caught up through `Persistent=true`.
 - [Contributing and checks](CONTRIBUTING.md)
 - [Remaining dependency risks](docs/DEPENDENCIES.md)
 
-The [current qualification](docs/QUALIFICATION-2026-10-22.md) records the tested
+The [current qualification](docs/QUALIFICATION-2026-10-23.md) records the tested
 scope and remaining release gates. Private supervised use, functional CI,
 vulnerability remediation and production acceptance are separate conclusions.
 Readiness checks do not establish high availability, exhaustive incident coverage

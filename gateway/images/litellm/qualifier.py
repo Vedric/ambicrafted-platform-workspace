@@ -8,6 +8,7 @@ Run with the locked control API environment.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import secrets
@@ -60,7 +61,9 @@ def wait_gateway(client, master):
     raise TimeoutError("Synthetic gateway failed to start")
 
 
-def check_gateway(client, key, *, inference):
+def check_gateway(client, key, *, inference, progress=None, generation=True):
+    progress = progress if progress is not None else {}
+    progress["phase"] = "authentication"
     for headers in ({}, {"Authorization": "Bearer sk-invalid-synthetic"}):
         assert client.get("/v1/models", headers=headers).status_code == 401
     headers = {"Authorization": "Bearer " + key}
@@ -75,6 +78,7 @@ def check_gateway(client, key, *, inference):
     assert denied.status_code in {400, 401, 403}
     # Exercise inference formats through the same restricted alias key.
     if inference:
+        progress["phase"] = "embedding"
         embedding = client.post(
             "/v1/embeddings",
             headers=headers,
@@ -83,6 +87,11 @@ def check_gateway(client, key, *, inference):
         )
         embedding.raise_for_status()
         assert len(embedding.json()["data"][0]["embedding"]) > 0
+        progress["embedding_completed"] = True
+        if not generation:
+            progress["phase"] = "embedding_only_complete"
+            return
+        progress["phase"] = "structured_response"
         structured = client.post(
             "/v1/chat/completions",
             headers=headers,
@@ -121,6 +130,8 @@ def check_gateway(client, key, *, inference):
             "label": "synthetic",
             "observations": 2,
         }
+        progress["structured_response_completed"] = True
+        progress["phase"] = "streaming"
         with client.stream(
             "POST",
             "/v1/chat/completions",
@@ -148,9 +159,101 @@ def check_gateway(client, key, *, inference):
                         for c in event.get("choices", [])
                     )
             assert ended and content
+        progress["streaming_completed"] = True
+    progress["phase"] = "complete"
 
 
-def qualify(old_image, new_image, postgres_image):
+def check_trace_delivery(client, key, tempo_port):
+    """Send actual gateway requests and retrieve their exported Tempo spans."""
+
+    def spans(value):
+        if isinstance(value, dict):
+            if "spanId" in value and "traceId" in value:
+                yield value
+            for item in value.values():
+                yield from spans(item)
+        elif isinstance(value, list):
+            for item in value:
+                yield from spans(item)
+
+    def identifier(value):
+        if len(value) in {16, 32} and all(c in "0123456789abcdef" for c in value):
+            return value
+        return base64.b64decode(value, validate=True).hex()
+
+    with httpx.Client(
+        base_url=f"http://127.0.0.1:{tempo_port}", timeout=10, trust_env=False
+    ) as tempo:
+        for state, expected in [
+            ("vendor=synthetic", "vendor=synthetic"),
+            # Internal OWS is valid HTTP; trailing whitespace is refused by
+            # the client before it can exercise the gateway's 8,192 limit.
+            ("foo=1" + " " * 8182 + ",bar=2", ""),
+        ]:
+            trace_id, parent_id = secrets.token_hex(16), secrets.token_hex(8)
+            response = client.post(
+                "/v1/embeddings",
+                headers={
+                    "Authorization": "Bearer " + key,
+                    "traceparent": f"00-{trace_id}-{parent_id}-01",
+                    "tracestate": state,
+                },
+                json={
+                    "model": "local-embed",
+                    "input": "Synthetic tracing qualification",
+                },
+                timeout=90,
+            )
+            response.raise_for_status()
+            assert response.json()["data"][0]["embedding"]
+            delivered = []
+            for _ in range(60):
+                retrieved = tempo.get("/api/traces/" + trace_id)
+                if retrieved.status_code == 200:
+                    delivered = list(spans(retrieved.json()))
+                    if delivered:
+                        break
+                time.sleep(1)
+            assert delivered, "Gateway trace did not reach the isolated Tempo"
+            assert all(identifier(span["traceId"]) == trace_id for span in delivered)
+            roots = [
+                span
+                for span in delivered
+                if identifier(span.get("parentSpanId", "")) == parent_id
+            ]
+            assert roots, "Exported span lost the caller's parent"
+            assert all(span.get("traceState", "") == expected for span in roots)
+
+
+def acceptance(checks, *, generation_requested, tempo_requested, error_present=False):
+    required = {
+        "old_key_and_auth",
+        "key_survives_restart",
+        "logical_rollback_preserves_key_and_auth",
+        "isolated_resources_removed",
+    }
+    if generation_requested:
+        required.update(
+            {"migrated_key_auth_streaming_embeddings", "structured_output_schema"}
+        )
+    else:
+        required.add("migrated_key_auth_embeddings")
+    if tempo_requested:
+        required.add("real_otlp_delivery_parent_and_tracestate_boundary")
+    profile_passed = (
+        set(checks) == required
+        and all(checks[name] is True for name in required)
+        and not error_present
+    )
+    return {
+        "profile_passed": profile_passed,
+        "passed": profile_passed and generation_requested,
+    }
+
+
+def qualify(
+    old_image, new_image, postgres_image, tempo_image=None, embeddings_only=False
+):
     prefix = "validationplatform-gateway-" + secrets.token_hex(6)
     network, volume, rollback_volume = (
         prefix + "-net",
@@ -162,17 +265,29 @@ def qualify(old_image, new_image, postgres_image):
         for suffix in ("-postgres", "-old", "-new", "-rollback-db", "-rollback-gateway")
     ]
     port, rollback_port = available_port(), available_port()
+    tempo, tempo_port, tempo_volume = (
+        prefix + "-tempo",
+        available_port(),
+        prefix + "-traces",
+    )
     checks = {}
+    inference_progress = {}
     result = {
         "scope": "synthetic isolated gateway migration and logical rollback",
         "old_image": old_image,
         "new_image": new_image,
         "postgres_image": postgres_image,
         "checks": checks,
+        "inference_progress": inference_progress,
+        "generation_requested": not embeddings_only,
     }
     master, password = "sk-" + secrets.token_hex(32), secrets.token_hex(24)
     containers = [db, old, new, rollback_db, rollback]
     volumes = [volume, rollback_volume]
+    if tempo_image:
+        containers.append(tempo)
+        volumes.append(tempo_volume)
+        result["tempo_image"] = tempo_image
     created_containers, created_volumes = [], []
     network_created = False
     with tempfile.TemporaryDirectory(prefix=prefix) as temporary:
@@ -185,6 +300,13 @@ def qualify(old_image, new_image, postgres_image):
             f"DATABASE_URL=postgresql://litellm:{password}@postgres:5432/litellm\n"
             "ANTHROPIC_API_KEY=unused-synthetic-no-cloud-call\n"
             "LITELLM_TELEMETRY=False\n"
+            + (
+                "OTEL_EXPORTER=otlp_http\nOTEL_ENDPOINT=http://tempo:4318/v1/traces\n"
+                "OTEL_SERVICE_NAME=synthetic-gateway-qualification\n"
+                "OTEL_BSP_SCHEDULE_DELAY=200\n"
+                if tempo_image
+                else ""
+            )
         )
 
         def start_db(name, disk):
@@ -240,6 +362,50 @@ def qualify(old_image, new_image, postgres_image):
             for disk in volumes:
                 command("docker", "volume", "create", disk)
                 created_volumes.append(disk)
+            if tempo_image:
+                tempo_config = directory / "tempo.yaml"
+                tempo_config.write_text(
+                    "server:\n  http_listen_port: 3200\n"
+                    "usage_report:\n  reporting_enabled: false\n"
+                    "distributor:\n  receivers:\n    otlp:\n      protocols:\n"
+                    "        http:\n          endpoint: 0.0.0.0:4318\n"
+                    "storage:\n  trace:\n    backend: local\n    local:\n"
+                    "      path: /var/tempo/blocks\n    wal:\n      path: /var/tempo/wal\n"
+                )
+                tempo_config.chmod(0o644)
+                command(
+                    "docker",
+                    "run",
+                    "-d",
+                    "--name",
+                    tempo,
+                    "--network",
+                    network,
+                    "--network-alias",
+                    "tempo",
+                    "--read-only",
+                    "--cap-drop",
+                    "ALL",
+                    "--security-opt",
+                    "no-new-privileges:true",
+                    "--memory",
+                    "1g",
+                    "--cpus",
+                    "2",
+                    "--pids-limit",
+                    "256",
+                    "--tmpfs",
+                    "/tmp:mode=1777,noexec,nosuid,size=128m",
+                    "--mount",
+                    f"type=volume,source={tempo_volume},target=/var/tempo",
+                    "--mount",
+                    f"type=bind,source={tempo_config},target=/etc/tempo.yaml,readonly",
+                    "-p",
+                    f"127.0.0.1:{tempo_port}:3200",
+                    tempo_image,
+                    "-config.file=/etc/tempo.yaml",
+                )
+                created_containers.append(tempo)
             start_db(db, volume)
             start_gateway(old, old_image, port)
             with httpx.Client(
@@ -265,9 +431,21 @@ def qualify(old_image, new_image, postgres_image):
                 command("docker", "stop", old)
                 start_gateway(new, new_image, port)
                 wait_gateway(client, master)
-                check_gateway(client, key, inference=True)
-                checks["migrated_key_auth_streaming_embeddings"] = True
-                checks["structured_output_schema"] = True
+                check_gateway(
+                    client,
+                    key,
+                    inference=True,
+                    progress=inference_progress,
+                    generation=not embeddings_only,
+                )
+                if embeddings_only:
+                    checks["migrated_key_auth_embeddings"] = True
+                else:
+                    checks["migrated_key_auth_streaming_embeddings"] = True
+                    checks["structured_output_schema"] = True
+                if tempo_image:
+                    check_trace_delivery(client, key, tempo_port)
+                    checks["real_otlp_delivery_parent_and_tracestate_boundary"] = True
                 command("docker", "restart", new)
                 wait_gateway(client, master)
                 check_gateway(client, key, inference=False)
@@ -331,8 +509,14 @@ def qualify(old_image, new_image, postgres_image):
                 except subprocess.SubprocessError:
                     cleanup = False
             checks["isolated_resources_removed"] = cleanup
-    result["passed"] = (
-        len(checks) == 6 and all(checks.values()) and "error_type" not in result
+    # A limited diagnostic never satisfies the full migration/inference gate.
+    result.update(
+        acceptance(
+            checks,
+            generation_requested=not embeddings_only,
+            tempo_requested=bool(tempo_image),
+            error_present="error_type" in result,
+        )
     )
     return result
 
@@ -342,16 +526,30 @@ def main():
     parser.add_argument("--old-image", required=True)
     parser.add_argument("--new-image", required=True)
     parser.add_argument("--postgres-image", required=True)
+    parser.add_argument(
+        "--tempo-image", help="Optional isolated real OTLP trace verification"
+    )
+    parser.add_argument(
+        "--embeddings-only",
+        action="store_true",
+        help="Limited diagnostic: do not call generation; the full passed gate remains false",
+    )
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     fd = os.open(
         args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
     )
     with os.fdopen(fd, "w") as report:
-        result = qualify(args.old_image, args.new_image, args.postgres_image)
+        result = qualify(
+            args.old_image,
+            args.new_image,
+            args.postgres_image,
+            args.tempo_image,
+            args.embeddings_only,
+        )
         json.dump(result, report, indent=2)
     print(json.dumps(result))
-    return not result["passed"]
+    return not result["profile_passed"]
 
 
 if __name__ == "__main__":

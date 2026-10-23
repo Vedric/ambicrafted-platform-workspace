@@ -111,6 +111,12 @@ automation, `mot-de-passe --stdin` accepts the password from a protected input
 stream. Never put a password or an API key directly in command arguments.
 Then open `http://127.0.0.1:8787` and use the login form. Sessions last 12 hours.
 
+**Sign out** revokes the server session, clears private query data and cancels
+pending exports before returning to Welcome without reloading the document.
+On mobile, open the navigation menu to find it. Back navigation does not restore
+access: sign in again to reopen the workspace. If the logout request fails, the
+workspace stays visible with an error; do not treat that state as signed out.
+
 ## Recover direct browser access
 
 After the first `./plateforme ouvrir`, select **Set up browser access** in the
@@ -448,9 +454,10 @@ to Docker operations grants substantial authority on the host and belongs only
 to the trusted local operator. The current deployment deliberately has no
 public ingress, multi-user authorization or unattended remediation.
 
-The [22 October candidate qualification](QUALIFICATION-2026-10-22.md) records
-the eight image identities, exact validation and remaining findings.
-A successful scan is only one release condition. Historical
+The [23 October candidate qualification](QUALIFICATION-2026-10-23.md) records
+the updated image findings, exact validation and generation blocker.
+A successful scan is only one release condition. The
+[22 October application freeze](QUALIFICATION-2026-10-22.md), historical
 [20 October counts](QUALIFICATION-2026-10-20.md) and the
 [26 September assessment](SECURITY-RELEASE-2026-09-26.md) remain available;
 they do not describe this candidate. Remote or mutually untrusted use remains

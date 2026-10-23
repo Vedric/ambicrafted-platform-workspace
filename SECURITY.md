@@ -6,7 +6,7 @@ It assumes a single trusted workstation user and a trusted local gateway.
 It does not defend against root or a compromised model server.
 
 The release image gate fails on any HIGH/CRITICAL occurrence or incomplete scan.
-See the [22 October candidate qualification](docs/QUALIFICATION-2026-10-22.md) for the
+See the [23 October candidate qualification](docs/QUALIFICATION-2026-10-23.md) for the
 candidate, exact scope and remaining upstream findings. Earlier dated assessments
 remain historical. Functional qualification does not certify a vulnerability-free
 deployment.
@@ -107,6 +107,11 @@ Pending asynchronous document downloads are cancelled when the browser observes
 session invalidation or logout, including HTTP200 session discovery returning
 disconnected. They recheck cancellation before publishing a file; this is not
 a fresh server authorization check and cannot retract an existing download.
+Explicit logout first revokes the server session, signals cancellation and
+clears private query state, then navigates within the existing document.
+Tests replay the old cookie, revisit protected routes and release delayed
+private responses after logout. A failed logout request reports an error and
+does not claim successful revocation.
 Cookies intentionally use local HTTP; exposing this server remotely requires
 a separate TLS, identity and authorization design. One-use login links expire
 after 60 seconds; sessions expire after 12 hours. Changing the password revokes

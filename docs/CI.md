@@ -13,6 +13,11 @@ Do not rerun failed billing or deterministic test jobs until the cause changes.
 For an unchanged commit with a resolved infrastructure problem, use GitHub's
 failed-job rerun instead of creating another full workflow run.
 
+The browser job retains one diagnostic retry in CI and fails if any test is
+flaky. A passing retry does not satisfy the gate. Inspect the retained trace,
+correct the established cause and validate locally before pushing the change;
+do not hide uncaught browser errors or repeatedly rerun an unchanged candidate.
+
 Execution ceilings are 20 minutes per Python project, 10 minutes for hooks/Compose
 and evaluation configuration, 15 minutes for real speech, 25 minutes for the
 console and 60 minutes per image. The console ceiling allows headroom above an

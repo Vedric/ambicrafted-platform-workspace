@@ -3,3 +3,6 @@
 !requirements.txt
 !verify_certifi.py
 !verify_system_trust.py
+!backport_otel.py
+!test_otel_backport.py
+!test_otel_vendor.py

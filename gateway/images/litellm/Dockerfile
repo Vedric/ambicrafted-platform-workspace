@@ -11,6 +11,14 @@ ADD --checksum=sha256:553e2d42f5bb3bb2a785a7d3de8ef90bb7df74b5413eff5a7b4388007e
 COPY requirements.txt /patch/requirements.txt
 COPY verify_certifi.py /patch/verify_certifi.py
 COPY verify_system_trust.py /patch/verify_system_trust.py
+COPY backport_otel.py test_otel_backport.py test_otel_vendor.py /patch/
+# Full unchanged tests from the retained 1.33.1 package's source commit.
+ADD --checksum=sha256:e1e496f64ee57fda76a19d6735c315fb9d699d38b640cb1d110f2d0f354b3044 https://raw.githubusercontent.com/open-telemetry/opentelemetry-python/acae2c232b101d3e447a82a7161355d66aa06fa2/opentelemetry-api/tests/trace/test_tracestate.py /patch/vendor-tests/test_tracestate_baseline.py
+ADD --checksum=sha256:2ea08044b7e50128abc1f73045f3d66a55945f21558bfa1c3e9b9aae8756bd92 https://raw.githubusercontent.com/open-telemetry/opentelemetry-python/acae2c232b101d3e447a82a7161355d66aa06fa2/opentelemetry-api/tests/trace/propagation/test_tracecontexthttptextformat.py /patch/vendor-tests/test_tracecontext_baseline.py
+# Unmodified Apache-2.0 vendor tests from the exact security fix commit.
+ADD --checksum=sha256:ab4e4a0cc130260240b1e0314eca15f5c73764d28aae0a3099a2553220824e56 https://raw.githubusercontent.com/open-telemetry/opentelemetry-python/d5224bf4ffdf2aee1b592ad238dcc32ca957f26b/opentelemetry-api/tests/trace/test_tracestate.py /patch/vendor-tests/test_tracestate_upstream.py
+ADD --checksum=sha256:d6302a2b59352c4793e04a46511b1d2e729d7193599745d2d0976e7bec227753 https://raw.githubusercontent.com/open-telemetry/opentelemetry-python/d5224bf4ffdf2aee1b592ad238dcc32ca957f26b/opentelemetry-api/tests/trace/propagation/test_tracecontexthttptextformat.py /patch/vendor-tests/test_tracecontext_upstream.py
+ADD --checksum=sha256:c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4 https://raw.githubusercontent.com/open-telemetry/opentelemetry-python/d5224bf4ffdf2aee1b592ad238dcc32ca957f26b/LICENSE /patch/vendor-tests/LICENSE
 
 FROM ghcr.io/berriai/litellm:main-v1.104.4-stable@sha256:a1e651f6e0b78ee40300fbbbce95c9cb8fae121bddd56285d728fc64de2069fa AS application
 RUN --network=none --mount=type=bind,from=wheels,source=/patch,target=/patch,ro \
@@ -18,7 +26,14 @@ RUN --network=none --mount=type=bind,from=wheels,source=/patch,target=/patch,ro 
       --require-hashes --no-deps -r /patch/requirements.txt \
     && /app/.venv/bin/python -c "import aiohttp, yarl, litellm, pypdf; assert aiohttp.__version__ == '3.14.4'; assert yarl.__version__ == '1.25.1'; assert pypdf.__version__ == '6.21.1'" \
     && /app/.venv/bin/python /patch/verify_certifi.py
-LABEL org.opencontainers.image.version="1.104.4-stable-security.20261022.2" \
+# Preserve the pinned API/SDK cohort. Apply the bounded upstream parser fix
+# with exact input/output hashes; package version and raw advisory stay honest.
+RUN --network=none --mount=type=bind,from=wheels,source=/patch,target=/patch,ro \
+    PYTHONDONTWRITEBYTECODE=1 /app/.venv/bin/python /patch/test_otel_backport.py --preflight \
+    && PYTHONDONTWRITEBYTECODE=1 /app/.venv/bin/python /patch/backport_otel.py \
+    && PYTHONDONTWRITEBYTECODE=1 /app/.venv/bin/python /patch/test_otel_vendor.py \
+    && PYTHONDONTWRITEBYTECODE=1 /app/.venv/bin/python /patch/test_otel_backport.py --qualified
+LABEL org.opencontainers.image.version="1.104.4-stable-security.20261023.1" \
       org.opencontainers.image.source="https://github.com/BerriAI/litellm"
 
 # Shared, build-only trust policy. No helper/toolchain enters the runtime.

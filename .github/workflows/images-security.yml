@@ -71,6 +71,11 @@ jobs:
           enable-cache: false
       - name: Tests du scanner sans réseau ni Docker
         run: uv run --no-project --python 3.14 -m unittest discover -s scripts -p test_scanner_images.py -v
+      - name: Gateway qualification rejects incomplete evidence
+        if: matrix.service == 'litellm'
+        run: >-
+          uv run --locked --project apps/control-api python -m unittest discover
+          -s gateway/images/litellm -p test_qualifier.py -v
       - name: Trivy officiel, archive vérifiée avant exécution
         shell: bash
         env:

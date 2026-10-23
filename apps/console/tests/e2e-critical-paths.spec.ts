@@ -69,6 +69,7 @@ async function remove(page: Page) {
 
 test("critical: password entry, cookie boundary, locale, theme and logout", async ({
   page,
+  request,
 }) => {
   await page.goto("/welcome", { waitUntil: "domcontentloaded" });
   expect((await page.request.get("/api/analyses")).status()).toBe(401);
@@ -129,6 +130,7 @@ test("critical: password entry, cookie boundary, locale, theme and logout", asyn
       `No settings overflow at ${width}px`,
     ).toBe(true);
   }
+  const documentStarted = await page.evaluate(() => performance.timeOrigin);
   await page
     .getByRole("button", { name: "Sign out", exact: true })
     .filter({ visible: true })
@@ -136,7 +138,105 @@ test("critical: password entry, cookie boundary, locale, theme and logout", asyn
   await expect(
     page.getByRole("heading", { name: /Intelligence/ }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Main navigation" }),
+  ).toHaveCount(0);
   expect((await page.request.get("/api/analyses")).status()).toBe(401);
+  expect(
+    (await page.context().cookies()).some(
+      (item) => item.name === "ambicrafted_session",
+    ),
+  ).toBe(false);
+  // Replay the previous cookie from a separate request context: deleting the
+  // browser cookie alone would not prove server-side revocation.
+  expect(
+    (
+      await request.get("/api/analyses", {
+        headers: { Cookie: `${cookie!.name}=${cookie!.value}` },
+      })
+    ).status(),
+  ).toBe(401);
+  expect(
+    await page.evaluate(() => performance.timeOrigin),
+    "Logout must not unload a document while its public queries remount",
+  ).toBe(documentStarted);
+  // Settings was opened in a separate document. Back may restore the prior
+  // workspace from browser history; it must never restore authenticated access.
+  await page.goBack({ waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Welcome back")).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Main navigation" }),
+  ).toHaveCount(0);
+  expect((await page.request.get("/api/analyses")).status()).toBe(401);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Welcome back")).toBeVisible();
+  await page.goto("/parametres", { waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Welcome back")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Settings & help", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("critical: logout cancels a pending private export without a late download", async ({
+  page,
+}) => {
+  await login(page, "/assistant");
+  await page.getByLabel("Response format").selectOption("report");
+  await page
+    .getByLabel("Your message")
+    .fill("Synthetic report for logout boundary");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.locator(".artifact-card")).toHaveCount(1);
+  let release!: () => void;
+  const held = new Promise<void>((done) => {
+    release = done;
+  });
+  let ready!: () => void;
+  const started = new Promise<void>((done) => {
+    ready = done;
+  });
+  let finished!: () => void;
+  const completed = new Promise<void>((done) => {
+    finished = done;
+  });
+  const downloads: string[] = [];
+  page.on("download", (download) =>
+    downloads.push(download.suggestedFilename()),
+  );
+  await page.route("**/artefacts/*/export?format=json", async (route) => {
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    ready();
+    await held;
+    try {
+      await route.fulfill({ response });
+    } finally {
+      finished();
+    }
+  });
+  try {
+    await page
+      .getByRole("button", { name: "Download JSON", exact: true })
+      .click();
+    await started;
+    const menu = page.getByRole("button", { name: "Open navigation" });
+    if (await menu.isVisible()) await menu.click();
+    await page
+      .getByRole("button", { name: "Sign out", exact: true })
+      .filter({ visible: true })
+      .click();
+    await expect(page.getByLabel("Welcome back")).toBeVisible();
+    expect((await page.request.get("/api/conversations")).status()).toBe(401);
+    release();
+    await completed;
+    await expect(page.locator(".artifact-card")).toHaveCount(0);
+    await expect(page.getByLabel("Your message")).toHaveCount(0);
+    // Observe native download events after the held response has settled.
+    await page.waitForTimeout(300);
+    expect(downloads).toEqual([]);
+  } finally {
+    release();
+  }
 });
 
 test("critical: native scope and runbook filename constraints reject invalid input", async ({
