@@ -167,19 +167,36 @@ def check_trace_delivery(client, key, tempo_port):
     """Send actual gateway requests and retrieve their exported Tempo spans."""
 
     def spans(value):
-        if isinstance(value, dict):
-            if "spanId" in value and "traceId" in value:
-                yield value
-            for item in value.values():
-                yield from spans(item)
-        elif isinstance(value, list):
-            for item in value:
-                yield from spans(item)
+        # Tempo calls ResourceSpans "batches"; OTLP calls it "resourceSpans".
+        # Walk only the schema's span collections: Link also has trace/span IDs
+        # but may legitimately refer to a different trace.
+        assert isinstance(value, dict), "Malformed trace response"
+        resources = value.get("batches", value.get("resourceSpans"))
+        assert isinstance(resources, list), "Malformed trace resources"
+        for resource in resources:
+            assert isinstance(resource, dict), "Malformed trace resource"
+            scopes = resource.get("scopeSpans", [])
+            assert isinstance(scopes, list), "Malformed trace scopes"
+            for scope in scopes:
+                assert isinstance(scope, dict), "Malformed trace scope"
+                items = scope.get("spans", [])
+                assert isinstance(items, list), "Malformed trace spans"
+                for span in items:
+                    assert isinstance(span, dict), "Malformed trace span"
+                    yield span
 
-    def identifier(value):
-        if len(value) in {16, 32} and all(c in "0123456789abcdef" for c in value):
-            return value
-        return base64.b64decode(value, validate=True).hex()
+    def identifier(value, size, *, optional=False):
+        assert isinstance(value, str), "Malformed trace identifier"
+        if optional and value == "":
+            return ""
+        if len(value) == size * 2 and all(
+            c in "0123456789abcdef" for c in value.lower()
+        ):
+            decoded = bytes.fromhex(value)
+        else:
+            decoded = base64.b64decode(value, validate=True)
+        assert len(decoded) == size and any(decoded), "Invalid trace identifier"
+        return decoded.hex()
 
     with httpx.Client(
         base_url=f"http://127.0.0.1:{tempo_port}", timeout=10, trust_env=False
@@ -206,23 +223,30 @@ def check_trace_delivery(client, key, tempo_port):
             )
             response.raise_for_status()
             assert response.json()["data"][0]["embedding"]
-            delivered = []
+            delivered, roots = [], []
             for _ in range(60):
                 retrieved = tempo.get("/api/traces/" + trace_id)
                 if retrieved.status_code == 200:
                     delivered = list(spans(retrieved.json()))
-                    if delivered:
+                    roots = []
+                    for span in delivered:
+                        assert identifier(span["traceId"], 16) == trace_id
+                        identifier(span["spanId"], 8)
+                        parent = identifier(
+                            span.get("parentSpanId", ""), 8, optional=True
+                        )
+                        assert isinstance(span.get("traceState", ""), str)
+                        if parent == parent_id:
+                            assert span.get("traceState", "") == expected
+                            roots.append(span)
+                    # The batch exporter can deliver auth/pre-call children
+                    # before the SERVER span. Keep the same bounded poll budget
+                    # until the caller-parent assertion can actually be checked.
+                    if roots:
                         break
                 time.sleep(1)
             assert delivered, "Gateway trace did not reach the isolated Tempo"
-            assert all(identifier(span["traceId"]) == trace_id for span in delivered)
-            roots = [
-                span
-                for span in delivered
-                if identifier(span.get("parentSpanId", "")) == parent_id
-            ]
             assert roots, "Exported span lost the caller's parent"
-            assert all(span.get("traceState", "") == expected for span in roots)
 
 
 def acceptance(checks, *, generation_requested, tempo_requested, error_present=False):

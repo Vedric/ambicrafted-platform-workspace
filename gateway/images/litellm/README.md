@@ -70,10 +70,11 @@ removed. This **limited profile is not full inference qualification**:
 The preceding full gateway check timed out during generation. A direct synthetic
 request to the same model service, bypassing LiteLLM, also timed out at 30 seconds;
 a direct embedding request succeeded in 0.071 seconds. Host inference diagnosis
-is separate from this parser correction. Full streaming/structured generation,
-personal deployment and release acceptance remain pending until the model
-service is healthy and the full qualifier passes. The timeout is not increased
-to turn a failed availability check green.
+is separate from this parser correction. At that initial checkpoint, full
+streaming/structured generation, personal deployment and release acceptance
+remained pending. The later complete CPU qualification is recorded below; it
+does not resolve GPU recovery or release acceptance. The gateway timeout was
+not increased to turn a failed availability check green.
 
 ```sh
 docker buildx build --load --platform linux/amd64 \
@@ -91,6 +92,32 @@ uv run --locked --project apps/control-api python gateway/images/litellm/qualifi
 `--embeddings-only` requests the explicitly limited diagnostic profile and keeps
 the full `passed` gate false, even when its checks succeed. Re-run the command
 without that flag to qualify actual streaming and structured generation.
+
+## Complete generation and trace-arrival qualification — 2026-10-23
+
+Following a scoped application restart, generation became available through
+CPU fallback while the host GPU fault remained open. The full service exercise
+revealed an early-exit defect in the verifier: Tempo could return auth/pre-call
+children before the SERVER parent. A diagnostic read 200 ms later observed the
+correct parent in that same trace. Waiting for any span was not sufficient.
+
+The verifier now waits for the required caller-parent span within the original
+60 polls/one-second interval. It immediately rejects incorrect trace identity or
+parent state and reads only actual OTLP span collections, not cross-trace links.
+Seventeen tests cover acceptance guards, partial arrival, missing parents,
+incorrect state/identity, protobuf encoding and malformed data. Two negative
+comparisons demonstrate the prior verifier's failures.
+
+The complete exercise then passed in 120.878 seconds using the exact new image
+above and actual prior live image `sha256:50bcffed7f60102fde9620be6a9863ce1746fd856f71bf9a36a1d4e088cdd914`.
+All seven checks are true, including structured generation, streaming and real
+trace delivery; migration, restart, separate-volume rollback and cleanup pass.
+Report SHA-256: `ba0c4a57a4d7f54d3890ab9d6a4a74a66f025aa0faf8b5daea37f0cbce21dd81`.
+The corrected verifier's SHA-256 is
+`3fdc98bdc4681006945a1873f2fade7ae070ced966362b73102aa49e879c5b01`.
+The preceding failures and limited profile remain preserved. This is functional
+qualification of the gateway image on CPU; it does not certify GPU recovery,
+conversational latency, installation on the live data or release acceptance.
 
 ## Available native-library fixes — 2026-10-22
 

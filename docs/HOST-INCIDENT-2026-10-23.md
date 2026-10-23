@@ -1,8 +1,9 @@
 # Reference workstation incident — 23 October 2026
 
-Status: Open. Generation is unavailable during qualification; personal
-promotion and release acceptance remain blocked. Reviewed source corrections
-and hosted checks can proceed without declaring the workstation healthy.
+Status: Open. Generation has recovered through a slow CPU fallback; GPU access
+and normal personal release acceptance remain blocked. The complete gateway
+exercise now passes after a trace-checker correction. None of these results
+declares the reference workstation healthy.
 
 ## Observed boundary
 
@@ -37,6 +38,42 @@ Those results cannot be presented as a healthy end-to-end conversation or as
 the complete gateway qualification. See the
 [dated qualification](QUALIFICATION-2026-10-23.md).
 
+## Controlled application recovery
+
+At 16:33–16:35 UTC, with the application's inference/queue counters idle,
+the operator-owned model was unloaded and the Ollama service was restarted
+once. The console was briefly stopped and restarted around each operation;
+model files, configuration and user data were retained. The previous parent
+and runner exited. WSL NVML still failed with exit 255, and CUDA initialization
+returned 100. The restart restored application state but did not repair GPU
+access. No Windows/WSL shutdown, driver replacement or device reset was made.
+
+Ollama selected CPU inference automatically. A first 45-second generation probe
+expired during loading and was cancelled. A separate bounded cold-start probe
+then completed in 115.700 seconds, including 109.049 seconds of loading, returning
+the requested synthetic response. It used the existing model and configuration,
+not a replacement model or cloud fallback.
+
+A real saved AURA conversation subsequently completed in both languages. The
+English turn delivered its first token at 47.751 seconds and completed at 69.407;
+the French follow-up recalled the synthetic environment from the prior turn,
+with first token at 47.292 seconds and completion at 70.104. A replay retained the
+same history. Closing a third stream after its first token released the
+inference lease and did not persist a partial turn. Only the newly created
+synthetic conversation was deleted; its subsequent lookup returned 404.
+These measurements establish degraded functionality, **not responsive voice
+interaction or recovered GPU performance**.
+
+The full gateway exercise also exposed a verifier race: auth/pre-call spans
+were visible before their SERVER parent. The same trace contained the correct
+parent 200 ms later. The corrected verifier waits for that parent within its
+existing 60-poll budget, distinguishes spans from OTLP links, and still rejects
+incorrect identifiers/state. All seven full gateway checks then passed on the
+exact corrected image in 120.878 seconds, including real structured generation,
+streaming, OTLP delivery, migration, restart, independent logical rollback and
+resource cleanup. The earlier failed reports remain retained. See the
+[qualification report](QUALIFICATION-2026-10-23.md) for scope and provenance.
+
 ## Preserved evidence and operating state
 
 The checks record exit codes, bounded diagnostics and hashes in private
@@ -45,7 +82,7 @@ process IDs, raw event logs, paths and user content. Earlier successful tests,
 the failed full gateway attempt and the narrower passing diagnostic remain
 separate records; none is replaced with an inferred success.
 
-The GPU diagnostic did not reboot Windows/WSL, restart services, change drivers,
+The initial read-only GPU diagnostic did not reboot Windows/WSL, restart services,
 change host policy or send another model request. The separately recorded
 synthetic inference probes were performed before that read-only inspection.
 User data and existing services were preserved. A live platform host must not
@@ -57,7 +94,7 @@ Host administration must first restore GPU access within WSL and verify the
 Windows/WSL runtime boundary. The read-only evidence does not establish a
 specific corrective driver or reboot procedure; choose that action only after
 reviewing the actual host state and preserving active work.
-No successful non-disruptive host repair was demonstrated during this session.
+No successful non-disruptive GPU repair was demonstrated during this session.
 
 These read-only checks can be run from Windows PowerShell before and after the
 operator's maintenance intervention:
@@ -93,7 +130,7 @@ After the host is repaired:
 
 1. Recheck GPU access from WSL and verify that the intended local inference
    runtime can execute a bounded synthetic generation request.
-2. Run the complete isolated gateway qualification on the exact corrected
+2. Re-run the complete isolated gateway qualification after recovery on the exact corrected
    image, including structured generation and streaming. Its full `passed`
    result must be true; the embeddings-only profile is insufficient.
 3. Recheck the platform's actual readiness, local routing and conversation path.
