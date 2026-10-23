@@ -220,6 +220,10 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: uv sync --locked --project ../control-api
+      - name: Official Ubuntu mirrors and bounded APT transport
+        run: |
+          uv run --locked --project ../control-api python -m unittest discover -s ../../scripts -p test_configurer_apt_ci.py
+          uv run --locked --project ../control-api python ../../scripts/configurer_apt_ci.py
       - name: Isolated document parser
         run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap libseccomp2 apparmor-profiles
       - name: Real document sandbox and scoped Ubuntu AppArmor policy

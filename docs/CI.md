@@ -24,6 +24,30 @@ console and 60 minutes per image. The console ceiling allows headroom above an
 observed successful 19m35 job, including browser installation. These are maximum
 durations, not target execution times; investigate timeouts before rerunning.
 
+On 23 October, two console jobs exhausted that ceiling while APT was still
+downloading Playwright's system dependencies from the Ubuntu Azure mirror. No
+browser tests started in those attempts. The logs establish slow acquisition,
+not whether the mirror backend or the runner's network path caused it.
+
+Before its first APT operation, the console job now runs a guarded preparation
+for GitHub-hosted Ubuntu 24.04 only. It validates the
+[official runner mirror layout](https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/scripts/build/configure-apt-sources.sh),
+prefers the existing HTTPS Ubuntu archive and security mirrors, and retains
+Azure as the final fallback. An unexpected layout fails before privileged writes.
+APT HTTP/HTTPS connection and inactivity timeouts are 30 seconds; this is not a
+total download deadline and does not detect a continuously slow transfer. See
+[APT mirror priorities](https://manpages.debian.org/trixie/apt/apt-transport-mirror.1.en.html)
+and [transport timeouts](https://manpages.debian.org/trixie/apt/apt-transport-http.1.en.html).
+The helper preserves Ubuntu sources, suites, components, signing keys and
+[APT package verification](https://documentation.ubuntu.com/security/software-integrity/archive-verification/).
+Each file is replaced atomically. The two files are not a single transaction;
+any failure stops the disposable job before package installation. The helper
+installs no packages itself. Local fixture tests cover refusals and unchanged
+trust settings; only a subsequent hosted run can establish download performance
+and complete browser acceptance. The 25-minute job ceiling and all test gates
+remain unchanged. This preparation must not be run on a personal workstation or
+a self-hosted runner.
+
 The image workflow normally builds and scans all eight images. A direct manual
 invocation can select one service after a targeted correction:
 
