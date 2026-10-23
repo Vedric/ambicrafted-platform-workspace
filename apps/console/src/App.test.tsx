@@ -316,6 +316,149 @@ it("revokes pending work once when session revalidation returns signed out in St
   }
 });
 
+function mockLogoutFetch(logout: () => Promise<Response>) {
+  let connected = true;
+  const json = (value: unknown) => new Response(JSON.stringify(value));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url === "/api/auth/deconnexion") {
+        const response = await logout();
+        if (response.ok) connected = false;
+        return response;
+      }
+      if (url === "/api/auth")
+        return json({
+          connecte: connected,
+          mot_de_passe: true,
+          csrf: connected ? "synthetic-csrf" : null,
+        });
+      if (url === "/api/vue-ensemble")
+        return json({
+          total: 0,
+          statuts: {},
+          activite: [],
+          runbooks: 0,
+          journal: [],
+          version: "test",
+          sante: { ok: true, services: [], modeles: [], index: {} },
+        });
+      if (url.startsWith("/api/analyses"))
+        return json({ elements: [], total: 0, page: 1 });
+      if (url.startsWith("/api/runbooks")) return json([]);
+      return json({});
+    }),
+  );
+}
+
+it("logout clears private state and cancels late queries before returning to public access", async () => {
+  const logout = deferred<Response>();
+  const late = deferred<{ private: string }>();
+  const lateSession = deferred<{ connecte: boolean; csrf: string }>();
+  let pendingSignal: AbortSignal | undefined;
+  mockLogoutFetch(() => logout.promise);
+  const expired = vi.fn();
+  window.addEventListener("session-expiree", expired);
+  try {
+    renderApp(true);
+    await screen.findByRole("heading", {
+      name: "Your intelligence, in motion.",
+    });
+    const client = clients[0];
+    await waitFor(() =>
+      expect(client.isFetching({ queryKey: ["session"] })).toBe(0),
+    );
+    const pendingSession = client
+      .fetchQuery({
+        queryKey: ["session"],
+        queryFn: () => lateSession.promise,
+      })
+      .catch(() => undefined);
+    client.setQueryData(["private-synthetic"], {
+      private: "cached confidential result",
+    });
+    const pending = client
+      .fetchQuery({
+        queryKey: ["private-pending"],
+        queryFn: ({ signal }) => {
+          pendingSignal = signal;
+          return late.promise;
+        },
+      })
+      .catch(() => undefined);
+    await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    // A pending server response must not prematurely claim successful logout.
+    expect(
+      screen.getByRole("navigation", { name: "Main navigation" }),
+    ).toBeVisible();
+    expect(expired).not.toHaveBeenCalled();
+    await act(async () =>
+      logout.resolve(new Response(JSON.stringify({ ok: true }))),
+    );
+    await screen.findByLabelText("Welcome back");
+    expect(
+      screen.queryByRole("navigation", { name: "Main navigation" }),
+    ).not.toBeInTheDocument();
+    expect(expired).toHaveBeenCalledOnce();
+    expect(pendingSignal?.aborted).toBe(true);
+    expect(client.getQueryData(["private-synthetic"])).toBeUndefined();
+    await act(async () => {
+      late.resolve({ private: "late confidential result" });
+      lateSession.resolve({ connecte: true, csrf: "synthetic-prior-session" });
+      await Promise.all([pending, pendingSession]);
+    });
+    expect(client.getQueryData(["private-pending"])).toBeUndefined();
+    expect(client.getQueryData(["session"])).toMatchObject({
+      connecte: false,
+      csrf: null,
+    });
+    expect(
+      screen.queryByRole("navigation", { name: "Main navigation" }),
+    ).not.toBeInTheDocument();
+  } finally {
+    late.resolve({ private: "cleanup" });
+    lateSession.resolve({ connecte: false, csrf: "" });
+    window.removeEventListener("session-expiree", expired);
+  }
+});
+
+it("a refused logout reports the failure without claiming revocation or clearing private work", async () => {
+  mockLogoutFetch(
+    async () =>
+      new Response(JSON.stringify({ detail: "Synthetic logout unavailable" }), {
+        status: 503,
+      }),
+  );
+  const expired = vi.fn();
+  window.addEventListener("session-expiree", expired);
+  try {
+    renderApp(true);
+    await screen.findByRole("heading", {
+      name: "Your intelligence, in motion.",
+    });
+    clients[0].setQueryData(["private-synthetic"], {
+      private: "unsaved workspace",
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This service is unavailable. Check system health and try again.",
+    );
+    expect(
+      screen.getByRole("navigation", { name: "Main navigation" }),
+    ).toBeVisible();
+    expect(screen.queryByLabelText("Welcome back")).not.toBeInTheDocument();
+    expect(clients[0].getQueryData(["private-synthetic"])).toEqual({
+      private: "unsaved workspace",
+    });
+    expect(clients[0].getQueryData(["session"])).toMatchObject({
+      connecte: true,
+    });
+    expect(expired).not.toHaveBeenCalled();
+  } finally {
+    window.removeEventListener("session-expiree", expired);
+  }
+});
+
 describe("untrusted Markdown rendering", () => {
   it("does not execute or render raw HTML", async () => {
     const { container } = render(
