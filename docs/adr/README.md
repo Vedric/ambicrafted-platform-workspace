@@ -63,10 +63,11 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0050](0050-recherche-utile-et-correction-non-retenue.md) | Useful source exploration; decline unproven automatic repair | Clarification retained; repair not adopted | 2026-10-22 | Separate missing observations from missing procedures; retain failure evidence and human review. |
 | [0051](0051-deploiement-personnel-hybride.md) | Qualified hybrid personal deployment | Accepted for the private Linux workstation | 2026-10-22 | Eight containers plus native supervised application; public source without public ingress. |
 | [0052](0052-correctifs-images-compatibles.md) | Compatible image corrections beyond the blocking threshold | Qualified personal profile | 2026-10-22 | Native package signatures, aligned runtime dependencies, complete trust stores and explicit residual findings. |
+| [0053](0053-retroportage-tracestate-litellm.md) | OpenTelemetry correction within supported dependency graphs | Source/MCP and targeted gateway profile qualified; generation blocked | 2026-10-23 | Official MCP API update and pinned upstream gateway backport; retained scanner findings and separate evidence. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0052, then the current README and security document;
+- **Current behavior**: 0009–0053, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [MCP gateway](../MCP-GATEWAY.md), [voice](../VOICE.md) and

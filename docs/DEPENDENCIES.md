@@ -1,15 +1,27 @@
 # Dependency review
 
 The current candidate inventory and remaining release gates are documented in
-[the 22 October candidate qualification](QUALIFICATION-2026-10-22.md). The local
-eight-image inventory qualified on 22 October reports zero CRITICAL/HIGH, with
-23 MEDIUM, 9 LOW and 5 UNKNOWN package/advisory occurrences. Scanner database:
-22 October 07:10:52 UTC. The release gate still rejects CRITICAL/HIGH and incomplete
-scans against rebuilt artifacts; its database and counts can differ from this
-local snapshot. Python audits reject every reported advisory; npm gates reject
-MODERATE or higher findings. Both remain separate from image scans, and all
-findings remain visible. A local result proves neither deployment
-nor a completed hosted release.
+[the 23 October qualification](QUALIFICATION-2026-10-23.md). Re-scanning the same
+eight local images with the database updated **23 October 07:12:39 UTC** reports
+**0 CRITICAL, 0 HIGH, 24 MEDIUM, 9 LOW and 5 UNKNOWN** package/advisory occurrences.
+The additional MEDIUM is CVE-2026-114603 in LiteLLM's OpenTelemetry API 1.33.1.
+The [22 October result](QUALIFICATION-2026-10-22.md) used an earlier database;
+its 23 MEDIUM count remains a dated result, not the current inventory.
+
+The release gate still rejects CRITICAL/HIGH and incomplete scans against rebuilt
+artifacts. Python project audits reject every reported advisory; npm gates reject
+MODERATE or higher findings. These are separate controls and all raw findings
+remain visible. The new advisory also failed the hosted Runbooks MCP audit on
+API 1.44.0. Its lock is updated to official 1.45.1; LiteLLM instead needs the
+[bounded source backport](adr/0053-retroportage-tracestate-litellm.md), because its
+SDK and proxy-runtime requirements pin the older telemetry family. The gateway
+package version remains 1.33.1 with the backport identified separately; its raw
+version-based alert must not be hidden. New behavioral and functional results,
+exact image identity and hosted acceptance belong to the dated qualification.
+The parser correction and targeted gateway profile are qualified locally; full
+generation remains blocked by the [reference-host incident](HOST-INCIDENT-2026-10-23.md).
+A local scan or source correction proves neither deployment nor a completed
+personal release.
 
 The targeted corrections adopt Wolfi's signed native CA package
 `20260909-r3` in LiteLLM and pypdf `6.21.1` in both the API and LiteLLM. The five
@@ -27,7 +39,7 @@ do not update the host trust store. [ADR 0052](adr/0052-correctifs-images-compat
 records the compatibility decision; the qualification contains every final local
 tag and image ID. Earlier intermediate images remain historical evidence.
 
-The final 23 MEDIUM and eight of the nine LOW occurrences belong to Qdrant r4;
+Of the 24 MEDIUM occurrences, 23 belong to Qdrant r4, together with eight of the nine LOW occurrences;
 that database offers no fixed version for them. Neo4j retains one LOW record,
 CVE-2026-1337, alongside the vendor's documented LTS backport; the scanner's
 listed fix is in a different release branch. The five UNKNOWN occurrences are
@@ -79,7 +91,7 @@ primary advisories, exact artifacts, applicability limits, remediation prioritie
 and scan provenance. All findings remain visible; no scanner suppression or
 blanket risk waiver was added. That historical review requested reassessment by
 2026-10-10; the current reassessment is recorded in
-[the 22 October qualification](QUALIFICATION-2026-10-22.md). Repeat scans after
+[the 23 October qualification](QUALIFICATION-2026-10-23.md). Repeat scans after
 each image change and before release.
 
 Loopback bindings, authenticated console, private files and
@@ -97,8 +109,10 @@ React/Vite and evaluation-fixture validation use npm locks, Node 22.23.3 and
 npm 11.10.0. Promptfoo was removed from the supported installation on 20 October;
 the real Python graph/MCP qualification replaces it, and external-provider
 comparison is no longer a supported npm command. The four Python audits and both
-npm audits reported zero known advisories after the targeted corrections.
-This does not cover the container findings above or unknown vulnerabilities.
+npm audits reported zero known advisories in the 22 October qualification.
+The later Runbooks audit failure and its correction are recorded above; earlier
+audit results must not be described as current after advisory data changes.
+Project audits do not cover the container findings above or unknown vulnerabilities.
 
 Dependabot watches GitHub Actions, npm, uv, Compose upstream images and all eight
 corrective Dockerfiles. Dated local image tags are excluded from registry update

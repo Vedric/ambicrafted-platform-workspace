@@ -6,7 +6,7 @@ It assumes a single trusted workstation user and a trusted local gateway.
 It does not defend against root or a compromised model server.
 
 The release image gate fails on any HIGH/CRITICAL occurrence or incomplete scan.
-See the [22 October candidate qualification](docs/QUALIFICATION-2026-10-22.md) for the
+See the [23 October candidate qualification](docs/QUALIFICATION-2026-10-23.md) for the
 candidate, exact scope and remaining upstream findings. Earlier dated assessments
 remain historical. Functional qualification does not certify a vulnerability-free
 deployment.
