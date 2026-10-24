@@ -1,4 +1,4 @@
-"""Atomic textfile bridge: local credentials never enter Prometheus or containers."""
+"""Atomic textfile bridge: control-plane credentials never enter the metrics exporter."""
 
 import argparse
 import asyncio

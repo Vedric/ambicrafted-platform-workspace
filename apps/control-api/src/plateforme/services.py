@@ -140,8 +140,8 @@ class Services:
         self.verrou_recherche = asyncio.Lock()
         self.verrou_corpus = threading.Lock()
 
-    def _authentification(self, service: str) -> dict:
-        valeurs = lire_environnement(self.p.racine)
+    @staticmethod
+    def _authentification(service: str, valeurs: dict[str, str]) -> dict:
         if service == "qdrant" and valeurs.get("QDRANT_READ_ONLY_API_KEY"):
             return {"headers": {"api-key": valeurs["QDRANT_READ_ONLY_API_KEY"]}}
         if service == "prometheus" and valeurs.get("PROMETHEUS_PASSWORD"):
@@ -162,6 +162,7 @@ class Services:
         async with self.verrou:
             if time.monotonic() - self.date < 10 and self.cache:
                 return self.cache
+            valeurs = lire_environnement(self.p.racine)
             async with httpx.AsyncClient(
                 timeout=3, trust_env=False, follow_redirects=False
             ) as client:
@@ -172,7 +173,7 @@ class Services:
                     try:
                         # Liveness needs the HTTP status, not an unbounded response body.
                         async with client.stream(
-                            "GET", url, **self._authentification(identifiant)
+                            "GET", url, **self._authentification(identifiant, valeurs)
                         ) as reponse:
                             ok = reponse.status_code == 200
                     except httpx.HTTPError:
@@ -202,7 +203,7 @@ class Services:
                                 client,
                                 "GET",
                                 "http://127.0.0.1:6333/collections/runbooks-current",
-                                **self._authentification("qdrant"),
+                                **self._authentification("qdrant", valeurs),
                             )
                         ).result
                     index = {"points": resultat.points_count, "statut": resultat.status}
@@ -218,6 +219,7 @@ class Services:
             return self.cache
 
     async def cibles(self) -> list[dict]:
+        valeurs = lire_environnement(self.p.racine)
         async with httpx.AsyncClient(timeout=4, trust_env=False, follow_redirects=False) as client:
             try:
                 async with asyncio.timeout(5):
@@ -226,7 +228,7 @@ class Services:
                             client,
                             "GET",
                             "http://127.0.0.1:9090/api/v1/targets",
-                            **self._authentification("prometheus"),
+                            **self._authentification("prometheus", valeurs),
                         )
                     )
                 return [
@@ -267,7 +269,7 @@ class Services:
                     client,
                     "POST",
                     "http://127.0.0.1:6333/collections/runbooks-current/points/query",
-                    **self._authentification("qdrant"),
+                    **self._authentification("qdrant", valeurs),
                     json={
                         "query": vecteur,
                         "limit": 5,

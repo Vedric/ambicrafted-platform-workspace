@@ -86,6 +86,29 @@ async def test_sante_sondes_fixes_cache_et_coalescence(parametres, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_un_instantane_par_rafraichissement_et_identifiants_renouveles(parametres, monkeypatch):
+    premiere, seconde = (secrets.token_urlsafe(48) for _ in range(2))
+    lectures = []
+
+    def configuration(racine):
+        lectures.append(racine)
+        return {"QDRANT_READ_ONLY_API_KEY": premiere if len(lectures) == 1 else seconde}
+
+    monkeypatch.setattr("plateforme.services.lire_environnement", configuration)
+    appels = transport_simule(monkeypatch, reponse_valide)
+    services = Services(parametres)
+    await asyncio.gather(services.sante(), services.sante())
+    await services.sante()
+    assert lectures == [parametres.racine]
+    assert all(r.headers["api-key"] == premiere for r in appels if r.url.port == 6333)
+    appels.clear()
+    services.date = 0
+    await services.sante()
+    assert lectures == [parametres.racine] * 2
+    assert all(r.headers["api-key"] == seconde for r in appels if r.url.port == 6333)
+
+
+@pytest.mark.asyncio
 async def test_sante_dependances_indisponibles(parametres, monkeypatch):
     def indisponible(requete):
         raise httpx.ConnectError("Message interne synthétique", request=requete)
