@@ -79,6 +79,12 @@ class Contrat(unittest.TestCase):
         code = """
 import os,sys,time
 from pathlib import Path
+assert os.environ.get('LITELLM_LOCAL_MODEL_COST_MAP') == 'True'
+# Real imports must not depend on DNS/HTTP, even before the lock is exercised.
+def offline(event, args):
+    if event in ('socket.connect', 'socket.getaddrinfo'):
+        raise AssertionError('Unexpected import-time network operation: ' + event)
+sys.addaudithook(offline)
 from litellm.proxy.client.cli.commands.claude_settings import install_statusline_script,write_private_bytes
 def write(path, content):
     with open(sys.argv[2], 'a') as f: f.write(f'{os.getpid()}:start\\n')

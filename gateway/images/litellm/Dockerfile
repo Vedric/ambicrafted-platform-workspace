@@ -23,6 +23,9 @@ ADD --checksum=sha256:d6302a2b59352c4793e04a46511b1d2e729d7193599745d2d0976e7bec
 ADD --checksum=sha256:c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4 https://raw.githubusercontent.com/open-telemetry/opentelemetry-python/d5224bf4ffdf2aee1b592ad238dcc32ca957f26b/LICENSE /patch/vendor-tests/LICENSE
 
 FROM ghcr.io/berriai/litellm:main-v1.104.4-stable@sha256:a1e651f6e0b78ee40300fbbbce95c9cb8fae121bddd56285d728fc64de2069fa AS application
+# Bundled metadata makes offline imports deterministic; reviewed image updates
+# or explicit configured model prices refresh estimates. See ADR 0057.
+ENV LITELLM_LOCAL_MODEL_COST_MAP=True
 RUN --network=none --mount=type=bind,from=wheels,source=/patch,target=/patch,ro \
     /patch/tools/uv-0.13.4.data/scripts/uv pip install --python /app/.venv/bin/python --no-cache --no-index --find-links /patch \
       --require-hashes --no-deps -r /patch/requirements.txt \
@@ -42,7 +45,7 @@ RUN --network=none --mount=type=bind,from=wheels,source=/patch,target=/patch,ro 
     && PYTHONDONTWRITEBYTECODE=1 /app/.venv/bin/python /patch/qualify_filelock.py \
     && PYTHONDONTWRITEBYTECODE=1 /app/.venv/bin/python /patch/test_filelock_contract.py --qualified \
     && /patch/tools/uv-0.13.4.data/scripts/uv pip check --python /app/.venv/bin/python
-LABEL org.opencontainers.image.version="1.104.4-stable-security.20261024.1" \
+LABEL org.opencontainers.image.version="1.104.4-stable-security.20261024.2" \
       org.opencontainers.image.source="https://github.com/BerriAI/litellm"
 
 # Shared, build-only trust policy. No helper/toolchain enters the runtime.

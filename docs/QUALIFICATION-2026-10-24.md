@@ -110,7 +110,7 @@ the official fixed wheels byte-for-byte, excluding installer-managed RECORD.
 | Changed image | Qualified local identity |
 |---|---|
 | `ambicrafted/grafana:13.2.4-security.20261024.1` | `sha256:3f4187233880350e6acdeed1726c72d14d036930232fc4d35d1b2869cb552730` |
-| `ambicrafted/litellm:1.104.4-stable-security.20261024.1` | `sha256:34224ed37f43ecfaad1816444c8ecbc1dfaba6110ae34fc85356169f0c2220fd` |
+| `ambicrafted/litellm:1.104.4-stable-security.20261024.2` | `sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da` |
 | `ambicrafted/qdrant:1.19.2-security.20261024.1` | `sha256:128569ee32e8e750985b4a84860e22e2f02f7edefb7de82ecb94fbe29f36dac3` |
 
 Qdrant passes migration from the actual prior 1.19.2 image, search/payload indexes,
@@ -182,6 +182,29 @@ The browser receipt above is reused because the complete console source tree
 is identical between the two signed commits. The privacy change is additionally
 covered by native-process and API tests; this reuse is not a claim that a third
 browser matrix was executed.
+
+## Hosted offline-startup finding
+
+The first hosted image gate at commit `7d012a36a981f7c469480ffa88be067694076e95`
+correctly rejects the LiteLLM build. Its real concurrent CLI test exposes a
+remote cost-catalog retry racing with Python module initialization while
+networking is disabled. The earlier local passing build did not establish
+that this import was reliable. No retry of that unchanged failed job is used.
+
+[ADR 0057](adr/0057-catalogue-local-demarrage-passerelle.md) selects the supported
+bundled-catalog setting before imports in both the build and runtime. The new
+`.20261024.2` image passes the real consumer checks and the full GPU gateway
+profile, all seven checks, in **82.345 seconds**. Its fresh scan reports zero
+HIGH/CRITICAL and the same single visible OTel MEDIUM. The other seven exact
+image identities and their existing scan/qualification receipts are unchanged.
+The old image/scan receipts remain available alongside this replacement.
+
+Cloud cost estimates now use the pinned bundled metadata until a reviewed
+image/catalog update or explicitly verified deployment price is applied; they
+must not be represented as live vendor prices or an invoice. Actual token
+measurements remain separate. The four-process import/lock test additionally
+refuses Python socket connects and DNS operations, within Docker's networkless
+build stage. No upstream application source is patched for this setting.
 
 ## Publication and remaining acceptance
 

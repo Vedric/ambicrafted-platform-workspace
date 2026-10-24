@@ -854,6 +854,95 @@
           }
         ]
       }
+    },
+    "litellm_offline_catalog": {
+      "build": {
+        "sha256": "8619cd4e38f79544382b803813549b100bd39f6823de54846bc86ca34f43eec9",
+        "result": {
+          "service": "litellm",
+          "tag": "ambicrafted/litellm:1.104.4-stable-security.20261024.2",
+          "exit_code": 0,
+          "seconds": 24.706,
+          "log_sha256": "e177e80763651c47298f891465a63f6f69767bab06d674b6bce67c1330604ea5",
+          "image_id": "sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da"
+        }
+      },
+      "qualification": {
+        "sha256": "a9979f37c5067aa71ca3141b65e52b2212fea263fe5e5361b96b063039dfe209",
+        "result": {
+          "scope": "synthetic isolated gateway migration and logical rollback",
+          "old_image": "sha256:8a2f4e749f4094d00ad637d2cd7412d49a9037900c6f7eac2eb11f5c4946fcf4",
+          "new_image": "sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da",
+          "postgres_image": "sha256:996e5b41aa3aa9e556c8db65a7ceb08e453b8b2eaa211806311ccee69c76b004",
+          "checks": {
+            "old_key_and_auth": true,
+            "migrated_key_auth_streaming_embeddings": true,
+            "structured_output_schema": true,
+            "real_otlp_delivery_parent_and_tracestate_boundary": true,
+            "key_survives_restart": true,
+            "logical_rollback_preserves_key_and_auth": true,
+            "isolated_resources_removed": true
+          },
+          "inference_progress": {
+            "phase": "complete",
+            "embedding_completed": true,
+            "structured_response_completed": true,
+            "streaming_completed": true
+          },
+          "generation_requested": true,
+          "tempo_image": "sha256:c40ff8fc5994ace7feabdabd5e80f13a08d48f074c5b6c6f335fb0316dfd0412",
+          "profile_passed": true,
+          "passed": true
+        }
+      },
+      "execution": {
+        "sha256": "c9ce3078fa143d26ca8d8f4f9e538112ab74ee6b7a9ca0063710c393ef5d2b80",
+        "result": {
+          "service": "litellm",
+          "image_id": "sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da",
+          "exit_code": 0,
+          "seconds": 82.345,
+          "qualifier_sha256": "3fdc98bdc4681006945a1873f2fade7ae070ced966362b73102aa49e879c5b01",
+          "log_sha256": "8d575ef6a295bb9209687fa21943df1c6f899bf9a3c82d175f5f3e07b1342008"
+        }
+      },
+      "scan": {
+        "sha256": "806a99c0b39adab9c284cc8caf514de74725959083c759586f6189f63821fcc2",
+        "result": {
+          "recorded_at": "2026-10-24T16:02:32.310480+00:00",
+          "scanner_sha256": "d89bcc6510a267f11b773398cbf1be5520ce39f9e8b6633178c4487f05b7d791",
+          "services": [
+            {
+              "service": "litellm",
+              "image_id": "sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da",
+              "exit_code": 0,
+              "seconds": 8.794,
+              "counts": {
+                "CRITICAL": 0,
+                "HIGH": 0,
+                "MEDIUM": 1,
+                "LOW": 0,
+                "UNKNOWN": 0
+              },
+              "report_sha256": "77347c85a9696ee9b6216fbed7ddda9e515874c4abd6a2aab3b577cc785354e4"
+            }
+          ],
+          "selected_image_scanned": true,
+          "high_critical_gate_passed": true,
+          "db_metadata": {
+            "Version": 2,
+            "NextUpdate": "2026-10-25T13:07:23.340317232Z",
+            "UpdatedAt": "2026-10-24T13:07:23.340317483Z",
+            "DownloadedAt": "2026-10-24T14:52:42.77367075Z"
+          },
+          "java-db_metadata": {
+            "Version": 1,
+            "NextUpdate": "2026-10-27T01:07:32.115560063Z",
+            "UpdatedAt": "2026-10-24T01:07:32.115560183Z",
+            "DownloadedAt": "2026-10-24T14:53:50.407244391Z"
+          }
+        }
+      }
     }
   },
   "limitations": [
