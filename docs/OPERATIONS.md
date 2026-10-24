@@ -41,9 +41,12 @@ nine HIGH occurrences. See [ADR 0055](adr/0055-dependances-corrigees-et-contrat-
 for the actual fixed packages and the explicitly tested local filelock contract.
 The OTel source backport retains its truthful raw inventory finding and provenance.
 
-Exact hosted qualification and the installed revision belong to release evidence;
-a green readiness page proves neither. Public source does not expose the local
-services. The earlier dated reports retain their original counts and failed
+The [installed checkpoint](QUALIFICATION-2026-10-24.md#installed-workstation-and-hosted-gates)
+records signed main `05937ab4d19e`, sixteen hosted jobs, restored-backup checks and
+post-installation FR/EN real speech/GPU tests. Its verified rollback material stays
+private on the reference host. This same-host evidence does not replace an
+encrypted recovery copy and key held independently of that workstation. Public
+source does not expose the local services. The earlier dated reports retain their original counts and failed
 runs. A stopped release tag is never moved or relabelled as a success after a
 later correction. The host certificate store needs separate
 [administrative verification](HOST-TOOLS.md#host-certificate-trust-and-uv).

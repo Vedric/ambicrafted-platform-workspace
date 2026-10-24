@@ -1,6 +1,6 @@
 {
   "date": "2026-10-24",
-  "scope": "local synthetic qualification, separate from hosted gates and live promotion",
+  "scope": "Local qualification and installed reference workstation, with separate exact-main hosted gates; release and physical acceptance remain separate.",
   "receipts": {
     "images": {
       "sha256": "5a78b909e0927242bb4899078b698b475bf3183004230580d029c8f7593ba8c0",
@@ -949,5 +949,124 @@
     "Browser inference is synthetic; real generation is qualified separately.",
     "Physical microphone and speaker acceptance is not automated.",
     "No zero-vulnerability or model-correctness claim."
-  ]
+  ],
+  "installed_reference": {
+    "measured_commit": "05937ab4d19e7fa53189be91b26d675fbac0119f",
+    "installation_completed_at": "2026-10-24T17:17:12.841804+00:00",
+    "scope": "Installed private single-operator workstation. Synthetic real inference/audio and public browser checks; no physical microphone/speaker or off-host recovery acceptance.",
+    "installation": {
+      "passed": true,
+      "data_preserved": true,
+      "fresh_backup_verified": true,
+      "restore_verified": true,
+      "timers_restored": true,
+      "auth_refusal_verified": true,
+      "images": {
+        "grafana": "sha256:3f4187233880350e6acdeed1726c72d14d036930232fc4d35d1b2869cb552730",
+        "litellm": "sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da",
+        "neo4j": "sha256:01dae1b7e86152078159661fcbe550b69fba711101cb9f115e1db7c9c30bd626",
+        "platform-metrics": "sha256:3d61be203211b1cb7e755da74ad1423d20deb2d7cdd59be4ad4d741c31ef5a9c",
+        "postgres": "sha256:996e5b41aa3aa9e556c8db65a7ceb08e453b8b2eaa211806311ccee69c76b004",
+        "prometheus": "sha256:7eb4b64d260f950f061dfd5d5cd023e5e2915234ec349e3883f753441f11161d",
+        "qdrant": "sha256:128569ee32e8e750985b4a84860e22e2f02f7edefb7de82ecb94fbe29f36dac3",
+        "tempo": "sha256:c40ff8fc5994ace7feabdabd5e80f13a08d48f074c5b6c6f335fb0316dfd0412"
+      }
+    },
+    "hosted": {
+      "application_run": "https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/40112335915",
+      "image_run": "https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/40112378638",
+      "application_jobs": 8,
+      "image_jobs": 8,
+      "image_counts": {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 24,
+        "LOW": 9,
+        "UNKNOWN": 6
+      },
+      "metadata_note": "Initial strict collection rejected delayed job-step metadata. Final successful job/run status was corroborated against completed logs and GitHub-digest-verified artifacts; raw pending states remain in private evidence."
+    },
+    "gpu_turns": {
+      "cancel": {
+        "first_token_seconds": 0.531009,
+        "duration_seconds": 0.536491
+      },
+      "english_stream": {
+        "first_token_seconds": 3.397211,
+        "duration_seconds": 3.910522
+      },
+      "french_history": {
+        "first_token_seconds": 0.527464,
+        "duration_seconds": 1.186222
+      }
+    },
+    "speech_turns": [
+      {
+        "language": "fr",
+        "transcription_seconds": 8.60974945700218,
+        "first_token_seconds": 0.5325063609998324,
+        "generation_seconds": 0.7742247960013628,
+        "reply_synthesis_seconds": 0.666276605999883,
+        "total_after_input_audio_seconds": 10.063213036999514,
+        "history_verified": true
+      },
+      {
+        "language": "en",
+        "transcription_seconds": 12.13802624100208,
+        "first_token_seconds": 0.5238551109978289,
+        "generation_seconds": 0.7247282569987874,
+        "reply_synthesis_seconds": 0.48393929800295155,
+        "total_after_input_audio_seconds": 13.360164663001342,
+        "history_verified": true
+      }
+    ],
+    "http_checks": {
+      "html_revalidation": true,
+      "versioned_asset_cache_and_head": true,
+      "missing_assets_are_404": true,
+      "real_video_range": true,
+      "anonymous_private_api_refused": true,
+      "untrusted_browser_origin_refused": true,
+      "authenticated_readiness": true,
+      "grafana_login": true
+    },
+    "readiness": {
+      "pass": 20,
+      "warn": 0,
+      "fail": 0,
+      "unknown": 0
+    },
+    "browser": {
+      "variants": 4,
+      "page_errors": 0,
+      "source_unchanged": true,
+      "scope": "Installed public UI in Chromium; real media and static cache, no hardware audio or simulated inference"
+    },
+    "receipts": [
+      {
+        "file": "promotion-tools/promotion-20261024-05937ab4d19e/public-result.json",
+        "sha256": "3d96bb5a9cc5e1937e66c38b34d5e041e0c77316c78d3a4f6e3e70bd05a14b20"
+      },
+      {
+        "file": "post-install-runtime/aura-live-gpu/raw.json",
+        "sha256": "14eef87a85ac89d7d311c9a90cb9e6d92fd5469b7954542985049ef2fdcc08b4"
+      },
+      {
+        "file": "post-install-speech/receipt.json",
+        "sha256": "d0cc8000ff197de1f8ba40fac66ef93528404eabd61f77ea0b891ef5a6456799"
+      },
+      {
+        "file": "post-install-http/receipt.json",
+        "sha256": "38d3041d21db712a53af4e7e0bd88c106e341a1603efe60d6880c98153585776"
+      },
+      {
+        "file": "post-install-browser/receipt.json",
+        "sha256": "da513f966839754f1d8f5507426c7bbc0e6188f43ef064b0800173ea39f716f0"
+      },
+      {
+        "file": "hosted-main-images/review.json",
+        "sha256": "99063af21d615362d8f5c47f6ce2a460fdae5e270808df6ac090777338156663"
+      }
+    ]
+  }
 }

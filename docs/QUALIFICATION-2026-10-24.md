@@ -206,12 +206,71 @@ measurements remain separate. The four-process import/lock test additionally
 refuses Python socket connects and DNS operations, within Docker's networkless
 build stage. No upstream application source is patched for this setting.
 
+## Installed workstation and hosted gates
+
+The reference installation was updated to signed main commit
+`05937ab4d19e7fa53189be91b26d675fbac0119f` at **2026-10-24T17:17:12.841804+00:00**.
+[Application CI](https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/40112335915)
+and the [eight-image gate](https://github.com/Vedric/ambicrafted-platform-workspace/actions/runs/40112378638)
+pass all sixteen required jobs on that exact commit. Hosted rebuilds report the
+same 0 CRITICAL, 0 HIGH, 24 MEDIUM, 9 LOW and 6 UNKNOWN occurrences; their image
+IDs remain separate from the qualified local builds installed above.
+
+The first strict collection rejected delayed GitHub job-step metadata even though
+jobs had finished. Finalized logs, successful job/run conclusions and artifacts
+verified against GitHub's SHA-256 digests corroborate completion. The original
+rejection and raw pending step states remain recorded. No workflow was retried,
+no scan finding suppressed, and no failed job was accepted as successful.
+
+The installation stopped application writers, made a fresh backup and verified
+logical restoration, including PostgreSQL tables, rows, roles and sequences.
+Cold state/environment copies and old image archives were retained. Container
+replacement was limited to the three qualified images; source, console build and
+API/voice dependencies were updated to their reviewed versions.
+Existing data, configuration and the other five container identities were checked;
+original schedulers were restored. Authenticated readiness passes **20/20**;
+anonymous access and unauthorized gateway aliases remain refused.
+
+A new real GPU exercise on the installed source passes context retention,
+streaming, replay without duplication, cancellation and fixture cleanup.
+The first measured English text arrives in **3.397 s**,
+and the French contextual follow-up in **0.527 s**.
+These are individual warmed-workstation observations, not a latency SLO.
+
+| Installed synthetic speech round trip | ASR | First generated text | Reply synthesis | Total after input audio |
+|---|---:|---:|---:|---:|
+| FR | 8.610 s | 0.533 s | 0.666 s | 10.063 s |
+| EN | 12.138 s | 0.524 s | 0.484 s | 13.360 s |
+
+Each round trip sends synthesized input through the real ASR, local GPU dialogue
+and TTS endpoints, verifies stored context and deletes only its own synthetic
+conversation. It does not capture a physical microphone or establish perceived
+voice quality. Returned audio remains private and non-cacheable. CPU recognition
+dominates the measured 10–13-second end-to-end delay. Instant spoken interaction
+is not established; further recognition optimization needs its own accuracy
+regression checks, since earlier faster decoder settings changed important words.
+
+Four additional live Chromium welcome/guide variants cover light/dark themes at
+1440 px and 390 px. Continuous AURA motion advances, no horizontal overflow or
+page error is detected, video playback/seek and caption toggling work. Repeat
+navigation reuses the measured public assets without retransferring them.
+The first mobile probe waited for an offscreen animation; the harness was corrected
+to scroll the emblem into view before measuring its resumed animation. That failed
+probe is retained; product visibility/energy-saving behavior was unchanged.
+These installed-browser probes complement the fresh 258-case browser matrix;
+they do not replace its Firefox/WebKit coverage. HTTP checks separately verify
+HTML revalidation, immutable assets, real video byte ranges and private no-store
+responses. The source and image identities remain unchanged during acceptance.
+
 ## Publication and remaining acceptance
 
-Local proofs do not substitute for the required hosted application and image
-gates, a data-preserving installation, or the final release review. Their exact
-commit/run/installation records are appended when completed. The older signed
-`v0.5.0-rc.3` tag is not moved to represent this newer source.
+The source changes and data-preserving personal installation are complete at
+the measured commit above. A subsequent documentation-only commit records these
+results; it does not claim the runtime was tested again at its own future hash.
+The older signed `v0.5.0-rc.3` tag remains unchanged and its release remains an
+unpublished draft. A new tagged release still needs an available signing key,
+its required tagged application/image qualification and final acceptance review.
+The operator's local signing key remains locked after the host reboot.
 
 The [personal walkthrough](PERSONAL-USE.md) describes the supported use. Physical
 microphone/speaker acceptance, an independently stored encrypted recovery copy,
