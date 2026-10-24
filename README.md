@@ -211,7 +211,9 @@ Native Windows/macOS servers and a second machine are not yet qualified.
 The dedicated Neo4j amd64 image requires an x86-64-v3 CPU.
 
 1. Review [gateway setup](gateway/README.md), prepare its private environment
-   from `gateway/.env.example`, and start the six core services. The monitoring exporter uses the optional
+   from `gateway/.env.example`, provision service authentication with
+   `uv run --locked scripts/securiser_services.py` (`apache2-utils` required),
+   and start the six core services. The monitoring exporter uses the optional
    `observability` profile; install its collector before starting it (see
    [Monitoring](docs/MONITORING.md)).
 2. Provision the model from [models/](models/README.md). Verify model digests;

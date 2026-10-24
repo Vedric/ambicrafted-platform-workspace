@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Isolated document parser and encrypted recovery dependencies
         if: matrix.project == 'apps/control-api'
-        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap libseccomp2 apparmor-profiles
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap libseccomp2 apparmor-profiles apache2-utils
       - name: Verified age 1.3.1 recovery tool
         if: matrix.project == 'apps/control-api'
         shell: bash
@@ -71,6 +71,8 @@ jobs:
           uv lock --check --script ../../scripts/plateforme.py
           uv lock --check --script ../../scripts/sauvegarder.py
           uv lock --check --script ../../scripts/tester_restauration.py
+          uv lock --check --script ../../scripts/securiser_services.py
+          uv lock --check --script ../../scripts/qualifier_frontiere_services.py
       - name: Construction du paquet
         if: matrix.project != 'mcp-servers/runbooks'
         run: uv build
@@ -169,7 +171,7 @@ jobs:
         working-directory: gateway
         run: |
           cp .env.example .env
-          docker compose --env-file .env.example config --quiet
+          QDRANT_API_KEY=synthetic-not-a-credential QDRANT_READ_ONLY_API_KEY=synthetic-not-a-credential PROMETHEUS_PASSWORD=synthetic-not-a-credential docker compose --env-file .env.example config --quiet
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.13.4"

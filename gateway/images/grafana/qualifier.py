@@ -22,6 +22,8 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+PROMETHEUS_ACCOUNT = "platform"
+
 PROMETHEUS = (
     "prom/prometheus:v3.15.0"
     "@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e"
@@ -205,6 +207,7 @@ def qualify(
     suffix = secrets.token_hex(5)
     network = "grafana-qualification-" + suffix
     password = secrets.token_urlsafe(32)
+    prometheus_password = secrets.token_urlsafe(48)
     created = []
     addresses = {}
     subnet = f"10.231.{secrets.randbelow(254) + 1}"
@@ -291,6 +294,10 @@ def qualify(
             headers["Authorization"] = (
                 "Basic " + base64.b64encode(("admin:" + password).encode()).decode()
             )
+        elif urllib.parse.urlsplit(url).port == 9090:
+            headers["Authorization"] = (
+                "Basic " + base64.b64encode(("platform:" + prometheus_password).encode()).decode()
+            )
         if data is not None:
             headers["Content-Type"] = "application/json"
         req = urllib.request.Request(
@@ -324,6 +331,19 @@ def qualify(
             # Containers must traverse the fixture directory; its credential
             # file remains owner-only, is read by Docker, and is never mounted.
             temporary.chmod(0o755)
+            private = temporary / "auth"
+            private.mkdir(mode=0o700)
+            password_file = private / "prometheus-password"
+            password_file.write_text(prometheus_password)
+            password_file.chmod(0o644)
+            hashed = subprocess.run(
+                ["htpasswd", "-n", "-i", "-B", "-C", "12", PROMETHEUS_ACCOUNT],
+                input=prometheus_password + "\n", text=True, capture_output=True,
+                check=True, timeout=15,
+            ).stdout.strip().removeprefix("platform:")
+            web_config = private / "web.yml"
+            web_config.write_text("basic_auth_users:\n  platform: '" + hashed + "'\n")
+            web_config.chmod(0o644)
             tempo_config = temporary / "tempo.yaml"
             # Exercise the actual candidate Tempo configuration and SLO rules.
             tempo_config.write_bytes(
@@ -335,7 +355,10 @@ def qualify(
                 "rule_files: ['/etc/prometheus/alerts.yml', "
                 "'/etc/prometheus/slo.yml']\n"
                 "scrape_configs:\n"
-                "  - job_name: prometheus\n    static_configs:\n"
+                "  - job_name: prometheus\n"
+                "    basic_auth:\n      username: platform\n"
+                "      password_file: /run/platform-auth/prometheus-password\n"
+                "    static_configs:\n"
                 "      - targets: ['localhost:9090']\n"
                 "  - job_name: tempo\n    static_configs:\n"
                 "      - targets: ['tempo:3200']\n"
@@ -354,6 +377,7 @@ def qualify(
             )
             with os.fdopen(descriptor, "w") as stream:
                 stream.write("GF_SECURITY_ADMIN_PASSWORD=" + password + "\n")
+                stream.write("PROMETHEUS_PASSWORD=" + prometheus_password + "\n")
                 stream.write(
                     "GF_ANALYTICS_REPORTING_ENABLED=false\n"
                     "GF_ANALYTICS_CHECK_FOR_UPDATES=false\n"
@@ -400,6 +424,8 @@ def qualify(
                     "/var/tempo:uid=10001,gid=10001,mode=1777,size=256m",
                     "-v",
                     str(tempo_config) + ":/etc/tempo.yaml:ro",
+                    "-v",
+                    str(password_file) + ":/run/platform-auth/prometheus-password:ro",
                 ],
                 ["-config.file=/etc/tempo.yaml"],
             )
@@ -412,6 +438,10 @@ def qualify(
                     "-v",
                     str(prometheus_config) + ":/etc/prometheus/prometheus.yml:ro",
                     "-v",
+                    str(password_file) + ":/run/platform-auth/prometheus-password:ro",
+                    "-v",
+                    str(web_config) + ":/run/platform-auth/web.yml:ro",
+                    "-v",
                     str(ROOT / "gateway/observability/alerts.yml")
                     + ":/etc/prometheus/alerts.yml:ro",
                     "-v",
@@ -420,6 +450,8 @@ def qualify(
                 ],
                 [
                     "--config.file=/etc/prometheus/prometheus.yml",
+                    "--web.config.file=/run/platform-auth/web.yml",
+                    "--web.cors.origin=^$",
                     "--web.enable-remote-write-receiver",
                     "--enable-feature=exemplar-storage",
                 ],

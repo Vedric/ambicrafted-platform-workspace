@@ -96,9 +96,15 @@ execution or treat `statut=complet` as authorization to change production.
 
 Local binding reduces exposure but is not authentication against another
 local process. PostgreSQL is not published; the other services bind their
-published ports to loopback. Qdrant has no separate API key in this local
-configuration. Container-to-container access remains possible on the stack
-network. The model service listens on the configured Docker bridge address.
+published ports to loopback. Qdrant requires independent administrative and
+read-only credentials; agents receive only the latter. Prometheus requires
+native HTTP authentication, including Grafana and Tempo backend access. Both
+services disable cross-origin browser reads. See [ADR 0058](docs/adr/0058-local-service-authentication.md)
+for provisioning and the actual refusal tests. Container-to-container access
+remains possible on the stack network. Local HTTP is not encrypted, Tempo's
+local receiver has no authentication, and the model service listens on the
+configured Docker bridge address. This boundary assumes a trusted OS account
+and Docker administrator; it is not an internet-facing deployment profile.
 
 Pinned images still contain known upstream findings; see
 [the dependency register](docs/DEPENDENCIES.md). There is no unqualified

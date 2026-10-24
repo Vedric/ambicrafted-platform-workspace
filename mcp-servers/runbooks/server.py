@@ -218,7 +218,11 @@ def semantic_search(requete: str, k: int = 5) -> str:
 
     client = None
     try:
-        client = QdrantClient(url=QDRANT_URL, timeout=30.0)
+        client = QdrantClient(
+            url=QDRANT_URL,
+            timeout=30.0,
+            api_key=os.environ.get("QDRANT_READ_ONLY_API_KEY") or None,
+        )
         if not client.collection_exists(COLLECTION):
             return (
                 f"Collection '{COLLECTION}' absente : les runbooks ne sont pas "

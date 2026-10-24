@@ -1,10 +1,13 @@
 """Probe contracts tolerate unavailable and malformed local dependencies."""
 
 import asyncio
+import base64
+import secrets
 
 import httpx
 import pytest
 
+from plateforme.config import enregistrer_secret
 from plateforme.corpus import instantane_index
 from plateforme.services import SERVICES, Services
 
@@ -31,6 +34,38 @@ def reponse_valide(requete):
     if requete.url.path == "/collections/runbooks-current":
         return httpx.Response(200, json={"result": {"points_count": 7, "status": "green"}})
     return httpx.Response(200, json={})
+
+
+@pytest.mark.asyncio
+async def test_credentials_scoped_to_service_without_response_leak(parametres, monkeypatch):
+    lecture, ecriture, prom = (secrets.token_urlsafe(48) for _ in range(3))
+    for nom, valeur in (
+        ("QDRANT_READ_ONLY_API_KEY", lecture),
+        ("QDRANT_API_KEY", ecriture),
+        ("PROMETHEUS_PASSWORD", prom),
+    ):
+        enregistrer_secret(parametres.racine, nom, valeur)
+    appels = transport_simule(monkeypatch, reponse_valide)
+    services = Services(parametres)
+    resultat = await services.sante()
+    await services.cibles()
+    for appel in appels:
+        if appel.url.port == 6333:
+            assert appel.headers["api-key"] == lecture
+            assert "authorization" not in appel.headers
+        elif appel.url.port == 9090:
+            assert (
+                appel.headers["authorization"]
+                == "Basic " + base64.b64encode(("platform:" + prom).encode()).decode()
+            )
+            assert "api-key" not in appel.headers
+        else:
+            assert "authorization" not in appel.headers and "api-key" not in appel.headers
+        assert ecriture not in str(appel.headers)
+    assert all(secret not in str(resultat) for secret in (lecture, ecriture, prom))
+    env = parametres.environnement_agent()
+    assert env["QDRANT_READ_ONLY_API_KEY"] == lecture
+    assert "QDRANT_API_KEY" not in env and "PROMETHEUS_PASSWORD" not in env
 
 
 @pytest.mark.asyncio

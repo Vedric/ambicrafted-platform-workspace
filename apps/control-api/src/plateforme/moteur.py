@@ -18,7 +18,7 @@ from pathlib import Path
 from sre_agent.graphe import VERSION_CONTRAT
 from sre_agent.modeles import Rapport
 
-from .config import Parametres, dossier_prive
+from .config import Parametres, dossier_prive, lire_environnement
 from .depot import Conflit, Depot, Introuvable
 
 OPERATIONS = {"verifier", "indexer", "sauvegarder", "tester-restauration"}
@@ -163,6 +163,10 @@ class Moteur:
         if analyse["mode"] == "operation":
             operation = analyse["options"]["operation"]
             if operation == "indexer":
+                # Only the explicit maintenance operation receives write access.
+                cle = lire_environnement(self.p.racine).get("QDRANT_API_KEY")
+                if cle:
+                    env["QDRANT_API_KEY"] = cle
                 return [
                     uv,
                     "run",

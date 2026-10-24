@@ -276,7 +276,11 @@ def indexer(fragments: list[Fragment]) -> int:
     digest = empreinte(fragments)
     client = None
     try:
-        client = QdrantClient(url=QDRANT_URL, timeout=DELAI_HTTP)
+        client = QdrantClient(
+            url=QDRANT_URL,
+            timeout=DELAI_HTTP,
+            api_key=os.environ.get("QDRANT_API_KEY") or None,
+        )
         aliases = {
             a.alias_name: a.collection_name for a in client.get_aliases().aliases
         }

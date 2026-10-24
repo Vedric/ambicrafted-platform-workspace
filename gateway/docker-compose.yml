@@ -3,6 +3,11 @@
 # pas une seconde stack vide en collision de ports). ADR 0006.
 name: gateway
 
+x-auth-mount: &auth-mount
+  type: bind
+  read_only: true
+  bind: { create_host_path: false }
+
 services:
   litellm:
     # Stable upstream plus pinned aiohttp/yarl/certifi and exact CA distrust.
@@ -19,7 +24,13 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000"]
-    env_file: [.env]
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY manquant}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL manquant}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4317}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-grpc}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-litellm-gateway}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health/liveliness', timeout=4)"]
       interval: 30s
@@ -71,6 +82,9 @@ services:
       - "127.0.0.1:3200:3200"
     volumes:
       - ./observability/tempo.yaml:/etc/tempo.yaml:ro
+      - <<: *auth-mount
+        source: ./.service-auth/prometheus-password
+        target: /run/platform-auth/prometheus-password
       - tempodata:/var/tempo
 
   prometheus:
@@ -84,6 +98,8 @@ services:
     security_opt: ["no-new-privileges:true"]
     command:
       - --config.file=/etc/prometheus/prometheus.yml
+      - --web.config.file=/run/platform-auth/web.yml
+      - --web.cors.origin=^$
       - --web.enable-remote-write-receiver
       - --enable-feature=exemplar-storage
       - --storage.tsdb.retention.time=14d
@@ -92,11 +108,21 @@ services:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
       - ./observability/slo.yml:/etc/prometheus/slo.yml:ro
+      - ./observability/prometheus-client.yml:/etc/prometheus/client.yml:ro
+      - <<: *auth-mount
+        source: ./.service-auth/web.yml
+        target: /run/platform-auth/web.yml
+      - <<: *auth-mount
+        source: ./.service-auth/prometheus-password
+        target: /run/platform-auth/prometheus-password
+      - <<: *auth-mount
+        source: ./.service-auth/qdrant-read-key
+        target: /run/platform-auth/qdrant-read-key
       - promdata:/prometheus
     ports:
       - "127.0.0.1:9090:9090"
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9090/-/ready"]
+      test: ["CMD", "/bin/promtool", "check", "ready", "--http.config.file=/etc/prometheus/client.yml", "--url=http://127.0.0.1:9090"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -113,6 +139,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD manquant}
+      PROMETHEUS_PASSWORD: ${PROMETHEUS_PASSWORD:?Exécuter scripts/securiser_services.py}
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/plateforme.json
@@ -171,6 +198,9 @@ services:
       - /tmp:rw,noexec,nosuid,size=128m,uid=65532,gid=65532
     environment:
       QDRANT__TELEMETRY_DISABLED: "true"
+      QDRANT__SERVICE__ENABLE_CORS: "false"
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?Exécuter scripts/securiser_services.py}
+      QDRANT__SERVICE__READ_ONLY_API_KEY: ${QDRANT_READ_ONLY_API_KEY:?Exécuter scripts/securiser_services.py}
       QDRANT__STORAGE__SNAPSHOTS_PATH: /qdrant/storage/snapshots
     ports:
       - "127.0.0.1:6333:6333"

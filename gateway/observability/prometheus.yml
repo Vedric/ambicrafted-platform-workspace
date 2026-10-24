@@ -12,12 +12,17 @@ scrape_configs:
     static_configs:
       - targets: ["platform-metrics:9100"]
   - job_name: prometheus
+    basic_auth:
+      username: platform
+      password_file: /run/platform-auth/prometheus-password
     static_configs:
       - targets: ["localhost:9090"]
   - job_name: tempo
     static_configs:
       - targets: ["tempo:3200"]
   - job_name: qdrant
+    authorization:
+      credentials_file: /run/platform-auth/qdrant-read-key
     static_configs:
       - targets: ["qdrant:6333"]
   - job_name: grafana

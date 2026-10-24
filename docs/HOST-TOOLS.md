@@ -19,7 +19,7 @@ fallback. The normal administrator-managed Ubuntu installation is:
 
 ```sh
 sudo apt-get update
-sudo apt-get install bubblewrap libseccomp2
+sudo apt-get install bubblewrap libseccomp2 apache2-utils
 ```
 
 The qualified package on the reference workstation is
