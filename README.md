@@ -13,8 +13,8 @@ contracts below take precedence.
 
 Console **0.5.0**, control API **0.5.0**, SRE workflow **0.2.0**, local speech
 runtime **0.3.3**. The [24 October qualification](docs/QUALIFICATION-2026-10-24.md)
-tracks this candidate, its validation and remaining conditions. This is a
-private, single-operator workspace; it is not a multi-tenant commercial service
+records the installed reference workstation, its validation and remaining
+conditions. This is a private, single-operator workspace; it is not a multi-tenant commercial service
 or a zero-vulnerability certification. Earlier
 [delivery reports](docs/RELEASE-0.4.5.md) and the
 [20 October qualification](docs/QUALIFICATION-2026-10-20.md) remain historical
@@ -24,8 +24,10 @@ The reference workstation's [Windows/WSL GPU incident](docs/HOST-INCIDENT-2026-1
 is resolved: real GPU generation, contextual conversation and full gateway checks
 pass. A measured warm follow-up produces its first text in 0.530 seconds; the
 initial cold model load takes 20.079 seconds. The 24 October corrected images
-pass the local HIGH/CRITICAL gate, with lower-severity findings still disclosed.
-Publication, installation and personal acceptance are tracked separately in the
+pass both local and exact-main hosted HIGH/CRITICAL gates, with lower-severity
+findings still disclosed. The corrected runtime is installed with data preservation
+and verified restoration; real FR/EN speech round trips and live browser checks
+pass. Physical audio acceptance and a new signed release remain separate in the
 qualification; a healthy homepage alone is not release approval.
 
 AURA supports [saved diagrams and structured reports](docs/AURA-ARTIFACTS.md),
