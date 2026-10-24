@@ -51,7 +51,7 @@ follow_imports = "silent"
 [dependency-groups]
 dev = [
     "coverage==7.16.2",
-    "mypy==2.3.1",
+    "mypy==2.4.0",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "ruff==0.16.9",
