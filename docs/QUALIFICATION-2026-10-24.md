@@ -160,6 +160,29 @@ index exactly, and its signature is independently verified with GitHub's officia
 public key in a temporary verification keyring. The operator's local signing key
 remains locked after reboot; signing policy and private keys were not changed.
 
+## Final clean-environment verification
+
+A second fresh remote clone at signed commit
+`2ec349f6fe36187563e0946df5985675bdcce373` passes all stages and remains clean.
+It uses the qualified age 1.3.1 executable explicitly, with no private `.env`.
+Network-isolated unit jobs pass 827 API, 259 agent, 48 Runbooks and 113 voice
+cases; the 25 real-model voice cases run in the separate fully passing suite
+above. The console passes 304 unit tests. Coverage thresholds, lint, typing,
+packages, standalone script locks, evaluation contracts, 64 maintenance tests
+and the 60-second lifecycle/restart/cancellation exercise pass.
+
+The secret hook, example-only Compose validation, generated dashboard check,
+Prometheus rule tests and both npm advisory audits pass. The initial Prometheus
+rule invocation cannot read the deliberately private clone as the container's
+default user; rerunning the same pinned image as the source owner's UID passes.
+No product rule, source permission or security check is relaxed. All initial
+failures and successful reruns remain in the private evidence manifest.
+
+The browser receipt above is reused because the complete console source tree
+is identical between the two signed commits. The privacy change is additionally
+covered by native-process and API tests; this reuse is not a claim that a third
+browser matrix was executed.
+
 ## Publication and remaining acceptance
 
 Local proofs do not substitute for the required hosted application and image

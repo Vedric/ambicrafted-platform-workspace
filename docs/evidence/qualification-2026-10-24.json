@@ -285,6 +285,575 @@
         "network": "unshared",
         "all_real_voice_tests_enabled": true
       }
+    },
+    "final_fresh_clone": {
+      "sha256": "b49cb1f4a247fec213b9ed7ed7455ef60e594d3784436d54027c822a4fbcbe7a",
+      "result": {
+        "commit": "2ec349f6fe36187563e0946df5985675bdcce373",
+        "fresh_clone": true,
+        "source_clean_after": true,
+        "tests": {
+          "control-api-unit": {
+            "tests": 827,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "runbooks-unit": {
+            "tests": 48,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "sre-agent-unit": {
+            "tests": 259,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "voice-unit": {
+            "tests": 138,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 25
+          }
+        },
+        "stages": {
+          "console-stages": [
+            {
+              "project": "apps/console",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 6.879,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/console",
+              "stage": "type-e2e",
+              "exit_code": 0,
+              "seconds": 0.366,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/console",
+              "stage": "format",
+              "exit_code": 0,
+              "seconds": 2.477,
+              "network_isolated": true
+            }
+          ],
+          "control-api-stages": [
+            {
+              "project": "apps/control-api",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 84.138,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "coverage",
+              "exit_code": 0,
+              "seconds": 0.366,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "lint",
+              "exit_code": 0,
+              "seconds": 0.065,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "typing",
+              "exit_code": 0,
+              "seconds": 9.299,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "build",
+              "exit_code": 0,
+              "seconds": 0.216,
+              "network_isolated": false
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "eval-contract",
+              "exit_code": 0,
+              "seconds": 0.115,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "eval-unit",
+              "exit_code": 0,
+              "seconds": 0.165,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "maintenance",
+              "exit_code": 0,
+              "seconds": 1.62,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "lifecycle",
+              "exit_code": 0,
+              "seconds": 61.722,
+              "network_isolated": true
+            }
+          ],
+          "evals-stages": [
+            {
+              "project": "evals",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 0.315,
+              "network_isolated": true
+            }
+          ],
+          "remaining-resume-stages": [
+            {
+              "stage": "promtool-as-source-owner",
+              "exit_code": 0,
+              "seconds": 12.614
+            },
+            {
+              "stage": "apps-console-audit",
+              "exit_code": 0,
+              "seconds": 0.466
+            },
+            {
+              "stage": "evals-audit",
+              "exit_code": 0,
+              "seconds": 0.416
+            }
+          ],
+          "remaining-stages": [
+            {
+              "stage": "secret-hook",
+              "exit_code": 0,
+              "seconds": 0.417
+            },
+            {
+              "stage": "compose",
+              "exit_code": 0,
+              "seconds": 0.115
+            },
+            {
+              "stage": "dashboards",
+              "exit_code": 0,
+              "seconds": 0.064
+            },
+            {
+              "stage": "promtool",
+              "exit_code": 1,
+              "seconds": 1.621
+            }
+          ],
+          "runbooks-stages": [
+            {
+              "project": "mcp-servers/runbooks",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 5.909,
+              "network_isolated": true
+            },
+            {
+              "project": "mcp-servers/runbooks",
+              "stage": "coverage",
+              "exit_code": 0,
+              "seconds": 0.215,
+              "network_isolated": true
+            },
+            {
+              "project": "mcp-servers/runbooks",
+              "stage": "lint",
+              "exit_code": 0,
+              "seconds": 0.033,
+              "network_isolated": true
+            }
+          ],
+          "sre-agent-stages": [
+            {
+              "project": "agents/sre-agent",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 11.545,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "coverage",
+              "exit_code": 0,
+              "seconds": 0.265,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "lint",
+              "exit_code": 0,
+              "seconds": 0.032,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "typing",
+              "exit_code": 0,
+              "seconds": 7.991,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "build",
+              "exit_code": 0,
+              "seconds": 0.215,
+              "network_isolated": false
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "scripts-lint",
+              "exit_code": 0,
+              "seconds": 0.032,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "lock-plateforme.py",
+              "exit_code": 0,
+              "seconds": 0.016,
+              "network_isolated": false
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "lock-sauvegarder.py",
+              "exit_code": 0,
+              "seconds": 0.016,
+              "network_isolated": false
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "lock-tester_restauration.py",
+              "exit_code": 0,
+              "seconds": 0.016,
+              "network_isolated": false
+            }
+          ],
+          "voice-stages": [
+            {
+              "project": "apps/voice",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 8.092,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/voice",
+              "stage": "coverage",
+              "exit_code": 0,
+              "seconds": 0.216,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/voice",
+              "stage": "lint",
+              "exit_code": 0,
+              "seconds": 0.065,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/voice",
+              "stage": "typing",
+              "exit_code": 0,
+              "seconds": 3.025,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/voice",
+              "stage": "build",
+              "exit_code": 0,
+              "seconds": 0.165,
+              "network_isolated": false
+            }
+          ]
+        },
+        "promtool_initial_failure": "Private clone source permissions; rerun as source owner passed. No repository permissions or rules changed.",
+        "real_speech": "The 25 real-model cases excluded from this unit job pass in the separate 138-case isolated run of the same voice source.",
+        "files": [
+          {
+            "file": "apps-console-audit.log",
+            "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+          },
+          {
+            "file": "clone.json",
+            "sha256": "e955f7017f84a5d36a907d6b446d8c1180a70495119ac21bddb4ea89bcc109f6"
+          },
+          {
+            "file": "clone.log",
+            "sha256": "15d2b81a8afb2f54c9b64b97b856a69b70e7ffe7e94812a865eda679a307218e"
+          },
+          {
+            "file": "compose.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file": "console-build.json",
+            "sha256": "2ea74613974a148757d47cffb0330017360c764e5b0ffa78f44ceb50be2eb106"
+          },
+          {
+            "file": "console-build.log",
+            "sha256": "f8e2e27a9b48ec3fd67efb301d8f23b6ae7dc8dc118cf39998c416e819197448"
+          },
+          {
+            "file": "console-format.log",
+            "sha256": "d8c8d61093e0f5b4f1cb206798798dd5dc73ac8dd1fc91f6c948141f289a721b"
+          },
+          {
+            "file": "console-stages.json",
+            "sha256": "85fcd3b48cf4e7dbfc506a019032d9333aab5244f66ff36201897d49fcbe4397"
+          },
+          {
+            "file": "console-type-e2e.log",
+            "sha256": "f9a8374a66c0f861dc6eb1e82bbb94a130584e46912d6d79958a69ea33f12c26"
+          },
+          {
+            "file": "console-unit.log",
+            "sha256": "ad429cb7d5f80a31ccb6b1315ecdb81beaf65f28d1dc4495cdeb5859bb257c07"
+          },
+          {
+            "file": "control-api-build.log",
+            "sha256": "c35a6fe467cf5d0b7e4cc7439f3b2c3ca048347ebea133dd8e0a41988cdaf19e"
+          },
+          {
+            "file": "control-api-coverage.log",
+            "sha256": "e87e84d0bfcf8861d0b41646ceafeeb3d9ffdb8aa0d552b86affdd8554ea3fad"
+          },
+          {
+            "file": "control-api-eval-contract.log",
+            "sha256": "3fc84486e9ec8adda9cea8b3de6212c6029a3b976d10b273381860267d655d63"
+          },
+          {
+            "file": "control-api-eval-unit.log",
+            "sha256": "9aade7df4fdae8dd55c3c59f48dcde73e84908cab6cf2bdf86c7ba9eb2776ec3"
+          },
+          {
+            "file": "control-api-lifecycle.log",
+            "sha256": "7675fbbda80b2438a9ef0fae6079b8a19581b3800a5d6686737791611f39d367"
+          },
+          {
+            "file": "control-api-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "control-api-maintenance.log",
+            "sha256": "5e2a6f42fda7f67454aab79670afce3afa35634875c02f9fa477af29e9bd60e5"
+          },
+          {
+            "file": "control-api-stages.json",
+            "sha256": "6d7008f50950db67c67b0dfb95d61237c33e94d9c61bf8daef89592062e98015"
+          },
+          {
+            "file": "control-api-typing.log",
+            "sha256": "190fb1a4c589ad8fc9c391ad735faa7e883860812fb598f659d8973c2013afb1"
+          },
+          {
+            "file": "control-api-unit.log",
+            "sha256": "1d7f6941bfa0f548a1f4d1ae52d34e0e6b06a5c37222fa0d3dadcea6674da5f2"
+          },
+          {
+            "file": "control-api-unit.xml",
+            "sha256": "c8b2807bbea0b6f8f25d3f8888997f77b3d6984e0d1f4edcb23e32951fc8fdd0"
+          },
+          {
+            "file": "dashboards.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file": "evals-audit.log",
+            "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+          },
+          {
+            "file": "evals-stages.json",
+            "sha256": "be8c964b61ccd0be9520316ddafce3dc5cde4a44d126b01f79de4ca3178bd1a1"
+          },
+          {
+            "file": "evals-unit.log",
+            "sha256": "1d1f1ccfacac7f8ecf476e31e722920b70c72f608d97d69ebb01c75083766d8b"
+          },
+          {
+            "file": "lifecycle.json",
+            "sha256": "1946bb8098d3fedf5add49ca2e22ed26347df384628b6a78def62ad02e3d4b5d"
+          },
+          {
+            "file": "npm-console.json",
+            "sha256": "d1c50d7d1b228baa919f7dafde023c108244fcc99461d3e844df6562af8f92ee"
+          },
+          {
+            "file": "npm-console.log",
+            "sha256": "9fff2a491191f8c5762c43fe823ee40176a82aca0f9e2a01de5fbbcba2cc9d74"
+          },
+          {
+            "file": "npm-evals.json",
+            "sha256": "d11a6df3ab54fbbe7f270143baf2115edf5441c9ec64631a7a2abbfb543ba1e0"
+          },
+          {
+            "file": "npm-evals.log",
+            "sha256": "ec958c1f7818e5b786b50df7a92477cbddac305c5f02e5f51212dd3ababe1fea"
+          },
+          {
+            "file": "prepared.json",
+            "sha256": "6568a90abc714625aab5b28ee785afad456b75df512729fdbb2948be81cc8c97"
+          },
+          {
+            "file": "promtool-as-source-owner.log",
+            "sha256": "8a3be89d22d7f8befd97426703d6bb03df7bff5801441a7d6d30e0d438ae9ac9"
+          },
+          {
+            "file": "promtool.log",
+            "sha256": "6a0a1a177c19e19e68d122d9d4d084908a37d1c606178e28dc2416c07a82e78e"
+          },
+          {
+            "file": "remaining-resume-stages.json",
+            "sha256": "88458066675b6577376bb95710a742094e8161d3ab896d61d76b6c5457f0ef7c"
+          },
+          {
+            "file": "remaining-stages.json",
+            "sha256": "bfb412ea432c9f3062cb6fb604fc851454d67945517be8f9e8c7bf36e1a549a3"
+          },
+          {
+            "file": "runbooks-coverage.log",
+            "sha256": "a223d44a82ad71b22cab9fcb058c91b126facad8b4595e421ac492233b0be4c1"
+          },
+          {
+            "file": "runbooks-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "runbooks-stages.json",
+            "sha256": "37dbe102518de92cc769bdec6f9d118e2e8e2049096d0dc70459f4c240db1d79"
+          },
+          {
+            "file": "runbooks-unit.log",
+            "sha256": "d8bbdf480f3198bd5a5268ddd097b15829a3cbaded374bc048136e8530dad835"
+          },
+          {
+            "file": "runbooks-unit.xml",
+            "sha256": "4f08f982011baf0831f8ca527d9e71fd9b4b6e9f6bdb67612a2df00aca256b03"
+          },
+          {
+            "file": "secret-hook.log",
+            "sha256": "967e5e1f33396ef33b5ef0bae5fc96276294b4ec8b0de39a403ff81518d6eb5a"
+          },
+          {
+            "file": "sre-agent-build.log",
+            "sha256": "4917f364bd46772cfe084b88275b386f3aebcd2ebbc8a07136b3dc008983c4cf"
+          },
+          {
+            "file": "sre-agent-coverage.log",
+            "sha256": "14df1c276968d90f15a7c7f0f6ad6ae159740efaf3c01d19ab5bd516c05c5f5b"
+          },
+          {
+            "file": "sre-agent-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "sre-agent-lock-plateforme.py.log",
+            "sha256": "bd8365b86caf1817cdd49e4028b88a9ea052a00c068a6ae093c0e89731baf31f"
+          },
+          {
+            "file": "sre-agent-lock-sauvegarder.py.log",
+            "sha256": "f139816d493ee5117bb25902a74389de9b8e1748aa8dbe30e378d9fece01813e"
+          },
+          {
+            "file": "sre-agent-lock-tester_restauration.py.log",
+            "sha256": "34236b4a8d0dde1ba09d04d851d8fab5d252cee0bb2088e7f361159803fa380b"
+          },
+          {
+            "file": "sre-agent-scripts-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "sre-agent-stages.json",
+            "sha256": "36c19b1bfe15e10bb09c78e7a45f6d7b43e8f7f3d3f3701889dd899ab91e4185"
+          },
+          {
+            "file": "sre-agent-typing.log",
+            "sha256": "fc409d91e6c781eb25a1ec1310b7fcb0086b74ed3aa2c415bcd73f884f23f07a"
+          },
+          {
+            "file": "sre-agent-unit.log",
+            "sha256": "6b34d7681c2be3386fd74cd0c8d7b00339d0fe06946fe00ba8f56a70f319b4a7"
+          },
+          {
+            "file": "sre-agent-unit.xml",
+            "sha256": "e915980862e72e6430a81b7231058fe3a81d25057a4f4808960daa552e3237be"
+          },
+          {
+            "file": "sync-control-api.json",
+            "sha256": "515c9d4bdb33506826359726f0686b0f1590d41911e992950c84b795d8e5be50"
+          },
+          {
+            "file": "sync-control-api.log",
+            "sha256": "7b6470c47e49951d663342f7ea073f579e39bce853b82ce368db271bc1bd0f9d"
+          },
+          {
+            "file": "sync-runbooks.json",
+            "sha256": "268b1107d9c536a1ecd07246c7e2e45b1a78928796b587e855785ed9f6391a66"
+          },
+          {
+            "file": "sync-runbooks.log",
+            "sha256": "b5b2febc2e3cb03777ff1c2ab0dfd6be56387444899fd9c458f489d855451ddc"
+          },
+          {
+            "file": "sync-sre-agent.json",
+            "sha256": "54523ee3130a875785b3a1b4eb26c910fc9f571f3f2e3be4606df44e77a0cd60"
+          },
+          {
+            "file": "sync-sre-agent.log",
+            "sha256": "b6b7ed73933e3ec45698bf4ca419b6638c9dadced946484b2ed73dae73390e10"
+          },
+          {
+            "file": "sync-voice.json",
+            "sha256": "76c4e59491a6fd13eca2a1401332b6f36bfdfe9d46c1d1996577c681cbfa3a25"
+          },
+          {
+            "file": "sync-voice.log",
+            "sha256": "8eed27eb3eebd8d8e01cbbe8a4ed0ce008612ba5b955f487ed0d4e1eecf378f5"
+          },
+          {
+            "file": "voice-build.log",
+            "sha256": "68b12f9ea52a8585ad5083127d1d81f12d14b0adf119bc032b3e5cce1dd9b936"
+          },
+          {
+            "file": "voice-coverage.log",
+            "sha256": "b6798d00830c4ef43ec9885594200e282258694d169bb42414b8ea607457d0e2"
+          },
+          {
+            "file": "voice-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "voice-stages.json",
+            "sha256": "41e3e32d38e3c3d21960e7cbe197560b640e9fe218ef471535d7e0a070085212"
+          },
+          {
+            "file": "voice-typing.log",
+            "sha256": "157a09cfcdfdfb5977479c5a1c08345149263a3e990a2ec976ef28aaeec9cae6"
+          },
+          {
+            "file": "voice-unit.log",
+            "sha256": "a9ec62d2c856841869970e34ce9f5889ab87bc52d6779d8b9bbe5bb49ba42e22"
+          },
+          {
+            "file": "voice-unit.xml",
+            "sha256": "23c5832b503b56c5ba856ca7841ebdf011bf50ed58d95029a5bb1fd72120f1b3"
+          }
+        ]
+      }
     }
   },
   "limitations": [
