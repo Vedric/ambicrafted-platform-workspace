@@ -385,6 +385,7 @@ async def test_resident_reutilise_redemarre_puis_ferme(parametres):
     executable_voix(
         parametres,
         """import sys,json,os
+assert os.environ['ORT_DISABLE_TELEMETRY'] == '1'
 for line in sys.stdin:
     request = json.loads(line)
     print(json.dumps({"id":request["id"],"resultat":{"pid":os.getpid(),"langue":request["langue"]}}),flush=True)

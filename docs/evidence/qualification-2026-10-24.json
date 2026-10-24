@@ -223,6 +223,68 @@
           "matched_official_wheel_files": 63
         }
       }
+    },
+    "fresh_browser": {
+      "sha256": "531a6d16b1d06615afb6660d33193b94a53158f1a522c4948088e4b012cf8f05",
+      "result": {
+        "exit_code": 0,
+        "seconds": 823.431,
+        "finished_at": "2026-10-24T15:45:20.979159+00:00",
+        "selectors": [],
+        "log_sha256": "e89597598ac7eddddffccf1be367e90b7bab61b3858d0f52aeb8592f9d219023",
+        "stats": {
+          "startTime": "2026-10-24T15:31:55.064Z",
+          "duration": 822860.404,
+          "expected": 258,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      }
+    },
+    "native_voice_privacy": {
+      "sha256": "2c381d2f4c94bd45a9599aaa1f9e894c2c0685ee91185c1998a854edb7c4518e",
+      "result": [
+        {
+          "case": "old-voice",
+          "exit_code": 0,
+          "native_inet_socket_calls": 0,
+          "persistent_session_created": true,
+          "network_namespace_isolated": true
+        },
+        {
+          "case": "corrected-voice",
+          "exit_code": 0,
+          "native_inet_socket_calls": 0,
+          "persistent_session_created": false,
+          "network_namespace_isolated": true
+        },
+        {
+          "case": "network-observer-control",
+          "exit_code": 0,
+          "native_inet_socket_calls": 1,
+          "persistent_session_created": false,
+          "network_namespace_isolated": true
+        }
+      ]
+    },
+    "source_signature": {
+      "sha256": "f6e33e424ba25ae08847bb9c14f0bc4e8f7fc147b086ec21b4b5a1c2cdf843b2",
+      "result": {
+        "commit": "9005cfff1402fb62718fefe603beca527874fe71",
+        "exit_code": 0,
+        "public_key_source": "https://github.com/web-flow.gpg",
+        "public_key_sha256": "6e8af687f60cf3f403151c8fb1b26e95e6f9e424ca60cc8f3787bd4466a3ef84"
+      }
+    },
+    "voice_after_privacy_fix": {
+      "sha256": "50bec18861ab53d1134be88280336aa581f7df0e37fc3b868d9f2b9fb32bc8c7",
+      "result": {
+        "exit_code": 0,
+        "seconds": 136.07,
+        "network": "unshared",
+        "all_real_voice_tests_enabled": true
+      }
     }
   },
   "limitations": [

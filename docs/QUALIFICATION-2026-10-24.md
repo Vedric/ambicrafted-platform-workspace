@@ -127,6 +127,39 @@ temporary Tempo/Prometheus configs. The verifier now explicitly makes only those
 public fixture configs readable by their non-root containers; credentials remain
 0600. The complete rerun under the same restrictive umask passes in 142.405 seconds.
 
+## Fresh-clone native privacy finding
+
+The first fresh clone of signed commit `9005cfff1402fb62718fefe603beca527874fe71`
+passed its completed agent, MCP, voice and console test stages, but its final
+clean-tree assertion correctly rejected a native `:memory:.ses` file. Import
+probes locate this behavior in ONNX Runtime/Piper. The minimal test environment
+exposed a dependency on an ambient opt-out; the API child environment also did
+not explicitly carry that native setting. The two API encryption failures in
+this first clone separately came from selecting the older system age binary
+instead of the qualified 1.3.1 tool; those failures are retained.
+
+[ADR 0056](adr/0056-confidentialite-native-du-runtime-vocal.md) adds the native
+opt-out before package imports and explicitly to API child startup. Four new
+fresh-process tests initialize the real native library with a contradictory
+inherited setting and require no persisted state. Native syscall observation
+shows no IPv4/IPv6 socket creation or session file in the corrected import;
+a separate socket control validates the observer. The short old probe creates
+the session file but also shows no socket creation. This is not evidence of
+historical data exfiltration. After the correction, all **138 voice tests** pass together in a network-isolated
+namespace in 135.57 seconds: 113 unit/native-bootstrap cases and 25 real-model
+cases, with no skip. The 45 voice API tests also pass. The earlier 109-test unit
+count predates the four new native-bootstrap cases.
+
+The fresh clone's full browser matrix subsequently passes **258/258** in
+822.860 seconds, with zero skips, failures or flaky cases. Console build,
+304 unit tests, browser-test typing and formatting also pass. This receipt is
+bound to commit `9005cfff1402fb62718fefe603beca527874fe71`; the privacy follow-up
+changes voice startup and the API's child environment, not the console tree.
+The source commit is GitHub-signed, its remote tree matches the GitGuardian-scanned
+index exactly, and its signature is independently verified with GitHub's official
+public key in a temporary verification keyring. The operator's local signing key
+remains locked after reboot; signing policy and private keys were not changed.
+
 ## Publication and remaining acceptance
 
 Local proofs do not substitute for the required hosted application and image

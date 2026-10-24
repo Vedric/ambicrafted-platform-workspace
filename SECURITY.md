@@ -11,6 +11,12 @@ candidate, exact scope and remaining upstream findings. Earlier dated assessment
 remain historical. Functional qualification does not certify a vulnerability-free
 deployment.
 
+The voice process explicitly disables ONNX Runtime's native telemetry before
+initialization, independently of the operator's shell settings. See
+[ADR 0056](docs/adr/0056-confidentialite-native-du-runtime-vocal.md) for the observed
+boundary and limits. Python socket mocks alone are not evidence about native
+HTTP clients.
+
 ## Data classification and storage
 
 | Data | Storage and routing |

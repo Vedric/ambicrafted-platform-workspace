@@ -66,10 +66,11 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0053](0053-retroportage-tracestate-litellm.md) | OpenTelemetry correction within supported dependency graphs | Source/MCP and targeted gateway profile qualified; generation blocked | 2026-10-23 | Official MCP API update and pinned upstream gateway backport; retained scanner findings and separate evidence. |
 | [0054](0054-cache-public-et-revalidation-console.md) | Public asset caching and entry revalidation | Implementation; qualification separate | 2026-10-24 | Versioned public files, conditional requests, real missing-file errors and private no-store boundaries. |
 | [0055](0055-dependances-corrigees-et-contrat-filelock.md) | Correct dependencies and qualify the local filelock contract | Accepted | 2026-10-24 | Real fixed packages, exact consumer compatibility, unchanged blocking security gate. |
+| [0056](0056-confidentialite-native-du-runtime-vocal.md) | Disable native voice telemetry before initialization | Accepted | 2026-10-24 | Enforce the ONNX lifetime opt-out in clean CLI and resident processes. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0055, then the current README and security document;
+- **Current behavior**: 0009–0056, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [MCP gateway](../MCP-GATEWAY.md), [voice](../VOICE.md) and

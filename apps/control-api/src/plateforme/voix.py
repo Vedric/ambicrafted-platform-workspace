@@ -130,7 +130,10 @@ class Voix:
             raise HTTPException(503, "Moteur vocal absent. Installer apps/voice puis ses modèles.")
         env = {k: v for k, v in os.environ.items() if k in {"PATH", "HOME", "LANG", "TMPDIR"}}
         env.update(
-            VOICE_STATE_DIR=str(self.p.etat / "voice"), HF_HUB_OFFLINE="1", OMP_NUM_THREADS="4"
+            VOICE_STATE_DIR=str(self.p.etat / "voice"),
+            HF_HUB_OFFLINE="1",
+            ORT_DISABLE_TELEMETRY="1",
+            OMP_NUM_THREADS="4",
         )
         if arguments[0] in ("parler", "transcrire"):
             return await self.executer_resident(arguments, texte, env)
