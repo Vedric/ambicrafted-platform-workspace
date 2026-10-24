@@ -25,7 +25,7 @@ dependencies = [
 # une empreinte de dépendances que la boucle maison ne paie pas.
 [project.optional-dependencies]
 graphe = [
-    "langgraph>=1.2.12,<2",
+    "langgraph>=1.2.16,<2",
     "langgraph-checkpoint-sqlite>=3.1,<4",
 ]
 
