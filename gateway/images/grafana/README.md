@@ -1,5 +1,21 @@
 # Grafana private security distribution
 
+## Brotli correction — 2026-10-24
+
+The current derivative is `13.2.4-security.20261024.1`, locally qualified as
+`sha256:3f4187233880350e6acdeed1726c72d14d036930232fc4d35d1b2869cb552730`.
+It installs Alpine's signed, SHA-256-pinned `brotli-libs=1.2.1-r0`. Backend and
+plugin source recipes and signature checks remain unchanged. Full synthetic
+qualification passes queries, trace correlations, exemplars, service graphs,
+SLO coverage semantics and all 48 browser/theme/viewport variants. The scan
+reports 0 HIGH/CRITICAL and one UNKNOWN record. The verifier explicitly gives
+its public temporary configs mode 0644 for non-root containers under `umask 077`;
+its temporary credential file remains 0600. See the
+[24 October qualification](../../../docs/QUALIFICATION-2026-10-24.md).
+Older tags and build commands below describe their dated recipes; use the new
+tag for the current Dockerfile.
+
+
 ## Available native-library fixes — 2026-10-22
 
 The `13.2.4-security.20261022.2` derivative upgrades only Alpine musl and

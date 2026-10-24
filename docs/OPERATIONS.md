@@ -33,14 +33,13 @@ The dashboard and rules are versioned under `gateway/observability`. Rules
 create local alerts; no Slack, email or other notification destination is
 configured. Configure a destination only after deciding what metadata may leave.
 
-The [23 October qualification](QUALIFICATION-2026-10-23.md) separates source
-publication, repository protection, the completed two-hour lifecycle exercise,
-the fresh dependency findings and remaining release gates. Re-scanning the eight
-images against the 23 October 07:12:39 UTC database reports 0 CRITICAL, 0 HIGH,
-24 MEDIUM, 9 LOW and 5 UNKNOWN occurrences. The new OpenTelemetry advisory needs
-separate treatment in the Runbooks MCP lock and the constrained LiteLLM image;
-see [ADR 0053](adr/0053-retroportage-tracestate-litellm.md). A backported source
-correction retains its raw package-version finding and provenance.
+The [24 October qualification](QUALIFICATION-2026-10-24.md) separates source
+publication, local proofs and release acceptance. The corrected eight-image scan
+against the 24 October 13:07:23 UTC database reports 0 CRITICAL, 0 HIGH,
+24 MEDIUM, 9 LOW and 6 UNKNOWN occurrences. It follows an initial failure with
+nine HIGH occurrences. See [ADR 0055](adr/0055-dependances-corrigees-et-contrat-filelock.md)
+for the actual fixed packages and the explicitly tested local filelock contract.
+The OTel source backport retains its truthful raw inventory finding and provenance.
 
 Exact hosted qualification and the installed revision belong to release evidence;
 a green readiness page proves neither. Public source does not expose the local
@@ -49,16 +48,17 @@ runs. A stopped release tag is never moved or relabelled as a success after a
 later correction. The host certificate store needs separate
 [administrative verification](HOST-TOOLS.md#host-certificate-trust-and-uv).
 
-The [23 October reference-host incident](HOST-INCIDENT-2026-10-23.md) blocks
-local generation and personal-release acceptance. The corrected gateway passes
-a targeted embeddings/trace/persistence profile, which explicitly does not
-satisfy the full generation gate. Do not promote it or publish a personal release
-from an embeddings-only result; preserve the previous data generation and rerun
-the full qualification after host recovery.
+The [23 October reference-host incident](HOST-INCIDENT-2026-10-23.md) is resolved
+at the 24 October checkpoint after the operator's Windows/WSL update and reboot.
+Linux GPU telemetry and actual local generation pass. The full gateway qualifier
+passes streaming, structured output, embeddings, real trace delivery, restart and
+logical rollback. Do not substitute an embeddings-only diagnostic for that full
+profile. Cold model loading still takes materially longer than a warm turn.
 
-Seven image derivatives changed in this campaign; Tempo's local identity is
-retained. The qualification records all eight exact local tags and IDs, including
-Qdrant `1.19.2-security.20261022-r4`. Its functional runtime checks used Docker's
+Seven image derivatives changed in the broader campaign; Tempo's local identity
+is retained. The 24 October update changes Grafana, LiteLLM and Qdrant, whose
+current tag is `1.19.2-security.20261024.1`. The dated qualification records
+the exact local identities. Its functional runtime checks used Docker's
 default seccomp; a separate upstream io_uring test profile is not a deployment
 setting. Its measured Docker build took 14 minutes 52.8 seconds with an 8.8203 GiB
 Rust compiler cgroup peak, including file cache and with unchanged stages cached.

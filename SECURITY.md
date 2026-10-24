@@ -6,10 +6,16 @@ It assumes a single trusted workstation user and a trusted local gateway.
 It does not defend against root or a compromised model server.
 
 The release image gate fails on any HIGH/CRITICAL occurrence or incomplete scan.
-See the [23 October candidate qualification](docs/QUALIFICATION-2026-10-23.md) for the
+See the [24 October candidate qualification](docs/QUALIFICATION-2026-10-24.md) for the
 candidate, exact scope and remaining upstream findings. Earlier dated assessments
 remain historical. Functional qualification does not certify a vulnerability-free
 deployment.
+
+The voice process explicitly disables ONNX Runtime's native telemetry before
+initialization, independently of the operator's shell settings. See
+[ADR 0056](docs/adr/0056-confidentialite-native-du-runtime-vocal.md) for the observed
+boundary and limits. Python socket mocks alone are not evidence about native
+HTTP clients.
 
 ## Data classification and storage
 

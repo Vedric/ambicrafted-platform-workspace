@@ -344,6 +344,10 @@ def qualify(
                 "  - job_name: platform\n    static_configs:\n"
                 "      - targets: ['" + subnet + ".1:PORT_PLACEHOLDER']\n"
             )
+            # Public synthetic configs must remain readable by non-root
+            # containers even when the operator uses a restrictive umask.
+            tempo_config.chmod(0o644)
+            prometheus_config.chmod(0o644)
             credentials = temporary / "qualification.env"
             descriptor = os.open(
                 credentials, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600

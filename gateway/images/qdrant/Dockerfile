@@ -66,6 +66,7 @@ COPY web-ui-package-lock.json package-lock.json
 COPY web-ui.patch /tmp/web-ui.patch
 COPY build-dependencies.check.mjs ./build-dependencies.check.mjs
 COPY redirects-security.check.mjs ./redirects-security.check.mjs
+COPY undici-security.check.mjs ./undici-security.check.mjs
 ENV VITE_OFFLINE=true
 RUN patch --batch --fuzz=0 -p1 < /tmp/web-ui.patch \
     && chown -R node:node /src
@@ -73,7 +74,7 @@ RUN patch --batch --fuzz=0 -p1 < /tmp/web-ui.patch \
 # npm lifecycle scripts as root. The resulting runtime remains UID 65532.
 USER node
 RUN npm ci --no-fund --no-audit
-RUN --network=none node --test build-dependencies.check.mjs redirects-security.check.mjs \
+RUN --network=none node --test build-dependencies.check.mjs redirects-security.check.mjs undici-security.check.mjs \
     && npm test -- --run --maxWorkers=2 \
     && npm run build-qdrant \
     && npm sbom --sbom-format spdx > dist/qdrant-web-ui.spdx.json

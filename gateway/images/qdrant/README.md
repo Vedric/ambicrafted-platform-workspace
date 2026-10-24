@@ -1,5 +1,20 @@
 # Qdrant security derivatives
 
+## Dashboard dependency correction — 2026-10-24
+
+The current derivative is `1.19.2-security.20261024.1`, locally qualified as
+`sha256:128569ee32e8e750985b4a84860e22e2f02f7edefb7de82ecb94fbe29f36dac3`.
+The dashboard uses undici 6.29.1, a rebuilt complete UI and a newly generated
+build SBOM. The malformed-encoding/truncated-body regression fails with 6.29.0
+and passes with the corrected version. Unrelated lock entries, Rust source and
+native runtime recipes remain unchanged. Real migration, writes, restart,
+snapshot recovery and three Chromium views pass. The full fresh scan has
+0 HIGH/CRITICAL, 23 MEDIUM and eight LOW occurrences; the residual Debian records
+have no fixed version listed. See the
+[24 October qualification](../../../docs/QUALIFICATION-2026-10-24.md).
+Do not rebuild the current recipe under the historical tags below.
+
+
 ## Server dependency corrections — 2026-10-22, r4
 
 `1.19.2-security.20261022-r4` retains r3's native CA and dashboard corrections

@@ -1,9 +1,10 @@
 # Reference workstation incident — 23 October 2026
 
-Status: Open. Generation has recovered through a slow CPU fallback; GPU access
-and normal personal release acceptance remain blocked. The complete gateway
-exercise now passes after a trace-checker correction. None of these results
-declares the reference workstation healthy.
+Status: Resolved at the 24 October 2026 checkpoint. After the operator's Windows
+update/reboot, Linux GPU access and actual GPU-backed generation pass. See the
+[recovery evidence](QUALIFICATION-2026-10-24.md#gpu-recovery-and-real-conversation).
+The observations below remain the historical incident record; the exact original
+Windows/WSL fault is not attributed to a particular component without evidence.
 
 ## Observed boundary
 

@@ -127,6 +127,7 @@ class InspecterImport(importlib.abc.MetaPathFinder):
         if fullname == 'faster_whisper':
             assert os.environ['CT2_USE_MKL'] == '0'
             assert os.environ['HF_HUB_OFFLINE'] == '1'
+            assert os.environ['ORT_DISABLE_TELEMETRY'] == '1'
             raise RuntimeError('bootstrap-verified')
 sys.meta_path.insert(0, InspecterImport())
 try:
@@ -366,6 +367,8 @@ def test_source_de_telechargement_autorisee(modele_minimal):
 
 def test_configuration_runtime_force_hors_ligne(monkeypatch):
     monkeypatch.setenv("HF_HUB_OFFLINE", "0")
+    monkeypatch.setenv("ORT_DISABLE_TELEMETRY", "0")
     moteur.hors_ligne()
     assert os.environ["HF_HUB_OFFLINE"] == "1"
     assert os.environ["HF_HUB_DISABLE_TELEMETRY"] == "1"
+    assert os.environ["ORT_DISABLE_TELEMETRY"] == "1"

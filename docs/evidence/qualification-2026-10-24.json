@@ -1,0 +1,953 @@
+{
+  "date": "2026-10-24",
+  "scope": "local synthetic qualification, separate from hosted gates and live promotion",
+  "receipts": {
+    "images": {
+      "sha256": "5a78b909e0927242bb4899078b698b475bf3183004230580d029c8f7593ba8c0",
+      "result": {
+        "recorded_at": "2026-10-24T15:11:36.936419+00:00",
+        "scanner_sha256": "d89bcc6510a267f11b773398cbf1be5520ce39f9e8b6633178c4487f05b7d791",
+        "services": [
+          {
+            "service": "grafana",
+            "image_id": "sha256:3f4187233880350e6acdeed1726c72d14d036930232fc4d35d1b2869cb552730",
+            "exit_code": 0,
+            "seconds": 12.957,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 1
+            },
+            "report_sha256": "149ed7dbe249b8e8c530821e550fe38b390debe3a732059e9da706b5b5af5210"
+          },
+          {
+            "service": "litellm",
+            "image_id": "sha256:34224ed37f43ecfaad1816444c8ecbc1dfaba6110ae34fc85356169f0c2220fd",
+            "exit_code": 0,
+            "seconds": 8.594,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 1,
+              "LOW": 0,
+              "UNKNOWN": 0
+            },
+            "report_sha256": "6eaf42a247e2178a887827eaf09856a95ad3fa323a98c79213d847b562cec4b3"
+          },
+          {
+            "service": "neo4j",
+            "image_id": "sha256:01dae1b7e86152078159661fcbe550b69fba711101cb9f115e1db7c9c30bd626",
+            "exit_code": 0,
+            "seconds": 5.483,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 1,
+              "UNKNOWN": 0
+            },
+            "report_sha256": "53d59835b43126cafcb66fa685ca13c37a6105565944cf4e9a18d56e3e1b0e2f"
+          },
+          {
+            "service": "platform-metrics",
+            "image_id": "sha256:3d61be203211b1cb7e755da74ad1423d20deb2d7cdd59be4ad4d741c31ef5a9c",
+            "exit_code": 0,
+            "seconds": 0.115,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 1
+            },
+            "report_sha256": "c52f7ed5106382f7eca281cc3b0dd214ac2d2c5b4558fc8bde1d256370502801"
+          },
+          {
+            "service": "postgres",
+            "image_id": "sha256:996e5b41aa3aa9e556c8db65a7ceb08e453b8b2eaa211806311ccee69c76b004",
+            "exit_code": 0,
+            "seconds": 0.165,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 0
+            },
+            "report_sha256": "2d1c25b2a8314146a43e34db3bd3f7c5020450e8e97b0bc151fe0b68f5d08fcd"
+          },
+          {
+            "service": "prometheus",
+            "image_id": "sha256:7eb4b64d260f950f061dfd5d5cd023e5e2915234ec349e3883f753441f11161d",
+            "exit_code": 0,
+            "seconds": 0.165,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 2
+            },
+            "report_sha256": "f0d4768368399ff47d6ffddc1f5cc2f547cfb41267f46a3694a3580191efeb3c"
+          },
+          {
+            "service": "qdrant",
+            "image_id": "sha256:128569ee32e8e750985b4a84860e22e2f02f7edefb7de82ecb94fbe29f36dac3",
+            "exit_code": 0,
+            "seconds": 1.721,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 23,
+              "LOW": 8,
+              "UNKNOWN": 0
+            },
+            "report_sha256": "298a4c18bbf1708c18365a029ba4a6d6915bb0e0624174c56eddd436f6ecb360"
+          },
+          {
+            "service": "tempo",
+            "image_id": "sha256:c40ff8fc5994ace7feabdabd5e80f13a08d48f074c5b6c6f335fb0316dfd0412",
+            "exit_code": 0,
+            "seconds": 0.165,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 2
+            },
+            "report_sha256": "b9328694219f147b9ca131f3aee32f2fea1f40b9132d2c0bb85a618f23d89896"
+          }
+        ],
+        "all_images_scanned": true,
+        "high_critical_gate_passed": true,
+        "db_metadata": {
+          "Version": 2,
+          "NextUpdate": "2026-10-25T13:07:23.340317232Z",
+          "UpdatedAt": "2026-10-24T13:07:23.340317483Z",
+          "DownloadedAt": "2026-10-24T14:52:42.77367075Z"
+        },
+        "java-db_metadata": {
+          "Version": 1,
+          "NextUpdate": "2026-10-27T01:07:32.115560063Z",
+          "UpdatedAt": "2026-10-24T01:07:32.115560183Z",
+          "DownloadedAt": "2026-10-24T14:53:50.407244391Z"
+        }
+      }
+    },
+    "browser": {
+      "sha256": "6d6ec4d21c3d53b6c16cf656f62bc66c480c27f7a2aff7b07fff8c1c381f3dab",
+      "result": {
+        "exit_code": 0,
+        "seconds": 992.942,
+        "finished_at": "2026-10-24T15:02:08.377699+00:00",
+        "selectors": [],
+        "log_sha256": "2df035644f4b45b6f9a0353e6cb20381a1b4d242d1751e4e15551d55684e23c4",
+        "stats": {
+          "startTime": "2026-10-24T14:45:54.240Z",
+          "duration": 991942.406,
+          "expected": 258,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      }
+    },
+    "api": {
+      "sha256": "9987852ed9907f38ea6b18161689f15701e44b27f83a00a0bc3d383df56588af",
+      "result": {
+        "exit_code": 0,
+        "seconds": 116.361,
+        "project": "control-api"
+      }
+    },
+    "voice_unit": {
+      "sha256": "a654fc080c71fb81e903c8a9e15d6689f5968e3758eeaad8a953db66caf36bdf",
+      "result": {
+        "exit_code": 0,
+        "seconds": 5.692,
+        "project": "voice"
+      }
+    },
+    "voice_real": {
+      "sha256": "9a1bacfacfcd7a5b18ca5be1ed153117e370b55144997bae8c29cf5669c977c6",
+      "result": {
+        "exit_code": 0,
+        "seconds": 129.782,
+        "network": "unshared",
+        "inputs": "synthetic voice fixtures only"
+      }
+    },
+    "python_advisories": {
+      "sha256": "11613622017997089d999167d8edf2a95a310c3a7b3222ea737b0fd16f564380",
+      "result": [
+        {
+          "project": "apps/control-api",
+          "exit_code": 0,
+          "seconds": 2.054,
+          "packages": 74,
+          "vulnerabilities": 0
+        },
+        {
+          "project": "apps/voice",
+          "exit_code": 0,
+          "seconds": 0.881,
+          "packages": 25,
+          "vulnerabilities": 0
+        },
+        {
+          "project": "agents/sre-agent",
+          "exit_code": 0,
+          "seconds": 1.101,
+          "packages": 67,
+          "vulnerabilities": 0
+        },
+        {
+          "project": "mcp-servers/runbooks",
+          "exit_code": 0,
+          "seconds": 0.582,
+          "packages": 48,
+          "vulnerabilities": 0
+        }
+      ]
+    },
+    "official_wheels": {
+      "sha256": "b28ae7655cc7ae319ab69af1de4979cc27b3fca562e6197007c0b5e77fc071f5",
+      "result": {
+        "filelock-4.2.4": {
+          "matched_official_wheel_files": 27
+        },
+        "pypdf-6.21.2": {
+          "matched_official_wheel_files": 63
+        }
+      }
+    },
+    "fresh_browser": {
+      "sha256": "531a6d16b1d06615afb6660d33193b94a53158f1a522c4948088e4b012cf8f05",
+      "result": {
+        "exit_code": 0,
+        "seconds": 823.431,
+        "finished_at": "2026-10-24T15:45:20.979159+00:00",
+        "selectors": [],
+        "log_sha256": "e89597598ac7eddddffccf1be367e90b7bab61b3858d0f52aeb8592f9d219023",
+        "stats": {
+          "startTime": "2026-10-24T15:31:55.064Z",
+          "duration": 822860.404,
+          "expected": 258,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      }
+    },
+    "native_voice_privacy": {
+      "sha256": "2c381d2f4c94bd45a9599aaa1f9e894c2c0685ee91185c1998a854edb7c4518e",
+      "result": [
+        {
+          "case": "old-voice",
+          "exit_code": 0,
+          "native_inet_socket_calls": 0,
+          "persistent_session_created": true,
+          "network_namespace_isolated": true
+        },
+        {
+          "case": "corrected-voice",
+          "exit_code": 0,
+          "native_inet_socket_calls": 0,
+          "persistent_session_created": false,
+          "network_namespace_isolated": true
+        },
+        {
+          "case": "network-observer-control",
+          "exit_code": 0,
+          "native_inet_socket_calls": 1,
+          "persistent_session_created": false,
+          "network_namespace_isolated": true
+        }
+      ]
+    },
+    "source_signature": {
+      "sha256": "f6e33e424ba25ae08847bb9c14f0bc4e8f7fc147b086ec21b4b5a1c2cdf843b2",
+      "result": {
+        "commit": "9005cfff1402fb62718fefe603beca527874fe71",
+        "exit_code": 0,
+        "public_key_source": "https://github.com/web-flow.gpg",
+        "public_key_sha256": "6e8af687f60cf3f403151c8fb1b26e95e6f9e424ca60cc8f3787bd4466a3ef84"
+      }
+    },
+    "voice_after_privacy_fix": {
+      "sha256": "50bec18861ab53d1134be88280336aa581f7df0e37fc3b868d9f2b9fb32bc8c7",
+      "result": {
+        "exit_code": 0,
+        "seconds": 136.07,
+        "network": "unshared",
+        "all_real_voice_tests_enabled": true
+      }
+    },
+    "final_fresh_clone": {
+      "sha256": "b49cb1f4a247fec213b9ed7ed7455ef60e594d3784436d54027c822a4fbcbe7a",
+      "result": {
+        "commit": "2ec349f6fe36187563e0946df5985675bdcce373",
+        "fresh_clone": true,
+        "source_clean_after": true,
+        "tests": {
+          "control-api-unit": {
+            "tests": 827,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "runbooks-unit": {
+            "tests": 48,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "sre-agent-unit": {
+            "tests": 259,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "voice-unit": {
+            "tests": 138,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 25
+          }
+        },
+        "stages": {
+          "console-stages": [
+            {
+              "project": "apps/console",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 6.879,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/console",
+              "stage": "type-e2e",
+              "exit_code": 0,
+              "seconds": 0.366,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/console",
+              "stage": "format",
+              "exit_code": 0,
+              "seconds": 2.477,
+              "network_isolated": true
+            }
+          ],
+          "control-api-stages": [
+            {
+              "project": "apps/control-api",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 84.138,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "coverage",
+              "exit_code": 0,
+              "seconds": 0.366,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "lint",
+              "exit_code": 0,
+              "seconds": 0.065,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "typing",
+              "exit_code": 0,
+              "seconds": 9.299,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "build",
+              "exit_code": 0,
+              "seconds": 0.216,
+              "network_isolated": false
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "eval-contract",
+              "exit_code": 0,
+              "seconds": 0.115,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "eval-unit",
+              "exit_code": 0,
+              "seconds": 0.165,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "maintenance",
+              "exit_code": 0,
+              "seconds": 1.62,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/control-api",
+              "stage": "lifecycle",
+              "exit_code": 0,
+              "seconds": 61.722,
+              "network_isolated": true
+            }
+          ],
+          "evals-stages": [
+            {
+              "project": "evals",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 0.315,
+              "network_isolated": true
+            }
+          ],
+          "remaining-resume-stages": [
+            {
+              "stage": "promtool-as-source-owner",
+              "exit_code": 0,
+              "seconds": 12.614
+            },
+            {
+              "stage": "apps-console-audit",
+              "exit_code": 0,
+              "seconds": 0.466
+            },
+            {
+              "stage": "evals-audit",
+              "exit_code": 0,
+              "seconds": 0.416
+            }
+          ],
+          "remaining-stages": [
+            {
+              "stage": "secret-hook",
+              "exit_code": 0,
+              "seconds": 0.417
+            },
+            {
+              "stage": "compose",
+              "exit_code": 0,
+              "seconds": 0.115
+            },
+            {
+              "stage": "dashboards",
+              "exit_code": 0,
+              "seconds": 0.064
+            },
+            {
+              "stage": "promtool",
+              "exit_code": 1,
+              "seconds": 1.621
+            }
+          ],
+          "runbooks-stages": [
+            {
+              "project": "mcp-servers/runbooks",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 5.909,
+              "network_isolated": true
+            },
+            {
+              "project": "mcp-servers/runbooks",
+              "stage": "coverage",
+              "exit_code": 0,
+              "seconds": 0.215,
+              "network_isolated": true
+            },
+            {
+              "project": "mcp-servers/runbooks",
+              "stage": "lint",
+              "exit_code": 0,
+              "seconds": 0.033,
+              "network_isolated": true
+            }
+          ],
+          "sre-agent-stages": [
+            {
+              "project": "agents/sre-agent",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 11.545,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "coverage",
+              "exit_code": 0,
+              "seconds": 0.265,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "lint",
+              "exit_code": 0,
+              "seconds": 0.032,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "typing",
+              "exit_code": 0,
+              "seconds": 7.991,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "build",
+              "exit_code": 0,
+              "seconds": 0.215,
+              "network_isolated": false
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "scripts-lint",
+              "exit_code": 0,
+              "seconds": 0.032,
+              "network_isolated": true
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "lock-plateforme.py",
+              "exit_code": 0,
+              "seconds": 0.016,
+              "network_isolated": false
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "lock-sauvegarder.py",
+              "exit_code": 0,
+              "seconds": 0.016,
+              "network_isolated": false
+            },
+            {
+              "project": "agents/sre-agent",
+              "stage": "lock-tester_restauration.py",
+              "exit_code": 0,
+              "seconds": 0.016,
+              "network_isolated": false
+            }
+          ],
+          "voice-stages": [
+            {
+              "project": "apps/voice",
+              "stage": "unit",
+              "exit_code": 0,
+              "seconds": 8.092,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/voice",
+              "stage": "coverage",
+              "exit_code": 0,
+              "seconds": 0.216,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/voice",
+              "stage": "lint",
+              "exit_code": 0,
+              "seconds": 0.065,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/voice",
+              "stage": "typing",
+              "exit_code": 0,
+              "seconds": 3.025,
+              "network_isolated": true
+            },
+            {
+              "project": "apps/voice",
+              "stage": "build",
+              "exit_code": 0,
+              "seconds": 0.165,
+              "network_isolated": false
+            }
+          ]
+        },
+        "promtool_initial_failure": "Private clone source permissions; rerun as source owner passed. No repository permissions or rules changed.",
+        "real_speech": "The 25 real-model cases excluded from this unit job pass in the separate 138-case isolated run of the same voice source.",
+        "files": [
+          {
+            "file": "apps-console-audit.log",
+            "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+          },
+          {
+            "file": "clone.json",
+            "sha256": "e955f7017f84a5d36a907d6b446d8c1180a70495119ac21bddb4ea89bcc109f6"
+          },
+          {
+            "file": "clone.log",
+            "sha256": "15d2b81a8afb2f54c9b64b97b856a69b70e7ffe7e94812a865eda679a307218e"
+          },
+          {
+            "file": "compose.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file": "console-build.json",
+            "sha256": "2ea74613974a148757d47cffb0330017360c764e5b0ffa78f44ceb50be2eb106"
+          },
+          {
+            "file": "console-build.log",
+            "sha256": "f8e2e27a9b48ec3fd67efb301d8f23b6ae7dc8dc118cf39998c416e819197448"
+          },
+          {
+            "file": "console-format.log",
+            "sha256": "d8c8d61093e0f5b4f1cb206798798dd5dc73ac8dd1fc91f6c948141f289a721b"
+          },
+          {
+            "file": "console-stages.json",
+            "sha256": "85fcd3b48cf4e7dbfc506a019032d9333aab5244f66ff36201897d49fcbe4397"
+          },
+          {
+            "file": "console-type-e2e.log",
+            "sha256": "f9a8374a66c0f861dc6eb1e82bbb94a130584e46912d6d79958a69ea33f12c26"
+          },
+          {
+            "file": "console-unit.log",
+            "sha256": "ad429cb7d5f80a31ccb6b1315ecdb81beaf65f28d1dc4495cdeb5859bb257c07"
+          },
+          {
+            "file": "control-api-build.log",
+            "sha256": "c35a6fe467cf5d0b7e4cc7439f3b2c3ca048347ebea133dd8e0a41988cdaf19e"
+          },
+          {
+            "file": "control-api-coverage.log",
+            "sha256": "e87e84d0bfcf8861d0b41646ceafeeb3d9ffdb8aa0d552b86affdd8554ea3fad"
+          },
+          {
+            "file": "control-api-eval-contract.log",
+            "sha256": "3fc84486e9ec8adda9cea8b3de6212c6029a3b976d10b273381860267d655d63"
+          },
+          {
+            "file": "control-api-eval-unit.log",
+            "sha256": "9aade7df4fdae8dd55c3c59f48dcde73e84908cab6cf2bdf86c7ba9eb2776ec3"
+          },
+          {
+            "file": "control-api-lifecycle.log",
+            "sha256": "7675fbbda80b2438a9ef0fae6079b8a19581b3800a5d6686737791611f39d367"
+          },
+          {
+            "file": "control-api-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "control-api-maintenance.log",
+            "sha256": "5e2a6f42fda7f67454aab79670afce3afa35634875c02f9fa477af29e9bd60e5"
+          },
+          {
+            "file": "control-api-stages.json",
+            "sha256": "6d7008f50950db67c67b0dfb95d61237c33e94d9c61bf8daef89592062e98015"
+          },
+          {
+            "file": "control-api-typing.log",
+            "sha256": "190fb1a4c589ad8fc9c391ad735faa7e883860812fb598f659d8973c2013afb1"
+          },
+          {
+            "file": "control-api-unit.log",
+            "sha256": "1d7f6941bfa0f548a1f4d1ae52d34e0e6b06a5c37222fa0d3dadcea6674da5f2"
+          },
+          {
+            "file": "control-api-unit.xml",
+            "sha256": "c8b2807bbea0b6f8f25d3f8888997f77b3d6984e0d1f4edcb23e32951fc8fdd0"
+          },
+          {
+            "file": "dashboards.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file": "evals-audit.log",
+            "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+          },
+          {
+            "file": "evals-stages.json",
+            "sha256": "be8c964b61ccd0be9520316ddafce3dc5cde4a44d126b01f79de4ca3178bd1a1"
+          },
+          {
+            "file": "evals-unit.log",
+            "sha256": "1d1f1ccfacac7f8ecf476e31e722920b70c72f608d97d69ebb01c75083766d8b"
+          },
+          {
+            "file": "lifecycle.json",
+            "sha256": "1946bb8098d3fedf5add49ca2e22ed26347df384628b6a78def62ad02e3d4b5d"
+          },
+          {
+            "file": "npm-console.json",
+            "sha256": "d1c50d7d1b228baa919f7dafde023c108244fcc99461d3e844df6562af8f92ee"
+          },
+          {
+            "file": "npm-console.log",
+            "sha256": "9fff2a491191f8c5762c43fe823ee40176a82aca0f9e2a01de5fbbcba2cc9d74"
+          },
+          {
+            "file": "npm-evals.json",
+            "sha256": "d11a6df3ab54fbbe7f270143baf2115edf5441c9ec64631a7a2abbfb543ba1e0"
+          },
+          {
+            "file": "npm-evals.log",
+            "sha256": "ec958c1f7818e5b786b50df7a92477cbddac305c5f02e5f51212dd3ababe1fea"
+          },
+          {
+            "file": "prepared.json",
+            "sha256": "6568a90abc714625aab5b28ee785afad456b75df512729fdbb2948be81cc8c97"
+          },
+          {
+            "file": "promtool-as-source-owner.log",
+            "sha256": "8a3be89d22d7f8befd97426703d6bb03df7bff5801441a7d6d30e0d438ae9ac9"
+          },
+          {
+            "file": "promtool.log",
+            "sha256": "6a0a1a177c19e19e68d122d9d4d084908a37d1c606178e28dc2416c07a82e78e"
+          },
+          {
+            "file": "remaining-resume-stages.json",
+            "sha256": "88458066675b6577376bb95710a742094e8161d3ab896d61d76b6c5457f0ef7c"
+          },
+          {
+            "file": "remaining-stages.json",
+            "sha256": "bfb412ea432c9f3062cb6fb604fc851454d67945517be8f9e8c7bf36e1a549a3"
+          },
+          {
+            "file": "runbooks-coverage.log",
+            "sha256": "a223d44a82ad71b22cab9fcb058c91b126facad8b4595e421ac492233b0be4c1"
+          },
+          {
+            "file": "runbooks-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "runbooks-stages.json",
+            "sha256": "37dbe102518de92cc769bdec6f9d118e2e8e2049096d0dc70459f4c240db1d79"
+          },
+          {
+            "file": "runbooks-unit.log",
+            "sha256": "d8bbdf480f3198bd5a5268ddd097b15829a3cbaded374bc048136e8530dad835"
+          },
+          {
+            "file": "runbooks-unit.xml",
+            "sha256": "4f08f982011baf0831f8ca527d9e71fd9b4b6e9f6bdb67612a2df00aca256b03"
+          },
+          {
+            "file": "secret-hook.log",
+            "sha256": "967e5e1f33396ef33b5ef0bae5fc96276294b4ec8b0de39a403ff81518d6eb5a"
+          },
+          {
+            "file": "sre-agent-build.log",
+            "sha256": "4917f364bd46772cfe084b88275b386f3aebcd2ebbc8a07136b3dc008983c4cf"
+          },
+          {
+            "file": "sre-agent-coverage.log",
+            "sha256": "14df1c276968d90f15a7c7f0f6ad6ae159740efaf3c01d19ab5bd516c05c5f5b"
+          },
+          {
+            "file": "sre-agent-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "sre-agent-lock-plateforme.py.log",
+            "sha256": "bd8365b86caf1817cdd49e4028b88a9ea052a00c068a6ae093c0e89731baf31f"
+          },
+          {
+            "file": "sre-agent-lock-sauvegarder.py.log",
+            "sha256": "f139816d493ee5117bb25902a74389de9b8e1748aa8dbe30e378d9fece01813e"
+          },
+          {
+            "file": "sre-agent-lock-tester_restauration.py.log",
+            "sha256": "34236b4a8d0dde1ba09d04d851d8fab5d252cee0bb2088e7f361159803fa380b"
+          },
+          {
+            "file": "sre-agent-scripts-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "sre-agent-stages.json",
+            "sha256": "36c19b1bfe15e10bb09c78e7a45f6d7b43e8f7f3d3f3701889dd899ab91e4185"
+          },
+          {
+            "file": "sre-agent-typing.log",
+            "sha256": "fc409d91e6c781eb25a1ec1310b7fcb0086b74ed3aa2c415bcd73f884f23f07a"
+          },
+          {
+            "file": "sre-agent-unit.log",
+            "sha256": "6b34d7681c2be3386fd74cd0c8d7b00339d0fe06946fe00ba8f56a70f319b4a7"
+          },
+          {
+            "file": "sre-agent-unit.xml",
+            "sha256": "e915980862e72e6430a81b7231058fe3a81d25057a4f4808960daa552e3237be"
+          },
+          {
+            "file": "sync-control-api.json",
+            "sha256": "515c9d4bdb33506826359726f0686b0f1590d41911e992950c84b795d8e5be50"
+          },
+          {
+            "file": "sync-control-api.log",
+            "sha256": "7b6470c47e49951d663342f7ea073f579e39bce853b82ce368db271bc1bd0f9d"
+          },
+          {
+            "file": "sync-runbooks.json",
+            "sha256": "268b1107d9c536a1ecd07246c7e2e45b1a78928796b587e855785ed9f6391a66"
+          },
+          {
+            "file": "sync-runbooks.log",
+            "sha256": "b5b2febc2e3cb03777ff1c2ab0dfd6be56387444899fd9c458f489d855451ddc"
+          },
+          {
+            "file": "sync-sre-agent.json",
+            "sha256": "54523ee3130a875785b3a1b4eb26c910fc9f571f3f2e3be4606df44e77a0cd60"
+          },
+          {
+            "file": "sync-sre-agent.log",
+            "sha256": "b6b7ed73933e3ec45698bf4ca419b6638c9dadced946484b2ed73dae73390e10"
+          },
+          {
+            "file": "sync-voice.json",
+            "sha256": "76c4e59491a6fd13eca2a1401332b6f36bfdfe9d46c1d1996577c681cbfa3a25"
+          },
+          {
+            "file": "sync-voice.log",
+            "sha256": "8eed27eb3eebd8d8e01cbbe8a4ed0ce008612ba5b955f487ed0d4e1eecf378f5"
+          },
+          {
+            "file": "voice-build.log",
+            "sha256": "68b12f9ea52a8585ad5083127d1d81f12d14b0adf119bc032b3e5cce1dd9b936"
+          },
+          {
+            "file": "voice-coverage.log",
+            "sha256": "b6798d00830c4ef43ec9885594200e282258694d169bb42414b8ea607457d0e2"
+          },
+          {
+            "file": "voice-lint.log",
+            "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+          },
+          {
+            "file": "voice-stages.json",
+            "sha256": "41e3e32d38e3c3d21960e7cbe197560b640e9fe218ef471535d7e0a070085212"
+          },
+          {
+            "file": "voice-typing.log",
+            "sha256": "157a09cfcdfdfb5977479c5a1c08345149263a3e990a2ec976ef28aaeec9cae6"
+          },
+          {
+            "file": "voice-unit.log",
+            "sha256": "a9ec62d2c856841869970e34ce9f5889ab87bc52d6779d8b9bbe5bb49ba42e22"
+          },
+          {
+            "file": "voice-unit.xml",
+            "sha256": "23c5832b503b56c5ba856ca7841ebdf011bf50ed58d95029a5bb1fd72120f1b3"
+          }
+        ]
+      }
+    },
+    "litellm_offline_catalog": {
+      "build": {
+        "sha256": "8619cd4e38f79544382b803813549b100bd39f6823de54846bc86ca34f43eec9",
+        "result": {
+          "service": "litellm",
+          "tag": "ambicrafted/litellm:1.104.4-stable-security.20261024.2",
+          "exit_code": 0,
+          "seconds": 24.706,
+          "log_sha256": "e177e80763651c47298f891465a63f6f69767bab06d674b6bce67c1330604ea5",
+          "image_id": "sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da"
+        }
+      },
+      "qualification": {
+        "sha256": "a9979f37c5067aa71ca3141b65e52b2212fea263fe5e5361b96b063039dfe209",
+        "result": {
+          "scope": "synthetic isolated gateway migration and logical rollback",
+          "old_image": "sha256:8a2f4e749f4094d00ad637d2cd7412d49a9037900c6f7eac2eb11f5c4946fcf4",
+          "new_image": "sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da",
+          "postgres_image": "sha256:996e5b41aa3aa9e556c8db65a7ceb08e453b8b2eaa211806311ccee69c76b004",
+          "checks": {
+            "old_key_and_auth": true,
+            "migrated_key_auth_streaming_embeddings": true,
+            "structured_output_schema": true,
+            "real_otlp_delivery_parent_and_tracestate_boundary": true,
+            "key_survives_restart": true,
+            "logical_rollback_preserves_key_and_auth": true,
+            "isolated_resources_removed": true
+          },
+          "inference_progress": {
+            "phase": "complete",
+            "embedding_completed": true,
+            "structured_response_completed": true,
+            "streaming_completed": true
+          },
+          "generation_requested": true,
+          "tempo_image": "sha256:c40ff8fc5994ace7feabdabd5e80f13a08d48f074c5b6c6f335fb0316dfd0412",
+          "profile_passed": true,
+          "passed": true
+        }
+      },
+      "execution": {
+        "sha256": "c9ce3078fa143d26ca8d8f4f9e538112ab74ee6b7a9ca0063710c393ef5d2b80",
+        "result": {
+          "service": "litellm",
+          "image_id": "sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da",
+          "exit_code": 0,
+          "seconds": 82.345,
+          "qualifier_sha256": "3fdc98bdc4681006945a1873f2fade7ae070ced966362b73102aa49e879c5b01",
+          "log_sha256": "8d575ef6a295bb9209687fa21943df1c6f899bf9a3c82d175f5f3e07b1342008"
+        }
+      },
+      "scan": {
+        "sha256": "806a99c0b39adab9c284cc8caf514de74725959083c759586f6189f63821fcc2",
+        "result": {
+          "recorded_at": "2026-10-24T16:02:32.310480+00:00",
+          "scanner_sha256": "d89bcc6510a267f11b773398cbf1be5520ce39f9e8b6633178c4487f05b7d791",
+          "services": [
+            {
+              "service": "litellm",
+              "image_id": "sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da",
+              "exit_code": 0,
+              "seconds": 8.794,
+              "counts": {
+                "CRITICAL": 0,
+                "HIGH": 0,
+                "MEDIUM": 1,
+                "LOW": 0,
+                "UNKNOWN": 0
+              },
+              "report_sha256": "77347c85a9696ee9b6216fbed7ddda9e515874c4abd6a2aab3b577cc785354e4"
+            }
+          ],
+          "selected_image_scanned": true,
+          "high_critical_gate_passed": true,
+          "db_metadata": {
+            "Version": 2,
+            "NextUpdate": "2026-10-25T13:07:23.340317232Z",
+            "UpdatedAt": "2026-10-24T13:07:23.340317483Z",
+            "DownloadedAt": "2026-10-24T14:52:42.77367075Z"
+          },
+          "java-db_metadata": {
+            "Version": 1,
+            "NextUpdate": "2026-10-27T01:07:32.115560063Z",
+            "UpdatedAt": "2026-10-24T01:07:32.115560183Z",
+            "DownloadedAt": "2026-10-24T14:53:50.407244391Z"
+          }
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Browser inference is synthetic; real generation is qualified separately.",
+    "Physical microphone and speaker acceptance is not automated.",
+    "No zero-vulnerability or model-correctness claim."
+  ]
+}

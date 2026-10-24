@@ -1,5 +1,25 @@
 # Qualified LiteLLM derivative
 
+## Fixed dependency cohort — 2026-10-24
+
+The current derivative is `1.104.4-stable-security.20261024.2`, locally qualified
+as `sha256:893661a17a680fc1c8cf1577a1cd6488af57dbe0135546c5f9e48c0bd14366da`.
+It installs pypdf 6.21.2, filelock 4.2.4 and Wolfi Brotli 1.2.0-r7 from verified
+upstream artifacts. [ADR 0055](../../../docs/adr/0055-dependances-corrigees-et-contrat-filelock.md)
+explains the **local** exact filelock constraint replacing upstream's incompatible
+`<4.0` declaration. Consumer source is unchanged; all active dependency
+requirements and real consumer behavior pass. This is not a claim of upstream
+LiteLLM support for filelock 4.x. Original/corrected metadata and source hashes
+remain in `/usr/share/ambicrafted/filelock-contract.json`.
+
+The full isolated gateway qualifier passes all seven checks in 82.345 seconds,
+including actual local generation, tracing, persistence and rollback from the
+preceding installed image. The fresh scan has 0 HIGH/CRITICAL and one MEDIUM,
+the separately verified OTel source backport below. See the
+[24 October qualification](../../../docs/QUALIFICATION-2026-10-24.md).
+Use this new tag when building the current recipe. The older sections and their
+commands describe historical builds, not tags to overwrite with today's Dockerfile.
+
 ## OpenTelemetry parser backport — 2026-10-23
 
 The `1.104.4-stable-security.20261023.1` derivative applies the official
@@ -276,3 +296,13 @@ host/browser trust stores or prove every external certificate chain works.
 
 Keep the full scan and migration evidence for the exact built image. A future
 upstream update must rerun both; upgrading a tag alone is not qualification.
+
+## Offline startup catalog
+
+The `.20261024.2` image sets `LITELLM_LOCAL_MODEL_COST_MAP=True` before any
+Python import. This avoids the upstream remote-catalog retry/import race found
+on a fresh hosted builder. The bundled catalog is tied to the pinned upstream
+image; it is not live provider pricing. Refresh it through a reviewed image
+update or configure verified deployment prices before relying on cloud spend
+estimates. Real token counters remain measured usage; provider billing remains
+a separate reference. See [ADR 0057](../../../docs/adr/0057-catalogue-local-demarrage-passerelle.md).

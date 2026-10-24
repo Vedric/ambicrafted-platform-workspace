@@ -12,7 +12,7 @@ Historical ADRs describe earlier behavior and measurements; the current
 contracts below take precedence.
 
 Console **0.5.0**, control API **0.5.0**, SRE workflow **0.2.0**, local speech
-runtime **0.3.3**. The [23 October qualification](docs/QUALIFICATION-2026-10-23.md)
+runtime **0.3.3**. The [24 October qualification](docs/QUALIFICATION-2026-10-24.md)
 tracks this candidate, its validation and remaining conditions. This is a
 private, single-operator workspace; it is not a multi-tenant commercial service
 or a zero-vulnerability certification. Earlier
@@ -20,11 +20,13 @@ or a zero-vulnerability certification. Earlier
 [20 October qualification](docs/QUALIFICATION-2026-10-20.md) remain historical
 evidence; their image and evaluation counts do not describe this candidate.
 
-The reference workstation currently has an unresolved
-[Windows/WSL GPU-access incident](docs/HOST-INCIDENT-2026-10-23.md). Source and
-targeted dependency fixes are reviewed separately. Generation and the complete
-gateway checks now pass through a degraded CPU path; GPU access and acceptable
-conversational latency remain unresolved. Personal release acceptance stays blocked.
+The reference workstation's [Windows/WSL GPU incident](docs/HOST-INCIDENT-2026-10-23.md)
+is resolved: real GPU generation, contextual conversation and full gateway checks
+pass. A measured warm follow-up produces its first text in 0.530 seconds; the
+initial cold model load takes 20.079 seconds. The 24 October corrected images
+pass the local HIGH/CRITICAL gate, with lower-severity findings still disclosed.
+Publication, installation and personal acceptance are tracked separately in the
+qualification; a healthy homepage alone is not release approval.
 
 AURA supports [saved diagrams and structured reports](docs/AURA-ARTIFACTS.md),
 including source references, SVG/PNG/JSON/Markdown exports and editable memory
@@ -37,7 +39,7 @@ This version adds [saved conversations and documents](docs/CONVERSATIONS.md),
 more natural bilingual speech with English technical pronunciation, and an original
 quiet instrumental. Background music yields to AURA and mutes during recording.
 
-[Documentation index](docs/README.md) · [First personal session](docs/PERSONAL-USE.md) · [Measured qualification](docs/QUALIFICATION-2026-10-23.md)
+[Documentation index](docs/README.md) · [First personal session](docs/PERSONAL-USE.md) · [Measured qualification](docs/QUALIFICATION-2026-10-24.md)
 
 ## Private console, CLI and voice
 
@@ -274,7 +276,7 @@ missed calendar events are caught up through `Persistent=true`.
 - [Contributing and checks](CONTRIBUTING.md)
 - [Remaining dependency risks](docs/DEPENDENCIES.md)
 
-The [current qualification](docs/QUALIFICATION-2026-10-23.md) records the tested
+The [current qualification](docs/QUALIFICATION-2026-10-24.md) records the tested
 scope and remaining release gates. Private supervised use, functional CI,
 vulnerability remediation and production acceptance are separate conclusions.
 Readiness checks do not establish high availability, exhaustive incident coverage

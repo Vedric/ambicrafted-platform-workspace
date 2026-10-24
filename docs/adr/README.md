@@ -64,10 +64,14 @@ see the language policy in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 | [0051](0051-deploiement-personnel-hybride.md) | Qualified hybrid personal deployment | Accepted for the private Linux workstation | 2026-10-22 | Eight containers plus native supervised application; public source without public ingress. |
 | [0052](0052-correctifs-images-compatibles.md) | Compatible image corrections beyond the blocking threshold | Qualified personal profile | 2026-10-22 | Native package signatures, aligned runtime dependencies, complete trust stores and explicit residual findings. |
 | [0053](0053-retroportage-tracestate-litellm.md) | OpenTelemetry correction within supported dependency graphs | Source/MCP and targeted gateway profile qualified; generation blocked | 2026-10-23 | Official MCP API update and pinned upstream gateway backport; retained scanner findings and separate evidence. |
+| [0054](0054-cache-public-et-revalidation-console.md) | Public asset caching and entry revalidation | Implementation; qualification separate | 2026-10-24 | Versioned public files, conditional requests, real missing-file errors and private no-store boundaries. |
+| [0055](0055-dependances-corrigees-et-contrat-filelock.md) | Correct dependencies and qualify the local filelock contract | Accepted | 2026-10-24 | Real fixed packages, exact consumer compatibility, unchanged blocking security gate. |
+| [0056](0056-confidentialite-native-du-runtime-vocal.md) | Disable native voice telemetry before initialization | Accepted | 2026-10-24 | Enforce the ONNX lifetime opt-out in clean CLI and resident processes. |
+| [0057](0057-catalogue-local-demarrage-passerelle.md) | Deterministic offline gateway startup | Accepted | 2026-10-24 | Bundled catalog before imports; explicit cloud pricing freshness tradeoff. |
 
 ## Reading order
 
-- **Current behavior**: 0009–0053, then the current README and security document;
+- **Current behavior**: 0009–0057, then the current README and security document;
   the dated records remain unchanged when implementation evolves.
 - **Operating the current workspace**: [console guide](../CONSOLE.md),
   [local tools](../TOOLS.md), [MCP gateway](../MCP-GATEWAY.md), [voice](../VOICE.md) and
