@@ -171,6 +171,7 @@ class ClientRunbooks:
                     ("LITELLM_BASE_URL", config.LITELLM_BASE_URL),
                     ("CONFIDENTIAL_KEY", config.cle(config.Classification.CONFIDENTIEL)),
                     ("QDRANT_URL", config.QDRANT_URL),
+                    ("QDRANT_READ_ONLY_API_KEY", config.QDRANT_READ_ONLY_API_KEY),
                     ("QDRANT_COLLECTION", config.QDRANT_COLLECTION),
                     ("LANGSMITH_TRACING", "false"),
                     ("LANGCHAIN_TRACING_V2", "false"),

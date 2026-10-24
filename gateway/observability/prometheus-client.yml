@@ -1,0 +1,3 @@
+basic_auth:
+  username: platform
+  password_file: /run/platform-auth/prometheus-password

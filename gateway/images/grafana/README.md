@@ -113,6 +113,9 @@ not change Grafana's configured root URL.
 No private key is needed to reproduce this release. The build assembles the
 public pinned inputs and fails if any byte differs from the committed signed
 inventory. `.dockerignore` admits only the required public files.
+The functional qualifier requires `htpasswd` (`apache2-utils`) to create a
+disposable bcrypt-protected Prometheus endpoint. Grafana queries and Tempo's
+remote writer must authenticate during this qualification too.
 
 ```sh
 docker buildx build --load --build-context trust-policy=gateway/images/trust-policy \

@@ -1,0 +1,63 @@
+{
+  "scope": "isolated synthetic native service authentication",
+  "checks": {
+    "qdrant_anonymous_cross_origin_denied": true,
+    "prometheus_anonymous_cross_origin_denied": true,
+    "qdrant_read_only_search_write_denial_no_side_effect": true,
+    "qdrant_authenticated_snapshot_restore": true,
+    "all_five_scrapes_authenticated_where_required": true,
+    "grafana_proxy_query_without_browser_secret": true,
+    "tempo_authenticated_remote_write": true,
+    "authenticated_restart_preserves_data": true
+  },
+  "passed": true,
+  "duration_seconds": 88.835,
+  "source_sha256": {
+    "scripts/qualifier_frontiere_services.py": "109162aafbcadc77b4eebb7e7cc8c6c0152733cddb18c6a78d37d783996bc912",
+    "scripts/securiser_services.py": "20b4c819099f7df09ecce657010cfd5ea9b2445120f333a1d79f9b825c1f19ff",
+    "gateway/docker-compose.yml": "e644f01c54737bd23e566dacad8d593af5fff37323ea63663629e3de3e757fbb",
+    "gateway/observability/prometheus.yml": "b8dc3a7379bc3c5f92df4e08678a1cb5ec7270bb8823d7da63df81f06e52b61a",
+    "gateway/observability/slo.yml": "67036984ae0845d5b123329e125df010342e524b72e3c922aad742751a4b966c",
+    "gateway/observability/dashboard_details.py": "33f4127073d5e698a3f05c44445496a64762388446dd9bbe423101c9aa15627f",
+    "gateway/observability/alerts.test.yml": "81c9c700fcffc801abdfda7b297c251d9b71fc36a620c62748970d2f8d92ba89",
+    "gateway/observability/slo_definitions.py": "898f8c6f3e0a4388d1ce46553f0a01c0fb8ecc3cc8c3fe0f15348ddf862d9f7d",
+    "gateway/observability/tempo.yaml": "4fa16521bc4641d0064f9cf784e922cccdaa11de4812883a63bf4838c5dc13c0",
+    "gateway/observability/alerts.yml": "1616e1718550684868796229693d8d59d41dfa5debdc500a1493d105100a2460",
+    "gateway/observability/slo.test.yml": "8ef572f3199bb6168e6e3335a361f50ab4c08da2e62fe706fb3138ab4e1a04d8",
+    "gateway/observability/build_dashboards.py": "c1b041075c0bc6082a755002308aaaeb8e68d5543232804b6556c1f8e4ed430a",
+    "gateway/observability/prometheus-client.yml": "463d15a85b06eae7b998b0108a1b60dd0b1203f38a7ec59b576f5a188c61bb44",
+    "gateway/observability/grafana/datasources/datasources.yaml": "e4485331bdb3a6cad214727cde2fc8acb4587053ec4d3bb404bfb6d20635c4b5",
+    "gateway/observability/grafana/dashboards/default.yaml": "53957474e296ba65261b96182599db0e62a6b2e76e95450e06d53c56ceec57a7",
+    "gateway/observability/grafana/json/plateforme-agentic-fr.json": "468e98b78542d84da74869c2c4ec2d0090e409a58ce11a6f2dcdbc27a126b5e4",
+    "gateway/observability/grafana/json/plateforme-sre-fr.json": "34d69cba45931a6a13f5d293691198f29ac99173e30bb71b063acfac11125a16",
+    "gateway/observability/grafana/json/plateforme-agentic.json": "2f5b1e4cd2f19f51563a92a306244042ddb1cc3aa52af391a5643386153a1b07",
+    "gateway/observability/grafana/json/plateforme-experience-fr.json": "4f618ee25ab633e077402252c4938c6434c65936bb8ba46872739264e4e71438",
+    "gateway/observability/grafana/json/plateforme-traces.json": "944e12c406fe4a288b2338beb7feb42621636ac88b6136c6853cafcfbe7c7121",
+    "gateway/observability/grafana/json/plateforme-experience.json": "c40925585f4f0b9eac1ffc647b7db4d851e536628394e952eade1516181d3028",
+    "gateway/observability/grafana/json/plateforme.json": "14d7b61026f7fb43fe2ac20c0a22a1ffe0745a1e9d469a572a93883fddb2b233",
+    "gateway/observability/grafana/json/plateforme-traces-fr.json": "a954feb4263033b5a2b33b4e292481176e1692ad7a865f1df78af10dc7f8dfe4",
+    "gateway/observability/grafana/json/plateforme-slo.json": "084f85d6c8df2122bdd1b066e4e60f351aa6a9ae92909ec7a032873ebc502b2d",
+    "gateway/observability/grafana/json/plateforme-infrastructure.json": "c59b0ec7579638f744693a5ee2c02896fb9e940ac285957569e74904f086de98",
+    "gateway/observability/grafana/json/plateforme-slo-fr.json": "a6bd3ea71a19e7e7bb28851931f183ee3590a7aec981d6a0a59f5fddee5605a4",
+    "gateway/observability/grafana/json/plateforme-infrastructure-fr.json": "64bcc6bb1b5146d4ff6ae7107fc07dceef8948179daa9b1a40df09f9f97ea02b"
+  },
+  "images": {
+    "grafana": "sha256:3f4187233880350e6acdeed1726c72d14d036930232fc4d35d1b2869cb552730",
+    "platform-metrics": "sha256:3d61be203211b1cb7e755da74ad1423d20deb2d7cdd59be4ad4d741c31ef5a9c",
+    "prometheus": "sha256:7eb4b64d260f950f061dfd5d5cd023e5e2915234ec349e3883f753441f11161d",
+    "qdrant": "sha256:128569ee32e8e750985b4a84860e22e2f02f7edefb7de82ecb94fbe29f36dac3",
+    "tempo": "sha256:c40ff8fc5994ace7feabdabd5e80f13a08d48f074c5b6c6f335fb0316dfd0412"
+  },
+  "raw_receipt_sha256": "cdaa9991fe52fa150c7509811c9d868b301a2bac66c83874eadb5ab340b36d74",
+  "grafana": {
+    "passed": true,
+    "functional_checks": 20,
+    "browser_variants": 48,
+    "raw_receipt_sha256": "affda3b134b65b5e57f84302b982cd3d699366acfaa078fd932a4fdeb21ecc79"
+  },
+  "limitations": [
+    "Local HTTP; no TLS qualification.",
+    "No claim of exploit-free software or protection from a compromised OS account.",
+    "Tempo remains a trusted local unauthenticated receiver."
+  ]
+}

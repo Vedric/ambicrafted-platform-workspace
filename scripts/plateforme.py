@@ -29,6 +29,16 @@ def environnement(chemin: Path) -> dict[str, str]:
 
 def verifier() -> tuple[dict, bool]:
     valeurs = environnement(RACINE / ".env")
+    authentification = (
+        ("platform", valeurs["PROMETHEUS_PASSWORD"])
+        if valeurs.get("PROMETHEUS_PASSWORD")
+        else None
+    )
+    entetes_qdrant = (
+        {"api-key": valeurs["QDRANT_READ_ONLY_API_KEY"]}
+        if valeurs.get("QDRANT_READ_ONLY_API_KEY")
+        else {}
+    )
     resultats: dict = {}
     with httpx.Client(timeout=10, trust_env=False) as client:
         for nom, url in {
@@ -38,12 +48,19 @@ def verifier() -> tuple[dict, bool]:
             "qdrant": "http://127.0.0.1:6333/readyz",
         }.items():
             try:
-                resultats[nom] = client.get(url).status_code == 200
+                resultats[nom] = (
+                    client.get(
+                        url, auth=authentification if nom == "prometheus" else None
+                    ).status_code
+                    == 200
+                )
             except httpx.HTTPError:
                 resultats[nom] = False
         try:
             series = client.get(
-                "http://127.0.0.1:9090/api/v1/query", params={"query": 'up{job="tempo"}'}
+                "http://127.0.0.1:9090/api/v1/query",
+                params={"query": 'up{job="tempo"}'},
+                auth=authentification,
             ).json()["data"]["result"]
             resultats["tempo_scrape"] = bool(series) and all(
                 float(s["value"][1]) == 1 for s in series
@@ -57,10 +74,14 @@ def verifier() -> tuple[dict, bool]:
             try:
                 reponse = client.get("http://127.0.0.1:4000/v1/models", headers=entetes)
                 modeles = {m["id"] for m in reponse.json().get("data", [])}
-                resultats["alias_restraints"] = reponse.status_code == 200 and modeles == {
-                    "local",
-                    "local-embed",
-                }
+                resultats["alias_restraints"] = (
+                    reponse.status_code == 200
+                    and modeles
+                    == {
+                        "local",
+                        "local-embed",
+                    }
+                )
                 reponse = client.post(
                     "http://127.0.0.1:4000/v1/chat/completions",
                     headers=entetes,
@@ -76,15 +97,22 @@ def verifier() -> tuple[dict, bool]:
         try:
             tags = client.get("http://172.17.0.1:11434/api/tags").json()["models"]
             presents = {m["name"]: m["digest"] for m in tags}
-            attendus = json.loads((RACINE / "models/manifest.json").read_text())["models"]
-            resultats["modeles_conformes"] = all(presents.get(n) == d for n, d in attendus.items())
+            attendus = json.loads((RACINE / "models/manifest.json").read_text())[
+                "models"
+            ]
+            resultats["modeles_conformes"] = all(
+                presents.get(n) == d for n, d in attendus.items()
+            )
         except httpx.HTTPError, ValueError, KeyError:
             resultats["modeles_conformes"] = False
         try:
             alias = valeurs.get("QDRANT_COLLECTION", "runbooks-current")
-            reponse = client.get(f"http://127.0.0.1:6333/collections/{alias}")
+            reponse = client.get(
+                f"http://127.0.0.1:6333/collections/{alias}", headers=entetes_qdrant
+            )
             resultats["index_present"] = (
-                reponse.status_code == 200 and reponse.json()["result"]["points_count"] > 0
+                reponse.status_code == 200
+                and reponse.json()["result"]["points_count"] > 0
             )
         except httpx.HTTPError, ValueError, KeyError, TypeError:
             resultats["index_present"] = False

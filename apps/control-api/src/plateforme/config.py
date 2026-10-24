@@ -147,6 +147,7 @@ class Parametres:
             "LITELLM_BASE_URL",
             "OTEL_EXPORTER_OTLP_ENDPOINT",
             "QDRANT_URL",
+            "QDRANT_READ_ONLY_API_KEY",
             "QDRANT_COLLECTION",
             "SRE_TIMEOUT_LLM_S",
             "SRE_MAX_DUREE_S",

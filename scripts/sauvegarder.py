@@ -377,7 +377,8 @@ def sauvegarder() -> Path:
         capture_output=True,
         timeout=90,
     )
-    with httpx.Client(timeout=120, trust_env=False) as client:
+    entetes = {"api-key": valeurs["QDRANT_API_KEY"]} if valeurs.get("QDRANT_API_KEY") else {}
+    with httpx.Client(timeout=120, trust_env=False, headers=entetes) as client:
         response = client.get("http://127.0.0.1:6333/aliases")
         response.raise_for_status()
         aliases = response.json()["result"]["aliases"]

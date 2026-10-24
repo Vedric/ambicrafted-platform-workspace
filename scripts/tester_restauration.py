@@ -195,6 +195,7 @@ def verifier(dossier: Path) -> dict:
     prefixe = "validationplatform-restore-" + secrets.token_hex(5)
     postgres, qdrant = prefixe + "-pg", prefixe + "-qdrant"
     conteneurs = []
+    secrets_qdrant = tempfile.TemporaryDirectory(prefix="platform-restore-auth-")
     resultat = verifier_console(dossier, manifeste.get("console"))
     resultat.update(integrite)
     resultat["sources_incluses"] = manifeste.get("sources", {}).get("fichiers", 0)
@@ -277,12 +278,20 @@ def verifier(dossier: Path) -> dict:
         resultat["tables_postgres"] = int(nombre)
         if resultat["tables_postgres"] < 1:
             raise ValueError("Restauration PostgreSQL vide.")
+        cle_qdrant = secrets.token_urlsafe(48)
+        fichier_cle = Path(secrets_qdrant.name) / "qdrant.env"
+        fichier_cle.write_text(
+            "QDRANT__SERVICE__API_KEY=" + cle_qdrant + "\nQDRANT__SERVICE__ENABLE_CORS=false\n"
+        )
+        fichier_cle.chmod(0o600)
         commande(
             "docker",
             "run",
             "-d",
             "--name",
             qdrant,
+            "--env-file",
+            str(fichier_cle),
             "--read-only",
             "--cap-drop=ALL",
             "--security-opt=no-new-privileges:true",
@@ -300,7 +309,8 @@ def verifier(dossier: Path) -> dict:
         )
         conteneurs.append(qdrant)
         with httpx.Client(
-            base_url=f"http://127.0.0.1:{port}", timeout=120, trust_env=False
+            base_url=f"http://127.0.0.1:{port}", timeout=120, trust_env=False,
+            headers={"api-key": cle_qdrant},
         ) as client:
             for _ in range(60):
                 try:
@@ -355,6 +365,7 @@ def verifier(dossier: Path) -> dict:
     finally:
         for conteneur in reversed(conteneurs):
             commande("docker", "rm", "-fv", conteneur)
+        secrets_qdrant.cleanup()
 
 
 def main() -> int:

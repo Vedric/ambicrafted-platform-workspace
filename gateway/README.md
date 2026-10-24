@@ -20,6 +20,10 @@ cd gateway
 cp .env.example .env
 chmod 600 .env
 $EDITOR .env
+cd ..
+# Requires apache2-utils (htpasswd); generates secrets without displaying them.
+uv run --locked scripts/securiser_services.py
+cd gateway
 docker compose config --quiet
 docker compose up -d --build --wait --wait-timeout 180
 cd ..
@@ -37,6 +41,16 @@ Published ports bind to loopback: gateway 4000, Grafana 3000, Prometheus 9090,
 Qdrant 6333, Tempo readiness 3200 and Tempo OTLP/HTTP 4318. PostgreSQL is private to the Compose
 network. The configured subnet is 172.28.0.0/24; check for conflicts on another
 host. The gateway reaches Ollama at the configured Docker bridge address.
+
+Qdrant requires separate administration and read-only API keys. The provisioner
+writes them into the private environments; agents receive only the read-only
+key. Prometheus requires the `platform` account and its generated password.
+Use Grafana for ordinary monitoring: its backend authenticates without exposing
+the datasource password to the browser. The provisioner is safe to repeat with
+consistent credentials; it refuses disagreements instead of rotating keys.
+After repeating it or restoring the environments, recreate Qdrant, Prometheus,
+Tempo and Grafana so all bind mounts reference the regenerated files.
+See [ADR 0058](../docs/adr/0058-local-service-authentication.md).
 
 Five containers have healthchecks. Tempo's image has no shell; its readiness
 is checked through its loopback HTTP endpoint. The operations checker verifies

@@ -264,6 +264,21 @@ def test_commandes_graphes_sans_alerte_dans_argv(moteur):
     assert (moteur.racine / analyse["id"]).stat().st_mode & 0o777 == 0o700
 
 
+def test_seule_indexation_recoit_cle_administration_qdrant(moteur):
+    import secrets
+
+    from plateforme.config import enregistrer_secret
+
+    cle = secrets.token_urlsafe(48)
+    enregistrer_secret(moteur.p.racine, "QDRANT_API_KEY", cle)
+    for operation in ("indexer", "verifier", "sauvegarder"):
+        commande, env = moteur.commande(
+            {"mode": "operation", "options": {"operation": operation}}, None
+        )
+        assert (env.get("QDRANT_API_KEY") == cle) is (operation == "indexer")
+        assert cle not in " ".join(commande)
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ignore_term", [False, True])
 async def test_cancel_after_leader_exit_closes_descendant_pipes_and_accepts_next_job(

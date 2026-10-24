@@ -44,6 +44,11 @@ class ComposeVolumes(unittest.TestCase):
                 "POSTGRES_PASSWORD": "synthetic-not-a-credential",
                 "GRAFANA_ADMIN_PASSWORD": "synthetic-not-a-credential",
                 "NEO4J_MEMORY_PASSWORD": "synthetic-not-a-credential",
+                "QDRANT_API_KEY": "synthetic-not-a-credential",
+                "QDRANT_READ_ONLY_API_KEY": "synthetic-not-a-credential",
+                "PROMETHEUS_PASSWORD": "synthetic-not-a-credential",
+                "LITELLM_MASTER_KEY": "synthetic-not-a-credential",
+                "DATABASE_URL": "synthetic-not-a-credential",
                 **(values or {}),
             }
             environment_file.write_text("".join(f"{key}={value}\n" for key, value in values.items()))

@@ -33,6 +33,9 @@ metrics_generator:
     path: /var/tempo/generator/wal
     remote_write:
       - url: http://prometheus:9090/api/v1/write
+        basic_auth:
+          username: platform
+          password_file: /run/platform-auth/prometheus-password
         send_exemplars: true
 
 overrides:

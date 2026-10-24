@@ -326,10 +326,32 @@ intended state before starting services. A successful `config --quiet` checks
 configuration syntax, not the presence or integrity of data.
 
 ```sh
+uv run --locked scripts/securiser_services.py
 cd gateway
 docker compose config --quiet
 docker compose up -d --build --wait --wait-timeout 180
 ```
+
+The service provisioner requires `htpasswd` from `apache2-utils`. It creates
+independent Qdrant write/read keys and a Prometheus password without displaying
+them; existing credentials must agree between the two private environments.
+When upgrading an existing installation, stop the console, agents and scheduled
+writers before provisioning and restarting the affected services. Preserve a
+verified backup and the previous configuration first. Regenerate the mounts
+after restoring `workspace.env` and `gateway.env`, then recreate Qdrant,
+Prometheus, Tempo and Grafana. Do not rotate credentials by editing one copy.
+
+For the isolated native-authentication acceptance test (no live data or host
+ports), with the candidate images already built:
+
+```sh
+uv run --locked scripts/qualifier_frontiere_services.py /private/new-service-auth-evidence
+```
+
+The output directory must be new. Its receipt records anonymous and wrong-key
+refusals, read-only write denial, authenticated search/snapshot restoration,
+five scrape targets, Grafana backend queries, Tempo remote-write and restart
+persistence. A failure does not authorize installation; retain its evidence.
 
 Then check model routing, embedding dimensions, MCP reads/search, an incident
 analysis, graph approval/refusal, metrics targets and the dashboard. A failed

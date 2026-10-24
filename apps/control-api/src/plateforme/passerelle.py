@@ -100,6 +100,8 @@ def configurations(profil: str = "complet") -> list[ConfigurationBackend]:
             raise ValueError("Les services MCP doivent rester sur la boucle locale.")
         if valeurs.get("CONFIDENTIAL_KEY"):
             env["CONFIDENTIAL_KEY"] = valeurs["CONFIDENTIAL_KEY"]
+        if valeurs.get("QDRANT_READ_ONLY_API_KEY"):
+            env["QDRANT_READ_ONLY_API_KEY"] = valeurs["QDRANT_READ_ONLY_API_KEY"]
         resultat.append(
             ConfigurationBackend(
                 "runbooks",

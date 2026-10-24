@@ -111,6 +111,7 @@ MCP_RUNBOOKS_DIR = os.path.join(RACINE_DEPOT, "mcp-servers", "runbooks")
 MCP_PASSERELLE_PROJET = os.path.join(RACINE_DEPOT, "apps", "control-api")
 RUNBOOK_DIR = os.environ.get("RUNBOOK_DIR", os.path.join(RACINE_DEPOT, "runbooks"))
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://127.0.0.1:6333")
+QDRANT_READ_ONLY_API_KEY = os.environ.get("QDRANT_READ_ONLY_API_KEY", "")
 QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "runbooks-current")
 
 

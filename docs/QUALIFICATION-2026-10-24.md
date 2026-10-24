@@ -278,3 +278,26 @@ and second-machine recovery still need separate evidence. The previous reasoning
 holdout remains only 1/4 acceptable; model output requires human review. These
 limits are not repaired by a faster GPU or green functional tests. No claim of
 zero defects, zero vulnerabilities or unsupervised expert autonomy is made.
+
+## Additional local service boundary qualification
+
+A later same-day HTTP probe found anonymous 200 responses and cross-origin
+read headers on Qdrant collections and Prometheus runtime information. Native
+authentication and restricted browser origins close this observed boundary
+([ADR 0058](adr/0058-local-service-authentication.md)). The previous installation
+measurements above retain their original commit and scope.
+
+The additional disposable Compose qualification passed all eight checks in
+88.835 seconds: anonymous refusal, read-only write denial with no side effect,
+search, snapshot restoration, five healthy scrape targets, authenticated Grafana
+queries, actual Tempo remote-write and restart persistence. The Grafana suite
+also passed its 20 functional checks and 48 Playwright dashboard/theme/viewport
+variants in 144.780 seconds. [The sanitized receipt](evidence/service-authentication-2026-10-24.json)
+binds the exercised configuration to its hashes and actual image IDs. No image
+binary or console asset was replaced for this change.
+
+Provisioning and installation require a fresh backup, stopped writers and the
+post-installation checks in [Operations](OPERATIONS.md). Local authentication
+does not establish TLS, a remote deployment boundary or resistance to every
+possible attack. The existing dependency findings and model-quality limitations
+remain visible; this evidence does not waive any release gate.

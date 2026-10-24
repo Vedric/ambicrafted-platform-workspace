@@ -178,6 +178,11 @@ local mountpoint alone does not prove the remote storage is mounted.
    host-dependent paths. Restore source roots using the manifest mapping; remap
    `RUNBOOK_DIR` and explicit mission roots. Apply 0700 directories and 0600 files.
    Do not print or paste `.env` contents into a terminal/transcript.
+   Before starting the restored gateway, run
+   `uv run --locked scripts/securiser_services.py` to regenerate the individual
+   authentication mounts from the preserved credentials. This requires
+   `apache2-utils`; it refuses mismatched values instead of silently rotating
+   keys. Recreate the affected containers so they use the new mount inodes.
 4. Restore each service into fresh volumes/databases. Restore PostgreSQL with the
    matching major version and intended owner, then check roles/grants. Restore
    Qdrant snapshots and aliases and validate or rebuild the runbook index. Import

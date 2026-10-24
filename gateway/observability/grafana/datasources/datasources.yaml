@@ -28,6 +28,10 @@ datasources:
     type: prometheus
     access: proxy
     url: http://prometheus:9090
+    basicAuth: true
+    basicAuthUser: platform
+    secureJsonData:
+      basicAuthPassword: $PROMETHEUS_PASSWORD
     jsonData:
       timeInterval: 15s
       exemplarTraceIdDestinations:

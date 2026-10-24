@@ -2,6 +2,10 @@
 
 Open [Grafana](http://localhost:3000/d/plateforme-sre) on the platform machine.
 Grafana keeps its own authentication; the console does not embed its password.
+Its Prometheus datasource authenticates on the backend. Prometheus itself
+requires the `platform` account; Qdrant scraping uses a separate read-only key.
+Provision these credentials through [gateway setup](../gateway/README.md),
+including the regenerated mounts after restoring a private environment.
 Use the dashboard links to switch between six views and English/French:
 
 | View | English UID | French UID | What to inspect |

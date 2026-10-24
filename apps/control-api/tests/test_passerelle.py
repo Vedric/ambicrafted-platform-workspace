@@ -255,12 +255,18 @@ def test_configuration_profils_fermes_et_credentials_separes(tmp_path, monkeypat
     monkeypatch.setenv("HTTP_PROXY", "https://proxy.example.invalid")
     monkeypatch.setenv("LITELLM_BASE_URL", "http://127.0.0.1:4000/v1")
     monkeypatch.setenv("QDRANT_URL", "http://127.0.0.1:6333")
+    monkeypatch.setenv("QDRANT_READ_ONLY_API_KEY", "synthetic-read-only")
+    monkeypatch.setenv("QDRANT_API_KEY", "synthetic-administration")
+    monkeypatch.setenv("PROMETHEUS_PASSWORD", "synthetic-monitoring")
     definitions = configurations()
     runbooks, controle = (d.processus for d in definitions)
     assert runbooks.env["CONFIDENTIAL_KEY"] == "synthetic-confidential"
+    assert runbooks.env["QDRANT_READ_ONLY_API_KEY"] == "synthetic-read-only"
     assert "CONFIDENTIAL_KEY" not in controle.env
+    assert "QDRANT_READ_ONLY_API_KEY" not in controle.env
     for processus in [runbooks, controle]:
         assert not {"PLATFORM_UI_KEY", "ORCHESTRATOR_KEY", "HTTP_PROXY"} & processus.env.keys()
+        assert not {"QDRANT_API_KEY", "PROMETHEUS_PASSWORD"} & processus.env.keys()
     assert [d.nom for d in configurations("runbooks")] == ["runbooks"]
     assert [d.nom for d in configurations("controle")] == ["controle"]
     with pytest.raises(ValueError):

@@ -1,10 +1,13 @@
 """Probe contracts tolerate unavailable and malformed local dependencies."""
 
 import asyncio
+import base64
+import secrets
 
 import httpx
 import pytest
 
+from plateforme.config import enregistrer_secret
 from plateforme.corpus import instantane_index
 from plateforme.services import SERVICES, Services
 
@@ -34,6 +37,38 @@ def reponse_valide(requete):
 
 
 @pytest.mark.asyncio
+async def test_credentials_scoped_to_service_without_response_leak(parametres, monkeypatch):
+    lecture, ecriture, prom = (secrets.token_urlsafe(48) for _ in range(3))
+    for nom, valeur in (
+        ("QDRANT_READ_ONLY_API_KEY", lecture),
+        ("QDRANT_API_KEY", ecriture),
+        ("PROMETHEUS_PASSWORD", prom),
+    ):
+        enregistrer_secret(parametres.racine, nom, valeur)
+    appels = transport_simule(monkeypatch, reponse_valide)
+    services = Services(parametres)
+    resultat = await services.sante()
+    await services.cibles()
+    for appel in appels:
+        if appel.url.port == 6333:
+            assert appel.headers["api-key"] == lecture
+            assert "authorization" not in appel.headers
+        elif appel.url.port == 9090:
+            assert (
+                appel.headers["authorization"]
+                == "Basic " + base64.b64encode(("platform:" + prom).encode()).decode()
+            )
+            assert "api-key" not in appel.headers
+        else:
+            assert "authorization" not in appel.headers and "api-key" not in appel.headers
+        assert ecriture not in str(appel.headers)
+    assert all(secret not in str(resultat) for secret in (lecture, ecriture, prom))
+    env = parametres.environnement_agent()
+    assert env["QDRANT_READ_ONLY_API_KEY"] == lecture
+    assert "QDRANT_API_KEY" not in env and "PROMETHEUS_PASSWORD" not in env
+
+
+@pytest.mark.asyncio
 async def test_sante_sondes_fixes_cache_et_coalescence(parametres, monkeypatch):
     appels = transport_simule(monkeypatch, reponse_valide)
     services = Services(parametres)
@@ -48,6 +83,29 @@ async def test_sante_sondes_fixes_cache_et_coalescence(parametres, monkeypatch):
     assert all("authorization" not in r.headers for r in appels)
     await services.sante()
     assert len(appels) == len(SERVICES) + 2
+
+
+@pytest.mark.asyncio
+async def test_un_instantane_par_rafraichissement_et_identifiants_renouveles(parametres, monkeypatch):
+    premiere, seconde = (secrets.token_urlsafe(48) for _ in range(2))
+    lectures = []
+
+    def configuration(racine):
+        lectures.append(racine)
+        return {"QDRANT_READ_ONLY_API_KEY": premiere if len(lectures) == 1 else seconde}
+
+    monkeypatch.setattr("plateforme.services.lire_environnement", configuration)
+    appels = transport_simule(monkeypatch, reponse_valide)
+    services = Services(parametres)
+    await asyncio.gather(services.sante(), services.sante())
+    await services.sante()
+    assert lectures == [parametres.racine]
+    assert all(r.headers["api-key"] == premiere for r in appels if r.url.port == 6333)
+    appels.clear()
+    services.date = 0
+    await services.sante()
+    assert lectures == [parametres.racine] * 2
+    assert all(r.headers["api-key"] == seconde for r in appels if r.url.port == 6333)
 
 
 @pytest.mark.asyncio

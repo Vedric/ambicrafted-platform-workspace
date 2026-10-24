@@ -33,6 +33,7 @@ apps/console/test-results/
 apps/console/playwright-report/
 *.tsbuildinfo
 gateway/observability/.textfile/
+gateway/.service-auth/
 
 # Modèle de variables de la passerelle (valeurs factices), à versionner
 !.env.example
