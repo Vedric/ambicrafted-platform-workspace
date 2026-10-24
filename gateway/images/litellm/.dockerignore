@@ -6,3 +6,5 @@
 !backport_otel.py
 !test_otel_backport.py
 !test_otel_vendor.py
+!qualify_filelock.py
+!test_filelock_contract.py

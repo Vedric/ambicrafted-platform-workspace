@@ -18,6 +18,7 @@ from .annulation import avec_connexion
 from .assistant import dialoguer, preparer_dialogue
 from .catalogue import OUTILS
 from .config import Parametres, enregistrer_secret
+from .console import ConsoleStatique
 from .conversation_routes import routes as conversation_routes
 from .corpus import Corpus
 from .depot import Conflit, Depot, Introuvable
@@ -516,18 +517,10 @@ def creer_app(p: Parametres | None = None, moteur_classe=Moteur) -> FastAPI:
                 operation.terminer("error")
                 raise
 
-    @app.get("/{chemin:path}")
-    async def console(chemin: str):
-        if chemin.startswith("api/"):
-            raise HTTPException(404, "Route inconnue.")
-        candidat = (p.web / chemin).resolve()
-        if candidat.is_relative_to(p.web.resolve()) and candidat.is_file():
-            return FileResponse(candidat)
-        if (p.web / "index.html").is_file():
-            return FileResponse(p.web / "index.html", headers={"Cache-Control": "no-cache"})
-        return JSONResponse(
-            {"message": "Construire la console avec npm ci puis npm run build dans apps/console."},
-            status_code=503,
-        )
+    fichiers = ConsoleStatique(directory=p.web, check_dir=False)
+
+    @app.api_route("/{chemin:path}", methods=["GET", "HEAD"])
+    async def console(chemin: str, request: Request):
+        return await fichiers.get_response(chemin, request.scope)
 
     return app

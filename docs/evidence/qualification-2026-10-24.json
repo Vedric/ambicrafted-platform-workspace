@@ -1,0 +1,233 @@
+{
+  "date": "2026-10-24",
+  "scope": "local synthetic qualification, separate from hosted gates and live promotion",
+  "receipts": {
+    "images": {
+      "sha256": "5a78b909e0927242bb4899078b698b475bf3183004230580d029c8f7593ba8c0",
+      "result": {
+        "recorded_at": "2026-10-24T15:11:36.936419+00:00",
+        "scanner_sha256": "d89bcc6510a267f11b773398cbf1be5520ce39f9e8b6633178c4487f05b7d791",
+        "services": [
+          {
+            "service": "grafana",
+            "image_id": "sha256:3f4187233880350e6acdeed1726c72d14d036930232fc4d35d1b2869cb552730",
+            "exit_code": 0,
+            "seconds": 12.957,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 1
+            },
+            "report_sha256": "149ed7dbe249b8e8c530821e550fe38b390debe3a732059e9da706b5b5af5210"
+          },
+          {
+            "service": "litellm",
+            "image_id": "sha256:34224ed37f43ecfaad1816444c8ecbc1dfaba6110ae34fc85356169f0c2220fd",
+            "exit_code": 0,
+            "seconds": 8.594,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 1,
+              "LOW": 0,
+              "UNKNOWN": 0
+            },
+            "report_sha256": "6eaf42a247e2178a887827eaf09856a95ad3fa323a98c79213d847b562cec4b3"
+          },
+          {
+            "service": "neo4j",
+            "image_id": "sha256:01dae1b7e86152078159661fcbe550b69fba711101cb9f115e1db7c9c30bd626",
+            "exit_code": 0,
+            "seconds": 5.483,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 1,
+              "UNKNOWN": 0
+            },
+            "report_sha256": "53d59835b43126cafcb66fa685ca13c37a6105565944cf4e9a18d56e3e1b0e2f"
+          },
+          {
+            "service": "platform-metrics",
+            "image_id": "sha256:3d61be203211b1cb7e755da74ad1423d20deb2d7cdd59be4ad4d741c31ef5a9c",
+            "exit_code": 0,
+            "seconds": 0.115,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 1
+            },
+            "report_sha256": "c52f7ed5106382f7eca281cc3b0dd214ac2d2c5b4558fc8bde1d256370502801"
+          },
+          {
+            "service": "postgres",
+            "image_id": "sha256:996e5b41aa3aa9e556c8db65a7ceb08e453b8b2eaa211806311ccee69c76b004",
+            "exit_code": 0,
+            "seconds": 0.165,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 0
+            },
+            "report_sha256": "2d1c25b2a8314146a43e34db3bd3f7c5020450e8e97b0bc151fe0b68f5d08fcd"
+          },
+          {
+            "service": "prometheus",
+            "image_id": "sha256:7eb4b64d260f950f061dfd5d5cd023e5e2915234ec349e3883f753441f11161d",
+            "exit_code": 0,
+            "seconds": 0.165,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 2
+            },
+            "report_sha256": "f0d4768368399ff47d6ffddc1f5cc2f547cfb41267f46a3694a3580191efeb3c"
+          },
+          {
+            "service": "qdrant",
+            "image_id": "sha256:128569ee32e8e750985b4a84860e22e2f02f7edefb7de82ecb94fbe29f36dac3",
+            "exit_code": 0,
+            "seconds": 1.721,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 23,
+              "LOW": 8,
+              "UNKNOWN": 0
+            },
+            "report_sha256": "298a4c18bbf1708c18365a029ba4a6d6915bb0e0624174c56eddd436f6ecb360"
+          },
+          {
+            "service": "tempo",
+            "image_id": "sha256:c40ff8fc5994ace7feabdabd5e80f13a08d48f074c5b6c6f335fb0316dfd0412",
+            "exit_code": 0,
+            "seconds": 0.165,
+            "counts": {
+              "CRITICAL": 0,
+              "HIGH": 0,
+              "MEDIUM": 0,
+              "LOW": 0,
+              "UNKNOWN": 2
+            },
+            "report_sha256": "b9328694219f147b9ca131f3aee32f2fea1f40b9132d2c0bb85a618f23d89896"
+          }
+        ],
+        "all_images_scanned": true,
+        "high_critical_gate_passed": true,
+        "db_metadata": {
+          "Version": 2,
+          "NextUpdate": "2026-10-25T13:07:23.340317232Z",
+          "UpdatedAt": "2026-10-24T13:07:23.340317483Z",
+          "DownloadedAt": "2026-10-24T14:52:42.77367075Z"
+        },
+        "java-db_metadata": {
+          "Version": 1,
+          "NextUpdate": "2026-10-27T01:07:32.115560063Z",
+          "UpdatedAt": "2026-10-24T01:07:32.115560183Z",
+          "DownloadedAt": "2026-10-24T14:53:50.407244391Z"
+        }
+      }
+    },
+    "browser": {
+      "sha256": "6d6ec4d21c3d53b6c16cf656f62bc66c480c27f7a2aff7b07fff8c1c381f3dab",
+      "result": {
+        "exit_code": 0,
+        "seconds": 992.942,
+        "finished_at": "2026-10-24T15:02:08.377699+00:00",
+        "selectors": [],
+        "log_sha256": "2df035644f4b45b6f9a0353e6cb20381a1b4d242d1751e4e15551d55684e23c4",
+        "stats": {
+          "startTime": "2026-10-24T14:45:54.240Z",
+          "duration": 991942.406,
+          "expected": 258,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      }
+    },
+    "api": {
+      "sha256": "9987852ed9907f38ea6b18161689f15701e44b27f83a00a0bc3d383df56588af",
+      "result": {
+        "exit_code": 0,
+        "seconds": 116.361,
+        "project": "control-api"
+      }
+    },
+    "voice_unit": {
+      "sha256": "a654fc080c71fb81e903c8a9e15d6689f5968e3758eeaad8a953db66caf36bdf",
+      "result": {
+        "exit_code": 0,
+        "seconds": 5.692,
+        "project": "voice"
+      }
+    },
+    "voice_real": {
+      "sha256": "9a1bacfacfcd7a5b18ca5be1ed153117e370b55144997bae8c29cf5669c977c6",
+      "result": {
+        "exit_code": 0,
+        "seconds": 129.782,
+        "network": "unshared",
+        "inputs": "synthetic voice fixtures only"
+      }
+    },
+    "python_advisories": {
+      "sha256": "11613622017997089d999167d8edf2a95a310c3a7b3222ea737b0fd16f564380",
+      "result": [
+        {
+          "project": "apps/control-api",
+          "exit_code": 0,
+          "seconds": 2.054,
+          "packages": 74,
+          "vulnerabilities": 0
+        },
+        {
+          "project": "apps/voice",
+          "exit_code": 0,
+          "seconds": 0.881,
+          "packages": 25,
+          "vulnerabilities": 0
+        },
+        {
+          "project": "agents/sre-agent",
+          "exit_code": 0,
+          "seconds": 1.101,
+          "packages": 67,
+          "vulnerabilities": 0
+        },
+        {
+          "project": "mcp-servers/runbooks",
+          "exit_code": 0,
+          "seconds": 0.582,
+          "packages": 48,
+          "vulnerabilities": 0
+        }
+      ]
+    },
+    "official_wheels": {
+      "sha256": "b28ae7655cc7ae319ab69af1de4979cc27b3fca562e6197007c0b5e77fc071f5",
+      "result": {
+        "filelock-4.2.4": {
+          "matched_official_wheel_files": 27
+        },
+        "pypdf-6.21.2": {
+          "matched_official_wheel_files": 63
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Browser inference is synthetic; real generation is qualified separately.",
+    "Physical microphone and speaker acceptance is not automated.",
+    "No zero-vulnerability or model-correctness claim."
+  ]
+}

@@ -7,7 +7,7 @@ before using confidential material.
 
 | Task | Read |
 | --- | --- |
-| Understand the delivered version and its measured limits | [Current qualification](QUALIFICATION-2026-10-23.md) |
+| Understand the delivered version and its measured limits | [Current qualification](QUALIFICATION-2026-10-24.md) |
 | Install on the supported Linux workstation | [Repository setup](../README.md#install), [host prerequisites](HOST-TOOLS.md), [gateway](../gateway/README.md), [models](../models/README.md) |
 | Open the UI, sign in and use the CLI | [Console](CONSOLE.md), [personal walkthrough](PERSONAL-USE.md) |
 | Learn through narrated examples | [User guide and local videos](GUIDES.md) |

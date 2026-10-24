@@ -99,6 +99,8 @@ FROM scratch AS os-packages
 ADD --checksum=sha256:e142255d0fa397f14318996bc10378093dcc069dc3dd1b6818c8f28a789c21da https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/musl-1.2.6-r3.apk /packages/musl.apk
 ADD --checksum=sha256:47263d05842c5e12d01e0369e5b5bea51733323501c00ca21968a5102de137ca https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/musl-utils-1.2.6-r3.apk /packages/musl-utils.apk
 
+ADD --checksum=sha256:62a7e37e43bbfc1f8525a00ad2125fd5897135dc93b849733884cb78ffd8e26c https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/brotli-libs-1.2.1-r0.apk /packages/brotli-libs.apk
+
 FROM application
 USER 0
 RUN --network=none --mount=type=bind,from=os-packages,source=/packages,target=/packages,ro \
@@ -106,5 +108,5 @@ RUN --network=none --mount=type=bind,from=os-packages,source=/packages,target=/p
     && apk add --no-network --no-cache --repositories-file /dev/null /packages/*.apk
 RUN --network=none --mount=type=bind,from=trust-tools,source=/policy,target=/policy,ro ["/policy/distrust", "-report", "/usr/share/ambicrafted/ca-distrust.json"]
 LABEL org.ambicrafted.trust.distrusted-sha256="86a1ecba089c4a8d3bbe2734c612ba341d813e043cf9e8a862cd5c57a36bbe6b"
-LABEL org.opencontainers.image.version="13.2.4-security.20261022.2"
+LABEL org.opencontainers.image.version="13.2.4-security.20261024.1"
 USER 472

@@ -1,5 +1,25 @@
 # Qualified LiteLLM derivative
 
+## Fixed dependency cohort — 2026-10-24
+
+The current derivative is `1.104.4-stable-security.20261024.1`, locally qualified
+as `sha256:34224ed37f43ecfaad1816444c8ecbc1dfaba6110ae34fc85356169f0c2220fd`.
+It installs pypdf 6.21.2, filelock 4.2.4 and Wolfi Brotli 1.2.0-r7 from verified
+upstream artifacts. [ADR 0055](../../../docs/adr/0055-dependances-corrigees-et-contrat-filelock.md)
+explains the **local** exact filelock constraint replacing upstream's incompatible
+`<4.0` declaration. Consumer source is unchanged; all active dependency
+requirements and real consumer behavior pass. This is not a claim of upstream
+LiteLLM support for filelock 4.x. Original/corrected metadata and source hashes
+remain in `/usr/share/ambicrafted/filelock-contract.json`.
+
+The full isolated gateway qualifier passes all seven checks in 90.752 seconds,
+including actual local generation, tracing, persistence and rollback from the
+preceding installed image. The fresh scan has 0 HIGH/CRITICAL and one MEDIUM,
+the separately verified OTel source backport below. See the
+[24 October qualification](../../../docs/QUALIFICATION-2026-10-24.md).
+Use this new tag when building the current recipe. The older sections and their
+commands describe historical builds, not tags to overwrite with today's Dockerfile.
+
 ## OpenTelemetry parser backport — 2026-10-23
 
 The `1.104.4-stable-security.20261023.1` derivative applies the official
